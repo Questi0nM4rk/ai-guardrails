@@ -1,0 +1,152 @@
+#!/bin/bash
+# ============================================
+# ai-hooks-init
+# Initialize git hooks for AI-driven development
+#
+# Usage:
+#   ai-hooks-init              # Auto-detect project type
+#   ai-hooks-init --global     # Install globally
+# ============================================
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Find script directory and lib path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib"
+
+# Check if installed globally
+if [[ -d "$HOME/.ai-guardrails/lib" ]]; then
+  LIB_DIR="$HOME/.ai-guardrails/lib"
+fi
+
+TEMPLATES_DIR="${LIB_DIR%/lib}/templates"
+
+usage() {
+  cat <<EOF
+Usage: ai-hooks-init [OPTIONS]
+
+Initialize git hooks and pre-commit for AI-driven development.
+
+Options:
+  --global        Install hooks globally (~/.ai-guardrails/)
+  --local         Install hooks to project (.ai-guardrails/)
+  --pre-commit    Also install pre-commit config
+  -h, --help      Show this help
+
+Examples:
+  ai-hooks-init                    # Install to project
+  ai-hooks-init --global           # Install globally
+  ai-hooks-init --pre-commit       # Also copy pre-commit config
+EOF
+}
+
+INSTALL_MODE="local"
+INSTALL_PRECOMMIT=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --global)
+      INSTALL_MODE="global"
+      shift
+      ;;
+    --local)
+      INSTALL_MODE="local"
+      shift
+      ;;
+    --pre-commit)
+      INSTALL_PRECOMMIT=true
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}Unknown option: $1${NC}"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+# Determine target directory
+if [[ "$INSTALL_MODE" == "global" ]]; then
+  TARGET_DIR="$HOME/.ai-guardrails"
+else
+  # Must be in a git repo for local install
+  if ! git rev-parse --git-dir &>/dev/null; then
+    echo -e "${RED}Error: Not in a git repository${NC}"
+    echo "Run 'git init' first or use --global for system-wide installation"
+    exit 1
+  fi
+  TARGET_DIR=".ai-guardrails"
+fi
+
+echo -e "${BLUE}AI Guardrails - Hooks Initialization${NC}"
+echo "Installing to: $TARGET_DIR"
+echo
+
+# Create directory structure
+mkdir -p "$TARGET_DIR/hooks"
+
+# Copy hooks
+echo -e "${GREEN}Copying hooks...${NC}"
+for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh auto-format.sh; do
+  if [[ -f "$LIB_DIR/hooks/$hook" ]]; then
+    cp "$LIB_DIR/hooks/$hook" "$TARGET_DIR/hooks/"
+    chmod +x "$TARGET_DIR/hooks/$hook"
+    echo "  ✓ $hook"
+  fi
+done
+
+# Copy pre-commit config if requested
+if [[ "$INSTALL_PRECOMMIT" == true ]]; then
+  if [[ -f "$TEMPLATES_DIR/pre-commit-config.yaml" ]]; then
+    echo -e "${GREEN}Copying pre-commit config...${NC}"
+    cp "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
+    echo "  ✓ .pre-commit-config.yaml"
+
+    # Install pre-commit if available
+    if command -v pre-commit &>/dev/null; then
+      echo -e "${GREEN}Installing pre-commit hooks...${NC}"
+      pre-commit install
+      echo "  ✓ pre-commit hooks installed"
+    else
+      echo -e "${YELLOW}Note: Install pre-commit to use the config:${NC}"
+      echo "  pip install pre-commit && pre-commit install"
+    fi
+  fi
+fi
+
+# Add to gitignore if local install
+if [[ "$INSTALL_MODE" == "local" && -d ".git" ]]; then
+  if ! grep -q "^.ai-guardrails/" .gitignore 2>/dev/null; then
+    echo -e "${GREEN}Adding .ai-guardrails/ to .gitignore...${NC}"
+    echo ".ai-guardrails/" >>.gitignore
+    echo "  ✓ Updated .gitignore"
+  fi
+fi
+
+echo
+echo -e "${GREEN}Hooks initialized successfully!${NC}"
+echo
+echo "Next steps:"
+if [[ "$INSTALL_MODE" == "global" ]]; then
+  echo "  1. Run 'ai-guardrails-init' in your project to set up Claude Code integration"
+else
+  echo "  1. Hooks are ready in $TARGET_DIR/hooks/"
+  echo "  2. Run 'ai-guardrails-init' to set up Claude Code integration"
+fi
+
+if [[ "$INSTALL_PRECOMMIT" == false ]]; then
+  echo
+  echo "To also install pre-commit config, run:"
+  echo "  ai-hooks-init --pre-commit"
+fi

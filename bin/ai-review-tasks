@@ -1,0 +1,27 @@
+#!/bin/bash
+# ============================================
+# ai-review-tasks
+# Extract actionable tasks from CodeRabbit PR reviews
+#
+# Usage:
+#   gh pr-review review view --pr 1 | ai-review-tasks
+#   ai-review-tasks reviews.json
+#   ai-review-tasks --severity major reviews.json
+# ============================================
+
+set -euo pipefail
+
+# Find the script's directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib/python"
+
+# Check if installed globally
+if [[ -d "$HOME/.ai-guardrails/lib/python" ]]; then
+  LIB_DIR="$HOME/.ai-guardrails/lib/python"
+fi
+
+# Find Python
+PYTHON="${AI_GUARDRAILS_PYTHON:-python3}"
+
+# Run the parser
+exec "$PYTHON" "$LIB_DIR/coderabbit_parser.py" "$@"

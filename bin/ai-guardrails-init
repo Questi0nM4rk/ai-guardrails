@@ -1,0 +1,267 @@
+#!/bin/bash
+# ============================================
+# ai-guardrails-init
+# Set up AI guardrails for Claude Code in a project
+#
+# Usage:
+#   ai-guardrails-init              # Auto-detect project type
+#   ai-guardrails-init --type rust  # Specify project type
+# ============================================
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Find script directory and templates path
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TEMPLATES_DIR="$SCRIPT_DIR/../templates"
+
+# Check if installed globally
+if [[ -d "$HOME/.ai-guardrails/templates" ]]; then
+  TEMPLATES_DIR="$HOME/.ai-guardrails/templates"
+fi
+
+usage() {
+  cat <<EOF
+Usage: ai-guardrails-init [OPTIONS]
+
+Set up AI guardrails for Claude Code in the current project.
+
+Options:
+  --type TYPE     Project type: dotnet, rust, lua, cpp, python, node
+  --no-claude-md  Skip CLAUDE.md template
+  --no-settings   Skip settings.json merge
+  --force         Overwrite existing files
+  -h, --help      Show this help
+
+Supported project types:
+  dotnet   - .NET / C# projects
+  rust     - Rust / Cargo projects
+  lua      - Lua projects (Neovim plugins, games)
+  cpp      - C/C++ / CMake projects
+  python   - Python projects
+  node     - Node.js / TypeScript projects
+
+Examples:
+  ai-guardrails-init                # Auto-detect
+  ai-guardrails-init --type rust    # Force Rust template
+  ai-guardrails-init --force        # Overwrite existing CLAUDE.md
+EOF
+}
+
+PROJECT_TYPE=""
+SKIP_CLAUDE_MD=false
+SKIP_SETTINGS=false
+FORCE=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --type)
+      PROJECT_TYPE="$2"
+      shift 2
+      ;;
+    --no-claude-md)
+      SKIP_CLAUDE_MD=true
+      shift
+      ;;
+    --no-settings)
+      SKIP_SETTINGS=true
+      shift
+      ;;
+    --force)
+      FORCE=true
+      shift
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}Unknown option: $1${NC}"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+# Auto-detect project type
+detect_project_type() {
+  if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]] || ls *.csproj 1>/dev/null 2>&1; then
+    echo "dotnet"
+  elif [[ -f "Cargo.toml" ]]; then
+    echo "rust"
+  elif ls *.rockspec 1>/dev/null 2>&1 || [[ -d "lua" && -f "init.lua" ]]; then
+    echo "lua"
+  elif [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]]; then
+    echo "cpp"
+  elif [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]]; then
+    echo "python"
+  elif [[ -f "package.json" ]]; then
+    echo "node"
+  else
+    echo ""
+  fi
+}
+
+if [[ -z "$PROJECT_TYPE" ]]; then
+  PROJECT_TYPE=$(detect_project_type)
+  if [[ -n "$PROJECT_TYPE" ]]; then
+    echo -e "${BLUE}Detected project type: $PROJECT_TYPE${NC}"
+  fi
+fi
+
+echo -e "${BLUE}AI Guardrails - Project Initialization${NC}"
+echo
+
+# Create .claude directory if it doesn't exist
+mkdir -p .claude
+
+# Copy CLAUDE.md template
+if [[ "$SKIP_CLAUDE_MD" == false ]]; then
+  if [[ -f "CLAUDE.md" && "$FORCE" == false ]]; then
+    echo -e "${YELLOW}CLAUDE.md already exists. Use --force to overwrite.${NC}"
+  else
+    TEMPLATE_FILE=""
+    if [[ -n "$PROJECT_TYPE" && -f "$TEMPLATES_DIR/CLAUDE.md.$PROJECT_TYPE" ]]; then
+      TEMPLATE_FILE="$TEMPLATES_DIR/CLAUDE.md.$PROJECT_TYPE"
+    fi
+
+    if [[ -n "$TEMPLATE_FILE" ]]; then
+      echo -e "${GREEN}Creating CLAUDE.md from $PROJECT_TYPE template...${NC}"
+      cp "$TEMPLATE_FILE" "CLAUDE.md"
+      echo "  ✓ CLAUDE.md created"
+    else
+      echo -e "${YELLOW}No template found for type '$PROJECT_TYPE'.${NC}"
+      echo "  Creating minimal CLAUDE.md..."
+      cat >"CLAUDE.md" <<'EOF'
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+[Describe your project here]
+
+## Commands
+
+```bash
+# Build
+[your build command]
+
+# Test
+[your test command]
+
+# Run
+[your run command]
+```
+
+## Architecture
+
+[Describe your architecture - directories, patterns, conventions]
+
+## Conventions
+
+[List your coding conventions and standards]
+EOF
+      echo "  ✓ CLAUDE.md created (minimal template)"
+    fi
+  fi
+fi
+
+# Merge settings.json
+if [[ "$SKIP_SETTINGS" == false ]]; then
+  echo -e "${GREEN}Setting up Claude Code settings...${NC}"
+
+  CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+  STRICT_TEMPLATE="$TEMPLATES_DIR/settings.json.strict"
+
+  if [[ -f "$STRICT_TEMPLATE" ]]; then
+    if [[ -f "$CLAUDE_SETTINGS" ]]; then
+      # Backup existing
+      cp "$CLAUDE_SETTINGS" "$CLAUDE_SETTINGS.backup.$(date +%Y%m%d%H%M%S)"
+
+      # Merge using Python (preserving existing, adding new hooks)
+      python3 - "$CLAUDE_SETTINGS" "$STRICT_TEMPLATE" <<'PYTHON'
+import json
+import sys
+
+existing_path = sys.argv[1]
+template_path = sys.argv[2]
+
+with open(existing_path) as f:
+    existing = json.load(f)
+with open(template_path) as f:
+    template = json.load(f)
+
+# Merge permissions deny list
+if "permissions" in template:
+    if "permissions" not in existing:
+        existing["permissions"] = template["permissions"]
+    else:
+        existing_deny = set(existing.get("permissions", {}).get("deny", []))
+        template_deny = set(template.get("permissions", {}).get("deny", []))
+        existing["permissions"]["deny"] = sorted(existing_deny | template_deny)
+
+# Add hooks (don't duplicate)
+if "hooks" in template:
+    if "hooks" not in existing:
+        existing["hooks"] = template["hooks"]
+    else:
+        for hook_type, hooks in template["hooks"].items():
+            if hook_type not in existing["hooks"]:
+                existing["hooks"][hook_type] = hooks
+            else:
+                # Check for duplicate commands
+                existing_cmds = {h.get("hooks", [{}])[0].get("command", "") for h in existing["hooks"][hook_type]}
+                for hook in hooks:
+                    cmd = hook.get("hooks", [{}])[0].get("command", "")
+                    if cmd and cmd not in existing_cmds and "ai-guardrails" in cmd:
+                        existing["hooks"][hook_type].append(hook)
+
+with open(existing_path, "w") as f:
+    json.dump(existing, f, indent=2)
+
+print("  ✓ Merged settings.json")
+PYTHON
+    else
+      echo "  Creating new settings.json..."
+      mkdir -p "$HOME/.claude"
+      cp "$STRICT_TEMPLATE" "$CLAUDE_SETTINGS"
+      echo "  ✓ Created settings.json"
+    fi
+  else
+    echo -e "${YELLOW}Warning: settings.json template not found${NC}"
+  fi
+fi
+
+# Create .ai-guardrails directory for local context
+mkdir -p .ai-guardrails
+
+# Add to .gitignore if not present
+if [[ -f ".gitignore" ]]; then
+  if ! grep -q "^.ai-guardrails/" .gitignore 2>/dev/null; then
+    echo ".ai-guardrails/" >>.gitignore
+    echo -e "${GREEN}Added .ai-guardrails/ to .gitignore${NC}"
+  fi
+else
+  echo ".ai-guardrails/" >.gitignore
+  echo -e "${GREEN}Created .gitignore with .ai-guardrails/${NC}"
+fi
+
+echo
+echo -e "${GREEN}AI Guardrails initialized successfully!${NC}"
+echo
+echo "Files created/updated:"
+[[ "$SKIP_CLAUDE_MD" == false ]] && echo "  • CLAUDE.md - Edit this to describe your project"
+[[ "$SKIP_SETTINGS" == false ]] && echo "  • ~/.claude/settings.json - Claude Code guardrails"
+echo "  • .ai-guardrails/ - Local context directory"
+echo
+echo "Next steps:"
+echo "  1. Edit CLAUDE.md to describe your project architecture"
+echo "  2. Run 'ai-hooks-init' to set up git hooks"
+echo "  3. Run 'ai-hooks-init --pre-commit' to add pre-commit config"
