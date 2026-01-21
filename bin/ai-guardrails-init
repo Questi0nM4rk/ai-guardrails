@@ -1,11 +1,12 @@
 #!/bin/bash
 # ============================================
 # ai-guardrails-init
-# Set up AI guardrails for Claude Code in a project
+# Set up pedantic code enforcement for any project
 #
 # Usage:
-#   ai-guardrails-init              # Auto-detect project type
+#   ai-guardrails-init              # Auto-detect and copy all relevant configs
 #   ai-guardrails-init --type rust  # Specify project type
+#   ai-guardrails-init --all        # Copy ALL configs (multi-language project)
 # ============================================
 
 set -euo pipefail
@@ -17,12 +18,14 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Find script directory and templates path
+# Find script directory and configs path
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIGS_DIR="$SCRIPT_DIR/../configs"
 TEMPLATES_DIR="$SCRIPT_DIR/../templates"
 
 # Check if installed globally
-if [[ -d "$HOME/.ai-guardrails/templates" ]]; then
+if [[ -d "$HOME/.ai-guardrails/configs" ]]; then
+  CONFIGS_DIR="$HOME/.ai-guardrails/configs"
   TEMPLATES_DIR="$HOME/.ai-guardrails/templates"
 fi
 
@@ -30,34 +33,35 @@ usage() {
   cat <<EOF
 Usage: ai-guardrails-init [OPTIONS]
 
-Set up AI guardrails for Claude Code in the current project.
+Set up pedantic code enforcement configs for the current project.
 
 Options:
-  --type TYPE     Project type: dotnet, rust, lua, cpp, python, node
-  --no-claude-md  Skip CLAUDE.md template
-  --no-settings   Skip settings.json merge
-  --force         Overwrite existing files
+  --type TYPE     Project type: dotnet, rust, lua, cpp, python, node, all
+  --all           Copy ALL configs (for multi-language projects)
+  --force         Overwrite existing config files
+  --no-precommit  Skip pre-commit config
   -h, --help      Show this help
 
-Supported project types:
-  dotnet   - .NET / C# projects
-  rust     - Rust / Cargo projects
-  lua      - Lua projects (Neovim plugins, games)
-  cpp      - C/C++ / CMake projects
-  python   - Python projects
-  node     - Node.js / TypeScript projects
+Configs installed per type:
+  all       .editorconfig, pre-commit-config.yaml, all language configs
+  dotnet    .editorconfig, Directory.Build.props, .globalconfig
+  rust      .editorconfig, rustfmt.toml
+  cpp       .editorconfig, .clang-format
+  lua       .editorconfig, stylua.toml
+  python    .editorconfig, ruff.toml
+  node      .editorconfig, biome.json
 
 Examples:
-  ai-guardrails-init                # Auto-detect
-  ai-guardrails-init --type rust    # Force Rust template
-  ai-guardrails-init --force        # Overwrite existing CLAUDE.md
+  ai-guardrails-init                # Auto-detect project type
+  ai-guardrails-init --type rust    # Rust project
+  ai-guardrails-init --all          # Multi-language project
 EOF
 }
 
 PROJECT_TYPE=""
-SKIP_CLAUDE_MD=false
-SKIP_SETTINGS=false
 FORCE=false
+SKIP_PRECOMMIT=false
+COPY_ALL=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,16 +69,16 @@ while [[ $# -gt 0 ]]; do
       PROJECT_TYPE="$2"
       shift 2
       ;;
-    --no-claude-md)
-      SKIP_CLAUDE_MD=true
-      shift
-      ;;
-    --no-settings)
-      SKIP_SETTINGS=true
+    --all)
+      COPY_ALL=true
       shift
       ;;
     --force)
       FORCE=true
+      shift
+      ;;
+    --no-precommit)
+      SKIP_PRECOMMIT=true
       shift
       ;;
     -h | --help)
@@ -91,177 +95,148 @@ done
 
 # Auto-detect project type
 detect_project_type() {
+  local types=""
+
   if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]] || ls *.csproj 1>/dev/null 2>&1; then
-    echo "dotnet"
-  elif [[ -f "Cargo.toml" ]]; then
-    echo "rust"
-  elif ls *.rockspec 1>/dev/null 2>&1 || [[ -d "lua" && -f "init.lua" ]]; then
-    echo "lua"
-  elif [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]]; then
-    echo "cpp"
-  elif [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]]; then
-    echo "python"
-  elif [[ -f "package.json" ]]; then
-    echo "node"
+    types="$types dotnet"
+  fi
+  if [[ -f "Cargo.toml" ]]; then
+    types="$types rust"
+  fi
+  if ls *.rockspec 1>/dev/null 2>&1 || [[ -d "lua" ]] || ls *.lua 1>/dev/null 2>&1; then
+    types="$types lua"
+  fi
+  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || ls *.cpp 1>/dev/null 2>&1 || ls *.c 1>/dev/null 2>&1; then
+    types="$types cpp"
+  fi
+  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || ls *.py 1>/dev/null 2>&1; then
+    types="$types python"
+  fi
+  if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
+    types="$types node"
+  fi
+
+  echo "$types"
+}
+
+copy_config() {
+  local src="$1"
+  local dst="$2"
+
+  if [[ -f "$dst" && "$FORCE" == false ]]; then
+    echo -e "  ${YELLOW}⊘ $(basename "$dst") exists (use --force to overwrite)${NC}"
+    return
+  fi
+
+  if [[ -f "$src" ]]; then
+    cp "$src" "$dst"
+    echo -e "  ${GREEN}✓ $(basename "$dst")${NC}"
   else
-    echo ""
+    echo -e "  ${RED}✗ $(basename "$src") not found${NC}"
   fi
 }
 
+echo -e "${BLUE}AI Guardrails - Pedantic Code Enforcement${NC}"
+echo
+
+# Determine what to copy
+if [[ "$COPY_ALL" == true ]]; then
+  PROJECT_TYPE="all"
+elif [[ -z "$PROJECT_TYPE" ]]; then
+  detected=$(detect_project_type)
+  if [[ -n "$detected" ]]; then
+    # Count detected types
+    type_count=$(echo "$detected" | wc -w)
+    if [[ $type_count -gt 1 ]]; then
+      echo -e "${BLUE}Detected multiple languages:${NC}$detected"
+      PROJECT_TYPE="all"
+    else
+      PROJECT_TYPE=$(echo "$detected" | xargs)
+      echo -e "${BLUE}Detected project type:${NC} $PROJECT_TYPE"
+    fi
+  fi
+fi
+
 if [[ -z "$PROJECT_TYPE" ]]; then
-  PROJECT_TYPE=$(detect_project_type)
-  if [[ -n "$PROJECT_TYPE" ]]; then
-    echo -e "${BLUE}Detected project type: $PROJECT_TYPE${NC}"
-  fi
+  echo -e "${YELLOW}Could not detect project type. Use --type or --all${NC}"
+  exit 1
 fi
 
-echo -e "${BLUE}AI Guardrails - Project Initialization${NC}"
 echo
 
-# Create .claude directory if it doesn't exist
-mkdir -p .claude
+# Always copy .editorconfig
+echo -e "${GREEN}Copying configs...${NC}"
+copy_config "$CONFIGS_DIR/.editorconfig" ".editorconfig"
 
-# Copy CLAUDE.md template
-if [[ "$SKIP_CLAUDE_MD" == false ]]; then
-  if [[ -f "CLAUDE.md" && "$FORCE" == false ]]; then
-    echo -e "${YELLOW}CLAUDE.md already exists. Use --force to overwrite.${NC}"
+# Copy language-specific configs
+case "$PROJECT_TYPE" in
+  all)
+    copy_config "$CONFIGS_DIR/ruff.toml" "ruff.toml"
+    copy_config "$CONFIGS_DIR/biome.json" "biome.json"
+    copy_config "$CONFIGS_DIR/.clang-format" ".clang-format"
+    copy_config "$CONFIGS_DIR/stylua.toml" "stylua.toml"
+    copy_config "$CONFIGS_DIR/rustfmt.toml" "rustfmt.toml"
+    copy_config "$CONFIGS_DIR/Directory.Build.props" "Directory.Build.props"
+    copy_config "$CONFIGS_DIR/.globalconfig" ".globalconfig"
+    ;;
+  dotnet)
+    copy_config "$CONFIGS_DIR/Directory.Build.props" "Directory.Build.props"
+    copy_config "$CONFIGS_DIR/.globalconfig" ".globalconfig"
+    ;;
+  rust)
+    copy_config "$CONFIGS_DIR/rustfmt.toml" "rustfmt.toml"
+    ;;
+  cpp)
+    copy_config "$CONFIGS_DIR/.clang-format" ".clang-format"
+    ;;
+  lua)
+    copy_config "$CONFIGS_DIR/stylua.toml" "stylua.toml"
+    ;;
+  python)
+    copy_config "$CONFIGS_DIR/ruff.toml" "ruff.toml"
+    ;;
+  node)
+    copy_config "$CONFIGS_DIR/biome.json" "biome.json"
+    ;;
+  *)
+    echo -e "${RED}Unknown project type: $PROJECT_TYPE${NC}"
+    exit 1
+    ;;
+esac
+
+# Copy pre-commit config
+if [[ "$SKIP_PRECOMMIT" == false ]]; then
+  echo
+  echo -e "${GREEN}Setting up pre-commit...${NC}"
+  copy_config "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
+
+  # Install pre-commit hooks if available
+  if command -v pre-commit &>/dev/null; then
+    if [[ -d ".git" ]]; then
+      pre-commit install 2>/dev/null && echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}" || true
+    fi
   else
-    TEMPLATE_FILE=""
-    if [[ -n "$PROJECT_TYPE" && -f "$TEMPLATES_DIR/CLAUDE.md.$PROJECT_TYPE" ]]; then
-      TEMPLATE_FILE="$TEMPLATES_DIR/CLAUDE.md.$PROJECT_TYPE"
-    fi
-
-    if [[ -n "$TEMPLATE_FILE" ]]; then
-      echo -e "${GREEN}Creating CLAUDE.md from $PROJECT_TYPE template...${NC}"
-      cp "$TEMPLATE_FILE" "CLAUDE.md"
-      echo "  ✓ CLAUDE.md created"
-    else
-      echo -e "${YELLOW}No template found for type '$PROJECT_TYPE'.${NC}"
-      echo "  Creating minimal CLAUDE.md..."
-      cat >"CLAUDE.md" <<'EOF'
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-[Describe your project here]
-
-## Commands
-
-```bash
-# Build
-[your build command]
-
-# Test
-[your test command]
-
-# Run
-[your run command]
-```
-
-## Architecture
-
-[Describe your architecture - directories, patterns, conventions]
-
-## Conventions
-
-[List your coding conventions and standards]
-EOF
-      echo "  ✓ CLAUDE.md created (minimal template)"
-    fi
+    echo -e "  ${YELLOW}Note: Install pre-commit to activate hooks:${NC}"
+    echo "    pip install pre-commit && pre-commit install"
   fi
 fi
 
-# Merge settings.json
-if [[ "$SKIP_SETTINGS" == false ]]; then
-  echo -e "${GREEN}Setting up Claude Code settings...${NC}"
-
-  CLAUDE_SETTINGS="$HOME/.claude/settings.json"
-  STRICT_TEMPLATE="$TEMPLATES_DIR/settings.json.strict"
-
-  if [[ -f "$STRICT_TEMPLATE" ]]; then
-    if [[ -f "$CLAUDE_SETTINGS" ]]; then
-      # Backup existing
-      cp "$CLAUDE_SETTINGS" "$CLAUDE_SETTINGS.backup.$(date +%Y%m%d%H%M%S)"
-
-      # Merge using Python (preserving existing, adding new hooks)
-      python3 - "$CLAUDE_SETTINGS" "$STRICT_TEMPLATE" <<'PYTHON'
-import json
-import sys
-
-existing_path = sys.argv[1]
-template_path = sys.argv[2]
-
-with open(existing_path) as f:
-    existing = json.load(f)
-with open(template_path) as f:
-    template = json.load(f)
-
-# Merge permissions deny list
-if "permissions" in template:
-    if "permissions" not in existing:
-        existing["permissions"] = template["permissions"]
-    else:
-        existing_deny = set(existing.get("permissions", {}).get("deny", []))
-        template_deny = set(template.get("permissions", {}).get("deny", []))
-        existing["permissions"]["deny"] = sorted(existing_deny | template_deny)
-
-# Add hooks (don't duplicate)
-if "hooks" in template:
-    if "hooks" not in existing:
-        existing["hooks"] = template["hooks"]
-    else:
-        for hook_type, hooks in template["hooks"].items():
-            if hook_type not in existing["hooks"]:
-                existing["hooks"][hook_type] = hooks
-            else:
-                # Check for duplicate commands
-                existing_cmds = {h.get("hooks", [{}])[0].get("command", "") for h in existing["hooks"][hook_type]}
-                for hook in hooks:
-                    cmd = hook.get("hooks", [{}])[0].get("command", "")
-                    if cmd and cmd not in existing_cmds and "ai-guardrails" in cmd:
-                        existing["hooks"][hook_type].append(hook)
-
-with open(existing_path, "w") as f:
-    json.dump(existing, f, indent=2)
-
-print("  ✓ Merged settings.json")
-PYTHON
-    else
-      echo "  Creating new settings.json..."
-      mkdir -p "$HOME/.claude"
-      cp "$STRICT_TEMPLATE" "$CLAUDE_SETTINGS"
-      echo "  ✓ Created settings.json"
-    fi
-  else
-    echo -e "${YELLOW}Warning: settings.json template not found${NC}"
-  fi
-fi
-
-# Create .ai-guardrails directory for local context
-mkdir -p .ai-guardrails
-
-# Add to .gitignore if not present
-if [[ -f ".gitignore" ]]; then
-  if ! grep -q "^.ai-guardrails/" .gitignore 2>/dev/null; then
+# Add .ai-guardrails to gitignore
+if [[ -d ".git" ]]; then
+  if ! grep -q "^\.ai-guardrails" .gitignore 2>/dev/null; then
     echo ".ai-guardrails/" >>.gitignore
-    echo -e "${GREEN}Added .ai-guardrails/ to .gitignore${NC}"
+    echo -e "  ${GREEN}✓ Added .ai-guardrails/ to .gitignore${NC}"
   fi
-else
-  echo ".ai-guardrails/" >.gitignore
-  echo -e "${GREEN}Created .gitignore with .ai-guardrails/${NC}"
 fi
 
 echo
-echo -e "${GREEN}AI Guardrails initialized successfully!${NC}"
+echo -e "${GREEN}Pedantic code enforcement initialized!${NC}"
 echo
-echo "Files created/updated:"
-[[ "$SKIP_CLAUDE_MD" == false ]] && echo "  • CLAUDE.md - Edit this to describe your project"
-[[ "$SKIP_SETTINGS" == false ]] && echo "  • ~/.claude/settings.json - Claude Code guardrails"
-echo "  • .ai-guardrails/ - Local context directory"
+echo "Configs installed enforce:"
+echo "  • Consistent formatting (EditorConfig + language formatters)"
+echo "  • Required type annotations"
+echo "  • Required documentation (docstrings, XML comments)"
+echo "  • Strict static analysis (warnings as errors)"
 echo
-echo "Next steps:"
-echo "  1. Edit CLAUDE.md to describe your project architecture"
-echo "  2. Run 'ai-hooks-init' to set up git hooks"
-echo "  3. Run 'ai-hooks-init --pre-commit' to add pre-commit config"
+echo "Run pre-commit on all files:"
+echo "  pre-commit run --all-files"

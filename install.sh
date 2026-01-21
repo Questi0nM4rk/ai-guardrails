@@ -139,7 +139,7 @@ if [[ "$FORCE" == true && -d "$INSTALL_DIR" ]]; then
   rm -rf "$INSTALL_DIR"
 fi
 
-mkdir -p "$INSTALL_DIR"/{bin,lib/hooks,lib/python,templates}
+mkdir -p "$INSTALL_DIR"/{bin,lib/hooks,lib/python,templates,configs}
 mkdir -p "$BIN_DIR"
 
 # Copy files
@@ -171,6 +171,15 @@ for template in "$SCRIPT_DIR/templates/"*; do
     basename=$(basename "$template")
     cp "$template" "$INSTALL_DIR/templates/"
     echo "  ✓ templates/$basename"
+  fi
+done
+
+# Copy configs
+for config in "$SCRIPT_DIR/configs/"*; do
+  if [[ -f "$config" ]]; then
+    basename=$(basename "$config")
+    cp "$config" "$INSTALL_DIR/configs/"
+    echo "  ✓ configs/$basename"
   fi
 done
 

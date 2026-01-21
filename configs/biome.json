@@ -1,0 +1,164 @@
+{
+	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+	"organizeImports": {
+		"enabled": true
+	},
+	"linter": {
+		"enabled": true,
+		"rules": {
+			"all": true,
+			"correctness": {
+				"all": true,
+				"noUndeclaredVariables": "off",
+				"noUnusedImports": "error",
+				"noUnusedVariables": "error",
+				"useExhaustiveDependencies": "warn"
+			},
+			"suspicious": {
+				"all": true,
+				"noExplicitAny": "error",
+				"noConsoleLog": "warn"
+			},
+			"style": {
+				"all": true,
+				"noNonNullAssertion": "error",
+				"useConst": "error",
+				"useExportType": "error",
+				"useImportType": "error",
+				"useBlockStatements": "error",
+				"noInferrableTypes": "off",
+				"useNamingConvention": {
+					"level": "error",
+					"options": {
+						"strictCase": true,
+						"conventions": [
+							{
+								"selector": { "kind": "variable" },
+								"formats": ["camelCase", "CONSTANT_CASE"]
+							},
+							{
+								"selector": { "kind": "function" },
+								"formats": ["camelCase"]
+							},
+							{
+								"selector": { "kind": "typeLike" },
+								"formats": ["PascalCase"]
+							},
+							{
+								"selector": { "kind": "interface" },
+								"formats": ["PascalCase"]
+							},
+							{
+								"selector": { "kind": "enum" },
+								"formats": ["PascalCase"]
+							},
+							{
+								"selector": { "kind": "enumMember" },
+								"formats": ["PascalCase", "CONSTANT_CASE"]
+							},
+							{
+								"selector": {
+									"kind": "classProperty",
+									"modifiers": ["private"]
+								},
+								"formats": ["camelCase"],
+								"match": "_.*"
+							}
+						]
+					}
+				}
+			},
+			"complexity": {
+				"all": true,
+				"noExcessiveCognitiveComplexity": {
+					"level": "error",
+					"options": { "maxAllowedComplexity": 15 }
+				}
+			},
+			"security": {
+				"all": true
+			},
+			"performance": {
+				"all": true
+			},
+			"a11y": {
+				"all": true
+			},
+			"nursery": {
+				"all": false
+			}
+		}
+	},
+	"formatter": {
+		"enabled": true,
+		"formatWithErrors": false,
+		"indentStyle": "space",
+		"indentWidth": 2,
+		"lineWidth": 100,
+		"lineEnding": "lf"
+	},
+	"javascript": {
+		"formatter": {
+			"quoteStyle": "double",
+			"jsxQuoteStyle": "double",
+			"trailingCommas": "all",
+			"semicolons": "always",
+			"arrowParentheses": "always",
+			"bracketSpacing": true,
+			"bracketSameLine": false,
+			"quoteProperties": "asNeeded"
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
+		}
+	},
+	"json": {
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "space",
+			"indentWidth": 2,
+			"lineEnding": "lf",
+			"lineWidth": 100,
+			"trailingCommas": "none"
+		}
+	},
+	"css": {
+		"formatter": {
+			"enabled": true,
+			"indentStyle": "space",
+			"indentWidth": 2,
+			"lineEnding": "lf",
+			"lineWidth": 100
+		},
+		"linter": {
+			"enabled": true
+		}
+	},
+	"overrides": [
+		{
+			"include": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "warn"
+					}
+				}
+			}
+		},
+		{
+			"include": [
+				"*.config.ts",
+				"*.config.js",
+				"vite.config.*",
+				"vitest.config.*"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noDefaultExport": "off"
+					}
+				}
+			}
+		}
+	]
+}

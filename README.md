@@ -1,201 +1,211 @@
 # AI Guardrails
 
-Reusable AI workflow utilities for any project. Extract PR review tasks,
-set up git hooks, and configure AI guardrails for Claude Code.
+Pedantic code enforcement for AI-maintained repositories. Ensures consistent
+formatting, required type annotations, mandatory documentation, and strict
+static analysis across all projects.
 
-## Features
+**Philosophy**: AI agents need guardrails. This is the fence.
 
-- **PR Task Extraction**: Parse CodeRabbit review comments into actionable JSON
-- **Git Hooks**: Pre-commit, pre-push, and auto-format hooks for AI development
-- **Claude Code Guardrails**: Strict settings to prevent dangerous operations
-- **Multi-language Support**: Templates for .NET, Rust, Lua, C++, Python, Node.js
+## What It Enforces
 
-## Installation
-
-```bash
-# Clone the repo
-git clone https://github.com/Questi0nM4rk/ai-guardrails.git
-cd ai-guardrails
-
-# Install globally
-./install.sh
-
-# Or install gh-pr-review extension (for PR task extraction)
-gh extension install agynio/gh-pr-review
-```
+| Requirement | Python | TypeScript | C# | Rust | C/C++ | Lua |
+|-------------|--------|------------|-----|------|-------|-----|
+| Formatting | ruff | biome | dotnet | rustfmt | clang | stylua |
+| Types | mypy | tsc | nullable | - | - | - |
+| Docs | docstrings | JSDoc | XML | rustdoc | doxygen | - |
+| Analysis | ruff | biome | analyzers | clippy | clang-tidy | luacheck |
+| Security | bandit | biome | analyzers | - | - | - |
 
 ## Quick Start
 
-### 1. Initialize a Project
-
 ```bash
+# Install globally
+git clone https://github.com/Questi0nM4rk/ai-guardrails.git
+cd ai-guardrails && ./install.sh
+
+# Initialize in any project
 cd /path/to/your/project
-
-# Set up CLAUDE.md and Claude Code settings
-ai-guardrails-init
-
-# Set up git hooks and pre-commit
-ai-hooks-init --pre-commit
-```
-
-### 2. Extract PR Review Tasks
-
-```bash
-# Fetch PR reviews and extract tasks
-gh pr-review review view --repo owner/repo --pr 123 --unresolved \
-  | ai-review-tasks --pretty
-
-# Filter by severity
-ai-review-tasks --severity major reviews.json
+ai-guardrails-init          # Auto-detects language, copies configs
+pre-commit run --all-files  # Run all checks
 ```
 
 ## Commands
 
 ### ai-guardrails-init
 
-Set up AI guardrails for Claude Code in your project.
+Copies pedantic configs to your project based on detected language(s).
 
 ```bash
-ai-guardrails-init                # Auto-detect project type
-ai-guardrails-init --type rust    # Specify project type
-ai-guardrails-init --force        # Overwrite existing CLAUDE.md
+ai-guardrails-init              # Auto-detect
+ai-guardrails-init --type rust  # Specific type
+ai-guardrails-init --all        # Multi-language project
+ai-guardrails-init --force      # Overwrite existing configs
 ```
 
-Creates:
+**Installed per type:**
 
-- `CLAUDE.md` - Project-specific guidance for Claude Code
-- `~/.claude/settings.json` - Guardrails (permissions, hooks)
-- `.ai-guardrails/` - Local context directory
+| Type | Configs |
+|------|---------|
+| `python` | `.editorconfig`, `ruff.toml` |
+| `node` | `.editorconfig`, `biome.json` |
+| `dotnet` | `.editorconfig`, `Directory.Build.props`, `.globalconfig` |
+| `rust` | `.editorconfig`, `rustfmt.toml` |
+| `cpp` | `.editorconfig`, `.clang-format` |
+| `lua` | `.editorconfig`, `stylua.toml` |
+| `all` | All of the above |
 
 ### ai-hooks-init
 
-Initialize git hooks for AI-driven development.
+Sets up git hooks for the project.
 
 ```bash
-ai-hooks-init              # Install to project
-ai-hooks-init --global     # Install globally
+ai-hooks-init              # Local hooks
+ai-hooks-init --global     # Global hooks
 ai-hooks-init --pre-commit # Also install pre-commit config
 ```
 
-Hooks installed:
-
-- `dangerous-command-check.sh` - Blocks dangerous bash commands
-- `pre-commit.sh` - Runs tests before commits
-- `pre-push.sh` - Full test suite + security scan before push
-- `auto-format.sh` - Auto-formats files after edits
-
 ### ai-review-tasks
 
-Extract actionable tasks from CodeRabbit PR reviews.
+Extracts actionable tasks from CodeRabbit PR reviews.
 
 ```bash
-# From stdin
-gh pr-review review view --pr 1 | ai-review-tasks
-
-# From file
-ai-review-tasks reviews.json
-
-# Pretty print
-ai-review-tasks --pretty reviews.json
-
-# Filter by severity (critical, major, minor, suggestion)
+gh pr-review review view --pr 1 | ai-review-tasks --pretty
 ai-review-tasks --severity major reviews.json
 ```
 
-Output format:
+## Configs
 
-```json
-{
-  "tasks": [
-    {
-      "id": "task-001",
-      "type": "inline",
-      "file": "src/main.rs",
-      "line": 42,
-      "message": "Fix memory leak in buffer handling",
-      "severity": "major",
-      "analysis": "The buffer is allocated but never freed...",
-      "suggested_fix": "- let buf = alloc();\n+ defer!(free(buf));"
-    }
-  ],
-  "summary": {
-    "total": 15,
-    "inline": 12,
-    "outside_diff": 2,
-    "nitpick": 1,
-    "by_severity": {
-      "critical": 0,
-      "major": 5,
-      "minor": 8,
-      "suggestion": 2
-    }
-  }
-}
-```
+### EditorConfig (`.editorconfig`)
 
-## Templates
+Universal formatting rules for all editors:
 
-### CLAUDE.md Templates
+- UTF-8, LF line endings
+- 4 spaces for most languages, 2 for JS/TS/YAML/Lua
+- 100 char line limit (80 for markdown)
+- C# naming conventions (PascalCase public, _camelCase private)
 
-Language-specific templates in `templates/`:
+### Python (`ruff.toml`)
 
-- `CLAUDE.md.dotnet` - .NET / C# projects
-- `CLAUDE.md.rust` - Rust / Cargo projects
-- `CLAUDE.md.lua` - Lua projects
-- `CLAUDE.md.cpp` - C/C++ / CMake projects
+- **ALL** ruff rules enabled
+- Google-style docstrings required
+- Type annotations required (via `flake8-annotations`)
+- Complexity limits (mccabe max 10)
+- Import sorting (isort style)
 
-### Pre-commit Config
+### TypeScript/JavaScript (`biome.json`)
 
-`templates/pre-commit-config.yaml` includes:
+- ALL biome rules enabled
+- `noExplicitAny: error`
+- Naming conventions enforced (PascalCase types, camelCase functions)
+- Cognitive complexity limit: 15
+- Strict formatting (double quotes, semicolons, trailing commas)
 
-- **Security**: gitleaks, detect-private-key
-- **Python**: ruff, bandit
-- **TypeScript**: biome, tsc
-- **C#/.NET**: dotnet format, dotnet build
-- **Shell**: shellcheck, shfmt
-- **Markdown**: markdownlint
+### C# (`.globalconfig` + `Directory.Build.props`)
 
-### Claude Code Settings
+- `TreatWarningsAsErrors: true`
+- `Nullable: enable`
+- `AnalysisLevel: latest-All`
+- StyleCop, Meziantou, Roslynator, SonarAnalyzer included
+- 200+ analyzer rules configured
 
-`templates/settings.json.strict` configures:
+### Rust (`rustfmt.toml`)
 
-- Blocked operations (rm -rf /, sudo, secrets access)
-- Pre-tool hooks for dangerous command detection
-- Post-tool hooks for auto-formatting
+- Edition 2021, 100 char lines
+- Imports grouped by std/external/crate
+- Comments wrapped at 80 chars
+- Doc comment code blocks formatted
+
+### C/C++ (`.clang-format`)
+
+- C++23 standard
+- LLVM-based style with modifications
+- Braces on same line
+- Aligned assignments, declarations, macros
+- Includes sorted and regrouped
+
+### Lua (`stylua.toml`)
+
+- 120 char lines, 2 space indent
+- Call parentheses always required
+- Requires sorted
+
+## Pre-commit Hooks
+
+The included `.pre-commit-config.yaml` runs:
+
+### Security
+
+- gitleaks (secrets detection)
+- detect-private-key
+- bandit (Python security)
+
+### Formatting
+
+- Language-specific formatters (ruff, biome, clang-format, etc.)
+- EditorConfig enforcement
+- Trailing whitespace, EOF fixer
+
+### Type Checking
+
+- mypy --strict (Python)
+- tsc --strict (TypeScript)
+- dotnet build -warnaserror (C#)
+
+### Static Analysis
+
+- ruff ALL rules (Python)
+- biome ALL rules (TypeScript)
+- clippy pedantic (Rust)
+- clang-tidy (C/C++)
+- luacheck (Lua)
+- shellcheck (Shell)
+
+### Documentation
+
+- cargo doc with `-D missing_docs` (Rust)
+- Docstring requirements via ruff (Python)
 
 ## Directory Structure
 
 ```text
 ai-guardrails/
 ├── bin/
-│   ├── ai-review-tasks        # PR task extraction CLI
-│   ├── ai-hooks-init          # Git hooks setup
-│   └── ai-guardrails-init     # Project setup
+│   ├── ai-guardrails-init    # Project setup
+│   ├── ai-hooks-init         # Git hooks setup
+│   └── ai-review-tasks       # PR task extraction
+├── configs/
+│   ├── .editorconfig         # Universal formatting
+│   ├── ruff.toml             # Python (pedantic)
+│   ├── biome.json            # TypeScript/JS (pedantic)
+│   ├── .clang-format         # C/C++ (pedantic)
+│   ├── stylua.toml           # Lua
+│   ├── rustfmt.toml          # Rust
+│   ├── Directory.Build.props # C# build config
+│   └── .globalconfig         # C# analyzer rules
 ├── lib/
-│   ├── hooks/                 # Hook scripts
-│   │   ├── dangerous-command-check.sh
-│   │   ├── pre-commit.sh
-│   │   ├── pre-push.sh
-│   │   └── auto-format.sh
-│   └── python/
-│       └── coderabbit_parser.py  # CodeRabbit comment parser
+│   ├── hooks/                # Git hook scripts
+│   └── python/               # Python utilities
 ├── templates/
-│   ├── pre-commit-config.yaml    # Multi-language pre-commit
-│   ├── settings.json.strict      # Claude Code guardrails
-│   └── CLAUDE.md.*               # Language templates
-├── install.sh
-└── README.md
+│   ├── pre-commit-config.yaml
+│   └── settings.json.strict
+└── install.sh
 ```
 
 ## Requirements
 
 - Python 3.10+
-- [GitHub CLI (gh)](https://cli.github.com/)
-- [gh-pr-review extension](https://github.com/agynio/gh-pr-review)
+- [pre-commit](https://pre-commit.com/)
+- Language-specific tools (installed automatically by pre-commit):
+  - Python: ruff, mypy, bandit
+  - TypeScript: biome, tsc
+  - Rust: rustfmt, clippy
+  - C/C++: clang-format, clang-tidy
+  - Lua: stylua, luacheck
+  - Shell: shellcheck, shfmt
 
 Optional:
 
-- [pre-commit](https://pre-commit.com/) - For running pre-commit hooks
+- [gh-pr-review](https://github.com/agynio/gh-pr-review) for PR task extraction
 
 ## License
 
