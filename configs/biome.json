@@ -12,12 +12,12 @@
 				"noUndeclaredVariables": "off",
 				"noUnusedImports": "error",
 				"noUnusedVariables": "error",
-				"useExhaustiveDependencies": "warn"
+				"useExhaustiveDependencies": "error"
 			},
 			"suspicious": {
 				"all": true,
 				"noExplicitAny": "error",
-				"noConsoleLog": "warn"
+				"noConsoleLog": "error"
 			},
 			"style": {
 				"all": true,
@@ -135,16 +135,6 @@
 		}
 	},
 	"overrides": [
-		{
-			"include": ["*.test.ts", "*.test.tsx", "*.spec.ts", "*.spec.tsx"],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noExplicitAny": "warn"
-					}
-				}
-			}
-		},
 		{
 			"include": [
 				"*.config.ts",
