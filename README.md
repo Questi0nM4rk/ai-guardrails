@@ -4,7 +4,8 @@ Pedantic code enforcement for AI-maintained repositories. Ensures consistent
 formatting, required type annotations, mandatory documentation, and strict
 static analysis across all projects.
 
-**Philosophy**: AI agents need guardrails. This is the fence.
+**Philosophy**: AI agents need hard stops. No warnings, no suggestions.
+Everything is an error or it's ignored. Black/white only.
 
 ## What It Enforces
 
@@ -14,7 +15,8 @@ static analysis across all projects.
 | Types | mypy | tsc | nullable | - | - | - |
 | Docs | docstrings | JSDoc | XML | rustdoc | doxygen | - |
 | Analysis | ruff | biome | analyzers | clippy | clang-tidy | luacheck |
-| Security | bandit | biome | analyzers | - | - | - |
+| Security | bandit+semgrep | biome | analyzers | audit | - | - |
+| CVE Scan | pip-audit | npm-audit | - | cargo-audit | - | - |
 
 ## Quick Start
 
@@ -26,6 +28,8 @@ cd ai-guardrails && ./install.sh
 # Initialize in any project
 cd /path/to/your/project
 ai-guardrails-init          # Auto-detects language, copies configs
+pre-commit install          # Install hooks
+pre-commit install --hook-type commit-msg  # Commit message validation
 pre-commit run --all-files  # Run all checks
 ```
 
@@ -75,95 +79,125 @@ ai-review-tasks --severity major reviews.json
 
 ## Configs
 
-### EditorConfig (`.editorconfig`)
-
-Universal formatting rules for all editors:
-
-- UTF-8, LF line endings
-- 4 spaces for most languages, 2 for JS/TS/YAML/Lua
-- 100 char line limit (80 for markdown)
-- C# naming conventions (PascalCase public, _camelCase private)
-
 ### Python (`ruff.toml`)
 
-- **ALL** ruff rules enabled
-- Google-style docstrings required
-- Type annotations required (via `flake8-annotations`)
-- Complexity limits (mccabe max 10)
-- Import sorting (isort style)
+**Zero escape routes for AI:**
+
+- ALL rules enabled (800+)
+- `from __future__ import annotations` required in every file
+- Google-style docstrings mandatory
+- Type annotations mandatory (no `Any` allowed)
+- Pathlib enforced (no `os.path`)
+- Modern syntax enforced (no `typing.Optional`, use `X | None`)
+- Relative imports banned
+- Complexity limits: 10 cyclomatic, 5 args, 30 statements, 3 nested blocks
 
 ### TypeScript/JavaScript (`biome.json`)
 
-- ALL biome rules enabled
-- `noExplicitAny: error`
-- Naming conventions enforced (PascalCase types, camelCase functions)
-- Cognitive complexity limit: 15
-- Strict formatting (double quotes, semicolons, trailing commas)
+**Zero escape routes for AI:**
+
+- ALL rules enabled
+- `noExplicitAny: error` (no exceptions)
+- `noParameterAssign: error`
+- `noDefaultExport: error` (named exports only)
+- `noForEach: error` (use for-of)
+- `noConsoleLog: error`
+- `noBarrelFile: error`
+- Kebab-case filenames enforced
+- Cognitive complexity limit: 10
+- Nested callbacks limit: 3
 
 ### C# (`.globalconfig` + `Directory.Build.props`)
 
 - `TreatWarningsAsErrors: true`
 - `Nullable: enable`
 - `AnalysisLevel: latest-All`
+- 200+ analyzer rules at ERROR severity
 - StyleCop, Meziantou, Roslynator, SonarAnalyzer included
-- 200+ analyzer rules configured
 
 ### Rust (`rustfmt.toml`)
 
 - Edition 2021, 100 char lines
 - Imports grouped by std/external/crate
-- Comments wrapped at 80 chars
-- Doc comment code blocks formatted
+- clippy::pedantic + clippy::nursery enabled
+- Missing docs = error
 
 ### C/C++ (`.clang-format`)
 
 - C++23 standard
 - LLVM-based style with modifications
-- Braces on same line
-- Aligned assignments, declarations, macros
-- Includes sorted and regrouped
+- clang-tidy with all checks enabled
 
 ### Lua (`stylua.toml`)
 
 - 120 char lines, 2 space indent
 - Call parentheses always required
-- Requires sorted
+
+### EditorConfig (`.editorconfig`)
+
+- UTF-8, LF line endings everywhere
+- Language-specific indent sizes
+- C# naming conventions (PascalCase public, _camelCase private)
 
 ## Pre-commit Hooks
 
-The included `.pre-commit-config.yaml` runs:
+The included `.pre-commit-config.yaml` runs 40+ checks:
 
-### Security
+### Security (runs first, fails fast)
 
-- gitleaks (secrets detection)
-- detect-private-key
-- bandit (Python security)
+- **gitleaks** - Secret detection
+- **detect-secrets** - Enhanced secret patterns
+- **detect-private-key** - Private key detection
+- **semgrep** - SAST security patterns (OWASP)
+- **bandit** - Python security linter
 
-### Formatting
+### Vulnerability Scanning
 
-- Language-specific formatters (ruff, biome, clang-format, etc.)
-- EditorConfig enforcement
-- Trailing whitespace, EOF fixer
+- **pip-audit** - Python dependency CVEs
+- **npm audit** - Node dependency CVEs
+- **cargo audit** - Rust dependency CVEs
+
+### Commit Message Enforcement
+
+- **conventional-pre-commit** - Requires conventional commit format
+- Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore
+
+### Spelling
+
+- **codespell** - Typo detection in code and filenames
 
 ### Type Checking
 
-- mypy --strict (Python)
-- tsc --strict (TypeScript)
-- dotnet build -warnaserror (C#)
+- **mypy --strict** (Python)
+- **tsc --strict** (TypeScript)
+- **dotnet build -warnaserror** (C#)
 
 ### Static Analysis
 
-- ruff ALL rules (Python)
-- biome ALL rules (TypeScript)
-- clippy pedantic (Rust)
-- clang-tidy (C/C++)
-- luacheck (Lua)
-- shellcheck (Shell)
+- **ruff** - ALL rules (Python)
+- **biome** - ALL rules (TypeScript/JS)
+- **clippy pedantic** (Rust)
+- **clang-tidy** (C/C++)
+- **luacheck** (Lua)
+- **shellcheck** (Shell)
 
-### Documentation
+### Formatting
 
-- cargo doc with `-D missing_docs` (Rust)
-- Docstring requirements via ruff (Python)
+- **ruff-format** (Python)
+- **biome** (TypeScript/JS)
+- **rustfmt** (Rust)
+- **clang-format** (C/C++)
+- **stylua** (Lua)
+- **shfmt** (Shell)
+- **taplo** (TOML)
+- **markdownlint** (Markdown)
+
+### Git Hygiene
+
+- No commits to main/master
+- No large files (>500KB)
+- No merge conflicts
+- Executables must have shebangs
 
 ## Directory Structure
 
@@ -196,16 +230,29 @@ ai-guardrails/
 - Python 3.10+
 - [pre-commit](https://pre-commit.com/)
 - Language-specific tools (installed automatically by pre-commit):
-  - Python: ruff, mypy, bandit
+  - Python: ruff, mypy, bandit, pip-audit
   - TypeScript: biome, tsc
-  - Rust: rustfmt, clippy
+  - Rust: rustfmt, clippy, cargo-audit
   - C/C++: clang-format, clang-tidy
   - Lua: stylua, luacheck
   - Shell: shellcheck, shfmt
+  - Security: semgrep, gitleaks, detect-secrets
 
 Optional:
 
 - [gh-pr-review](https://github.com/agynio/gh-pr-review) for PR task extraction
+
+## Why This Strict?
+
+AI agents:
+
+- Ignore warnings (only errors stop them)
+- Take shortcuts if allowed
+- Generate inconsistent code across projects
+- Skip documentation if optional
+- Use deprecated patterns if not banned
+
+This config removes all gray areas. Every rule is an error. No exceptions.
 
 ## License
 

@@ -3,11 +3,16 @@
 # =============================================================================
 # AI Guardrails - Multi-language strict enforcement
 #
+# Philosophy: AI agents need hard stops. No warnings, no suggestions.
+# Everything is an error or it's ignored. Black/white only.
+#
 # Requirements enforced:
 # - Type annotations (Python, TypeScript)
 # - Documentation (docstrings, XML comments, JSDoc)
 # - Consistent formatting (via language-specific configs)
 # - Static analysis (strict mode, warnings as errors)
+# - Security scanning (secrets, vulnerabilities, SAST)
+# - Commit message format (conventional commits)
 #
 # Languages: Python, TypeScript/JS, C#/.NET, Rust, C/C++, Lua, Shell
 # Dormant hooks auto-skip if no matching files exist.
@@ -30,11 +35,52 @@ repos:
       - id: gitleaks
         name: "🔒 security · gitleaks - detect secrets"
 
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        name: "🔒 security · detect-secrets - enhanced"
+        args: ["--baseline", ".secrets.baseline"]
+        exclude: package-lock\.json|\.secrets\.baseline
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: detect-private-key
         name: "🔒 security · detect private keys"
+
+  # Semgrep - SAST security patterns
+  - repo: https://github.com/semgrep/semgrep
+    rev: v1.102.0
+    hooks:
+      - id: semgrep
+        name: "🔒 security · semgrep SAST scan"
+        args: ["--config", "auto", "--error"]
+        exclude: ^tests/
+
+  # ===========================================================================
+  # 📝 COMMIT MESSAGE - CONVENTIONAL COMMITS REQUIRED
+  # ===========================================================================
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        name: "📝 commit · conventional commit format"
+        stages: [commit-msg]
+        args: [feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert]
+
+  # ===========================================================================
+  # 🔤 SPELLING - TYPO DETECTION
+  # ===========================================================================
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.3.0
+    hooks:
+      - id: codespell
+        name: "🔤 spelling · codespell typo check"
+        args: ["--write-changes", "--check-filenames"]
+        exclude: ^(poetry\.lock|package-lock\.json|\.secrets\.baseline)$
 
   # ===========================================================================
   # 🐍 PYTHON - PEDANTIC (requires types + docstrings)
@@ -75,6 +121,14 @@ repos:
         args: ["-ll", "-ii", "-r"]
         exclude: ^tests/
 
+  # pip-audit - Dependency vulnerability scanning
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.7.3
+    hooks:
+      - id: pip-audit
+        name: "🐍 python · pip-audit CVE scan"
+        args: ["--strict", "--progress-spinner", "off"]
+
   # ===========================================================================
   # 🟦 TYPESCRIPT/JAVASCRIPT - PEDANTIC (uses biome.json if present)
   # ===========================================================================
@@ -95,6 +149,14 @@ repos:
         args: ["--noEmit", "--strict", "--skipLibCheck"]
         language: system
         types: [ts, tsx]
+        pass_filenames: false
+
+      - id: npm-audit
+        name: "🟦 typescript · npm audit CVE scan"
+        entry: npm audit
+        args: ["--audit-level=moderate"]
+        language: system
+        files: package\.json$
         pass_filenames: false
 
   # ===========================================================================
@@ -150,9 +212,17 @@ repos:
         pass_filenames: false
 
       - id: cargo-doc
-        name: "🦀 rust · cargo doc (warn missing docs)"
+        name: "🦀 rust · cargo doc (error on missing docs)"
         entry: env RUSTDOCFLAGS="-D missing_docs -D rustdoc::broken_intra_doc_links" cargo doc
         args: ["--no-deps", "--all-features"]
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-audit
+        name: "🦀 rust · cargo audit CVE scan"
+        entry: cargo audit
+        args: ["--deny", "warnings"]
         language: system
         types: [rust]
         pass_filenames: false
@@ -180,7 +250,6 @@ repos:
         ]
         language: system
         types_or: [c, c++]
-        # Requires compile_commands.json - skip if not present
 
   # ===========================================================================
   # 🌙 LUA - PEDANTIC (uses stylua.toml)
@@ -198,7 +267,7 @@ repos:
       - id: luacheck
         name: "🌙 lua · luacheck lint"
         entry: luacheck
-        args: ["--globals", "vim", "--no-unused-args"]
+        args: ["--globals", "vim", "--no-unused-args", "--std", "luajit"]
         language: system
         types: [lua]
 
@@ -241,6 +310,14 @@ repos:
         name: "🐙 github · validate workflow files"
       - id: check-github-actions
         name: "🐙 github · validate action files"
+
+  # TOML validation and formatting
+  - repo: https://github.com/tamasfe/taplo
+    rev: 0.9.3
+    hooks:
+      - id: taplo
+        name: "📋 toml · taplo format check"
+        args: ["format", "--check"]
 
   # ===========================================================================
   # 🔧 UNIVERSAL QUALITY CHECKS
@@ -290,10 +367,19 @@ repos:
       - id: check-shebang-scripts-are-executable
         name: "🔧 files · shebang scripts executable"
 
+      # Python-specific
+      - id: check-ast
+        name: "🐍 python · check ast syntax"
+      - id: debug-statements
+        name: "🐍 python · no debug statements"
+      - id: name-tests-test
+        name: "🐍 python · test files named test_*"
+        args: [--pytest-test-first]
+
 # =============================================================================
 # INSTALLATION
 # =============================================================================
-# pip install pre-commit && pre-commit install
+# pip install pre-commit && pre-commit install && pre-commit install --hook-type commit-msg
 #
 # Also copy the language-specific configs to project root:
 #   - .editorconfig (all languages)
@@ -303,6 +389,9 @@ repos:
 #   - stylua.toml (Lua)
 #   - rustfmt.toml (Rust)
 #   - Directory.Build.props + .globalconfig (C#)
+#
+# For detect-secrets, initialize baseline:
+#   detect-secrets scan > .secrets.baseline
 #
 # Dormant hooks auto-skip if no matching files exist.
 # =============================================================================

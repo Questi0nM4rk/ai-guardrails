@@ -1,21 +1,24 @@
-# Ruff Configuration - Strict Python Linting
+# Ruff Configuration - PEDANTIC Python Linting
 # https://docs.astral.sh/ruff/configuration/
 # Copy to project root as ruff.toml
+#
+# Philosophy: AI agents need hard stops. No warnings, no suggestions.
+# Everything is an error or it's ignored.
 
 target-version = "py311"
 line-length = 88
 indent-width = 4
 
-# Strict: treat all fixable violations as errors
+# Strict: never auto-fix, force manual review
 fix = false
 unsafe-fixes = false
 
 [lint]
-# Enable ALL rules, then selectively ignore
+# Enable ALL rules - no exceptions for AI
 select = ["ALL"]
 
 ignore = [
-    # Conflicts with formatter
+    # === Formatter conflicts only ===
     "W191",   # tab-indentation
     "E111",   # indentation-with-invalid-multiple
     "E114",   # indentation-with-invalid-multiple-comment
@@ -30,21 +33,13 @@ ignore = [
     "COM819", # prohibited-trailing-comma
     "ISC001", # single-line-implicit-string-concatenation
     "ISC002", # multi-line-implicit-string-concatenation
-
-    # Project-specific (uncomment if needed)
-    # "D100",  # Missing docstring in public module
-    # "D104",  # Missing docstring in public package
 ]
 
-# Enforce docstrings
+# Enforce docstrings - Google style required
 [lint.pydocstyle]
 convention = "google"
 
-# Strict type checking hints
-[lint.flake8-type-checking]
-strict = true
-
-# Require type annotations
+# === TYPE ANNOTATIONS - MANDATORY ===
 [lint.flake8-annotations]
 allow-star-arg-any = false
 ignore-fully-untyped = false
@@ -52,39 +47,97 @@ mypy-init-return = true
 suppress-dummy-args = false
 suppress-none-returning = false
 
-# Import sorting
+# Strict type checking hints
+[lint.flake8-type-checking]
+strict = true
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+# === IMPORTS - TOP OF FILE ONLY ===
 [lint.isort]
 force-single-line = false
 force-sort-within-sections = true
 known-first-party = []
 combine-as-imports = true
 split-on-trailing-comma = true
+force-to-top = ["__future__"]
+required-imports = ["from __future__ import annotations"]
 
-# Naming conventions
+# === PATHLIB - MANDATORY (no os.path) ===
+# PTH rules are in ALL, this ensures they're not ignored
+
+# === RETURNS - EXPLICIT ALWAYS ===
+[lint.flake8-return]
+# RET rules are in ALL - explicit returns required
+
+# === SIMPLIFY - FORCE CLEAN CODE ===
+# SIM rules are in ALL - no complex conditionals
+
+# === NAMING CONVENTIONS ===
 [lint.pep8-naming]
-classmethod-decorators = ["classmethod", "pydantic.validator"]
+classmethod-decorators = ["classmethod", "pydantic.validator", "pydantic.field_validator"]
 staticmethod-decorators = ["staticmethod"]
 
-# Complexity limits
+# === COMPLEXITY LIMITS - STRICT ===
 [lint.mccabe]
 max-complexity = 10
 
-# Pylint-style checks
 [lint.pylint]
-max-args = 6
-max-branches = 12
-max-returns = 6
-max-statements = 50
-max-public-methods = 20
+max-args = 5
+max-bool-expr = 3
+max-branches = 10
+max-locals = 10
+max-nested-blocks = 3
+max-positional-args = 5
+max-public-methods = 15
+max-returns = 4
+max-statements = 30
 
-# Per-file ignores
+# === BUGBEAR - STRICT ===
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
+# === COMPREHENSIONS - FORCE CLEAN ===
+[lint.flake8-comprehensions]
+allow-dict-calls-with-keyword-arguments = false
+
+# === QUOTES - CONSISTENT ===
+[lint.flake8-quotes]
+inline-quotes = "double"
+multiline-quotes = "double"
+docstring-quotes = "double"
+
+# === TIDY IMPORTS ===
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.flake8-tidy-imports.banned-api]
+"typing.Optional".msg = "Use `X | None` instead"
+"typing.Union".msg = "Use `X | Y` instead"
+"typing.List".msg = "Use `list[X]` instead"
+"typing.Dict".msg = "Use `dict[X, Y]` instead"
+"typing.Set".msg = "Use `set[X]` instead"
+"typing.Tuple".msg = "Use `tuple[X, ...]` instead"
+
+# === ERRMSG - PROPER EXCEPTIONS ===
+[lint.flake8-errmsg]
+max-string-length = 50
+
+# === PYTEST STYLE ===
+[lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "csv"
+parametrize-values-type = "list"
+raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]
+
+# === PER-FILE IGNORES - MINIMAL ===
 [lint.per-file-ignores]
 "tests/**/*.py" = [
     "S101",    # assert allowed in tests
     "ARG001",  # unused function argument (fixtures)
     "ARG002",  # unused method argument
-    "D103",    # missing docstring in public function
-    "PLR2004", # magic value comparison
+    "PLR2004", # magic value comparison in tests
+    "D103",    # docstring not required for test functions
 ]
 "__init__.py" = [
     "D104",    # missing docstring in public package
