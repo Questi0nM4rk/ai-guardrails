@@ -20,7 +20,7 @@ fi
 
 # Full test suite based on project type
 run_full_tests() {
-  if ls *.csproj 1>/dev/null 2>&1 || ls *.sln 1>/dev/null 2>&1; then
+  if ls ./*.csproj 1>/dev/null 2>&1 || ls ./*.sln 1>/dev/null 2>&1; then
     if command -v dotnet &>/dev/null; then
       echo "  .NET: Running full test suite..."
       dotnet test --verbosity quiet || return 1

@@ -118,7 +118,7 @@ ai-review-tasks --severity major reviews.json
 ### Rust (`rustfmt.toml`)
 
 - Edition 2021, 100 char lines
-- Imports grouped by std/external/crate
+- Imports grouped by std/external/create
 - clippy::pedantic + clippy::nursery enabled
 - Missing docs = error
 
