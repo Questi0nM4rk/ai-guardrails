@@ -312,12 +312,12 @@ repos:
         name: "🐙 github · validate action files"
 
   # TOML validation and formatting
-  - repo: https://github.com/tamasfe/taplo
-    rev: 0.9.3
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
     hooks:
-      - id: taplo
+      - id: taplo-format
         name: "📋 toml · taplo format check"
-        args: ["format", "--check"]
+        args: ["--check"]
 
   # ===========================================================================
   # 🔧 UNIVERSAL QUALITY CHECKS

@@ -97,19 +97,19 @@ done
 detect_project_type() {
   local types=""
 
-  if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]] || ls *.csproj 1>/dev/null 2>&1; then
+  if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]] || ls ./*.csproj 1>/dev/null 2>&1; then
     types="$types dotnet"
   fi
   if [[ -f "Cargo.toml" ]]; then
     types="$types rust"
   fi
-  if ls *.rockspec 1>/dev/null 2>&1 || [[ -d "lua" ]] || ls *.lua 1>/dev/null 2>&1; then
+  if ls ./*.rockspec 1>/dev/null 2>&1 || [[ -d "lua" ]] || ls ./*.lua 1>/dev/null 2>&1; then
     types="$types lua"
   fi
-  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || ls *.cpp 1>/dev/null 2>&1 || ls *.c 1>/dev/null 2>&1; then
+  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || ls ./*.cpp 1>/dev/null 2>&1 || ls ./*.c 1>/dev/null 2>&1; then
     types="$types cpp"
   fi
-  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || ls *.py 1>/dev/null 2>&1; then
+  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || ls ./*.py 1>/dev/null 2>&1; then
     types="$types python"
   fi
   if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
@@ -213,7 +213,9 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
   # Install pre-commit hooks if available
   if command -v pre-commit &>/dev/null; then
     if [[ -d ".git" ]]; then
-      pre-commit install 2>/dev/null && echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}" || true
+      if pre-commit install 2>/dev/null; then
+        echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}"
+      fi
     fi
   else
     echo -e "  ${YELLOW}Note: Install pre-commit to activate hooks:${NC}"

@@ -79,7 +79,7 @@ run_node_checks() {
 }
 
 # Detect project type and run checks
-if ls *.csproj 1>/dev/null 2>&1 || ls *.sln 1>/dev/null 2>&1; then
+if ls ./*.csproj 1>/dev/null 2>&1 || ls ./*.sln 1>/dev/null 2>&1; then
   run_dotnet_checks
 fi
 
@@ -91,7 +91,7 @@ if [ -f "CMakeLists.txt" ] || [ -f "Makefile" ]; then
   run_cpp_checks
 fi
 
-if ls *.rockspec 1>/dev/null 2>&1 || [ -d "spec" ]; then
+if ls ./*.rockspec 1>/dev/null 2>&1 || [ -d "spec" ]; then
   run_lua_checks
 fi
 
