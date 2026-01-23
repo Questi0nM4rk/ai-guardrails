@@ -41,9 +41,10 @@ class Task:
     severity: Severity
     analysis: str | None = None
     suggested_fix: str | None = None
+    analysis_chain: str | None = None  # Script execution results from CodeRabbit
 
     def to_dict(self) -> dict:
-        return {
+        result = {
             "id": self.id,
             "type": self.type.value,
             "file": self.file,
@@ -53,6 +54,10 @@ class Task:
             "analysis": self.analysis,
             "suggested_fix": self.suggested_fix,
         }
+        # Only include analysis_chain if present
+        if self.analysis_chain:
+            result["analysis_chain"] = self.analysis_chain
+        return result
 
 
 def parse_severity(text: str) -> Severity:
@@ -96,6 +101,35 @@ def extract_suggested_fix(text: str) -> str | None:
     return None
 
 
+def extract_analysis_chain(text: str) -> str | None:
+    """Extract analysis chain (script execution) from <details> block."""
+    match = re.search(
+        r"<details>\s*<summary>🧩\s*Analysis chain</summary>\s*(.*?)</details>",
+        text,
+        re.DOTALL,
+    )
+    if match:
+        content = match.group(1).strip()
+        # Extract script and output if present
+        script_match = re.search(
+            r"🏁 Script executed:\s*```(?:shell|bash)?\n(.*?)```",
+            content,
+            re.DOTALL,
+        )
+        output_match = re.search(
+            r"Length of output:\s*(\d+)\s*\n+---\s*\n*(.*?)$",
+            content,
+            re.DOTALL,
+        )
+        result_parts = []
+        if script_match:
+            result_parts.append(f"Script:\n{script_match.group(1).strip()}")
+        if output_match and output_match.group(2).strip():
+            result_parts.append(f"Output:\n{output_match.group(2).strip()}")
+        return "\n\n".join(result_parts) if result_parts else content
+    return None
+
+
 def parse_inline_comment(comment: dict, task_num: int) -> Task | None:
     """Parse a single inline comment from gh-pr-review."""
     body = comment.get("body", "")
@@ -115,6 +149,7 @@ def parse_inline_comment(comment: dict, task_num: int) -> Task | None:
     clean_body = re.sub(r"_[⚠️🔴🟠🟡🟢].*?_\s*\|\s*_.*?_\s*\n*", "", body)
     title, description = extract_title_and_body(clean_body)
     suggested_fix = extract_suggested_fix(body)
+    analysis_chain = extract_analysis_chain(body)
 
     return Task(
         id=f"task-{task_num:03d}",
@@ -125,6 +160,7 @@ def parse_inline_comment(comment: dict, task_num: int) -> Task | None:
         severity=severity,
         analysis=description[:500] if description else None,
         suggested_fix=suggested_fix,
+        analysis_chain=analysis_chain,
     )
 
 
