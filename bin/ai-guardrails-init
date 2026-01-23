@@ -36,11 +36,14 @@ Usage: ai-guardrails-init [OPTIONS]
 Set up pedantic code enforcement configs for the current project.
 
 Options:
-  --type TYPE     Project type: dotnet, rust, lua, cpp, python, node, all
-  --all           Copy ALL configs (for multi-language projects)
-  --force         Overwrite existing config files
-  --no-precommit  Skip pre-commit config
-  -h, --help      Show this help
+  --type TYPE        Project type: dotnet, rust, lua, cpp, python, node, all
+  --all              Copy ALL configs (for multi-language projects)
+  --force            Overwrite existing config files
+  --no-precommit     Skip pre-commit config
+  --pip-audit-pip    Force pip-audit configuration for pip
+  --pip-audit-uv     Force pip-audit configuration for uv
+  --no-pip-audit     Disable pip-audit hook
+  -h, --help         Show this help
 
 Configs installed per type:
   all       .editorconfig, pre-commit-config.yaml, all language configs
@@ -52,9 +55,10 @@ Configs installed per type:
   node      .editorconfig, biome.json
 
 Examples:
-  ai-guardrails-init                # Auto-detect project type
-  ai-guardrails-init --type rust    # Rust project
-  ai-guardrails-init --all          # Multi-language project
+  ai-guardrails-init                   # Auto-detect project type
+  ai-guardrails-init --type rust       # Rust project
+  ai-guardrails-init --all             # Multi-language project
+  ai-guardrails-init --pip-audit-uv    # Force uv configuration for pip-audit
 EOF
 }
 
@@ -62,6 +66,7 @@ PROJECT_TYPE=""
 FORCE=false
 SKIP_PRECOMMIT=false
 COPY_ALL=false
+PIP_AUDIT_MODE="auto"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -81,6 +86,18 @@ while [[ $# -gt 0 ]]; do
       SKIP_PRECOMMIT=true
       shift
       ;;
+    --pip-audit-pip)
+      PIP_AUDIT_MODE="pip"
+      shift
+      ;;
+    --pip-audit-uv)
+      PIP_AUDIT_MODE="uv"
+      shift
+      ;;
+    --no-pip-audit)
+      PIP_AUDIT_MODE="none"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -97,7 +114,7 @@ done
 detect_project_type() {
   local types=""
 
-  if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]] || ls ./*.csproj 1>/dev/null 2>&1; then
+  if [[ -f "*.csproj" ]] || ls ./*.sln 1>/dev/null 2>&1 || ls ./*.csproj 1>/dev/null 2>&1; then
     types="$types dotnet"
   fi
   if [[ -f "Cargo.toml" ]]; then
@@ -117,6 +134,59 @@ detect_project_type() {
   fi
 
   echo "$types"
+}
+
+detect_python_deps() {
+  # Auto-detect Python dependency management tool
+  # Returns: "uv", "pip", or "none"
+
+  if [[ -f "uv.lock" ]]; then
+    echo "uv"
+  elif [[ -f "requirements.txt" ]]; then
+    echo "pip"
+  elif [[ -f "pyproject.toml" ]] && ! [[ -f "uv.lock" ]]; then
+    # Has pyproject.toml but no uv.lock → assume pip
+    echo "pip"
+  else
+    echo "none"
+  fi
+}
+
+configure_pip_audit() {
+  local tool="$1"
+  local config_file=".pre-commit-config.yaml"
+
+  case "$tool" in
+    uv)
+      # Uncomment pip-audit and configure for uv
+      sed -i 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+      sed -i 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+      sed -i 's/^#     \(hooks:\)/    \1/' "$config_file"
+      sed -i 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+      sed -i 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+      sed -i 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
+      echo -e "  ${GREEN}✓ Configured pip-audit for uv (--locked .)${NC}"
+      ;;
+    pip)
+      # Uncomment pip-audit and configure for pip
+      sed -i 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+      sed -i 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+      sed -i 's/^#     \(hooks:\)/    \1/' "$config_file"
+      sed -i 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+      sed -i 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+      if [[ -f "requirements.txt" ]]; then
+        sed -i 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]/' "$config_file"
+        echo -e "  ${GREEN}✓ Configured pip-audit for pip (-r requirements.txt)${NC}"
+      else
+        sed -i 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
+        echo -e "  ${GREEN}✓ Configured pip-audit for pip (--locked .)${NC}"
+      fi
+      ;;
+    none)
+      echo -e "  ${YELLOW}⚠ No Python dependency tool detected - pip-audit left disabled${NC}"
+      echo -e "  ${YELLOW}  Run with --pip-audit-pip or --pip-audit-uv to enable manually${NC}"
+      ;;
+  esac
 }
 
 copy_config() {
@@ -209,6 +279,15 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
   echo
   echo -e "${GREEN}Setting up pre-commit...${NC}"
   copy_config "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
+
+  # Auto-detect and configure pip-audit
+  if [[ "$PIP_AUDIT_MODE" == "auto" ]]; then
+    PIP_AUDIT_MODE=$(detect_python_deps)
+  fi
+
+  if [[ -f ".pre-commit-config.yaml" ]]; then
+    configure_pip_audit "$PIP_AUDIT_MODE"
+  fi
 
   # Install pre-commit hooks if available
   if command -v pre-commit &>/dev/null; then

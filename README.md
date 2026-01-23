@@ -118,7 +118,7 @@ ai-review-tasks --severity major reviews.json
 ### Rust (`rustfmt.toml`)
 
 - Edition 2021, 100 char lines
-- Imports grouped by std/external/create
+- Imports grouped by std/external/crate
 - clippy::pedantic + clippy::nursery enabled
 - Missing docs = error
 
@@ -130,7 +130,7 @@ ai-review-tasks --severity major reviews.json
 
 ### Lua (`stylua.toml`)
 
-- 120 char lines, 2 space indent
+- 120-char lines, 2-space indent
 - Call parentheses always required
 
 ### EditorConfig (`.editorconfig`)
@@ -156,6 +156,83 @@ The included `.pre-commit-config.yaml` runs 40+ checks:
 - **pip-audit** - Python dependency CVEs
 - **npm audit** - Node dependency CVEs
 - **cargo audit** - Rust dependency CVEs
+
+### CVE Scanning with pip-audit
+
+The `pip-audit` hook scans Python dependencies for known CVEs. It's
+**auto-configured** by `ai-guardrails-init` based on detected dependency
+management tool (uv or pip).
+
+#### Auto-Detection
+
+When you run `ai-guardrails-init`, it detects your Python dependency tool:
+
+- **uv detected** (`uv.lock` exists) → Configured with `--locked .`
+- **pip detected** (`requirements.txt` or `pyproject.toml`) → Configured
+  with `-r requirements.txt` or `--locked .`
+- **None detected** → Left disabled
+
+#### Manual Override
+
+Use flags to override auto-detection:
+
+```bash
+# Force uv configuration
+ai-guardrails-init --pip-audit-uv
+
+# Force pip configuration
+ai-guardrails-init --pip-audit-pip
+
+# Disable pip-audit
+ai-guardrails-init --no-pip-audit
+```
+
+#### Why This Matters
+
+Pre-commit hooks run in **isolated environments**. Without proper
+configuration, pip-audit scans the hook's environment instead of your
+project dependencies, making CVE scanning ineffective.
+
+#### Manual Configuration
+
+To manually enable/configure pip-audit in `.pre-commit-config.yaml`:
+
+**For uv:**
+
+```yaml
+- repo: https://github.com/pypa/pip-audit
+  rev: v2.10.0
+  hooks:
+    - id: pip-audit
+      name: "🐍 python · pip-audit CVE scan"
+      args: ["--strict", "--progress-spinner", "off", "--locked", "."]
+```
+
+**For pip + requirements.txt:**
+
+```yaml
+args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]
+```
+
+**For pip + pyproject.toml:**
+
+```yaml
+args: ["--strict", "--progress-spinner", "off", "--locked", "."]
+```
+
+#### Verification
+
+Test that pip-audit scans your actual dependencies:
+
+```bash
+pre-commit run pip-audit --all-files
+```
+
+You should see your project dependencies being scanned, not the hook
+environment.
+
+If pip-audit reports "No packages found", it's scanning the wrong
+environment - check your args configuration.
 
 ### Commit Message Enforcement
 
