@@ -128,25 +128,47 @@ def parse_inline_comment(comment: dict, task_num: int) -> Task | None:
     )
 
 
+def strip_blockquote_prefixes(text: str) -> str:
+    """Strip '> ' prefixes from GitHub blockquote markdown."""
+    lines = text.split("\n")
+    cleaned = []
+    for line in lines:
+        # Strip leading '> ' prefixes (can be nested)
+        while line.startswith("> "):
+            line = line[2:]
+        # Also handle bare '>' without space
+        if line == ">":
+            line = ""
+        cleaned.append(line)
+    return "\n".join(cleaned)
+
+
 def parse_outside_diff_section(body: str, start_num: int) -> list[Task]:
     """Parse 'Outside diff range comments' section from PR-level body."""
     tasks = []
 
-    # Find the outside diff section
-    match = re.search(
-        r"<summary>⚠️ Outside diff range comments.*?</summary>\s*<blockquote>(.*?)"
-        r"</blockquote>\s*</details>",
-        body,
-        re.DOTALL,
+    # Strip blockquote prefixes first (gh-pr-review wraps in markdown blockquotes)
+    clean_body = strip_blockquote_prefixes(body)
+
+    # Find start of outside diff section
+    start_match = re.search(
+        r"<summary>⚠️ Outside diff range comments.*?</summary>",
+        clean_body,
     )
-    if not match:
+    if not start_match:
         return tasks
 
-    section = match.group(1)
+    # Extract from start to end of body (or next major section)
+    section_start = start_match.end()
+    # Look for closing of the outer details block - it's the one that closes
+    # the "Outside diff range" section (has </blockquote></details> pattern
+    # that's NOT immediately followed by more file content)
+    section = clean_body[section_start:]
 
-    # Parse each file's comments
+    # Parse each file's comments - look for file detail blocks directly
+    # Pattern: <details><summary>filename.ext (N)</summary><blockquote>content</blockquote></details>
     file_pattern = re.compile(
-        r"<summary>([^<]+)\s*\(\d+\)</summary>\s*<blockquote>(.*?)</blockquote>",
+        r"<details>\s*<summary>([^<]+\.\w+)\s*\(\d+\)</summary>\s*<blockquote>(.*?)</blockquote>\s*</details>",
         re.DOTALL,
     )
 
@@ -188,20 +210,23 @@ def parse_nitpick_section(body: str, start_num: int) -> list[Task]:
     """Parse 'Nitpick comments' section from PR-level body."""
     tasks = []
 
-    # Find nitpick section
-    match = re.search(
-        r"<summary>.*?Nitpick.*?</summary>\s*<blockquote>(.*?)</blockquote>",
-        body,
-        re.DOTALL | re.IGNORECASE,
+    # Strip blockquote prefixes first (gh-pr-review wraps in markdown blockquotes)
+    clean_body = strip_blockquote_prefixes(body)
+
+    # Find start of nitpick section
+    start_match = re.search(
+        r"<summary>.*?Nitpick.*?</summary>",
+        clean_body,
+        re.IGNORECASE,
     )
-    if not match:
+    if not start_match:
         return tasks
 
-    section = match.group(1)
+    section = clean_body[start_match.end() :]
 
-    # Similar parsing to outside_diff
+    # Parse file detail blocks directly
     file_pattern = re.compile(
-        r"<summary>([^<]+)\s*\(\d+\)</summary>\s*<blockquote>(.*?)</blockquote>",
+        r"<details>\s*<summary>([^<]+\.\w+)\s*\(\d+\)</summary>\s*<blockquote>(.*?)</blockquote>\s*</details>",
         re.DOTALL,
     )
 
