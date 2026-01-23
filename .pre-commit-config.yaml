@@ -40,7 +40,7 @@ repos:
         name: "🔒 security · detect private keys"
 
   - repo: https://github.com/semgrep/semgrep
-    rev: v1.102.0
+    rev: v1.149.0
     hooks:
       - id: semgrep
         name: "🔒 security · semgrep SAST scan"
@@ -52,7 +52,7 @@ repos:
   # ===========================================================================
 
   - repo: https://github.com/compilerla/conventional-pre-commit
-    rev: v3.6.0
+    rev: v4.3.0
     hooks:
       - id: conventional-pre-commit
         name: "📝 commit · conventional commit format"
@@ -64,11 +64,11 @@ repos:
   # ===========================================================================
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.3.0
+    rev: v2.4.1
     hooks:
       - id: codespell
         name: "🔤 spelling · codespell typo check"
-        args: ["--write-changes", "--check-filenames"]
+        args: ["--check-filenames"]
         exclude: ^(poetry\.lock|package-lock\.json|\.secrets\.baseline)$
 
   # ===========================================================================
@@ -94,13 +94,15 @@ repos:
         args: ["-ll", "-ii", "-r"]
         exclude: ^tests/
 
-  # pip-audit - Dependency vulnerability scanning
-  - repo: https://github.com/pypa/pip-audit
-    rev: v2.7.3
-    hooks:
-      - id: pip-audit
-        name: "🐍 python · pip-audit CVE scan"
-        args: ["--strict", "--progress-spinner", "off"]
+  # pip-audit: Disabled (template repository has no Python dependencies)
+  # Configured automatically by ai-guardrails-init in target projects
+  #
+  # - repo: https://github.com/pypa/pip-audit
+  #   rev: v2.10.0
+  #   hooks:
+  #     - id: pip-audit
+  #       name: "🐍 python · pip-audit CVE scan"
+  #       args: ["--strict", "--progress-spinner", "off"]
 
   # ===========================================================================
   # 🟦 TYPESCRIPT/JAVASCRIPT - STRICT MODE (dormant if no TS/JS files)
