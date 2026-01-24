@@ -1,0 +1,661 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project_specifications>
+  <metadata>
+    <name>ai-guardrails</name>
+    <description>Pedantic code enforcement for AI-maintained repositories</description>
+    <philosophy>AI agents need hard stops. No warnings, no suggestions. Everything is an error or it's ignored. Black/white only.</philosophy>
+    <version>1.0.0</version>
+    <last_updated>2026-01-23</last_updated>
+  </metadata>
+
+  <deployment>
+    <installation_method>global</installation_method>
+    <use_case>Global installation, used across all projects via ai-guardrails-init</use_case>
+    <target_users>
+      <user>Developers using AI coding assistants (Claude Code, GitHub Copilot, etc.)</user>
+      <user>Teams wanting strict enforcement of code standards</user>
+      <user>Projects requiring pedantic type checking and documentation</user>
+    </target_users>
+    <typical_workflow>
+      <step>1. Install ai-guardrails globally via install.sh</step>
+      <step>2. Run ai-guardrails-init in any project (auto-detects language)</step>
+      <step>3. Install pre-commit hooks with ai-hooks-init</step>
+      <step>4. All commits blocked until ALL checks pass (no warnings)</step>
+    </typical_workflow>
+  </deployment>
+
+  <compatibility>
+    <policy>Breaking changes OK between versions</policy>
+    <versioning>Version bumps indicate breaking changes, users update configs when upgrading</versioning>
+    <python_versions>3.10+ only (can use modern type syntax, match statements, etc.)</python_versions>
+    <config_stability>Configs managed centrally in ai-guardrails repo, not per-project customization</config_stability>
+  </compatibility>
+
+  <components>
+    <component name="ai-guardrails-init">
+      <type>bash_script</type>
+      <location>bin/ai-guardrails-init</location>
+      <purpose>Copy pedantic configs to target project based on detected language(s)</purpose>
+      <behavior>
+        <requirement>Auto-detect project language(s) by scanning for language-specific files</requirement>
+        <requirement>Support explicit --type flag to override detection</requirement>
+        <requirement>Support --all for multi-language projects</requirement>
+        <requirement>Support --force to overwrite existing configs</requirement>
+        <requirement>Fail fast with clear error messages if detection fails or conflicts exist</requirement>
+      </behavior>
+      <languages_supported>
+        <language id="python">
+          <detection_files>*.py, pyproject.toml, requirements.txt, setup.py</detection_files>
+          <configs>.editorconfig, ruff.toml</configs>
+        </language>
+        <language id="node">
+          <detection_files>package.json, *.ts, *.tsx, *.js, *.jsx</detection_files>
+          <configs>.editorconfig, biome.json</configs>
+        </language>
+        <language id="dotnet">
+          <detection_files>*.csproj, *.sln, *.cs</detection_files>
+          <configs>.editorconfig, Directory.Build.props, .globalconfig</configs>
+        </language>
+        <language id="rust">
+          <detection_files>Cargo.toml, Cargo.lock, *.rs</detection_files>
+          <configs>.editorconfig, rustfmt.toml</configs>
+        </language>
+        <language id="cpp">
+          <detection_files>*.cpp, *.cc, *.cxx, *.c, *.h, *.hpp, CMakeLists.txt</detection_files>
+          <configs>.editorconfig, .clang-format</configs>
+        </language>
+        <language id="lua">
+          <detection_files>*.lua</detection_files>
+          <configs>.editorconfig, stylua.toml</configs>
+        </language>
+      </languages_supported>
+    </component>
+
+    <component name="ai-hooks-init">
+      <type>bash_script</type>
+      <location>bin/ai-hooks-init</location>
+      <purpose>Set up git hooks for the project</purpose>
+      <behavior>
+        <requirement>Support --local (default), --global, --pre-commit flags</requirement>
+        <requirement>Copy hook scripts from lib/hooks/ to .git/hooks/</requirement>
+        <requirement>Optionally install pre-commit config and run pre-commit install</requirement>
+        <requirement>Fail if not in a git repository</requirement>
+      </behavior>
+    </component>
+
+    <component name="ai-review-tasks">
+      <type>bash_wrapper_script</type>
+      <location>bin/ai-review-tasks</location>
+      <purpose>Extract UNRESOLVED CodeRabbit review comments as actionable tasks</purpose>
+      <behavior>
+        <requirement>Fetch PR review threads via GitHub GraphQL API</requirement>
+        <requirement>Fetch PR review bodies via gh pr view --json reviews</requirement>
+        <requirement>Filter: author = coderabbitai AND isResolved = false</requirement>
+        <requirement>Delegate parsing to lib/python/coderabbit_parser.py</requirement>
+        <requirement>Support --pretty, --severity flags</requirement>
+        <requirement>Support --pr NUMBER to specify PR (default: current branch PR)</requirement>
+        <requirement>Exit with status 0 on success, non-zero on error</requirement>
+        <requirement>Output valid JSON to stdout</requirement>
+      </behavior>
+      <integration>CLI tool only, not imported as library</integration>
+      <data_flow>
+        <step>1. Fetch review threads via GraphQL (inline comments)</step>
+        <step>2. Fetch review bodies via gh pr view (🧹, ⚠️ sections)</step>
+        <step>3. Filter both for CodeRabbit author</step>
+        <step>4. Combine into {threads: [], review_bodies: []} JSON</step>
+        <step>5. Pipe to coderabbit_parser.py for unified parsing</step>
+        <step>6. Parser merges and deduplicates tasks</step>
+        <step>7. Final JSON output to stdout</step>
+      </data_flow>
+    </component>
+
+    <component name="coderabbit_parser.py">
+      <type>python_module</type>
+      <location>lib/python/coderabbit_parser.py</location>
+      <purpose>Parse CodeRabbit feedback from dual sources into structured tasks</purpose>
+      <python_version>3.10+</python_version>
+
+      <critical_design_note>
+        THIS PARSER PROCESSES TWO SOURCES OF CODERABBIT FEEDBACK:
+
+        1. Review thread comments (GraphQL reviewThreads) - PRIMARY
+           - Inline comments on specific code lines with full context
+           - Contains severity, title, description, AND AI prompts
+           - AI prompts extracted from thread body via extract_ai_prompt()
+           - Filtered by isResolved=false
+           - Source: TaskSource.THREAD
+
+        2. Review body summaries (gh pr view --json reviews) - SUPPLEMENTARY
+           - 🧹 Nitpick comments - suggestions (Source: TaskSource.NITPICK)
+           - ⚠️ Outside diff range comments - minor issues (Source: TaskSource.OUTSIDE_DIFF)
+           - 🤖 AI prompts section is NOT parsed (redundant - same data in threads)
+
+        Both sources are parsed, merged, and deduplicated.
+        Thread comments take priority over body summaries for duplicates.
+      </critical_design_note>
+
+      <input_format>
+        <description>Combined input from two sources</description>
+
+        <source_1 name="threads">
+          <origin>GitHub GraphQL API - pullRequest.reviewThreads</origin>
+          <graphql_query><![CDATA[
+query($owner: String!, $repo: String!, $pr: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pr) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 15) {
+            nodes {
+              author { login }
+              body
+              path
+              line
+              startLine
+            }
+          }
+        }
+      }
+    }
+  }
+}
+          ]]></graphql_query>
+          <filtering>
+            <filter>isResolved = false (only unresolved threads)</filter>
+            <filter>author.login contains "coderabbit" (case insensitive)</filter>
+          </filtering>
+        </source_1>
+
+        <source_2 name="review_bodies">
+          <origin>gh pr view --json reviews</origin>
+          <filtering>author.login contains "coderabbit"</filtering>
+          <sections_parsed>
+            <section emoji="🧹" name="Nitpick comments" severity="suggestion" source="nitpick"/>
+            <section emoji="⚠️" name="Outside diff range comments" severity="minor" source="outside_diff"/>
+          </sections_parsed>
+        </source_2>
+
+        <combined_input_json_schema><![CDATA[
+{
+  "threads": [
+    {
+      "path": "path/to/file.py",
+      "line": 42,
+      "startLine": 40,
+      "comments": [
+        {
+          "author": {"login": "coderabbitai"},
+          "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Title**\n\n..."
+        }
+      ]
+    }
+  ],
+  "review_bodies": [
+    "<details><summary>🧹 Nitpick comments (N)</summary>..."
+  ]
+}
+        ]]></combined_input_json_schema>
+        <note>Schema matches GraphQL reviewThreads.nodes[].comments.nodes[] structure</note>
+      </input_format>
+
+      <comment_body_parsing>
+        <description>Each CodeRabbit comment body has a consistent structure</description>
+
+        <severity_detection>
+          <pattern>First line contains severity indicator</pattern>
+          <major>_🟠 Major_ or "Major" in first line</major>
+          <minor>_🟡 Minor_ or "Minor" in first line</minor>
+          <suggestion>_🔵 Suggestion_ or no severity indicator</suggestion>
+        </severity_detection>
+
+        <title_extraction>
+          <pattern>**Title text** on its own line (after severity line)</pattern>
+          <regex>\*\*([^*]+)\*\*</regex>
+        </title_extraction>
+
+        <ai_prompt_extraction>
+          <description>CodeRabbit includes AI-ready prompts in details blocks</description>
+          <pattern><![CDATA[<details><summary>🤖 Prompt for AI Agents</summary>
+
+```
+{prompt_text}
+```
+
+</details>]]></pattern>
+          <requirement>Extract full prompt text preserving newlines</requirement>
+          <requirement>This becomes the primary "message" field for the task</requirement>
+        </ai_prompt_extraction>
+
+        <description_extraction>
+          <description>Text between title and any details blocks</description>
+          <requirement>Strip HTML tags and markdown artifacts</requirement>
+          <requirement>Truncate to 500 chars if longer</requirement>
+        </description_extraction>
+      </comment_body_parsing>
+
+      <output_schema>
+        <requirement>Output must be valid JSON with stable schema</requirement>
+        <requirement>Schema version tracked in output for future compatibility</requirement>
+        <json_structure>
+          <task>
+            <field name="id" type="string" required="true">Unique task identifier (task-NNN)</field>
+            <field name="file" type="string" required="true">File path</field>
+            <field name="line" type="integer" required="true">Line number (end of range)</field>
+            <field name="start_line" type="integer|null" required="false">Start line if range</field>
+            <field name="line_range" type="string|null" required="false">Original "40-50" format from body</field>
+            <field name="title" type="string" required="true">Bold title extracted from comment</field>
+            <field name="severity" type="enum" required="true">major, minor, or suggestion</field>
+            <field name="source" type="enum" required="true">thread, nitpick, outside_diff</field>
+            <field name="ai_prompt" type="string|null" required="false">Full AI prompt if present</field>
+            <field name="description" type="string|null" required="false">Additional context</field>
+          </task>
+          <summary>
+            <field name="total" type="integer" required="true">Total unresolved task count</field>
+            <field name="by_severity" type="object" required="true">
+              <field name="major" type="integer" required="true"/>
+              <field name="minor" type="integer" required="true"/>
+              <field name="suggestion" type="integer" required="true"/>
+            </field>
+            <field name="by_source" type="object" required="true">
+              <field name="thread" type="integer" required="true">From GraphQL reviewThreads</field>
+              <field name="nitpick" type="integer" required="true">From 🧹 section</field>
+              <field name="outside_diff" type="integer" required="true">From ⚠️ section</field>
+            </field>
+            <field name="by_file" type="object" required="true">Map of file path to task count</field>
+          </summary>
+        </json_structure>
+      </output_schema>
+
+      <type_checking>
+        <requirement>mypy --strict must pass with zero errors</requirement>
+        <requirement>All functions must have complete type annotations</requirement>
+        <requirement>No use of typing.Any (except when truly unavoidable)</requirement>
+        <requirement>Use modern syntax: X | None, not Optional[X]</requirement>
+        <requirement>from __future__ import annotations required at top of file</requirement>
+      </type_checking>
+      <documentation>
+        <requirement>Type hints serve as primary documentation</requirement>
+        <requirement>Docstrings required for public functions/classes (Google style)</requirement>
+        <requirement>Clear variable names preferred over excessive comments</requirement>
+        <requirement>Complex logic must have explanatory comments</requirement>
+      </documentation>
+      <error_handling>
+        <requirement>Fail fast with clear, actionable error messages</requirement>
+        <requirement>No graceful degradation - exit immediately on errors</requirement>
+        <requirement>Validate inputs at boundaries (CLI, file I/O)</requirement>
+        <requirement>Use custom exception types for different error categories</requirement>
+        <requirement>Never catch broad exceptions (no bare except:)</requirement>
+      </error_handling>
+      <testing>
+        <requirement>Unit tests required for all functions</requirement>
+        <requirement>Integration tests required using real PR data samples</requirement>
+        <requirement>Test coverage target: 90%+ line coverage</requirement>
+        <requirement>Use pytest with --strict-markers and --strict-config</requirement>
+        <requirement>Type checking via mypy is NOT sufficient, explicit tests required</requirement>
+      </testing>
+      <dual_source_design>
+        <note>Parser now processes BOTH thread comments AND review body sections</note>
+        <sources>
+          <source name="threads">GraphQL reviewThreads - inline comments</source>
+          <source name="nitpick">🧹 Nitpick comments section from review body</source>
+          <source name="outside_diff">⚠️ Outside diff range comments from review body</source>
+        </sources>
+        <deduplication>Thread comments take priority; key=(file, line_start, title)</deduplication>
+      </dual_source_design>
+      <code_quality>
+        <requirement>Complexity limits: cyclomatic 10, args 5, statements 30, nesting 3</requirement>
+        <requirement>Pathlib required for file paths (no os.path)</requirement>
+        <requirement>No relative imports (absolute imports only)</requirement>
+        <requirement>Modern syntax enforced (no typing.Optional, use X | None)</requirement>
+        <requirement>Google-style docstrings mandatory for public API</requirement>
+        <requirement>No mutable default arguments</requirement>
+        <requirement>Prefer dataclasses over dicts for structured data</requirement>
+      </code_quality>
+    </component>
+
+    <component name="configs">
+      <location>configs/</location>
+      <philosophy>Zero escape routes for AI agents - all rules are errors, not warnings</philosophy>
+
+      <config name="ruff.toml">
+        <requirements>
+          <requirement>ALL rules enabled (800+)</requirement>
+          <requirement>from __future__ import annotations required in every file</requirement>
+          <requirement>Google-style docstrings mandatory</requirement>
+          <requirement>Type annotations mandatory (no Any allowed)</requirement>
+          <requirement>Pathlib enforced (no os.path)</requirement>
+          <requirement>Modern syntax enforced (no typing.Optional, use X | None)</requirement>
+          <requirement>Relative imports banned</requirement>
+          <requirement>Complexity limits: 10 cyclomatic, 5 args, 30 statements, 3 nested blocks</requirement>
+          <requirement>No auto-fix (fix = false) - AI must understand errors, not auto-correct</requirement>
+        </requirements>
+      </config>
+
+      <config name="biome.json">
+        <requirements>
+          <requirement>ALL rules enabled</requirement>
+          <requirement>noExplicitAny: error (no exceptions)</requirement>
+          <requirement>noParameterAssign: error</requirement>
+          <requirement>noDefaultExport: error (named exports only)</requirement>
+          <requirement>noForEach: error (use for-of)</requirement>
+          <requirement>noConsoleLog: error</requirement>
+          <requirement>noBarrelFile: error</requirement>
+          <requirement>Kebab-case filenames enforced</requirement>
+          <requirement>Cognitive complexity limit: 10</requirement>
+          <requirement>Nested callbacks limit: 3</requirement>
+        </requirements>
+      </config>
+
+      <config name=".globalconfig + Directory.Build.props">
+        <requirements>
+          <requirement>TreatWarningsAsErrors: true</requirement>
+          <requirement>Nullable: enable</requirement>
+          <requirement>AnalysisLevel: latest-All</requirement>
+          <requirement>200+ analyzer rules at ERROR severity</requirement>
+          <requirement>StyleCop, Meziantou, Roslynator, SonarAnalyzer included</requirement>
+        </requirements>
+      </config>
+
+      <config name="rustfmt.toml">
+        <requirements>
+          <requirement>Edition 2021, 100 char lines</requirement>
+          <requirement>Imports grouped by std/external/crate (NOT "create" - typo fix required)</requirement>
+          <requirement>clippy::pedantic + clippy::nursery enabled</requirement>
+          <requirement>Missing docs = error</requirement>
+        </requirements>
+      </config>
+
+      <config name=".clang-format">
+        <requirements>
+          <requirement>C++23 standard</requirement>
+          <requirement>LLVM-based style with modifications</requirement>
+          <requirement>clang-tidy with all checks enabled</requirement>
+        </requirements>
+      </config>
+
+      <config name="stylua.toml">
+        <requirements>
+          <requirement>120 char lines, 2-space indent (hyphenated compound modifier)</requirement>
+          <requirement>Call parentheses always required</requirement>
+        </requirements>
+      </config>
+
+      <config name=".editorconfig">
+        <requirements>
+          <requirement>UTF-8, LF line endings everywhere</requirement>
+          <requirement>Language-specific indent sizes</requirement>
+          <requirement>C# naming conventions (PascalCase public, _camelCase private)</requirement>
+        </requirements>
+      </config>
+    </component>
+
+    <component name="pre-commit-hooks">
+      <location>.pre-commit-config.yaml, templates/pre-commit-config.yaml</location>
+      <philosophy>Fail fast on errors, run 40+ checks in priority order</philosophy>
+
+      <hook_categories>
+        <category name="security" priority="1" fail_fast="true">
+          <hook name="gitleaks">Secret detection</hook>
+          <hook name="detect-secrets">Enhanced secret patterns</hook>
+          <hook name="detect-private-key">Private key detection</hook>
+          <hook name="semgrep">
+            <purpose>SAST security patterns (OWASP)</purpose>
+            <requirement>Use --config auto OR pin to specific ruleset (p/default, p/owasp-top-ten)</requirement>
+            <requirement>Document if auto is intentional for staying current</requirement>
+          </hook>
+          <hook name="bandit">Python security linter</hook>
+        </category>
+
+        <category name="vulnerability_scanning" priority="2">
+          <hook name="pip-audit">
+            <purpose>Python dependency CVEs</purpose>
+            <requirement>Must include dependency source (--require or --locked)</requirement>
+            <requirement>Cannot rely on hook environment only</requirement>
+          </hook>
+          <hook name="npm-audit">Node dependency CVEs</hook>
+          <hook name="cargo-audit">Rust dependency CVEs</hook>
+        </category>
+
+        <category name="commit_message" priority="3">
+          <hook name="conventional-pre-commit">
+            <purpose>Requires conventional commit format</purpose>
+            <requirement>Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore</requirement>
+            <requirement>Update to latest version (v4.3.0 or newer)</requirement>
+          </hook>
+        </category>
+
+        <category name="spelling" priority="4">
+          <hook name="codespell">
+            <purpose>Typo detection in code and filenames</purpose>
+            <requirement>Remove --write-changes flag (no auto-fix)</requirement>
+            <requirement>Report-only mode aligns with fix = false policy</requirement>
+            <requirement>Update to latest version (v2.4.1 or newer)</requirement>
+          </hook>
+        </category>
+
+        <category name="type_checking" priority="5">
+          <hook name="mypy">Python strict type checking</hook>
+          <hook name="tsc">TypeScript strict type checking</hook>
+          <hook name="dotnet-build">C# build with -warnaserror</hook>
+        </category>
+
+        <category name="static_analysis" priority="6">
+          <hook name="ruff">ALL rules (Python)</hook>
+          <hook name="biome">ALL rules (TypeScript/JS)</hook>
+          <hook name="clippy">pedantic (Rust)</hook>
+          <hook name="clang-tidy">C/C++</hook>
+          <hook name="luacheck">Lua</hook>
+          <hook name="shellcheck">Shell</hook>
+          <hook name="vulture">
+            <purpose>Dead code detection (Python)</purpose>
+            <requirement>--min-confidence 80 to reduce false positives</requirement>
+            <requirement>Exclude tests/ directory</requirement>
+          </hook>
+        </category>
+
+        <category name="formatting" priority="7">
+          <hook name="ruff-format">Python</hook>
+          <hook name="biome">TypeScript/JS</hook>
+          <hook name="rustfmt">Rust</hook>
+          <hook name="clang-format">C/C++</hook>
+          <hook name="stylua">Lua</hook>
+          <hook name="shfmt">Shell</hook>
+          <hook name="taplo">TOML</hook>
+          <hook name="markdownlint">Markdown</hook>
+        </category>
+
+        <category name="git_hygiene" priority="8">
+          <hook name="no-commit-to-branch">No commits to main/master</hook>
+          <hook name="check-added-large-files">No files >500KB</hook>
+          <hook name="check-merge-conflict">No merge conflicts</hook>
+          <hook name="check-shebang-scripts-are-executable">Executables must have shebangs</hook>
+        </category>
+      </hook_categories>
+
+      <version_requirements>
+        <requirement>semgrep: v1.149.0 or newer</requirement>
+        <requirement>conventional-pre-commit: v4.3.0 or newer</requirement>
+        <requirement>codespell: v2.4.1 or newer</requirement>
+        <requirement>pip-audit: v2.10.0 or newer</requirement>
+        <requirement>vulture: v2.14 or newer</requirement>
+      </version_requirements>
+    </component>
+
+    <component name="dead-code-detection">
+      <philosophy>Two complementary approaches catch different types of dead code</philosophy>
+
+      <tool name="vulture">
+        <type>Static analysis (pre-commit)</type>
+        <purpose>Find unused functions, variables, imports, classes without executing code</purpose>
+        <location>.pre-commit-config.yaml</location>
+        <configuration>
+          <setting name="min-confidence">80 (reduces false positives from dynamic Python)</setting>
+          <setting name="exclude">tests/ directory</setting>
+        </configuration>
+        <strengths>
+          <item>Fast - no execution needed</item>
+          <item>Catches "this function is never called anywhere"</item>
+          <item>Works without tests</item>
+        </strengths>
+        <limitations>
+          <item>False positives with dynamic Python (getattr, **kwargs, plugins)</item>
+          <item>Cannot detect runtime-only dead branches</item>
+        </limitations>
+      </tool>
+
+      <tool name="coverage">
+        <type>Runtime analysis (CI only)</type>
+        <purpose>Track which lines/branches execute during tests</purpose>
+        <location>.github/workflows/check.yml</location>
+        <configuration>
+          <setting name="branch">true (enables branch coverage)</setting>
+          <setting name="fail-under">80% minimum coverage</setting>
+          <setting name="report">term-missing shows uncovered lines</setting>
+        </configuration>
+        <strengths>
+          <item>No false positives - if it ran, it ran</item>
+          <item>Catches "this else branch never executes"</item>
+          <item>Branch coverage finds untested conditionals</item>
+        </strengths>
+        <limitations>
+          <item>Requires tests to trigger code paths</item>
+          <item>Quality depends on test coverage</item>
+          <item>Too slow for pre-commit (runs full test suite)</item>
+        </limitations>
+      </tool>
+
+      <usage_guidance>
+        <guideline>vulture runs in pre-commit (fast, every commit)</guideline>
+        <guideline>coverage runs in CI (slower, every push/PR)</guideline>
+        <guideline>Use both together for comprehensive dead code detection</guideline>
+        <guideline>vulture finds "never referenced", coverage finds "never executed"</guideline>
+      </usage_guidance>
+    </component>
+  </components>
+
+  <known_issues>
+    <issue severity="critical" file="lib/python/coderabbit_parser.py" status="RESOLVED">
+      <description>Parser now implements dual-source architecture</description>
+      <resolution>
+        - Parses GraphQL reviewThreads (inline comments with full context)
+        - Parses review body summaries (🧹 Nitpicks, ⚠️ Outside diff sections)
+        - TaskSource enum tracks origin: THREAD, NITPICK, OUTSIDE_DIFF
+        - Deduplication with thread priority
+        - 51 tests covering all functionality
+      </resolution>
+    </issue>
+
+    <issue severity="critical" file="bin/ai-review-tasks" status="RESOLVED">
+      <description>Wrapper script now fetches both data sources</description>
+      <resolution>
+        - Uses gh api graphql to fetch reviewThreads (isResolved=false, coderabbit author)
+        - Uses gh pr view --json reviews for review body summaries
+        - Combines into {threads: [], review_bodies: []} JSON for parser
+      </resolution>
+    </issue>
+
+    <issue severity="major" file="bin/ai-guardrails-init" line="100-103" status="RESOLVED">
+      <description>Auto-detect used [[ -f "*.sln" ]] which never matches globs</description>
+      <resolution>Now uses find-based detection: find . -maxdepth 1 -name "*.sln" -print -quit</resolution>
+    </issue>
+
+    <issue severity="minor" file="README.md" line="121-123">
+      <description>Typo: "create" should be "crate" in Rust import grouping description</description>
+      <requirement>Change "Imports grouped by std/external/create" to "std/external/crate"</requirement>
+    </issue>
+
+    <issue severity="suggestion" file="configs/ruff.toml" line="62">
+      <description>from __future__ import annotations has runtime tradeoffs</description>
+      <requirement>Document tradeoffs: prevents circular imports but breaks runtime type evaluation</requirement>
+    </issue>
+  </known_issues>
+
+  <quality_standards>
+    <standard category="code">
+      <requirement>Zero warnings allowed - everything is error or ignored</requirement>
+      <requirement>Type checking must pass with --strict flags</requirement>
+      <requirement>Complexity limits strictly enforced</requirement>
+      <requirement>No auto-fix - AI must understand errors</requirement>
+      <requirement>Fail fast with clear, actionable error messages</requirement>
+    </standard>
+
+    <standard category="testing">
+      <requirement>Unit tests required for all functions (90%+ coverage)</requirement>
+      <requirement>Integration tests required with real data samples</requirement>
+      <requirement>pytest with --strict-markers and --strict-config</requirement>
+      <requirement>Type checking alone is NOT sufficient</requirement>
+    </standard>
+
+    <standard category="documentation">
+      <requirement>Type hints serve as primary documentation</requirement>
+      <requirement>Google-style docstrings for public API</requirement>
+      <requirement>Comprehensive CLI examples in README</requirement>
+      <requirement>API reference generated from docstrings</requirement>
+      <requirement>Clear variable names over excessive comments</requirement>
+    </standard>
+
+    <standard category="security">
+      <requirement>Security checks run first and fail fast</requirement>
+      <requirement>Secret detection, CVE scanning, SAST all required</requirement>
+      <requirement>No credentials or sensitive data in code</requirement>
+      <requirement>Validate all external inputs at boundaries</requirement>
+    </standard>
+
+    <standard category="git">
+      <requirement>Conventional commits required (feat, fix, docs, etc.)</requirement>
+      <requirement>No commits to main/master</requirement>
+      <requirement>No large files (>500KB)</requirement>
+      <requirement>No merge conflicts allowed</requirement>
+    </standard>
+  </quality_standards>
+
+  <review_criteria>
+    <criterion category="correctness">
+      <check>Does code handle all edge cases (empty input, missing fields, malformed JSON)?</check>
+      <check>Are regex patterns correct and complete (support all valid inputs)?</check>
+      <check>Does error handling fail fast with actionable messages?</check>
+      <check>Are type annotations complete and accurate?</check>
+    </criterion>
+
+    <criterion category="security">
+      <check>Are all external inputs validated?</check>
+      <check>Are there any command injection risks in shell scripts?</check>
+      <check>Are file paths properly sanitized?</check>
+      <check>Are secrets/credentials properly excluded?</check>
+    </criterion>
+
+    <criterion category="performance">
+      <check>Are there any unnecessary regex compilations in loops?</check>
+      <check>Are large strings copied unnecessarily?</check>
+      <check>Is JSON parsing optimized (avoid repeated parsing)?</check>
+    </criterion>
+
+    <criterion category="maintainability">
+      <check>Are complex regexes documented with examples?</check>
+      <check>Are magic constants extracted to named variables?</check>
+      <check>Are functions short and focused (&lt;30 statements)?</check>
+      <check>Is complexity under limits (cyclomatic &lt;10, nesting &lt;3)?</check>
+    </criterion>
+
+    <criterion category="compatibility">
+      <check>Does code use Python 3.10+ features only (no 3.9 backports)?</check>
+      <check>Does output JSON schema match specification?</check>
+      <check>Are breaking changes documented in version bumps?</check>
+    </criterion>
+
+    <criterion category="testing">
+      <check>Do tests cover all code paths (90%+ coverage)?</check>
+      <check>Are edge cases tested (empty, null, malformed input)?</check>
+      <check>Do integration tests use real PR data samples?</check>
+      <check>Are test assertions specific and clear?</check>
+    </criterion>
+
+    <criterion category="documentation">
+      <check>Do all public functions have Google-style docstrings?</check>
+      <check>Are complex algorithms explained with comments?</check>
+      <check>Does README have comprehensive CLI examples?</check>
+      <check>Can API reference be generated from docstrings?</check>
+    </criterion>
+  </review_criteria>
+</project_specifications>

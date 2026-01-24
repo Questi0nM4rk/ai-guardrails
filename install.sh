@@ -153,7 +153,7 @@ for script in ai-review-tasks ai-hooks-init ai-guardrails-init; do
 done
 
 # Copy lib/hooks
-for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh auto-format.sh; do
+for hook in common.sh dangerous-command-check.sh pre-commit.sh pre-push.sh format-and-stage.sh; do
   if [[ -f "$SCRIPT_DIR/lib/hooks/$hook" ]]; then
     cp "$SCRIPT_DIR/lib/hooks/$hook" "$INSTALL_DIR/lib/hooks/"
     chmod +x "$INSTALL_DIR/lib/hooks/$hook"
@@ -165,19 +165,32 @@ done
 cp "$SCRIPT_DIR/lib/python/coderabbit_parser.py" "$INSTALL_DIR/lib/python/"
 echo "  ✓ lib/python/coderabbit_parser.py"
 
-# Copy templates
-for template in "$SCRIPT_DIR/templates/"*; do
+# Copy templates (files, including dotfiles)
+for template in "$SCRIPT_DIR/templates/"* "$SCRIPT_DIR/templates/."*; do
   if [[ -f "$template" ]]; then
-    basename=$(basename "$template")
     cp "$template" "$INSTALL_DIR/templates/"
-    echo "  ✓ templates/$basename"
+    echo "  ✓ templates/$(basename "$template")"
   fi
 done
 
-# Copy configs
-for config in "$SCRIPT_DIR/configs/"*; do
+# Copy templates/workflows directory
+if [[ -d "$SCRIPT_DIR/templates/workflows" ]]; then
+  mkdir -p "$INSTALL_DIR/templates/workflows"
+  for workflow in "$SCRIPT_DIR/templates/workflows/"*; do
+    if [[ -f "$workflow" ]]; then
+      basename=$(basename "$workflow")
+      cp "$workflow" "$INSTALL_DIR/templates/workflows/"
+      echo "  ✓ templates/workflows/$basename"
+    fi
+  done
+fi
+
+# Copy configs (including dotfiles)
+for config in "$SCRIPT_DIR/configs/"* "$SCRIPT_DIR/configs/."*; do
   if [[ -f "$config" ]]; then
     basename=$(basename "$config")
+    # Skip . and .. entries
+    [[ "$basename" == "." || "$basename" == ".." ]] && continue
     cp "$config" "$INSTALL_DIR/configs/"
     echo "  ✓ configs/$basename"
   fi
@@ -193,7 +206,7 @@ done
 
 # Also create hooks symlinks for direct access
 mkdir -p "$INSTALL_DIR/hooks"
-for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh auto-format.sh; do
+for hook in common.sh dangerous-command-check.sh pre-commit.sh pre-push.sh format-and-stage.sh; do
   if [[ -f "$INSTALL_DIR/lib/hooks/$hook" ]]; then
     ln -sf "$INSTALL_DIR/lib/hooks/$hook" "$INSTALL_DIR/hooks/$hook"
   fi

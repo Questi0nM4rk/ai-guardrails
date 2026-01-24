@@ -1,0 +1,70 @@
+
+## AI Guardrails - Code Standards
+
+This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails) for pedantic code enforcement.
+
+### Philosophy
+
+**Hard stops only.** No warnings, no suggestions. Everything is an error or it's ignored.
+
+**Local:** Auto-fix everything possible. Don't waste context on syntax/formatting.
+**CI/CD:** Check only, never modify code.
+
+### Pre-commit Workflow
+
+```
+auto-fix → re-stage → checks → commit
+```
+
+1. `format-and-stage` auto-fixes ALL fixable issues and re-stages (local only, skipped in CI)
+   - Python: `ruff format` + `ruff check --fix`
+   - Shell: `shfmt`
+   - Markdown: `markdownlint --fix`
+   - TypeScript/JS: `biome check --write`
+   - TOML: `taplo format`
+2. Security scans (gitleaks, detect-secrets, semgrep)
+3. Linting - checks only, already fixed above
+4. Type checking (strict mode)
+5. Git hygiene (no commits to main, no large files)
+
+### Language-Specific Rules
+
+**Python:**
+- `from __future__ import annotations` required in ALL files (auto-added by ruff)
+- Type hints required on all function signatures
+- Docstrings required on public functions/classes
+- No bare `except:` - always specify exception type
+- Use `X | None` not `Optional[X]`
+
+**TypeScript/JavaScript:**
+- Strict mode (`"strict": true` in tsconfig)
+- No `any` type - use `unknown` and narrow
+- No `console.log` in production code
+- JSDoc on exported functions
+
+**Shell (Bash):**
+- `set -euo pipefail` at script start
+- Quote all variables: `"$var"` not `$var`
+- Use `[[` not `[` for conditionals
+- Prefer portable POSIX syntax where possible
+
+### Test Requirements
+
+- Tests required for new functionality
+- Test files must be named `test_*.py` or `*_test.py`
+- Meaningful assertions (not just "no errors")
+- No shared state between tests
+
+### When Pre-commit Fails
+
+Most syntax/formatting issues are auto-fixed. If pre-commit still fails:
+
+1. Read the error message - it's a non-auto-fixable issue
+2. Fix the actual problem (missing docstring, type error, security issue)
+3. Stage and commit again
+
+Common non-auto-fixable issues:
+- Missing docstrings → Write them
+- Type errors → Fix the types
+- Security issues → Fix the vulnerability
+- Missing `from __future__ import annotations` → Add it (or let ruff add it)

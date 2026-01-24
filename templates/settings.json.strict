@@ -34,16 +34,6 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.ai-guardrails/hooks/auto-format.sh \"$CLAUDE_TOOL_INPUT_FILE_PATH\" 2>/dev/null || true"
-          }
-        ]
-      }
-    ]
+    "PostToolUse": []
   }
 }

@@ -14,6 +14,7 @@ NC='\033[0m'
 
 # Block patterns (exit 2 to block)
 # shellcheck disable=SC2221,SC2222  # Intentional pattern overlap for defense in depth
+# shellcheck disable=SC2016  # Intentionally matching literal $HOME string
 case "$COMMAND" in
   *'rm -rf ~'* | *'rm -rf $HOME'* | *'rm -rf /home'*)
     echo -e "${RED}BLOCKED:${NC} Refusing to delete home directory"
