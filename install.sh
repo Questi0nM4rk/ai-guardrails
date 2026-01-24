@@ -153,7 +153,7 @@ for script in ai-review-tasks ai-hooks-init ai-guardrails-init; do
 done
 
 # Copy lib/hooks
-for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh auto-format.sh format-and-stage.sh; do
+for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh format-and-stage.sh; do
   if [[ -f "$SCRIPT_DIR/lib/hooks/$hook" ]]; then
     cp "$SCRIPT_DIR/lib/hooks/$hook" "$INSTALL_DIR/lib/hooks/"
     chmod +x "$INSTALL_DIR/lib/hooks/$hook"
@@ -203,7 +203,7 @@ done
 
 # Also create hooks symlinks for direct access
 mkdir -p "$INSTALL_DIR/hooks"
-for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh auto-format.sh format-and-stage.sh; do
+for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh format-and-stage.sh; do
   if [[ -f "$INSTALL_DIR/lib/hooks/$hook" ]]; then
     ln -sf "$INSTALL_DIR/lib/hooks/$hook" "$INSTALL_DIR/hooks/$hook"
   fi
