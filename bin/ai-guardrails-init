@@ -52,6 +52,8 @@ Options:
   --pip-audit-pip    Force pip-audit configuration for pip
   --pip-audit-uv     Force pip-audit configuration for uv
   --no-pip-audit     Disable pip-audit hook
+  --ci               Install CI workflow (.github/workflows/check.yml)
+  --no-ci            Skip CI workflow installation
   -h, --help         Show this help
 
 Configs installed per type:
@@ -76,6 +78,7 @@ FORCE=false
 SKIP_PRECOMMIT=false
 COPY_ALL=false
 PIP_AUDIT_MODE="auto"
+INSTALL_CI="auto"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -105,6 +108,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-pip-audit)
       PIP_AUDIT_MODE="none"
+      shift
+      ;;
+    --ci)
+      INSTALL_CI="yes"
+      shift
+      ;;
+    --no-ci)
+      INSTALL_CI="no"
       shift
       ;;
     -h | --help)
@@ -343,6 +354,25 @@ if [[ -d ".git" ]]; then
   if ! grep -q "^\.ai-guardrails" .gitignore 2>/dev/null; then
     echo ".ai-guardrails/" >>.gitignore
     echo -e "  ${GREEN}✓ Added .ai-guardrails/ to .gitignore${NC}"
+  fi
+fi
+
+# Install CI workflow
+if [[ "$INSTALL_CI" == "auto" && -d ".git" ]]; then
+  # Auto: install if .github directory exists or this looks like a GitHub project
+  if [[ -d ".github" ]] || git remote -v 2>/dev/null | grep -q "github.com"; then
+    INSTALL_CI="yes"
+  fi
+fi
+
+if [[ "$INSTALL_CI" == "yes" ]]; then
+  echo
+  echo -e "${GREEN}Setting up CI workflow...${NC}"
+  mkdir -p .github/workflows
+  if [[ -f "$TEMPLATES_DIR/workflows/check.yml" ]]; then
+    copy_config "$TEMPLATES_DIR/workflows/check.yml" ".github/workflows/check.yml"
+  else
+    echo -e "  ${YELLOW}⚠ CI workflow template not found${NC}"
   fi
 fi
 

@@ -109,6 +109,7 @@ repos:
         args: ["--no-fix"]
       - id: ruff-format
         name: "🐍 python · ruff format"
+        args: ["--check"]
 
   # Mypy - Static type checking (strict mode)
   - repo: https://github.com/pre-commit/mirrors-mypy
