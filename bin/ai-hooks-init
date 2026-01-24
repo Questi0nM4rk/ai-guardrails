@@ -98,7 +98,7 @@ mkdir -p "$TARGET_DIR/hooks"
 
 # Copy hooks
 echo -e "${GREEN}Copying hooks...${NC}"
-for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh auto-format.sh; do
+for hook in dangerous-command-check.sh pre-commit.sh pre-push.sh format-and-stage.sh; do
   if [[ -f "$LIB_DIR/hooks/$hook" ]]; then
     cp "$LIB_DIR/hooks/$hook" "$TARGET_DIR/hooks/"
     chmod +x "$TARGET_DIR/hooks/$hook"
