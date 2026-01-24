@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""
-CodeRabbit comment parser for gh-pr-review JSON output.
+"""CodeRabbit comment parser for gh pr view JSON output.
 
-Extracts actionable tasks from CodeRabbit review comments:
-- Inline comments (with file/line)
-- Outside diff range comments
-- Nitpick comments
+Extracts actionable tasks from CodeRabbit review comments organized into three sections:
+- 🤖 Fix all issues with AI agents (AI-ready prompts)
+- ⚠️ Outside diff range comments (comments outside changed lines)
+- 🧹 Nitpick comments (optional improvements)
 """
 
 from __future__ import annotations
@@ -19,153 +18,57 @@ from typing import TextIO
 
 
 class TaskType(Enum):
-    INLINE = "inline"
-    OUTSIDE_DIFF = "outside_diff"
-    NITPICK = "nitpick"
+    """Task type based on CodeRabbit section."""
+
+    AI_PROMPT = "ai_prompt"  # From 🤖 Fix all issues
+    OUTSIDE_DIFF = "outside_diff"  # From ⚠️ Outside diff
+    NITPICK = "nitpick"  # From 🧹 Nitpick comments
 
 
 class Severity(Enum):
-    CRITICAL = "critical"  # 🔴
-    MAJOR = "major"  # 🟠
-    MINOR = "minor"  # 🟡
-    SUGGESTION = "suggestion"  # 🟢
+    """Task severity level."""
+
+    MAJOR = "major"  # Actionable issues (ai_prompt)
+    MINOR = "minor"  # Outside diff comments
+    SUGGESTION = "suggestion"  # Nitpick comments
 
 
 @dataclass
 class Task:
+    """Represents a single actionable task from CodeRabbit."""
+
     id: str
     type: TaskType
     file: str
-    line: int | None
+    line_range: str
     message: str
     severity: Severity
-    analysis: str | None = None
-    suggested_fix: str | None = None
-    analysis_chain: str | None = None  # Script execution results from CodeRabbit
+    description: str | None = None
 
     def to_dict(self) -> dict:
+        """Convert task to dictionary for JSON output."""
         result = {
             "id": self.id,
             "type": self.type.value,
             "file": self.file,
-            "line": self.line,
+            "line_range": self.line_range,
             "message": self.message,
             "severity": self.severity.value,
-            "analysis": self.analysis,
-            "suggested_fix": self.suggested_fix,
         }
-        # Only include analysis_chain if present
-        if self.analysis_chain:
-            result["analysis_chain"] = self.analysis_chain
+        if self.description:
+            result["description"] = self.description
         return result
 
 
-def parse_severity(text: str) -> Severity:
-    """Extract severity from CodeRabbit prefix line."""
-    if "🔴" in text or "Critical" in text:
-        return Severity.CRITICAL
-    if "🟠" in text or "Major" in text:
-        return Severity.MAJOR
-    if "🟡" in text or "Minor" in text:
-        return Severity.MINOR
-    return Severity.SUGGESTION
-
-
-def extract_title_and_body(text: str) -> tuple[str, str]:
-    """Extract bold title and remaining body from comment."""
-    # Pattern: **title** followed by description
-    match = re.search(r"\*\*(.+?)\*\*\s*\n*(.*)", text, re.DOTALL)
-    if match:
-        return match.group(1).strip(), match.group(2).strip()
-    # Fallback: first line is title
-    lines = text.strip().split("\n", 1)
-    return lines[0], lines[1] if len(lines) > 1 else ""
-
-
-def extract_suggested_fix(text: str) -> str | None:
-    """Extract suggested fix from <details> block."""
-    # Look for suggested fix in details block
-    match = re.search(
-        r"<details>\s*<summary>[^<]*(?:Suggested|fix|update)[^<]*</summary>\s*"
-        r"(.*?)</details>",
-        text,
-        re.DOTALL | re.IGNORECASE,
-    )
-    if match:
-        fix = match.group(1).strip()
-        # Extract diff if present
-        diff_match = re.search(r"```diff\n(.*?)```", fix, re.DOTALL)
-        if diff_match:
-            return diff_match.group(1).strip()
-        return fix
-    return None
-
-
-def extract_analysis_chain(text: str) -> str | None:
-    """Extract analysis chain (script execution) from <details> block."""
-    match = re.search(
-        r"<details>\s*<summary>🧩\s*Analysis chain</summary>\s*(.*?)</details>",
-        text,
-        re.DOTALL,
-    )
-    if match:
-        content = match.group(1).strip()
-        # Extract script and output if present
-        script_match = re.search(
-            r"🏁 Script executed:\s*```(?:shell|bash)?\n(.*?)```",
-            content,
-            re.DOTALL,
-        )
-        output_match = re.search(
-            r"Length of output:\s*(\d+)\s*\n+---\s*\n*(.*?)$",
-            content,
-            re.DOTALL,
-        )
-        result_parts = []
-        if script_match:
-            result_parts.append(f"Script:\n{script_match.group(1).strip()}")
-        if output_match and output_match.group(2).strip():
-            result_parts.append(f"Output:\n{output_match.group(2).strip()}")
-        return "\n\n".join(result_parts) if result_parts else content
-    return None
-
-
-def parse_inline_comment(comment: dict, task_num: int) -> Task | None:
-    """Parse a single inline comment from gh-pr-review."""
-    body = comment.get("body", "")
-    path = comment.get("path", "")
-    line = comment.get("line")
-
-    if not body or not path:
-        return None
-
-    # Skip if it's just a bot summary or not actionable
-    if body.startswith("<!-- ") or "Summary by CodeRabbit" in body:
-        return None
-
-    severity = parse_severity(body)
-
-    # Remove severity prefix line
-    clean_body = re.sub(r"_[⚠️🔴🟠🟡🟢].*?_\s*\|\s*_.*?_\s*\n*", "", body)
-    title, description = extract_title_and_body(clean_body)
-    suggested_fix = extract_suggested_fix(body)
-    analysis_chain = extract_analysis_chain(body)
-
-    return Task(
-        id=f"task-{task_num:03d}",
-        type=TaskType.INLINE,
-        file=path,
-        line=line,
-        message=title,
-        severity=severity,
-        analysis=description[:500] if description else None,
-        suggested_fix=suggested_fix,
-        analysis_chain=analysis_chain,
-    )
-
-
 def strip_blockquote_prefixes(text: str) -> str:
-    """Strip '> ' prefixes from GitHub blockquote markdown."""
+    """Strip '> ' prefixes from GitHub blockquote markdown.
+
+    Args:
+        text: Markdown text with potential blockquote prefixes
+
+    Returns:
+        Text with blockquote prefixes removed
+    """
     lines = text.split("\n")
     cleaned = []
     for line in lines:
@@ -179,159 +82,215 @@ def strip_blockquote_prefixes(text: str) -> str:
     return "\n".join(cleaned)
 
 
-def parse_outside_diff_section(body: str, start_num: int) -> list[Task]:
-    """Parse 'Outside diff range comments' section from PR-level body."""
-    tasks = []
+def extract_ai_prompts(body: str) -> list[Task]:
+    """Extract tasks from '🤖 Fix all issues with AI agents' section.
 
-    # Strip blockquote prefixes first (gh-pr-review wraps in markdown blockquotes)
-    clean_body = strip_blockquote_prefixes(body)
+    Args:
+        body: CodeRabbit review body (after stripping blockquote prefixes)
 
-    # Find start of outside diff section
-    start_match = re.search(
-        r"<summary>⚠️ Outside diff range comments.*?</summary>",
-        clean_body,
-    )
-    if not start_match:
-        return tasks
-
-    # Extract from start to end of body (or next major section)
-    section_start = start_match.end()
-    # Look for closing of the outer details block - it's the one that closes
-    # the "Outside diff range" section (has </blockquote></details> pattern
-    # that's NOT immediately followed by more file content)
-    section = clean_body[section_start:]
-
-    # Parse each file's comments - look for file detail blocks directly
-    # Pattern: <details><summary>filename.ext (N)</summary><blockquote>content</blockquote></details>
-    file_pattern = re.compile(
-        r"<details>\s*<summary>([^<]+\.\w+)\s*\(\d+\)</summary>\s*<blockquote>(.*?)</blockquote>\s*</details>",
+    Returns:
+        List of AI prompt tasks
+    """
+    pattern = re.compile(
+        r"<details>\s*<summary>🤖\s*Fix all issues with AI agents</summary>\s*````\s*(.*?)\s*````\s*</details>",
         re.DOTALL,
     )
 
-    for file_match in file_pattern.finditer(section):
-        filename = file_match.group(1).strip()
-        file_content = file_match.group(2)
+    match = pattern.search(body)
+    if not match:
+        return []
 
-        # Parse individual comments within the file
-        # Format: `line-range`: **title**
-        comment_pattern = re.compile(
-            r"`(\d+)(?:-\d+)?`:\s*\*\*(.+?)\*\*\s*\n*(.*?)(?=(?:`\d+|---|\Z))",
-            re.DOTALL,
+    ai_block = match.group(1)
+
+    # Split by file sections: In `@filename`:
+    file_sections = re.split(r"In `@([^`]+)`:", ai_block)
+
+    tasks = []
+    # file_sections[0] is empty, then [1]=filename, [2]=content, [3]=filename, [4]=content...
+    for i in range(1, len(file_sections), 2):
+        filename = file_sections[i].strip()
+        content = file_sections[i + 1].strip()
+
+        # Extract issues (lines starting with "- Around line")
+        issue_pattern = re.compile(
+            r"- Around line (\d+)-(\d+): (.+?)(?=\n- Around line|\Z)", re.DOTALL
         )
 
-        for comment_match in comment_pattern.finditer(file_content):
-            line = int(comment_match.group(1))
-            title = comment_match.group(2).strip()
-            description = comment_match.group(3).strip()
-
-            suggested_fix = extract_suggested_fix(description)
+        for issue_match in issue_pattern.finditer(content):
+            start_line = issue_match.group(1)
+            end_line = issue_match.group(2)
+            description = issue_match.group(3).strip()
 
             tasks.append(
                 Task(
-                    id=f"task-{start_num + len(tasks):03d}",
-                    type=TaskType.OUTSIDE_DIFF,
+                    id="",  # Will be assigned later
+                    type=TaskType.AI_PROMPT,
                     file=filename,
-                    line=line,
-                    message=title,
-                    severity=Severity.MINOR,
-                    analysis=description[:500] if description else None,
-                    suggested_fix=suggested_fix,
+                    line_range=f"{start_line}-{end_line}",
+                    message=description,
+                    severity=Severity.MAJOR,
                 )
             )
 
     return tasks
 
 
-def parse_nitpick_section(body: str, start_num: int) -> list[Task]:
-    """Parse 'Nitpick comments' section from PR-level body."""
+def extract_file_blocks(section: str, task_type: TaskType) -> list[Task]:
+    """Extract tasks from file-based sections (outside_diff or nitpick).
+
+    Args:
+        section: HTML content of the section
+        task_type: TaskType.OUTSIDE_DIFF or TaskType.NITPICK
+
+    Returns:
+        List of extracted tasks
+    """
     tasks = []
 
-    # Strip blockquote prefixes first (gh-pr-review wraps in markdown blockquotes)
-    clean_body = strip_blockquote_prefixes(body)
+    # Find all file summary lines
+    file_summary_pattern = re.compile(r"<summary>([^<(]+?)\s*\(\d+\)</summary>")
+    matches = list(file_summary_pattern.finditer(section))
 
-    # Find start of nitpick section
-    start_match = re.search(
-        r"<summary>.*?Nitpick.*?</summary>",
-        clean_body,
-        re.IGNORECASE,
-    )
-    if not start_match:
-        return tasks
-
-    section = clean_body[start_match.end() :]
-
-    # Parse file detail blocks directly
-    file_pattern = re.compile(
-        r"<details>\s*<summary>([^<]+\.\w+)\s*\(\d+\)</summary>\s*<blockquote>(.*?)</blockquote>\s*</details>",
-        re.DOTALL,
+    # Determine severity based on task type
+    severity = (
+        Severity.MINOR if task_type == TaskType.OUTSIDE_DIFF else Severity.SUGGESTION
     )
 
-    for file_match in file_pattern.finditer(section):
-        filename = file_match.group(1).strip()
-        file_content = file_match.group(2)
+    for i, summary_match in enumerate(matches):
+        filename = summary_match.group(1).strip()
 
-        comment_pattern = re.compile(
-            r"`(\d+)(?:-\d+)?`:\s*\*\*(.+?)\*\*\s*\n*(.*?)(?=(?:`\d+|---|\Z))",
-            re.DOTALL,
-        )
+        # Get content from end of summary to start of next summary (or end of section)
+        start_pos = summary_match.end()
+        end_pos = matches[i + 1].start() if i + 1 < len(matches) else len(section)
+        file_content = section[start_pos:end_pos]
+
+        # Parse comments in file: `123-456`: **Title**
+        comment_pattern = re.compile(r"`(\d+(?:-\d+)?)`:\s*\*\*(.+?)\*\*", re.DOTALL)
 
         for comment_match in comment_pattern.finditer(file_content):
-            line = int(comment_match.group(1))
+            line_range = comment_match.group(1)
             title = comment_match.group(2).strip()
-            description = comment_match.group(3).strip()
+
+            # Extract description (everything after title until next comment or end)
+            desc_start = comment_match.end()
+            next_comment = comment_pattern.search(file_content, desc_start)
+            desc_end = next_comment.start() if next_comment else len(file_content)
+
+            description = file_content[desc_start:desc_end].strip()
+
+            # Remove nested <details> blocks from description (suggested fixes, etc.)
+            description = re.sub(
+                r"<details>.*?</details>", "", description, flags=re.DOTALL
+            ).strip()
+
+            # Remove markdown artifacts
+            description = description.replace("</blockquote>", "").strip()
 
             tasks.append(
                 Task(
-                    id=f"task-{start_num + len(tasks):03d}",
-                    type=TaskType.NITPICK,
+                    id="",  # Will be assigned later
+                    type=task_type,
                     file=filename,
-                    line=line,
+                    line_range=line_range,
                     message=title,
-                    severity=Severity.SUGGESTION,
-                    analysis=description[:500] if description else None,
-                    suggested_fix=extract_suggested_fix(description),
+                    severity=severity,
+                    description=description[:500] if description else None,
                 )
             )
 
     return tasks
 
 
-def parse_reviews(data: dict) -> list[Task]:
-    """Parse all reviews from gh-pr-review JSON output."""
+def extract_outside_diff(body: str) -> list[Task]:
+    """Extract tasks from '⚠️ Outside diff range comments' sections.
+
+    Args:
+        body: CodeRabbit review body (after stripping blockquote prefixes)
+
+    Returns:
+        List of outside diff tasks
+    """
     tasks = []
-    task_num = 1
 
-    for review in data.get("reviews", []):
-        # Parse inline comments
-        for comment in review.get("comments", []):
-            task = parse_inline_comment(comment, task_num)
-            if task:
-                tasks.append(task)
-                task_num += 1
+    # Find all outside diff sections (may be multiple)
+    sections = re.finditer(
+        r"<summary>⚠️\s*Outside diff range comments.*?</summary><blockquote>(.*?)</blockquote>\s*</details>",
+        body,
+        re.DOTALL,
+    )
 
-        # Parse PR-level body for outside_diff and nitpick
-        body = review.get("body", "")
-        if body:
-            outside_tasks = parse_outside_diff_section(body, task_num)
-            tasks.extend(outside_tasks)
-            task_num += len(outside_tasks)
+    for section_match in sections:
+        section_content = section_match.group(1)
+        tasks.extend(extract_file_blocks(section_content, TaskType.OUTSIDE_DIFF))
 
-            nitpick_tasks = parse_nitpick_section(body, task_num)
-            tasks.extend(nitpick_tasks)
-            task_num += len(nitpick_tasks)
+    return tasks
+
+
+def extract_nitpicks(body: str) -> list[Task]:
+    """Extract tasks from '🧹 Nitpick comments' sections.
+
+    Args:
+        body: CodeRabbit review body (after stripping blockquote prefixes)
+
+    Returns:
+        List of nitpick tasks
+    """
+    tasks = []
+
+    # Find all nitpick sections (may be multiple)
+    sections = re.finditer(
+        r"<summary>🧹\s*Nitpick comments.*?</summary><blockquote>(.*?)</blockquote>\s*</details>",
+        body,
+        re.DOTALL,
+    )
+
+    for section_match in sections:
+        section_content = section_match.group(1)
+        tasks.extend(extract_file_blocks(section_content, TaskType.NITPICK))
+
+    return tasks
+
+
+def parse_review_body(body: str) -> list[Task]:
+    """Parse CodeRabbit review body and extract all tasks.
+
+    Args:
+        body: Review body from gh pr view --json reviews
+
+    Returns:
+        List of all extracted tasks with assigned IDs
+    """
+    # Strip blockquote prefixes first (gh-pr-review wraps in markdown blockquotes)
+    clean_body = strip_blockquote_prefixes(body)
+
+    # Extract tasks from all three sections
+    tasks = []
+    tasks.extend(extract_ai_prompts(clean_body))
+    tasks.extend(extract_outside_diff(clean_body))
+    tasks.extend(extract_nitpicks(clean_body))
+
+    # Assign sequential IDs
+    for i, task in enumerate(tasks, start=1):
+        task.id = f"task-{i:03d}"
 
     return tasks
 
 
 def generate_output(tasks: list[Task]) -> dict:
-    """Generate final output JSON."""
+    """Generate final output JSON.
+
+    Args:
+        tasks: List of extracted tasks
+
+    Returns:
+        Dictionary with tasks and summary for JSON output
+    """
     summary = {
         "total": len(tasks),
-        "inline": sum(1 for t in tasks if t.type == TaskType.INLINE),
+        "ai_prompts": sum(1 for t in tasks if t.type == TaskType.AI_PROMPT),
         "outside_diff": sum(1 for t in tasks if t.type == TaskType.OUTSIDE_DIFF),
-        "nitpick": sum(1 for t in tasks if t.type == TaskType.NITPICK),
+        "nitpicks": sum(1 for t in tasks if t.type == TaskType.NITPICK),
         "by_severity": {
-            "critical": sum(1 for t in tasks if t.severity == Severity.CRITICAL),
             "major": sum(1 for t in tasks if t.severity == Severity.MAJOR),
             "minor": sum(1 for t in tasks if t.severity == Severity.MINOR),
             "suggestion": sum(1 for t in tasks if t.severity == Severity.SUGGESTION),
@@ -342,19 +301,61 @@ def generate_output(tasks: list[Task]) -> dict:
 
 
 def parse_file(input_file: TextIO) -> dict:
-    """Parse gh-pr-review JSON from file or stdin."""
+    """Parse CodeRabbit review from file or stdin.
+
+    Expects JSON with reviews array containing CodeRabbit review body.
+
+    Args:
+        input_file: File object to read from
+
+    Returns:
+        Dictionary with tasks and summary
+    """
     data = json.load(input_file)
-    tasks = parse_reviews(data)
+
+    # Extract review body from JSON
+    # Expected format: {"reviews": [{"author": {"login": "coderabbitai"}, "body": "..."}]}
+    review_body = None
+
+    if isinstance(data, dict) and "reviews" in data:
+        # gh pr view --json reviews format
+        for review in data.get("reviews", []):
+            author_login = review.get("author", {}).get("login", "")
+            if "coderabbitai" in author_login.lower():
+                review_body = review.get("body", "")
+                break
+    elif isinstance(data, str):
+        # Plain review body text
+        review_body = data
+    else:
+        # Try to extract body directly if it's a review object
+        author_login = data.get("author", {}).get("login", "")
+        if "coderabbitai" in author_login.lower():
+            review_body = data.get("body", "")
+
+    if not review_body:
+        return {
+            "tasks": [],
+            "summary": {
+                "total": 0,
+                "ai_prompts": 0,
+                "outside_diff": 0,
+                "nitpicks": 0,
+                "by_severity": {"major": 0, "minor": 0, "suggestion": 0},
+            },
+        }
+
+    tasks = parse_review_body(review_body)
     return generate_output(tasks)
 
 
-def main():
+def main() -> None:
     """CLI entry point."""
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Parse CodeRabbit comments from gh-pr-review JSON output",
-        epilog="Example: gh pr-review review view --pr 1 | ai-review-tasks",
+        description="Parse CodeRabbit comments from gh pr view JSON output",
+        epilog="Example: gh pr view 1 --json reviews | ai-review-tasks --pretty",
     )
     parser.add_argument(
         "input",
@@ -369,7 +370,7 @@ def main():
     parser.add_argument(
         "--severity",
         "-s",
-        choices=["critical", "major", "minor", "suggestion"],
+        choices=["major", "minor", "suggestion"],
         help="Filter by minimum severity",
     )
 
@@ -380,7 +381,7 @@ def main():
 
         # Filter by severity if requested
         if args.severity:
-            severity_order = ["critical", "major", "minor", "suggestion"]
+            severity_order = ["major", "minor", "suggestion"]
             min_idx = severity_order.index(args.severity)
             result["tasks"] = [
                 t
