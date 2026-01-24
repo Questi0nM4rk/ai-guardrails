@@ -1,15 +1,17 @@
 # CodeRabbit Configuration
-# https://docs.coderabbit.ai/guides/configure-coderabbit
+# https://docs.coderabbit.ai/reference/configuration
 
 language: en-US
 
 reviews:
-  # Submit "Request Changes" review when actionable comments exist
-  # This blocks merging until comments are resolved
-  # When all comments are resolved, CodeRabbit submits "Approved"
+  # Assertive = thorough, detailed feedback (matches our pedantic philosophy)
+  profile: "assertive"
+
+  # Submit "Request Changes" when actionable comments exist
+  # Submit "Approved" when all comments are resolved
   request_changes_workflow: true
 
-  # Review settings
+  # Review output
   high_level_summary: true
   poem: false
   review_status: true
@@ -19,6 +21,47 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+    auto_incremental_review: true
+
+  # Stop review if PR is closed/merged
+  abort_on_close: true
+
+  # Path-specific review instructions
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        - Enforce type hints on all function signatures
+        - Check for proper exception handling (no bare except)
+        - Verify docstrings on public functions/classes
+    - path: "**/*.sh"
+      instructions: |
+        - Verify scripts use set -euo pipefail
+        - Check for proper quoting of variables
+        - Ensure portable syntax (POSIX where possible, or document bash-isms)
+    - path: "**/tests/**"
+      instructions: |
+        - Focus on test coverage and edge cases
+        - Verify meaningful assertions
+
+  # Static analysis tools
+  tools:
+    ruff:
+      enabled: true
+    shellcheck:
+      enabled: true
+    markdownlint:
+      enabled: true
+    yamllint:
+      enabled: true
+    gitleaks:
+      enabled: true
+
+  # AI-generated additions
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
 
 chat:
   auto_reply: true
