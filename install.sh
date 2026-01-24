@@ -168,11 +168,8 @@ echo "  ✓ lib/python/coderabbit_parser.py"
 # Copy templates (files, including dotfiles)
 for template in "$SCRIPT_DIR/templates/"* "$SCRIPT_DIR/templates/."*; do
   if [[ -f "$template" ]]; then
-    basename=$(basename "$template")
-    # Skip . and ..
-    [[ "$basename" == "." || "$basename" == ".." ]] && continue
     cp "$template" "$INSTALL_DIR/templates/"
-    echo "  ✓ templates/$basename"
+    echo "  ✓ templates/$(basename "$template")"
   fi
 done
 
