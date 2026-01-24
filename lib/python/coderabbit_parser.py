@@ -172,7 +172,10 @@ def extract_description(body: str) -> str | None:
         lines = lines[1:]
     text = "\n".join(lines)
 
-    # Remove details blocks
+    # Remove details blocks (non-greedy: stops at first </details>)
+    # Note: Nested <details> blocks would be partially removed. This is acceptable
+    # because CodeRabbit rarely nests details in descriptions, and description is
+    # supplementary text. If this becomes an issue, consider using an HTML parser.
     text = re.sub(r"<details>.*?</details>", "", text, flags=re.DOTALL)
 
     # Remove the title line
