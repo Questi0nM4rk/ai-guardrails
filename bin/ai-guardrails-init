@@ -187,8 +187,9 @@ configure_pip_audit() {
         sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]/' "$config_file"
         echo -e "  ${GREEN}✓ Configured pip-audit for pip (-r requirements.txt)${NC}"
       else
-        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
-        echo -e "  ${GREEN}✓ Configured pip-audit for pip (--locked .)${NC}"
+        # Scan current environment (no --locked, which requires PEP 751 lockfiles)
+        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "."]/' "$config_file"
+        echo -e "  ${GREEN}✓ Configured pip-audit for pip (current environment)${NC}"
       fi
       ;;
     none)
