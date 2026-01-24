@@ -107,7 +107,8 @@ def extract_ai_prompts(body: str) -> list[Task]:
 
     tasks = []
     # file_sections[0] is empty, then [1]=filename, [2]=content, [3]=filename, [4]=content...
-    for i in range(1, len(file_sections), 2):
+    # Use len - 1 to guard against IndexError if file_sections has unexpected length
+    for i in range(1, len(file_sections) - 1, 2):
         filename = file_sections[i].strip()
         content = file_sections[i + 1].strip()
 
@@ -388,8 +389,21 @@ def main() -> None:
                 for t in result["tasks"]
                 if severity_order.index(t["severity"]) <= min_idx
             ]
-            # Recalculate summary
-            result["summary"]["total"] = len(result["tasks"])
+            # Recalculate all summary fields
+            filtered = result["tasks"]
+            result["summary"] = {
+                "total": len(filtered),
+                "ai_prompts": sum(1 for t in filtered if t["type"] == "ai_prompt"),
+                "outside_diff": sum(1 for t in filtered if t["type"] == "outside_diff"),
+                "nitpicks": sum(1 for t in filtered if t["type"] == "nitpick"),
+                "by_severity": {
+                    "major": sum(1 for t in filtered if t["severity"] == "major"),
+                    "minor": sum(1 for t in filtered if t["severity"] == "minor"),
+                    "suggestion": sum(
+                        1 for t in filtered if t["severity"] == "suggestion"
+                    ),
+                },
+            }
 
         indent = 2 if args.pretty else None
         print(json.dumps(result, indent=indent))  # noqa: T201
