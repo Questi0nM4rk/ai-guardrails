@@ -9,7 +9,7 @@ from pathlib import Path
 def test_readme_compound_modifiers_are_hyphenated() -> None:
     """Compound modifiers (adjectives before nouns) should be hyphenated."""
     readme_path = Path(__file__).parent.parent / "README.md"
-    content = readme_path.read_text()
+    content = readme_path.read_text(encoding="utf-8")
 
     # Pattern: number + space + adjective + space + noun
     # These should be hyphenated: "120 char lines" -> "120-char lines"

@@ -26,3 +26,4 @@ Thumbs.db
 # Test output
 *.log
 .test/
+.claude/
