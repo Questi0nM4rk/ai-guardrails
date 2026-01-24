@@ -57,7 +57,7 @@ repos:
     hooks:
       - id: semgrep
         name: "🔒 security · semgrep SAST scan"
-        args: ["--config", "auto", "--error"]
+        args: ["--config", "auto", "--error", "--jobs", "1"]
         exclude: ^tests/
 
   # ===========================================================================
