@@ -153,8 +153,8 @@ detect_python_deps() {
     echo "uv"
   elif [[ -f "requirements.txt" ]]; then
     echo "pip"
-  elif [[ -f "pyproject.toml" ]] && ! [[ -f "uv.lock" ]]; then
-    # Has pyproject.toml but no uv.lock → assume pip
+  elif [[ -f "pyproject.toml" ]]; then
+    # Has pyproject.toml but no uv.lock (already checked above)
     echo "pip"
   else
     echo "none"
@@ -167,14 +167,27 @@ configure_pip_audit() {
 
   case "$tool" in
     uv)
-      # Uncomment pip-audit and configure for uv
-      sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
-      sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
-      sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
-      sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
-      sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
-      sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
-      echo -e "  ${GREEN}✓ Configured pip-audit for uv (--locked .)${NC}"
+      # pip-audit --locked requires PEP 751 lockfiles, not uv.lock
+      # Export uv.lock to requirements.txt for pip-audit compatibility
+      if command -v uv &>/dev/null; then
+        if uv export --format requirements-txt --output-file requirements-audit.txt --quiet 2>/dev/null; then
+          # Uncomment pip-audit and configure for exported requirements
+          sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+          sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+          sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
+          sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+          sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+          sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]/' "$config_file"
+          echo -e "  ${GREEN}✓ Configured pip-audit for uv (-r requirements-audit.txt)${NC}"
+          echo -e "  ${YELLOW}  Note: Re-run 'uv export' after dependency changes${NC}"
+        else
+          echo -e "  ${YELLOW}⚠ Could not export uv.lock - pip-audit left disabled${NC}"
+          echo -e "  ${YELLOW}  Run: uv export --format requirements-txt -o requirements-audit.txt${NC}"
+        fi
+      else
+        echo -e "  ${YELLOW}⚠ uv not found - pip-audit left disabled${NC}"
+        echo -e "  ${YELLOW}  Install uv and run: uv export --format requirements-txt -o requirements-audit.txt${NC}"
+      fi
       ;;
     pip)
       # Uncomment pip-audit and configure for pip
@@ -193,8 +206,15 @@ configure_pip_audit() {
       fi
       ;;
     none)
-      echo -e "  ${YELLOW}⚠ No Python dependency tool detected - pip-audit left disabled${NC}"
-      echo -e "  ${YELLOW}  Run with --pip-audit-pip or --pip-audit-uv to enable manually${NC}"
+      # Ensure pip-audit is commented out (in case --force was used on existing config)
+      sed_inplace 's/^  \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/#   \1/' "$config_file"
+      sed_inplace 's/^    \(rev: v2.10.0\)/#     \1/' "$config_file"
+      sed_inplace 's/^    \(hooks:\)/#     \1/' "$config_file"
+      sed_inplace 's/^      \(- id: pip-audit\)/#       \1/' "$config_file"
+      sed_inplace 's/^        \(name: "🐍 python · pip-audit CVE scan"\)/#         \1/' "$config_file"
+      sed_inplace 's/^        \(args: \["--strict"\)/#         \1/' "$config_file"
+      echo -e "  ${YELLOW}⚠ pip-audit disabled${NC}"
+      echo -e "  ${YELLOW}  Run with --pip-audit-pip or --pip-audit-uv to enable${NC}"
       ;;
   esac
 }
@@ -288,14 +308,20 @@ esac
 if [[ "$SKIP_PRECOMMIT" == false ]]; then
   echo
   echo -e "${GREEN}Setting up pre-commit...${NC}"
-  copy_config "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
 
-  # Auto-detect and configure pip-audit
-  if [[ "$PIP_AUDIT_MODE" == "auto" ]]; then
-    PIP_AUDIT_MODE=$(detect_python_deps)
+  # Track whether we should configure pip-audit (only if we copy our template)
+  CONFIGURE_PIP_AUDIT=false
+  if [[ ! -f ".pre-commit-config.yaml" || "$FORCE" == true ]]; then
+    CONFIGURE_PIP_AUDIT=true
   fi
 
-  if [[ -f ".pre-commit-config.yaml" ]]; then
+  copy_config "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
+
+  # Auto-detect and configure pip-audit (only if we copied our template)
+  if [[ "$CONFIGURE_PIP_AUDIT" == true && -f ".pre-commit-config.yaml" ]]; then
+    if [[ "$PIP_AUDIT_MODE" == "auto" ]]; then
+      PIP_AUDIT_MODE=$(detect_python_deps)
+    fi
     configure_pip_audit "$PIP_AUDIT_MODE"
   fi
 

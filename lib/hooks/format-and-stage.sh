@@ -7,6 +7,11 @@
 #
 # Workflow: format → stage → checks → commit
 # CI/CD: Skipped (SKIP=format-and-stage pre-commit run --all-files)
+#
+# Philosophy Note:
+#   ruff.toml sets fix=false for linting (AI must understand errors, not bypass them).
+#   This hook only runs FORMATTING (style/whitespace), not lint fixes.
+#   Formatting is deterministic and doesn't hide logic issues from the AI.
 # =============================================================================
 set -euo pipefail
 
@@ -14,11 +19,12 @@ set -euo pipefail
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 [[ -z "$STAGED" ]] && exit 0
 
-# Format Python files
+# Format Python files (formatting only, no lint fixes)
 while IFS= read -r file; do
   [[ -f "$file" ]] || continue
   ruff format "$file" 2>/dev/null || true
-  ruff check --fix "$file" 2>/dev/null || true
+  # Note: We intentionally skip 'ruff check --fix' here to align with fix=false philosophy
+  # Lint errors must be understood and fixed by the developer/AI, not auto-corrected
 done < <(echo "$STAGED" | grep -E '\.py$' || true)
 
 # Format Shell files
