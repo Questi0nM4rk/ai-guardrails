@@ -439,6 +439,11 @@ query($owner: String!, $repo: String!, $pr: Int!) {
           <hook name="clang-tidy">C/C++</hook>
           <hook name="luacheck">Lua</hook>
           <hook name="shellcheck">Shell</hook>
+          <hook name="vulture">
+            <purpose>Dead code detection (Python)</purpose>
+            <requirement>--min-confidence 80 to reduce false positives</requirement>
+            <requirement>Exclude tests/ directory</requirement>
+          </hook>
         </category>
 
         <category name="formatting" priority="7">
@@ -465,7 +470,59 @@ query($owner: String!, $repo: String!, $pr: Int!) {
         <requirement>conventional-pre-commit: v4.3.0 or newer</requirement>
         <requirement>codespell: v2.4.1 or newer</requirement>
         <requirement>pip-audit: v2.10.0 or newer</requirement>
+        <requirement>vulture: v2.14 or newer</requirement>
       </version_requirements>
+    </component>
+
+    <component name="dead-code-detection">
+      <philosophy>Two complementary approaches catch different types of dead code</philosophy>
+
+      <tool name="vulture">
+        <type>Static analysis (pre-commit)</type>
+        <purpose>Find unused functions, variables, imports, classes without executing code</purpose>
+        <location>.pre-commit-config.yaml</location>
+        <configuration>
+          <setting name="min-confidence">80 (reduces false positives from dynamic Python)</setting>
+          <setting name="exclude">tests/ directory</setting>
+        </configuration>
+        <strengths>
+          <item>Fast - no execution needed</item>
+          <item>Catches "this function is never called anywhere"</item>
+          <item>Works without tests</item>
+        </strengths>
+        <limitations>
+          <item>False positives with dynamic Python (getattr, **kwargs, plugins)</item>
+          <item>Cannot detect runtime-only dead branches</item>
+        </limitations>
+      </tool>
+
+      <tool name="coverage">
+        <type>Runtime analysis (CI only)</type>
+        <purpose>Track which lines/branches execute during tests</purpose>
+        <location>.github/workflows/check.yml</location>
+        <configuration>
+          <setting name="branch">true (enables branch coverage)</setting>
+          <setting name="fail-under">80% minimum coverage</setting>
+          <setting name="report">term-missing shows uncovered lines</setting>
+        </configuration>
+        <strengths>
+          <item>No false positives - if it ran, it ran</item>
+          <item>Catches "this else branch never executes"</item>
+          <item>Branch coverage finds untested conditionals</item>
+        </strengths>
+        <limitations>
+          <item>Requires tests to trigger code paths</item>
+          <item>Quality depends on test coverage</item>
+          <item>Too slow for pre-commit (runs full test suite)</item>
+        </limitations>
+      </tool>
+
+      <usage_guidance>
+        <guideline>vulture runs in pre-commit (fast, every commit)</guideline>
+        <guideline>coverage runs in CI (slower, every push/PR)</guideline>
+        <guideline>Use both together for comprehensive dead code detection</guideline>
+        <guideline>vulture finds "never referenced", coverage finds "never executed"</guideline>
+      </usage_guidance>
     </component>
   </components>
 

@@ -26,7 +26,7 @@
 | startLine | int\|null | Start line (optional) |
 | body | string | Full comment with severity, title, description |
 
-**Severity extraction:** From first line emoji/text (🟠 Major, 🟡 Minor, default=suggestion)
+**Severity extraction:** From first-line emoji/text (🟠 Major, 🟡 Minor, default=suggestion)
 
 ---
 

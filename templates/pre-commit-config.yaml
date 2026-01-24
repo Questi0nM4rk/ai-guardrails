@@ -135,6 +135,16 @@ repos:
         args: ["-ll", "-ii", "-r"]
         exclude: ^tests/
 
+  # Vulture - Dead code detection (static analysis)
+  # Catches unused functions, variables, imports without running code
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
+        name: "🐍 python · vulture dead code"
+        args: ["--min-confidence", "80", "src/", "lib/"]
+        pass_filenames: false
+
   # pip-audit: Auto-configured by ai-guardrails-init based on detected dependency tool
   # Or manually enable based on your setup:
   #

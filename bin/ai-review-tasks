@@ -85,6 +85,8 @@ QUERY='
 query($owner: String!, $repo: String!, $pr: Int!) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
+      # Pagination limit of 100 review threads - may miss comments on PRs with extensive discussions.
+      # Consider adding pagination if this limit is exceeded.
       reviewThreads(first: 100) {
         nodes {
           isResolved

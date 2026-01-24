@@ -669,6 +669,14 @@ def main() -> None:
                         1 for t in filtered if t["severity"] == "suggestion"
                     ),
                 },
+                "by_source": {
+                    "thread": sum(1 for t in filtered if t["source"] == "thread"),
+                    "nitpick": sum(1 for t in filtered if t["source"] == "nitpick"),
+                    "outside_diff": sum(
+                        1 for t in filtered if t["source"] == "outside_diff"
+                    ),
+                    "ai_prompt": sum(1 for t in filtered if t["source"] == "ai_prompt"),
+                },
                 "by_file": dict(by_file),
             }
 
