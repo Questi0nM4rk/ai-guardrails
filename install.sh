@@ -188,8 +188,11 @@ fi
 # Copy configs (including dotfiles)
 for config in "$SCRIPT_DIR/configs/"* "$SCRIPT_DIR/configs/."*; do
   if [[ -f "$config" ]]; then
+    basename=$(basename "$config")
+    # Skip . and .. entries
+    [[ "$basename" == "." || "$basename" == ".." ]] && continue
     cp "$config" "$INSTALL_DIR/configs/"
-    echo "  ✓ configs/$(basename "$config")"
+    echo "  ✓ configs/$basename"
   fi
 done
 
