@@ -165,7 +165,7 @@ done
 cp "$SCRIPT_DIR/lib/python/coderabbit_parser.py" "$INSTALL_DIR/lib/python/"
 echo "  ✓ lib/python/coderabbit_parser.py"
 
-# Copy templates
+# Copy templates (files)
 for template in "$SCRIPT_DIR/templates/"*; do
   if [[ -f "$template" ]]; then
     basename=$(basename "$template")
@@ -174,10 +174,24 @@ for template in "$SCRIPT_DIR/templates/"*; do
   fi
 done
 
-# Copy configs
-for config in "$SCRIPT_DIR/configs/"*; do
+# Copy templates/workflows directory
+if [[ -d "$SCRIPT_DIR/templates/workflows" ]]; then
+  mkdir -p "$INSTALL_DIR/templates/workflows"
+  for workflow in "$SCRIPT_DIR/templates/workflows/"*; do
+    if [[ -f "$workflow" ]]; then
+      basename=$(basename "$workflow")
+      cp "$workflow" "$INSTALL_DIR/templates/workflows/"
+      echo "  ✓ templates/workflows/$basename"
+    fi
+  done
+fi
+
+# Copy configs (including dotfiles)
+for config in "$SCRIPT_DIR/configs/"* "$SCRIPT_DIR/configs/."*; do
   if [[ -f "$config" ]]; then
     basename=$(basename "$config")
+    # Skip . and ..
+    [[ "$basename" == "." || "$basename" == ".." ]] && continue
     cp "$config" "$INSTALL_DIR/configs/"
     echo "  ✓ configs/$basename"
   fi
