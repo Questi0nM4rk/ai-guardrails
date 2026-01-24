@@ -1,5 +1,5 @@
 # =============================================================================
-# STRICT Pre-Commit Configuration for AI-Driven Development
+# PEDANTIC Pre-Commit Configuration for AI-Driven Development
 # =============================================================================
 # AI Guardrails - Multi-language hooks
 # All checks run in strictest mode. No exceptions. No bypasses.
