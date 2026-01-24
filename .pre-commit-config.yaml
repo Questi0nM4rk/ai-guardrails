@@ -58,6 +58,8 @@ repos:
       - id: semgrep
         name: "🔒 security · semgrep SAST scan"
         # --jobs 1: avoid io_uring limits locally; CI runs semgrep separately with full parallelism
+        # --config auto: pulls latest rules from Semgrep registry (stays current with security best practices)
+        #   Tradeoff: rules may vary between runs. For reproducibility, pin to p/default or p/owasp-top-ten
         args: ["--config", "auto", "--error", "--jobs", "1"]
         exclude: ^tests/
 
@@ -107,6 +109,15 @@ repos:
         name: "🐍 python · bandit security scan"
         args: ["-ll", "-ii", "-r"]
         exclude: ^tests/
+
+  # Vulture - Dead code detection (static analysis)
+  - repo: https://github.com/jendrikseipp/vulture
+    rev: v2.14
+    hooks:
+      - id: vulture
+        name: "🐍 python · vulture dead code"
+        args: ["--min-confidence", "80", "lib/", "bin/"]
+        pass_filenames: false
 
   # pip-audit: Disabled (template repository has no Python dependencies)
   # Configured automatically by ai-guardrails-init in target projects
