@@ -1,15 +1,27 @@
 #!/bin/bash
 # ============================================
 # ai-review-tasks
-# Extract actionable tasks from CodeRabbit PR reviews
+# Extract UNRESOLVED CodeRabbit review comments as actionable tasks
 #
 # Usage:
-#   gh pr-review review view --pr 1 | ai-review-tasks
-#   ai-review-tasks reviews.json
-#   ai-review-tasks --severity major reviews.json
+#   ai-review-tasks                    # Current branch's PR
+#   ai-review-tasks --pr 123           # Specific PR number
+#   ai-review-tasks --pr 123 --pretty  # Pretty print JSON
+#   ai-review-tasks --pr 123 --severity major  # Filter by severity
+#
+# Data flow:
+#   1. Fetch review threads via GitHub GraphQL API (inline comments)
+#   2. Fetch review bodies for 🧹 Nitpicks, ⚠️ Outside diff sections
+#   3. Filter: isResolved=false AND author contains "coderabbit"
+#   4. Parse and merge into structured tasks
+#   5. Output JSON to stdout
 # ============================================
 
 set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+NC='\033[0m'
 
 # Find the script's directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,5 +35,114 @@ fi
 # Find Python
 PYTHON="${AI_GUARDRAILS_PYTHON:-python3}"
 
-# Run the parser
-exec "$PYTHON" "$LIB_DIR/coderabbit_parser.py" "$@"
+# Parse arguments
+PR_NUMBER=""
+PRETTY=""
+SEVERITY_ARG=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --pr)
+      PR_NUMBER="$2"
+      shift 2
+      ;;
+    --pretty | -p)
+      PRETTY="--pretty"
+      shift
+      ;;
+    --severity | -s)
+      SEVERITY_ARG="$2"
+      shift 2
+      ;;
+    -h | --help)
+      head -20 "$0" | tail -n +2 | sed 's/^# //' | sed 's/^#//'
+      exit 0
+      ;;
+    *)
+      echo -e "${RED}Unknown option: $1${NC}" >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Get PR number if not specified
+if [[ -z "$PR_NUMBER" ]]; then
+  PR_NUMBER=$(gh pr view --json number --jq '.number' 2>/dev/null || true)
+  if [[ -z "$PR_NUMBER" ]]; then
+    echo -e "${RED}Error: No PR found for current branch. Use --pr NUMBER${NC}" >&2
+    exit 1
+  fi
+fi
+
+# Get repo owner and name
+REPO_INFO=$(gh repo view --json owner,name --jq '"\(.owner.login) \(.name)"')
+OWNER=$(echo "$REPO_INFO" | cut -d' ' -f1)
+REPO=$(echo "$REPO_INFO" | cut -d' ' -f2)
+
+# GraphQL query for review threads
+# shellcheck disable=SC2016  # Single quotes intentional - no variable expansion in GraphQL
+QUERY='
+query($owner: String!, $repo: String!, $pr: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pr) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes {
+              author { login }
+              body
+              path
+              line
+              startLine
+            }
+          }
+        }
+      }
+    }
+  }
+}
+'
+
+# Build Python args array
+PYTHON_ARGS=()
+[[ -n "$PRETTY" ]] && PYTHON_ARGS+=("$PRETTY")
+[[ -n "$SEVERITY_ARG" ]] && PYTHON_ARGS+=("--severity" "$SEVERITY_ARG")
+
+# Fetch review threads (inline comments) via GraphQL
+# Filter: isResolved=false AND author contains "coderabbit"
+THREADS_JSON=$(gh api graphql \
+  -f query="$QUERY" \
+  -f owner="$OWNER" \
+  -f repo="$REPO" \
+  -F pr="$PR_NUMBER" \
+  --jq '
+    .data.repository.pullRequest.reviewThreads.nodes
+    | map(select(
+        .isResolved == false
+        and (.comments.nodes[0].author.login | ascii_downcase | contains("coderabbit"))
+      ))
+    | map({
+        path: .comments.nodes[0].path,
+        line: .comments.nodes[0].line,
+        startLine: .comments.nodes[0].startLine,
+        body: .comments.nodes[0].body
+      })
+  ')
+
+# Fetch review bodies (for 🧹 Nitpicks, ⚠️ Outside diff sections)
+# Filter: author contains "coderabbit"
+REVIEW_BODIES_JSON=$(gh pr view "$PR_NUMBER" --json reviews --jq '
+  [.reviews[]
+   | select(.author.login | ascii_downcase | contains("coderabbit"))
+   | .body
+  ]
+')
+
+# Combine threads and review bodies into single JSON
+# shellcheck disable=SC2016  # Single quotes intentional for jq
+jq -n \
+  --argjson threads "$THREADS_JSON" \
+  --argjson review_bodies "$REVIEW_BODIES_JSON" \
+  '{threads: $threads, review_bodies: $review_bodies}' \
+  | "$PYTHON" "$LIB_DIR/coderabbit_parser.py" "${PYTHON_ARGS[@]}"
