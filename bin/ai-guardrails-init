@@ -54,6 +54,8 @@ Options:
   --no-pip-audit     Disable pip-audit hook
   --ci               Install CI workflow (.github/workflows/check.yml)
   --no-ci            Skip CI workflow installation
+  --coderabbit       Install CodeRabbit config (.coderabbit.yaml)
+  --no-coderabbit    Skip CodeRabbit config installation
   -h, --help         Show this help
 
 Configs installed per type:
@@ -64,6 +66,10 @@ Configs installed per type:
   lua       .editorconfig, stylua.toml
   python    .editorconfig, ruff.toml
   node      .editorconfig, biome.json
+
+Also installs (for GitHub projects):
+  .coderabbit.yaml    CodeRabbit AI reviewer config (assertive + approval workflow)
+  check.yml           CI workflow for pre-commit checks
 
 Examples:
   ai-guardrails-init                   # Auto-detect project type
@@ -79,6 +85,7 @@ SKIP_PRECOMMIT=false
 COPY_ALL=false
 PIP_AUDIT_MODE="auto"
 INSTALL_CI="auto"
+INSTALL_CODERABBIT="auto"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -116,6 +123,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-ci)
       INSTALL_CI="no"
+      shift
+      ;;
+    --coderabbit)
+      INSTALL_CODERABBIT="yes"
+      shift
+      ;;
+    --no-coderabbit)
+      INSTALL_CODERABBIT="no"
       shift
       ;;
     -h | --help)
@@ -373,6 +388,25 @@ if [[ "$INSTALL_CI" == "yes" ]]; then
     copy_config "$TEMPLATES_DIR/workflows/check.yml" ".github/workflows/check.yml"
   else
     echo -e "  ${YELLOW}⚠ CI workflow template not found${NC}"
+  fi
+fi
+
+# Install CodeRabbit config
+if [[ "$INSTALL_CODERABBIT" == "auto" && -d ".git" ]]; then
+  # Auto: install if this looks like a GitHub project
+  if [[ -d ".github" ]] || git remote -v 2>/dev/null | grep -q "github.com"; then
+    INSTALL_CODERABBIT="yes"
+  fi
+fi
+
+if [[ "$INSTALL_CODERABBIT" == "yes" ]]; then
+  echo
+  echo -e "${GREEN}Setting up CodeRabbit...${NC}"
+  if [[ -f "$TEMPLATES_DIR/.coderabbit.yaml" ]]; then
+    copy_config "$TEMPLATES_DIR/.coderabbit.yaml" ".coderabbit.yaml"
+    echo -e "  ${BLUE}→ Customize path_instructions in .coderabbit.yaml for your project${NC}"
+  else
+    echo -e "  ${YELLOW}⚠ CodeRabbit config template not found${NC}"
   fi
 fi
 
