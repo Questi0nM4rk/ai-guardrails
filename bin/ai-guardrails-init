@@ -410,6 +410,39 @@ if [[ "$INSTALL_CODERABBIT" == "yes" ]]; then
   fi
 fi
 
+# Update CLAUDE.md or AGENTS.md with guardrails rules
+GUARDRAILS_MARKER="## AI Guardrails - Code Standards"
+GUARDRAILS_TEMPLATE="$TEMPLATES_DIR/CLAUDE.md.guardrails"
+
+if [[ -f "$GUARDRAILS_TEMPLATE" ]]; then
+  echo
+  echo -e "${GREEN}Setting up agent instructions...${NC}"
+
+  append_guardrails() {
+    local file="$1"
+    if grep -q "$GUARDRAILS_MARKER" "$file" 2>/dev/null; then
+      echo -e "  ${YELLOW}⊘ $file already has guardrails section${NC}"
+      return
+    fi
+    echo "" >>"$file"
+    cat "$GUARDRAILS_TEMPLATE" >>"$file"
+    echo -e "  ${GREEN}✓ Appended guardrails rules to $file${NC}"
+  }
+
+  if [[ -f "AGENTS.md" ]]; then
+    append_guardrails "AGENTS.md"
+  fi
+
+  if [[ -f "CLAUDE.md" ]]; then
+    append_guardrails "CLAUDE.md"
+  elif [[ ! -f "AGENTS.md" ]]; then
+    # Create CLAUDE.md only if neither exists
+    echo "# Project Instructions" >"CLAUDE.md"
+    cat "$GUARDRAILS_TEMPLATE" >>"CLAUDE.md"
+    echo -e "  ${GREEN}✓ Created CLAUDE.md with guardrails rules${NC}"
+  fi
+fi
+
 echo
 echo -e "${GREEN}Pedantic code enforcement initialized!${NC}"
 echo
