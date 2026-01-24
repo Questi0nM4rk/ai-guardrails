@@ -60,6 +60,11 @@ known-first-party = []
 combine-as-imports = true
 split-on-trailing-comma = true
 force-to-top = ["__future__"]
+# PEP 563: Deferred annotation evaluation (strings instead of objects)
+# Benefits: Avoids circular imports, enables forward references without quotes
+# Tradeoffs: Runtime issues with get_type_hints(), some ORMs, Pydantic v1
+#   Mitigations: Keep types at module level, use model_rebuild() in Pydantic v2
+# Note: PEP 649/749 will supersede this with lazy evaluation (no string storage)
 required-imports = ["from __future__ import annotations"]
 
 # === PATHLIB - MANDATORY (no os.path) ===
