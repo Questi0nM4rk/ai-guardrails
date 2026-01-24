@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 
-def test_readme_compound_modifiers_are_hyphenated():
+def test_readme_compound_modifiers_are_hyphenated() -> None:
     """Compound modifiers (adjectives before nouns) should be hyphenated."""
     readme_path = Path(__file__).parent.parent / "README.md"
     content = readme_path.read_text()
