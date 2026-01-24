@@ -1,0 +1,22 @@
+{
+	"threads": [
+		{
+			"path": "bin/ai-guardrails-init",
+			"line": 177,
+			"startLine": 168,
+			"body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Fix pip-audit uv lock compatibility**\n\n`pip-audit --locked` expects PEP 751 lockfiles, but uv produces `uv.lock` by default.\n\n<details><summary>🤖 Prompt for AI Agents</summary>\n\n```\nUpdate the uv branch to export a compatible requirements file.\n```\n\n</details>"
+		},
+		{
+			"path": "lib/python/coderabbit_parser.py",
+			"line": 42,
+			"startLine": 40,
+			"body": "_🟡 Minor_\n\n**Add type annotation**\n\nMissing return type on function."
+		},
+		{
+			"path": "src/main.py",
+			"line": 100,
+			"startLine": null,
+			"body": "**Simple suggestion**\n\nConsider refactoring this function for readability."
+		}
+	]
+}
