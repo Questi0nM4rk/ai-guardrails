@@ -91,8 +91,9 @@ def extract_ai_prompts(body: str) -> list[Task]:
     Returns:
         List of AI prompt tasks
     """
+    # Match either triple or quadruple backticks (CodeRabbit uses both)
     pattern = re.compile(
-        r"<details>\s*<summary>🤖\s*Fix all issues with AI agents</summary>\s*````\s*(.*?)\s*````\s*</details>",
+        r"<details>\s*<summary>🤖\s*Fix all issues with AI agents</summary>\s*`{3,4}\s*(.*?)\s*`{3,4}\s*</details>",
         re.DOTALL,
     )
 
@@ -302,9 +303,10 @@ def generate_output(tasks: list[Task]) -> dict:
 
 
 def parse_file(input_file: TextIO) -> dict:
-    """Parse CodeRabbit review from file or stdin.
+    """Parse CodeRabbit reviews from file or stdin.
 
-    Expects JSON with reviews array containing CodeRabbit review body.
+    Expects JSON with reviews array containing CodeRabbit review bodies.
+    Processes ALL CodeRabbit reviews, not just the first one.
 
     Args:
         input_file: File object to read from
@@ -314,27 +316,30 @@ def parse_file(input_file: TextIO) -> dict:
     """
     data = json.load(input_file)
 
-    # Extract review body from JSON
+    # Extract review bodies from JSON
     # Expected format: {"reviews": [{"author": {"login": "coderabbitai"}, "body": "..."}]}
-    review_body = None
+    review_bodies: list[str] = []
 
     if isinstance(data, dict) and "reviews" in data:
-        # gh pr view --json reviews format
+        # gh pr view --json reviews format - process ALL CodeRabbit reviews
         for review in data.get("reviews", []):
             author_login = review.get("author", {}).get("login", "")
             if "coderabbitai" in author_login.lower():
-                review_body = review.get("body", "")
-                break
+                body = review.get("body", "")
+                if body:
+                    review_bodies.append(body)
     elif isinstance(data, str):
         # Plain review body text
-        review_body = data
+        review_bodies = [data]
     else:
         # Try to extract body directly if it's a review object
         author_login = data.get("author", {}).get("login", "")
         if "coderabbitai" in author_login.lower():
-            review_body = data.get("body", "")
+            body = data.get("body", "")
+            if body:
+                review_bodies = [body]
 
-    if not review_body:
+    if not review_bodies:
         return {
             "tasks": [],
             "summary": {
@@ -346,8 +351,16 @@ def parse_file(input_file: TextIO) -> dict:
             },
         }
 
-    tasks = parse_review_body(review_body)
-    return generate_output(tasks)
+    # Parse all review bodies and combine tasks
+    all_tasks: list[Task] = []
+    for body in review_bodies:
+        all_tasks.extend(parse_review_body(body))
+
+    # Re-assign sequential IDs across all tasks
+    for i, task in enumerate(all_tasks, start=1):
+        task.id = f"task-{i:03d}"
+
+    return generate_output(all_tasks)
 
 
 def main() -> None:
