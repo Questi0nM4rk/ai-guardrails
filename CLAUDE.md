@@ -40,19 +40,22 @@ ai-hooks-init
 
 ## Pre-commit Workflow
 
-**Local (default):** format -> stage -> checks -> commit
-
-**CI/CD:** checks only (SKIP=format-and-stage)
+**Local:** auto-fix everything → re-stage → checks → commit
+**CI/CD:** checks only, never modify (SKIP=format-and-stage)
 
 Hook execution order:
 
-1. Security (gitleaks, detect-secrets, semgrep, bandit)
-2. CVE scanning (pip-audit, npm-audit, cargo-audit)
-3. Commit message (conventional commits required)
-4. Type checking (mypy --strict, tsc --strict)
-5. Static analysis (ruff, biome, clippy, clang-tidy)
-6. Formatting (check-only, no auto-fix)
-7. Git hygiene (no main commits, no large files)
+1. `format-and-stage` - Auto-fix ALL fixable issues (local only)
+   - Python: `ruff format` + `ruff check --fix`
+   - Shell: `shfmt`
+   - Markdown: `markdownlint --fix`
+   - TypeScript/JS: `biome check --write`
+   - TOML: `taplo format`
+2. Security (gitleaks, detect-secrets, semgrep, bandit)
+3. CVE scanning (pip-audit, npm-audit, cargo-audit)
+4. Static analysis (check-only, already fixed above)
+5. Type checking (strict mode)
+6. Git hygiene (no main commits, no large files)
 
 ## Detailed Specifications
 
@@ -66,8 +69,9 @@ See `.claude/specs/project_specs.xml` for:
 
 ## Key Constraints
 
-- **No auto-fix**: AI must understand errors, not bypass them
+- **Local auto-fix**: Fix everything possible, don't waste context on syntax
+- **CI check-only**: Never modify code in CI/CD pipelines
 - **Python 3.10+**: Modern type syntax (X | None, not Optional[X])
-- `from __future__ import annotations`: Required in all Python files
+- `from __future__ import annotations`: Required in all Python files (auto-added)
 - **90%+ test coverage**: Type checking alone is NOT sufficient
 - **Fail fast**: Clear error messages, no graceful degradation
