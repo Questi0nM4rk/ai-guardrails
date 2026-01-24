@@ -7,25 +7,30 @@ This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails)
 
 **Hard stops only.** No warnings, no suggestions. Everything is an error or it's ignored.
 
-Pre-commit hooks run on every commit. If they fail, the commit is rejected.
-Fix all errors before committing. Do not bypass hooks with `--no-verify`.
+**Local:** Auto-fix everything possible. Don't waste context on syntax/formatting.
+**CI/CD:** Check only, never modify code.
 
 ### Pre-commit Workflow
 
 ```
-format -> stage -> checks -> commit
+auto-fix → re-stage → checks → commit
 ```
 
-1. `format-and-stage` auto-formats and re-stages (local only, skipped in CI)
+1. `format-and-stage` auto-fixes ALL fixable issues and re-stages (local only, skipped in CI)
+   - Python: `ruff format` + `ruff check --fix`
+   - Shell: `shfmt`
+   - Markdown: `markdownlint --fix`
+   - TypeScript/JS: `biome check --write`
+   - TOML: `taplo format`
 2. Security scans (gitleaks, detect-secrets, semgrep)
-3. Linting (ruff, biome, shellcheck, etc.)
+3. Linting - checks only, already fixed above
 4. Type checking (strict mode)
 5. Git hygiene (no commits to main, no large files)
 
 ### Language-Specific Rules
 
 **Python:**
-- `from __future__ import annotations` required in ALL files
+- `from __future__ import annotations` required in ALL files (auto-added by ruff)
 - Type hints required on all function signatures
 - Docstrings required on public functions/classes
 - No bare `except:` - always specify exception type
@@ -52,13 +57,14 @@ format -> stage -> checks -> commit
 
 ### When Pre-commit Fails
 
-1. Read the error message carefully
-2. Fix the issue in your code (don't disable the check)
-3. Stage the fix: `git add -u`
-4. Commit again
+Most syntax/formatting issues are auto-fixed. If pre-commit still fails:
 
-Common fixes:
-- Missing type hints -> Add them
-- Missing docstring -> Add it
-- Import order wrong -> Let ruff fix it (auto-staged)
-- Trailing whitespace -> Auto-fixed by hooks
+1. Read the error message - it's a non-auto-fixable issue
+2. Fix the actual problem (missing docstring, type error, security issue)
+3. Stage and commit again
+
+Common non-auto-fixable issues:
+- Missing docstrings → Write them
+- Type errors → Fix the types
+- Security issues → Fix the vulnerability
+- Missing `from __future__ import annotations` → Add it (or let ruff add it)

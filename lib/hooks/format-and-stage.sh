@@ -2,16 +2,15 @@
 # =============================================================================
 # Format and Stage Hook
 # =============================================================================
-# Automatically formats staged files and re-stages them before checks run.
-# This ensures formatters fix issues before linters complain about them.
+# Automatically fixes ALL auto-fixable issues in staged files and re-stages them.
+# This ensures no context is wasted on syntax/formatting issues.
 #
-# Workflow: format → stage → checks → commit
+# Workflow: auto-fix everything → re-stage → checks → commit
 # CI/CD: Skipped (SKIP=format-and-stage pre-commit run --all-files)
 #
-# Philosophy Note:
-#   ruff.toml sets fix=false for linting (AI must understand errors, not bypass them).
-#   This hook only runs FORMATTING (style/whitespace), not lint fixes.
-#   Formatting is deterministic and doesn't hide logic issues from the AI.
+# Philosophy:
+#   - Local: Auto-fix EVERYTHING possible, don't waste context on syntax
+#   - CI/CD: Check only, never modify (SKIP=format-and-stage)
 # =============================================================================
 set -euo pipefail
 
@@ -19,21 +18,38 @@ set -euo pipefail
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 [[ -z "$STAGED" ]] && exit 0
 
-# Format Python files (formatting only, no lint fixes)
+# Python: format + lint fixes
 while IFS= read -r file; do
   [[ -f "$file" ]] || continue
   ruff format "$file" 2>/dev/null || true
-  # Note: We intentionally skip 'ruff check --fix' here to align with fix=false philosophy
-  # Lint errors must be understood and fixed by the developer/AI, not auto-corrected
+  ruff check --fix "$file" 2>/dev/null || true
 done < <(echo "$STAGED" | grep -E '\.py$' || true)
 
-# Format Shell files
+# Shell: format
 while IFS= read -r file; do
   [[ -f "$file" ]] || continue
   shfmt -w -i 2 -ci -bn "$file" 2>/dev/null || true
 done < <(echo "$STAGED" | grep -E '\.(sh|bash)$' || true)
 
-# Re-stage only the originally staged files (not all modified files)
+# Markdown: fix
+while IFS= read -r file; do
+  [[ -f "$file" ]] || continue
+  markdownlint-cli2 --fix "$file" 2>/dev/null || true
+done < <(echo "$STAGED" | grep -E '\.md$' || true)
+
+# TypeScript/JavaScript: format + lint fixes
+while IFS= read -r file; do
+  [[ -f "$file" ]] || continue
+  biome check --write "$file" 2>/dev/null || true
+done < <(echo "$STAGED" | grep -E '\.(ts|tsx|js|jsx|json)$' || true)
+
+# TOML: format
+while IFS= read -r file; do
+  [[ -f "$file" ]] || continue
+  taplo format "$file" 2>/dev/null || true
+done < <(echo "$STAGED" | grep -E '\.toml$' || true)
+
+# Re-stage all originally staged files (picks up fixes)
 echo "$STAGED" | while IFS= read -r file; do
   [[ -f "$file" ]] && git add "$file"
 done
