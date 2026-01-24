@@ -1,0 +1,218 @@
+name: Test
+
+on:
+  push:
+    branches: [main, feat/*]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ShellCheck
+        run: |
+          # Check all shell scripts
+          find bin lib/hooks -name "*.sh" -o -name "ai-*" | xargs shellcheck
+
+      - name: YAML Lint
+        run: |
+          pip install yamllint
+          yamllint -c .yamllint.yml configs/languages.yaml templates/pre-commit/*.yaml
+
+      - name: Python Lint
+        run: |
+          pip install ruff
+          ruff check lib/python/
+          ruff format --check lib/python/
+
+  bats:
+    name: Bats Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Install bats
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git
+          cd bats-core && sudo ./install.sh /usr/local
+
+      - name: Run bats tests
+        run: bats tests/bats/*.bats
+
+  fixtures-python:
+    name: Python Fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install ruff mypy
+
+      - name: Test bad fixture fails ruff
+        working-directory: tests/fixtures/python-bad
+        run: |
+          if ruff check .; then
+            echo "Expected ruff to fail on bad fixture"
+            exit 1
+          fi
+
+      - name: Test good fixture passes ruff
+        working-directory: tests/fixtures/python-good
+        run: ruff check .
+
+      - name: Test good fixture passes mypy
+        working-directory: tests/fixtures/python-good
+        run: mypy --strict .
+
+  fixtures-go:
+    name: Go Fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.21"
+
+      - name: Test bad fixture fails gofmt
+        working-directory: tests/fixtures/go-bad
+        run: |
+          output=$(gofmt -l .)
+          if [ -z "$output" ]; then
+            echo "Expected gofmt to find formatting issues in bad fixture"
+            exit 1
+          fi
+
+      - name: Test bad fixture fails go vet
+        working-directory: tests/fixtures/go-bad
+        run: |
+          if go vet ./...; then
+            echo "Expected go vet to fail on bad fixture"
+            exit 1
+          fi
+
+      - name: Test good fixture passes gofmt
+        working-directory: tests/fixtures/go-good
+        run: |
+          output=$(gofmt -l .)
+          if [ -n "$output" ]; then
+            echo "gofmt found issues in good fixture:"
+            echo "$output"
+            exit 1
+          fi
+
+      - name: Test good fixture passes go vet
+        working-directory: tests/fixtures/go-good
+        run: go vet ./...
+
+  fixtures-node:
+    name: Node Fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Biome
+        run: npm install -g @biomejs/biome
+
+      - name: Test bad fixture fails biome
+        working-directory: tests/fixtures/node-bad
+        run: |
+          if biome check .; then
+            echo "Expected biome to fail on bad fixture"
+            exit 1
+          fi
+
+      - name: Test good fixture passes biome
+        working-directory: tests/fixtures/node-good
+        run: biome check .
+
+      - name: Test good fixture passes tsc
+        working-directory: tests/fixtures/node-good
+        run: npx tsc --noEmit
+
+  assembly:
+    name: Assembly Script
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Test language detection
+        run: |
+          # Create test project
+          mkdir -p /tmp/test-project
+          touch /tmp/test-project/pyproject.toml
+          touch /tmp/test-project/go.mod
+
+          # Run detection
+          output=$(python3 lib/python/assemble_precommit.py --project-dir /tmp/test-project --list-detected)
+          echo "$output"
+
+          # Verify both languages detected
+          echo "$output" | grep -q "python" || (echo "Python not detected" && exit 1)
+          echo "$output" | grep -q "go" || (echo "Go not detected" && exit 1)
+
+      - name: Test config generation
+        run: |
+          mkdir -p /tmp/test-project
+          touch /tmp/test-project/pyproject.toml
+
+          python3 lib/python/assemble_precommit.py \
+            --project-dir /tmp/test-project \
+            --output /tmp/test-project/.pre-commit-config.yaml
+
+          # Verify file created
+          test -f /tmp/test-project/.pre-commit-config.yaml
+
+          # Verify valid YAML
+          python3 -c "import yaml; yaml.safe_load(open('/tmp/test-project/.pre-commit-config.yaml'))"
+
+          # Verify contains Python hooks
+          grep -q "ruff" /tmp/test-project/.pre-commit-config.yaml
+          grep -q "mypy" /tmp/test-project/.pre-commit-config.yaml
+
+      - name: Test multi-language config
+        run: |
+          mkdir -p /tmp/multi-project
+          touch /tmp/multi-project/pyproject.toml
+          touch /tmp/multi-project/go.mod
+          touch /tmp/multi-project/script.sh
+
+          python3 lib/python/assemble_precommit.py \
+            --project-dir /tmp/multi-project \
+            --output /tmp/multi-project/.pre-commit-config.yaml
+
+          # Verify all language hooks present
+          grep -q "ruff" /tmp/multi-project/.pre-commit-config.yaml
+          grep -q "go-fmt" /tmp/multi-project/.pre-commit-config.yaml
+          grep -q "shellcheck" /tmp/multi-project/.pre-commit-config.yaml
