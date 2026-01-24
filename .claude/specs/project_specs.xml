@@ -118,14 +118,17 @@
       <critical_design_note>
         THIS PARSER PROCESSES TWO SOURCES OF CODERABBIT FEEDBACK:
 
-        1. Review thread comments (GraphQL reviewThreads)
-           - Inline comments on specific code lines
+        1. Review thread comments (GraphQL reviewThreads) - PRIMARY
+           - Inline comments on specific code lines with full context
+           - Contains severity, title, description, AND AI prompts
+           - AI prompts extracted from thread body via extract_ai_prompt()
            - Filtered by isResolved=false
            - Source: TaskSource.THREAD
 
-        2. Review body summaries (gh pr view --json reviews)
+        2. Review body summaries (gh pr view --json reviews) - SUPPLEMENTARY
            - 🧹 Nitpick comments - suggestions (Source: TaskSource.NITPICK)
            - ⚠️ Outside diff range comments - minor issues (Source: TaskSource.OUTSIDE_DIFF)
+           - 🤖 AI prompts section is NOT parsed (redundant - same data in threads)
 
         Both sources are parsed, merged, and deduplicated.
         Thread comments take priority over body summaries for duplicates.
@@ -547,9 +550,9 @@ query($owner: String!, $repo: String!, $pr: Int!) {
       </resolution>
     </issue>
 
-    <issue severity="major" file="bin/ai-guardrails-init" line="100-103">
-      <description>Auto-detect uses [[ -f "*.sln" ]] which never matches globs</description>
-      <requirement>Replace with ls ./*.sln 1>/dev/null 2>&amp;1 or compgen -G "*.sln"</requirement>
+    <issue severity="major" file="bin/ai-guardrails-init" line="100-103" status="RESOLVED">
+      <description>Auto-detect used [[ -f "*.sln" ]] which never matches globs</description>
+      <resolution>Now uses find-based detection: find . -maxdepth 1 -name "*.sln" -print -quit</resolution>
     </issue>
 
     <issue severity="minor" file="README.md" line="121-123">

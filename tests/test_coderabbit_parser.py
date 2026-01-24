@@ -148,6 +148,19 @@ Prompt text
         prompt = extract_ai_prompt(body)
         assert prompt is not None
 
+    def test_ai_prompt_quadruple_backticks(self) -> None:
+        """Test extracting prompt with quadruple backticks (CodeRabbit format)."""
+        body = """<details><summary>🤖 Prompt for AI Agents</summary>
+````
+This prompt uses four backticks.
+Line 2.
+````
+</details>"""
+        prompt = extract_ai_prompt(body)
+        assert prompt is not None
+        assert "four backticks" in prompt
+        assert "Line 2" in prompt
+
 
 class TestExtractDescription:
     """Test description extraction from comment body."""

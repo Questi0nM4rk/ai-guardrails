@@ -170,7 +170,7 @@ configure_pip_audit() {
       # pip-audit --locked requires PEP 751 lockfiles, not uv.lock
       # Export uv.lock to requirements.txt for pip-audit compatibility
       if command -v uv &>/dev/null; then
-        if uv export --format requirements-txt --output-file requirements-audit.txt --quiet 2>/dev/null; then
+        if uv export --format requirements.txt --output-file requirements-audit.txt --quiet 2>/dev/null; then
           # Uncomment pip-audit and configure for exported requirements
           sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
           sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
@@ -182,11 +182,11 @@ configure_pip_audit() {
           echo -e "  ${YELLOW}  Note: Re-run 'uv export' after dependency changes${NC}"
         else
           echo -e "  ${YELLOW}⚠ Could not export uv.lock - pip-audit left disabled${NC}"
-          echo -e "  ${YELLOW}  Run: uv export --format requirements-txt -o requirements-audit.txt${NC}"
+          echo -e "  ${YELLOW}  Run: uv export --format requirements.txt -o requirements-audit.txt${NC}"
         fi
       else
         echo -e "  ${YELLOW}⚠ uv not found - pip-audit left disabled${NC}"
-        echo -e "  ${YELLOW}  Install uv and run: uv export --format requirements-txt -o requirements-audit.txt${NC}"
+        echo -e "  ${YELLOW}  Install uv and run: uv export --format requirements.txt -o requirements-audit.txt${NC}"
       fi
       ;;
     pip)

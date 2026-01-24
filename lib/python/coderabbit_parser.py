@@ -43,10 +43,9 @@ class Severity(Enum):
 class TaskSource(Enum):
     """Source of the task - which CodeRabbit section it came from."""
 
-    THREAD = "thread"  # GraphQL reviewThreads (inline comments)
+    THREAD = "thread"  # GraphQL reviewThreads (inline comments with AI prompts)
     NITPICK = "nitpick"  # 🧹 Nitpick comments section
     OUTSIDE_DIFF = "outside_diff"  # ⚠️ Outside diff range comments
-    AI_PROMPT = "ai_prompt"  # 🤖 Fix all issues with AI agents
 
 
 @dataclass
@@ -144,13 +143,14 @@ def extract_ai_prompt(body: str) -> str | None:
     Returns:
         Extracted prompt text or None
     """
+    # Match 3 or 4 backticks (CodeRabbit uses both formats)
     pattern = re.compile(
-        r"<details>\s*<summary>🤖\s*Prompt for AI Agents</summary>\s*```[^\n]*\n(.*?)```\s*</details>",
+        r"<details>\s*<summary>🤖\s*Prompt for AI Agents</summary>\s*(`{3,4})[^\n]*\n(.*?)\1\s*</details>",
         re.DOTALL | re.IGNORECASE,
     )
     match = pattern.search(body)
     if match:
-        return match.group(1).strip()
+        return match.group(2).strip()
     return None
 
 
@@ -440,7 +440,10 @@ def parse_review_body(body: str) -> list[Task]:
                 if task:
                     tasks.append(task)
 
-    # TODO: Parse 🤖 AI prompts section (different format)
+    # Note: 🤖 AI prompts section is NOT parsed from body summaries.
+    # AI prompts are extracted from thread comment bodies via extract_ai_prompt().
+    # Thread comments contain the same prompts with full context (file, line, severity),
+    # making body section parsing redundant.
 
     return tasks
 
@@ -531,7 +534,6 @@ def generate_output(tasks: list[Task]) -> dict:
             "outside_diff": sum(
                 1 for t in tasks if t.source == TaskSource.OUTSIDE_DIFF
             ),
-            "ai_prompt": sum(1 for t in tasks if t.source == TaskSource.AI_PROMPT),
         },
         "by_file": dict(by_file),
     }
@@ -675,7 +677,6 @@ def main() -> None:
                     "outside_diff": sum(
                         1 for t in filtered if t["source"] == "outside_diff"
                     ),
-                    "ai_prompt": sum(1 for t in filtered if t["source"] == "ai_prompt"),
                 },
                 "by_file": dict(by_file),
             }
