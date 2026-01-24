@@ -86,27 +86,148 @@
     <component name="ai-review-tasks">
       <type>bash_wrapper_script</type>
       <location>bin/ai-review-tasks</location>
-      <purpose>Extract actionable tasks from CodeRabbit PR reviews</purpose>
+      <purpose>Extract UNRESOLVED CodeRabbit review comments as actionable tasks</purpose>
       <behavior>
-        <requirement>Parse gh pr view JSON output (reviews and comments)</requirement>
+        <requirement>Fetch PR review threads via GitHub GraphQL API</requirement>
+        <requirement>Filter: author = coderabbitai AND isResolved = false</requirement>
         <requirement>Delegate parsing to lib/python/coderabbit_parser.py</requirement>
         <requirement>Support --pretty, --severity, --output flags</requirement>
+        <requirement>Support --pr NUMBER to specify PR (default: current branch PR)</requirement>
         <requirement>Exit with status 0 on success, non-zero on error</requirement>
         <requirement>Output valid JSON to stdout</requirement>
       </behavior>
       <integration>CLI tool only, not imported as library</integration>
-      <future_evolution>
-        <requirement>Output format (JSON schema) must remain stable for downstream tooling</requirement>
-        <requirement>Focus on doing CodeRabbit parsing well first</requirement>
-        <requirement>May expand to other tools later if needed, but not a priority</requirement>
-      </future_evolution>
+      <data_flow>
+        <step>1. ai-review-tasks calls gh api graphql to fetch review threads</step>
+        <step>2. GraphQL query filters: isResolved=false, author contains "coderabbit"</step>
+        <step>3. Raw JSON piped to coderabbit_parser.py for parsing</step>
+        <step>4. Parser extracts structured tasks from comment bodies</step>
+        <step>5. Final JSON output to stdout</step>
+      </data_flow>
     </component>
 
     <component name="coderabbit_parser.py">
       <type>python_module</type>
       <location>lib/python/coderabbit_parser.py</location>
-      <purpose>Parse CodeRabbit PR review comments into structured tasks</purpose>
+      <purpose>Parse CodeRabbit review thread comments into structured tasks</purpose>
       <python_version>3.10+</python_version>
+
+      <critical_design_note>
+        THIS PARSER PROCESSES INDIVIDUAL REVIEW THREAD COMMENTS, NOT REVIEW BODY SUMMARIES.
+
+        CodeRabbit creates two types of content:
+        1. Review body (summary with 🤖, ⚠️, 🧹 sections) - informational only
+        2. Review thread comments (actual actionable items on specific lines)
+
+        THIS TOOL PARSES #2 - the individual thread comments.
+        Each comment is a self-contained task with file, line, severity, and action.
+      </critical_design_note>
+
+      <input_format>
+        <source>GitHub GraphQL API - pullRequest.reviewThreads</source>
+        <graphql_query><![CDATA[
+query($owner: String!, $repo: String!, $pr: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $pr) {
+      reviewThreads(first: 100) {
+        nodes {
+          isResolved
+          comments(first: 1) {
+            nodes {
+              author { login }
+              body
+              path
+              line
+              startLine
+            }
+          }
+        }
+      }
+    }
+  }
+}
+        ]]></graphql_query>
+        <filtering>
+          <filter>isResolved = false (only unresolved threads)</filter>
+          <filter>author.login contains "coderabbit" (case insensitive)</filter>
+        </filtering>
+        <input_json_schema><![CDATA[
+{
+  "threads": [
+    {
+      "isResolved": false,
+      "path": "path/to/file.py",
+      "line": 42,
+      "startLine": 40,
+      "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Title here**\n\nDescription...\n\n<details><summary>🤖 Prompt for AI Agents</summary>\n```\nPrompt text here\n```\n</details>"
+    }
+  ]
+}
+        ]]></input_json_schema>
+      </input_format>
+
+      <comment_body_parsing>
+        <description>Each CodeRabbit comment body has a consistent structure</description>
+
+        <severity_detection>
+          <pattern>First line contains severity indicator</pattern>
+          <major>_🟠 Major_ or "Major" in first line</major>
+          <minor>_🟡 Minor_ or "Minor" in first line</minor>
+          <suggestion>_🔵 Suggestion_ or no severity indicator</suggestion>
+        </severity_detection>
+
+        <title_extraction>
+          <pattern>**Title text** on its own line (after severity line)</pattern>
+          <regex>\*\*([^*]+)\*\*</regex>
+        </title_extraction>
+
+        <ai_prompt_extraction>
+          <description>CodeRabbit includes AI-ready prompts in details blocks</description>
+          <pattern><![CDATA[<details><summary>🤖 Prompt for AI Agents</summary>
+
+```
+{prompt_text}
+```
+
+</details>]]></pattern>
+          <requirement>Extract full prompt text preserving newlines</requirement>
+          <requirement>This becomes the primary "message" field for the task</requirement>
+        </ai_prompt_extraction>
+
+        <description_extraction>
+          <description>Text between title and any details blocks</description>
+          <requirement>Strip HTML tags and markdown artifacts</requirement>
+          <requirement>Truncate to 500 chars if longer</requirement>
+        </description_extraction>
+      </comment_body_parsing>
+
+      <output_schema>
+        <requirement>Output must be valid JSON with stable schema</requirement>
+        <requirement>Schema version tracked in output for future compatibility</requirement>
+        <json_structure>
+          <task>
+            <field name="id" type="string" required="true">Unique task identifier (task-NNN)</field>
+            <field name="file" type="string" required="true">File path from thread (path field)</field>
+            <field name="line" type="integer" required="true">Line number from thread</field>
+            <field name="start_line" type="integer|null" required="false">Start line if range</field>
+            <field name="title" type="string" required="true">Bold title extracted from comment</field>
+            <field name="severity" type="enum" required="true">major, minor, or suggestion</field>
+            <field name="ai_prompt" type="string|null" required="false">Full AI prompt if present</field>
+            <field name="description" type="string|null" required="false">Additional context</field>
+            <field name="raw_body" type="string" required="false">Original comment body for debugging</field>
+          </task>
+          <summary>
+            <field name="total" type="integer" required="true">Total unresolved task count</field>
+            <field name="by_severity" type="object" required="true">
+              <field name="major" type="integer" required="true"/>
+              <field name="minor" type="integer" required="true"/>
+              <field name="suggestion" type="integer" required="true"/>
+            </field>
+            <field name="by_file" type="object" required="true">Map of file path to task count</field>
+          </summary>
+        </json_structure>
+      </output_schema>
+
       <type_checking>
         <requirement>mypy --strict must pass with zero errors</requirement>
         <requirement>All functions must have complete type annotations</requirement>
@@ -119,8 +240,6 @@
         <requirement>Docstrings required for public functions/classes (Google style)</requirement>
         <requirement>Clear variable names preferred over excessive comments</requirement>
         <requirement>Complex logic must have explanatory comments</requirement>
-        <requirement>Generate API reference docs from docstrings</requirement>
-        <requirement>Comprehensive CLI examples in README</requirement>
       </documentation>
       <error_handling>
         <requirement>Fail fast with clear, actionable error messages</requirement>
@@ -136,84 +255,11 @@
         <requirement>Use pytest with --strict-markers and --strict-config</requirement>
         <requirement>Type checking via mypy is NOT sufficient, explicit tests required</requirement>
       </testing>
-      <input_format>
-        <requirement>Input: CodeRabbit review body from gh pr view --json reviews</requirement>
-        <requirement>Extract review body: .reviews[] | select(.author.login == "coderabbitai") | .body</requirement>
-        <requirement>Review body contains three distinct sections (not all may be present)</requirement>
-      </input_format>
-      <output_schema>
-        <requirement>Output must be valid JSON with stable schema</requirement>
-        <requirement>Schema version tracked in output for future compatibility</requirement>
-        <json_structure>
-          <task>
-            <field name="id" type="string" required="true">Unique task identifier (task-NNN)</field>
-            <field name="type" type="enum" required="true">One of: ai_prompt, outside_diff, nitpick</field>
-            <field name="file" type="string" required="true">File path relative to repo root</field>
-            <field name="line_range" type="string" required="true">Line range (e.g., "180-208" or "35-35")</field>
-            <field name="message" type="string" required="true">Task description or AI-ready prompt</field>
-            <field name="severity" type="enum" required="true">One of: major, minor, suggestion</field>
-            <field name="description" type="string|null" required="false">Additional context (for outside_diff/nitpick)</field>
-          </task>
-          <summary>
-            <field name="total" type="integer" required="true">Total task count</field>
-            <field name="ai_prompts" type="integer" required="true">AI prompt count (from 🤖 section)</field>
-            <field name="outside_diff" type="integer" required="true">Outside diff comment count (from ⚠️ section)</field>
-            <field name="nitpicks" type="integer" required="true">Nitpick comment count (from 🧹 section)</field>
-            <field name="by_severity" type="object" required="true">
-              <field name="major" type="integer" required="true"/>
-              <field name="minor" type="integer" required="true"/>
-              <field name="suggestion" type="integer" required="true"/>
-            </field>
-          </summary>
-        </json_structure>
-      </output_schema>
-      <parsing_requirements>
-        <section name="ai_prompts">
-          <source>🤖 Fix all issues with AI agents</source>
-          <pattern>Uses 4 backticks (````) not 3</pattern>
-          <structure>
-            <line>In `@filename`:</line>
-            <line>- Around line X-Y: Complete AI-ready prompt with context...</line>
-          </structure>
-          <extraction>
-            <step>1. Extract block: &lt;details&gt;\s*&lt;summary&gt;🤖\s*Fix all issues with AI agents&lt;/summary&gt;\s*````\s*(.*?)\s*````\s*&lt;/details&gt;</step>
-            <step>2. Split by file: In `@([^`]+)`:</step>
-            <step>3. Extract issues: - Around line (\d+)-(\d+): (.+?)</step>
-            <step>4. Each issue = one task with type=ai_prompt, severity=major</step>
-          </extraction>
-        </section>
-        <section name="outside_diff">
-          <source>⚠️ Outside diff range comments</source>
-          <pattern>Nested HTML with file blocks and line-based comments</pattern>
-          <structure>
-            <line>&lt;details&gt;&lt;summary&gt;filename (count)&lt;/summary&gt;&lt;blockquote&gt;</line>
-            <line>`X-Y`: **Title**</line>
-            <line>Description...</line>
-            <line>&lt;/blockquote&gt;&lt;/details&gt;</line>
-          </structure>
-          <extraction>
-            <step>1. Strip blockquote prefixes (&gt; ) first!</step>
-            <step>2. Find all outside diff sections (may be multiple)</step>
-            <step>3. Parse file blocks by finding &lt;summary&gt;filename (N)&lt;/summary&gt;</step>
-            <step>4. Extract comments: `(\d+(?:-\d+)?)`: \*\*(.+?)\*\*</step>
-            <step>5. Each comment = one task with type=outside_diff, severity=minor</step>
-          </extraction>
-        </section>
-        <section name="nitpicks">
-          <source>🧹 Nitpick comments</source>
-          <pattern>Identical structure to outside_diff</pattern>
-          <extraction>
-            <step>Same as outside_diff but type=nitpick, severity=suggestion</step>
-          </extraction>
-        </section>
-        <common_requirements>
-          <requirement>Handle blockquote prefixes (&gt; ) - strip before parsing</requirement>
-          <requirement>Support nested &lt;details&gt; blocks (don't use greedy regex)</requirement>
-          <requirement>Support extensionless filenames (Makefile, Dockerfile, .gitignore)</requirement>
-          <requirement>Handle multiple occurrences of same section type</requirement>
-          <requirement>Preserve full AI prompt text (don't truncate)</requirement>
-        </common_requirements>
-      </parsing_requirements>
+      <summary_fields_removed>
+        <note>Removed: ai_prompts, outside_diff, nitpicks counts</note>
+        <reason>These were based on review body sections (🤖, ⚠️, 🧹) which are NOT the data source</reason>
+        <reason>New design processes individual thread comments, categorized only by severity</reason>
+      </summary_fields_removed>
       <code_quality>
         <requirement>Complexity limits: cyclomatic 10, args 5, statements 30, nesting 3</requirement>
         <requirement>Pathlib required for file paths (no os.path)</requirement>
@@ -389,15 +435,26 @@
   </components>
 
   <known_issues>
-    <issue severity="major" file=".pre-commit-config.yaml" line="66-72">
-      <description>codespell hook includes --write-changes flag (auto-modifies files)</description>
-      <requirement>Remove --write-changes flag to align with no-auto-fix policy</requirement>
-      <requirement>Keep --check-filenames and other non-mutating args</requirement>
+    <issue severity="critical" file="lib/python/coderabbit_parser.py" status="REQUIRES_REWRITE">
+      <description>ENTIRE PARSER IMPLEMENTATION IS WRONG - parses review body summaries instead of review thread comments</description>
+      <current_behavior>
+        Parses review body sections (🤖, ⚠️, 🧹) which are informational summaries
+      </current_behavior>
+      <required_behavior>
+        Must parse individual review thread comments via GitHub GraphQL API
+        Each thread comment is a self-contained actionable task
+      </required_behavior>
+      <requirement>Rewrite to use GraphQL reviewThreads query</requirement>
+      <requirement>Filter by isResolved=false and author=coderabbit</requirement>
+      <requirement>Parse comment body for severity, title, AI prompt</requirement>
+      <requirement>See updated component spec for exact requirements</requirement>
     </issue>
 
-    <issue severity="major" file=".pre-commit-config.yaml" line="97-103">
-      <description>pip-audit hook missing dependency source, only scans hook environment</description>
-      <requirement>Add -r requirements.txt or --locked . to scan project dependencies</requirement>
+    <issue severity="critical" file="bin/ai-review-tasks" status="REQUIRES_REWRITE">
+      <description>Wrapper script uses wrong data source (gh pr view --json reviews)</description>
+      <requirement>Must use gh api graphql to fetch reviewThreads</requirement>
+      <requirement>Must filter for unresolved threads only</requirement>
+      <requirement>Must filter for coderabbit author</requirement>
     </issue>
 
     <issue severity="major" file="bin/ai-guardrails-init" line="100-103">
@@ -405,46 +462,14 @@
       <requirement>Replace with ls ./*.sln 1>/dev/null 2>&amp;1 or compgen -G "*.sln"</requirement>
     </issue>
 
-    <issue severity="major" file="lib/python/coderabbit_parser.py" line="104-130">
-      <description>extract_analysis_chain uses fragile regex, fails with nested details blocks</description>
-      <requirement>Replace with HTML parser (BeautifulSoup or html.parser)</requirement>
-      <requirement>Locate details element with summary text "🧩 Analysis chain"</requirement>
-      <requirement>Extract full inner HTML/text preserving nested structure</requirement>
-    </issue>
-
-    <issue severity="major" file="lib/python/coderabbit_parser.py" line="263-267">
-      <description>File detail block regex duplicated and fails for extensionless filenames</description>
-      <requirement>Extract to module-level constant FILE_BLOCK_PATTERN</requirement>
-      <requirement>Fix pattern to capture names without requiring dot-extension</requirement>
-      <requirement>Pattern: r"&lt;details&gt;\s*&lt;summary&gt;([^&lt;(]+?)\s*\(\d+\)&lt;/summary&gt;\s*&lt;blockquote&gt;(.*?)&lt;/blockquote&gt;\s*&lt;/details&gt;" with re.DOTALL</requirement>
-    </issue>
-
-    <issue severity="major" file="lib/python/coderabbit_parser.py" line="206-209">
-      <description>file_pattern regex forces dot-extension, excludes Makefile, Dockerfile, .gitignore</description>
-      <requirement>Update filename capture group to accept any filename: ([^&lt;]+?)\s*\(\d+\)</requirement>
-    </issue>
-
     <issue severity="minor" file="README.md" line="121-123">
       <description>Typo: "create" should be "crate" in Rust import grouping description</description>
       <requirement>Change "Imports grouped by std/external/create" to "std/external/crate"</requirement>
     </issue>
 
-    <issue severity="suggestion" file="README.md" line="133-134">
-      <description>Grammar: "2 space indent" should be hyphenated as compound modifier</description>
-      <requirement>Change to "120-char lines, 2-space indent"</requirement>
-    </issue>
-
-    <issue severity="suggestion" file=".pre-commit-config.yaml" line="42">
-      <description>Semgrep --config auto may introduce variability over time</description>
-      <requirement>Consider pinning to specific ruleset (p/default, p/owasp-top-ten) for reproducibility</requirement>
-      <requirement>OR document that auto is intentional for staying current with security best practices</requirement>
-    </issue>
-
     <issue severity="suggestion" file="configs/ruff.toml" line="62">
       <description>from __future__ import annotations has runtime tradeoffs</description>
       <requirement>Document tradeoffs: prevents circular imports but breaks runtime type evaluation</requirement>
-      <requirement>Issues with get_type_hints(), Pydantic, dataclass validators, ORMs</requirement>
-      <requirement>Mitigation: keep types at module level, pass locals() to get_type_hints()</requirement>
     </issue>
   </known_issues>
 
