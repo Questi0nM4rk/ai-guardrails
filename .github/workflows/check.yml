@@ -31,5 +31,10 @@ jobs:
       - name: Install pre-commit
         run: pip install pre-commit
 
-      - name: Run pre-commit checks
-        run: SKIP=format-and-stage pre-commit run --all-files
+      - name: Run pre-commit checks (excluding semgrep)
+        run: SKIP=format-and-stage,semgrep pre-commit run --all-files
+
+      - name: Run semgrep (parallel)
+        run: |
+          pip install semgrep
+          semgrep --config auto --error --exclude tests/
