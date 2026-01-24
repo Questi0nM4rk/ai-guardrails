@@ -318,7 +318,7 @@ repos:
     hooks:
       - id: shellcheck
         name: "🐚 shell · shellcheck lint"
-        args: ["--severity=info"]
+        args: ["--severity=info", "-x"]
 
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.10.0-1
