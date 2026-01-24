@@ -22,11 +22,13 @@ NC='\033[0m'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIGS_DIR="$SCRIPT_DIR/../configs"
 TEMPLATES_DIR="$SCRIPT_DIR/../templates"
+LIB_DIR="$SCRIPT_DIR/../lib"
 
 # Check if installed globally
 if [[ -d "$HOME/.ai-guardrails/configs" ]]; then
   CONFIGS_DIR="$HOME/.ai-guardrails/configs"
   TEMPLATES_DIR="$HOME/.ai-guardrails/templates"
+  LIB_DIR="$HOME/.ai-guardrails/lib"
 fi
 
 # Portable sed -i (works on both GNU and BSD/macOS)
@@ -45,7 +47,7 @@ Usage: ai-guardrails-init [OPTIONS]
 Set up pedantic code enforcement configs for the current project.
 
 Options:
-  --type TYPE        Project type: dotnet, rust, lua, cpp, python, node, all
+  --type TYPE        Project type: dotnet, rust, lua, cpp, python, node, go, shell, all
   --all              Copy ALL configs (for multi-language projects)
   --force            Overwrite existing config files
   --no-precommit     Skip pre-commit config
@@ -58,14 +60,15 @@ Options:
   --no-coderabbit    Skip CodeRabbit config installation
   -h, --help         Show this help
 
-Configs installed per type:
-  all       .editorconfig, pre-commit-config.yaml, all language configs
-  dotnet    .editorconfig, Directory.Build.props, .globalconfig
-  rust      .editorconfig, rustfmt.toml
-  cpp       .editorconfig, .clang-format
-  lua       .editorconfig, stylua.toml
-  python    .editorconfig, ruff.toml
-  node      .editorconfig, biome.json
+Languages supported (auto-detected or via --type):
+  python    Python (ruff.toml)
+  rust      Rust (rustfmt.toml)
+  dotnet    C#/.NET (Directory.Build.props, .globalconfig)
+  cpp       C/C++ (.clang-format)
+  lua       Lua (stylua.toml)
+  node      TypeScript/JavaScript (biome.json)
+  go        Go (uses go.mod)
+  shell     Shell scripts (shellcheck + shfmt)
 
 Also installs (for GitHub projects):
   .coderabbit.yaml    CodeRabbit AI reviewer config (assertive + approval workflow)
@@ -145,30 +148,13 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Auto-detect project type
-detect_project_type() {
-  local types=""
+# ============================================
+# Language detection using Python assembly script
+# ============================================
 
-  if find . -maxdepth 1 \( -name "*.csproj" -o -name "*.sln" \) -print -quit | grep -q .; then
-    types="$types dotnet"
-  fi
-  if [[ -f "Cargo.toml" ]]; then
-    types="$types rust"
-  fi
-  if find . -maxdepth 1 \( -name "*.rockspec" -o -name "*.lua" \) -print -quit | grep -q . || [[ -d "lua" ]]; then
-    types="$types lua"
-  fi
-  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || find . -maxdepth 1 \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -print -quit | grep -q .; then
-    types="$types cpp"
-  fi
-  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || find . -maxdepth 1 -name "*.py" -print -quit | grep -q .; then
-    types="$types python"
-  fi
-  if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
-    types="$types node"
-  fi
-
-  echo "$types"
+detect_languages() {
+  # Use Python assembly script for detection
+  python3 "$LIB_DIR/python/assemble_precommit.py" --list-detected 2>/dev/null | cut -d: -f1 | tr '\n' ' '
 }
 
 detect_python_deps() {
@@ -191,58 +177,69 @@ configure_pip_audit() {
   local tool="$1"
   local config_file=".pre-commit-config.yaml"
 
+  # pip-audit configuration block to append
+  local pip_audit_block=""
+
   case "$tool" in
     uv)
-      # pip-audit --locked requires PEP 751 lockfiles, not uv.lock
       # Export uv.lock to requirements.txt for pip-audit compatibility
       if command -v uv &>/dev/null; then
         if uv export --format requirements.txt --output-file requirements-audit.txt --quiet 2>/dev/null; then
-          # Uncomment pip-audit and configure for exported requirements
-          sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
-          sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
-          sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
-          sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
-          sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
-          sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]/' "$config_file"
+          pip_audit_block='
+  # pip-audit - CVE scanning for Python dependencies
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.10.0
+    hooks:
+      - id: pip-audit
+        name: "python - pip-audit CVE scan"
+        args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]'
           echo -e "  ${GREEN}✓ Configured pip-audit for uv (-r requirements-audit.txt)${NC}"
           echo -e "  ${YELLOW}  Note: Re-run 'uv export' after dependency changes${NC}"
         else
-          echo -e "  ${YELLOW}⚠ Could not export uv.lock - pip-audit left disabled${NC}"
+          echo -e "  ${YELLOW}⚠ Could not export uv.lock - pip-audit disabled${NC}"
           echo -e "  ${YELLOW}  Run: uv export --format requirements.txt -o requirements-audit.txt${NC}"
+          return
         fi
       else
-        echo -e "  ${YELLOW}⚠ uv not found - pip-audit left disabled${NC}"
+        echo -e "  ${YELLOW}⚠ uv not found - pip-audit disabled${NC}"
         echo -e "  ${YELLOW}  Install uv and run: uv export --format requirements.txt -o requirements-audit.txt${NC}"
+        return
       fi
       ;;
     pip)
-      # Uncomment pip-audit and configure for pip
-      sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
-      sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
-      sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
-      sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
-      sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
       if [[ -f "requirements.txt" ]]; then
-        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]/' "$config_file"
+        pip_audit_block='
+  # pip-audit - CVE scanning for Python dependencies
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.10.0
+    hooks:
+      - id: pip-audit
+        name: "python - pip-audit CVE scan"
+        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]'
         echo -e "  ${GREEN}✓ Configured pip-audit for pip (-r requirements.txt)${NC}"
       else
-        # Scan current environment (no --locked, which requires PEP 751 lockfiles)
-        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "."]/' "$config_file"
+        pip_audit_block='
+  # pip-audit - CVE scanning for Python dependencies
+  - repo: https://github.com/pypa/pip-audit
+    rev: v2.10.0
+    hooks:
+      - id: pip-audit
+        name: "python - pip-audit CVE scan"
+        args: ["--strict", "--progress-spinner", "off", "."]'
         echo -e "  ${GREEN}✓ Configured pip-audit for pip (current environment)${NC}"
       fi
       ;;
     none)
-      # Ensure pip-audit is commented out (in case --force was used on existing config)
-      sed_inplace 's/^  \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/#   \1/' "$config_file"
-      sed_inplace 's/^    \(rev: v2.10.0\)/#     \1/' "$config_file"
-      sed_inplace 's/^    \(hooks:\)/#     \1/' "$config_file"
-      sed_inplace 's/^      \(- id: pip-audit\)/#       \1/' "$config_file"
-      sed_inplace 's/^        \(name: "🐍 python · pip-audit CVE scan"\)/#         \1/' "$config_file"
-      sed_inplace 's/^        \(args: \["--strict"\)/#         \1/' "$config_file"
       echo -e "  ${YELLOW}⚠ pip-audit disabled${NC}"
       echo -e "  ${YELLOW}  Run with --pip-audit-pip or --pip-audit-uv to enable${NC}"
+      return
       ;;
   esac
+
+  # Append pip-audit block to config
+  if [[ -n "$pip_audit_block" ]]; then
+    echo "$pip_audit_block" >>"$config_file"
+  fi
 }
 
 copy_config() {
@@ -262,6 +259,38 @@ copy_config() {
   fi
 }
 
+copy_configs_for_language() {
+  local lang="$1"
+
+  case "$lang" in
+    python)
+      copy_config "$CONFIGS_DIR/ruff.toml" "ruff.toml"
+      ;;
+    rust)
+      copy_config "$CONFIGS_DIR/rustfmt.toml" "rustfmt.toml"
+      ;;
+    dotnet)
+      copy_config "$CONFIGS_DIR/Directory.Build.props" "Directory.Build.props"
+      copy_config "$CONFIGS_DIR/.globalconfig" ".globalconfig"
+      ;;
+    cpp)
+      copy_config "$CONFIGS_DIR/.clang-format" ".clang-format"
+      ;;
+    lua)
+      copy_config "$CONFIGS_DIR/stylua.toml" "stylua.toml"
+      ;;
+    node)
+      copy_config "$CONFIGS_DIR/biome.json" "biome.json"
+      ;;
+    go | shell)
+      # No config files needed (uses tool defaults or go.mod)
+      ;;
+    *)
+      echo -e "  ${YELLOW}⚠ Unknown language: $lang${NC}"
+      ;;
+  esac
+}
+
 echo -e "${BLUE}AI Guardrails - Pedantic Code Enforcement${NC}"
 echo
 
@@ -269,13 +298,12 @@ echo
 if [[ "$COPY_ALL" == true ]]; then
   PROJECT_TYPE="all"
 elif [[ -z "$PROJECT_TYPE" ]]; then
-  detected=$(detect_project_type)
+  detected=$(detect_languages)
   if [[ -n "$detected" ]]; then
     # Count detected types
     type_count=$(echo "$detected" | wc -w)
     if [[ $type_count -gt 1 ]]; then
       echo -e "${BLUE}Detected multiple languages:${NC}$detected"
-      PROJECT_TYPE="all"
     else
       PROJECT_TYPE=$(echo "$detected" | xargs)
       echo -e "${BLUE}Detected project type:${NC} $PROJECT_TYPE"
@@ -283,7 +311,7 @@ elif [[ -z "$PROJECT_TYPE" ]]; then
   fi
 fi
 
-if [[ -z "$PROJECT_TYPE" ]]; then
+if [[ -z "$PROJECT_TYPE" && -z "$detected" ]]; then
   echo -e "${YELLOW}Could not detect project type. Use --type or --all${NC}"
   exit 1
 fi
@@ -295,60 +323,73 @@ echo -e "${GREEN}Copying configs...${NC}"
 copy_config "$CONFIGS_DIR/.editorconfig" ".editorconfig"
 
 # Copy language-specific configs
-case "$PROJECT_TYPE" in
-  all)
-    copy_config "$CONFIGS_DIR/ruff.toml" "ruff.toml"
-    copy_config "$CONFIGS_DIR/biome.json" "biome.json"
-    copy_config "$CONFIGS_DIR/.clang-format" ".clang-format"
-    copy_config "$CONFIGS_DIR/stylua.toml" "stylua.toml"
-    copy_config "$CONFIGS_DIR/rustfmt.toml" "rustfmt.toml"
-    copy_config "$CONFIGS_DIR/Directory.Build.props" "Directory.Build.props"
-    copy_config "$CONFIGS_DIR/.globalconfig" ".globalconfig"
-    ;;
-  dotnet)
-    copy_config "$CONFIGS_DIR/Directory.Build.props" "Directory.Build.props"
-    copy_config "$CONFIGS_DIR/.globalconfig" ".globalconfig"
-    ;;
-  rust)
-    copy_config "$CONFIGS_DIR/rustfmt.toml" "rustfmt.toml"
-    ;;
-  cpp)
-    copy_config "$CONFIGS_DIR/.clang-format" ".clang-format"
-    ;;
-  lua)
-    copy_config "$CONFIGS_DIR/stylua.toml" "stylua.toml"
-    ;;
-  python)
-    copy_config "$CONFIGS_DIR/ruff.toml" "ruff.toml"
-    ;;
-  node)
-    copy_config "$CONFIGS_DIR/biome.json" "biome.json"
-    ;;
-  *)
-    echo -e "${RED}Unknown project type: $PROJECT_TYPE${NC}"
-    exit 1
-    ;;
-esac
+if [[ "$PROJECT_TYPE" == "all" ]]; then
+  # Copy all configs
+  copy_config "$CONFIGS_DIR/ruff.toml" "ruff.toml"
+  copy_config "$CONFIGS_DIR/biome.json" "biome.json"
+  copy_config "$CONFIGS_DIR/.clang-format" ".clang-format"
+  copy_config "$CONFIGS_DIR/stylua.toml" "stylua.toml"
+  copy_config "$CONFIGS_DIR/rustfmt.toml" "rustfmt.toml"
+  copy_config "$CONFIGS_DIR/Directory.Build.props" "Directory.Build.props"
+  copy_config "$CONFIGS_DIR/.globalconfig" ".globalconfig"
+elif [[ -n "$PROJECT_TYPE" ]]; then
+  # Single language specified
+  copy_configs_for_language "$PROJECT_TYPE"
+else
+  # Multiple languages detected - copy configs for each
+  for lang in $detected; do
+    copy_configs_for_language "$lang"
+  done
+fi
 
-# Copy pre-commit config
+# Copy pre-commit config using Python assembly
 if [[ "$SKIP_PRECOMMIT" == false ]]; then
   echo
   echo -e "${GREEN}Setting up pre-commit...${NC}"
 
-  # Track whether we should configure pip-audit (only if we copy our template)
+  # Track whether we should configure pip-audit
   CONFIGURE_PIP_AUDIT=false
   if [[ ! -f ".pre-commit-config.yaml" || "$FORCE" == true ]]; then
     CONFIGURE_PIP_AUDIT=true
   fi
 
-  copy_config "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
+  # Build language args for assembly script
+  LANG_ARGS=""
+  if [[ "$PROJECT_TYPE" == "all" ]]; then
+    LANG_ARGS="--languages python rust dotnet cpp lua node go shell"
+  elif [[ -n "$PROJECT_TYPE" ]]; then
+    LANG_ARGS="--languages $PROJECT_TYPE"
+  fi
+  # If neither set, let assembly script auto-detect
 
-  # Auto-detect and configure pip-audit (only if we copied our template)
-  if [[ "$CONFIGURE_PIP_AUDIT" == true && -f ".pre-commit-config.yaml" ]]; then
-    if [[ "$PIP_AUDIT_MODE" == "auto" ]]; then
-      PIP_AUDIT_MODE=$(detect_python_deps)
+  # Generate pre-commit config
+  if [[ -f ".pre-commit-config.yaml" && "$FORCE" == false ]]; then
+    echo -e "  ${YELLOW}⊘ .pre-commit-config.yaml exists (use --force to overwrite)${NC}"
+  else
+    # shellcheck disable=SC2086
+    if python3 "$LIB_DIR/python/assemble_precommit.py" $LANG_ARGS --output ".pre-commit-config.yaml" 2>/dev/null; then
+      echo -e "  ${GREEN}✓ .pre-commit-config.yaml${NC}"
+
+      # Configure pip-audit if Python detected
+      if [[ "$CONFIGURE_PIP_AUDIT" == true ]]; then
+        # Check if Python is in the detected/specified languages
+        HAS_PYTHON=false
+        if [[ "$PROJECT_TYPE" == "all" || "$PROJECT_TYPE" == "python" ]]; then
+          HAS_PYTHON=true
+        elif [[ -n "$detected" ]] && echo "$detected" | grep -qw "python"; then
+          HAS_PYTHON=true
+        fi
+
+        if [[ "$HAS_PYTHON" == true ]]; then
+          if [[ "$PIP_AUDIT_MODE" == "auto" ]]; then
+            PIP_AUDIT_MODE=$(detect_python_deps)
+          fi
+          configure_pip_audit "$PIP_AUDIT_MODE"
+        fi
+      fi
+    else
+      echo -e "  ${RED}✗ Failed to generate .pre-commit-config.yaml${NC}"
     fi
-    configure_pip_audit "$PIP_AUDIT_MODE"
   fi
 
   # Install pre-commit hooks if available
@@ -356,6 +397,9 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
     if [[ -d ".git" ]]; then
       if pre-commit install 2>/dev/null; then
         echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}"
+      fi
+      if pre-commit install --hook-type commit-msg 2>/dev/null; then
+        echo -e "  ${GREEN}✓ commit-msg hook installed${NC}"
       fi
     fi
   else

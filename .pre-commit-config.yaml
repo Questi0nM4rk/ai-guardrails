@@ -98,9 +98,11 @@ repos:
       - id: ruff
         name: "🐍 python · ruff lint (pedantic)"
         args: ["--no-fix"]
+        exclude: ^tests/fixtures/
       - id: ruff-format
         name: "🐍 python · ruff format"
         args: ["--check"]
+        exclude: ^tests/fixtures/
 
   # Bandit - Security linter for Python
   - repo: https://github.com/PyCQA/bandit
@@ -145,6 +147,7 @@ repos:
           "--error-on-warnings",
           "--diagnostic-level=info",
         ]
+        exclude: ^tests/fixtures/
 
   # TypeScript type checking (local hook)
   - repo: local
@@ -295,6 +298,7 @@ repos:
       - id: name-tests-test
         name: "🐍 python · test files named test_*"
         args: [--pytest-test-first]
+        exclude: ^tests/fixtures/
 
 # =============================================================================
 # CI Note: This config is also used in GitHub Actions
