@@ -3,7 +3,7 @@
 
 Parses CodeRabbit feedback from two sources:
 1. Review thread comments (GraphQL reviewThreads) - inline code comments
-2. Review body summaries (🧹 Nitpicks, ⚠️ Outside diff, 🤖 AI prompts)
+2. Review body summaries (🧹 Nitpicks, ⚠️ Outside diff)
 
 Input format (from ai-review-tasks):
 {
