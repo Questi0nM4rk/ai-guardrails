@@ -29,6 +29,15 @@ if [[ -d "$HOME/.ai-guardrails/configs" ]]; then
   TEMPLATES_DIR="$HOME/.ai-guardrails/templates"
 fi
 
+# Portable sed -i (works on both GNU and BSD/macOS)
+sed_inplace() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
+  fi
+}
+
 usage() {
   cat <<EOF
 Usage: ai-guardrails-init [OPTIONS]
@@ -114,19 +123,19 @@ done
 detect_project_type() {
   local types=""
 
-  if [[ -f "*.csproj" ]] || ls ./*.sln 1>/dev/null 2>&1 || ls ./*.csproj 1>/dev/null 2>&1; then
+  if find . -maxdepth 1 \( -name "*.csproj" -o -name "*.sln" \) -print -quit | grep -q .; then
     types="$types dotnet"
   fi
   if [[ -f "Cargo.toml" ]]; then
     types="$types rust"
   fi
-  if ls ./*.rockspec 1>/dev/null 2>&1 || [[ -d "lua" ]] || ls ./*.lua 1>/dev/null 2>&1; then
+  if find . -maxdepth 1 \( -name "*.rockspec" -o -name "*.lua" \) -print -quit | grep -q . || [[ -d "lua" ]]; then
     types="$types lua"
   fi
-  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || ls ./*.cpp 1>/dev/null 2>&1 || ls ./*.c 1>/dev/null 2>&1; then
+  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || find . -maxdepth 1 \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -print -quit | grep -q .; then
     types="$types cpp"
   fi
-  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || ls ./*.py 1>/dev/null 2>&1; then
+  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || find . -maxdepth 1 -name "*.py" -print -quit | grep -q .; then
     types="$types python"
   fi
   if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
@@ -159,26 +168,26 @@ configure_pip_audit() {
   case "$tool" in
     uv)
       # Uncomment pip-audit and configure for uv
-      sed -i 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
-      sed -i 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
-      sed -i 's/^#     \(hooks:\)/    \1/' "$config_file"
-      sed -i 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
-      sed -i 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
-      sed -i 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
+      sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+      sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+      sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
+      sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+      sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+      sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
       echo -e "  ${GREEN}✓ Configured pip-audit for uv (--locked .)${NC}"
       ;;
     pip)
       # Uncomment pip-audit and configure for pip
-      sed -i 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
-      sed -i 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
-      sed -i 's/^#     \(hooks:\)/    \1/' "$config_file"
-      sed -i 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
-      sed -i 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+      sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+      sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+      sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
+      sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+      sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
       if [[ -f "requirements.txt" ]]; then
-        sed -i 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]/' "$config_file"
+        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]/' "$config_file"
         echo -e "  ${GREEN}✓ Configured pip-audit for pip (-r requirements.txt)${NC}"
       else
-        sed -i 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
+        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "--locked", "."]/' "$config_file"
         echo -e "  ${GREEN}✓ Configured pip-audit for pip (--locked .)${NC}"
       fi
       ;;
