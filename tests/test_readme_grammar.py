@@ -1,5 +1,7 @@
 """Test for README grammar and formatting rules."""
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
 
