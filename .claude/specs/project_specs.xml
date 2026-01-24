@@ -146,7 +146,7 @@ query($owner: String!, $repo: String!, $pr: Int!) {
       reviewThreads(first: 100) {
         nodes {
           isResolved
-          comments(first: 10) {
+          comments(first: 15) {
             nodes {
               author { login }
               body
