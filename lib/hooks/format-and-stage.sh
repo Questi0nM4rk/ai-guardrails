@@ -22,9 +22,10 @@ set -euo pipefail
 STAGED=$(git diff --cached --name-only --diff-filter=ACM)
 [[ -z "$STAGED" ]] && exit 0
 
-# Check if there are unstaged changes to stash
+# Check if there are unstaged changes or untracked files to stash
 HAS_UNSTAGED=false
-if ! git diff --quiet 2>/dev/null; then
+STASHED=false
+if ! git diff --quiet 2>/dev/null || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
   HAS_UNSTAGED=true
 fi
 
@@ -32,13 +33,15 @@ fi
 # -k = keep index (staged changes stay staged)
 # -u = include untracked files
 if [[ "$HAS_UNSTAGED" == true ]]; then
-  git stash push -k -u -m "format-and-stage: temporary stash" >/dev/null 2>&1 || true
+  if git stash push -k -u -m "format-and-stage: temporary stash" >/dev/null 2>&1; then
+    STASHED=true
+  fi
 fi
 
 # Cleanup function to restore stash on exit
 # shellcheck disable=SC2329,SC2317  # Function is invoked via trap
 cleanup() {
-  if [[ "$HAS_UNSTAGED" == true ]]; then
+  if [[ "$STASHED" == true ]]; then
     # Restore with --index to preserve staged vs unstaged distinction
     git stash pop --index >/dev/null 2>&1 || {
       # If --index fails (can happen with conflicts), try without

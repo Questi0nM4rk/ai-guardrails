@@ -3,6 +3,7 @@
 # AI Guardrails - Common Hook Functions
 # Shared test detection and execution logic
 # ============================================
+set -euo pipefail
 
 # Detect if .NET project
 is_dotnet_project() {

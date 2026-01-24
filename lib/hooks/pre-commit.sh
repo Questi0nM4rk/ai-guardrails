@@ -3,8 +3,7 @@
 # AI Guardrails Pre-Commit Hook
 # Runs before any git commit
 # ============================================
-
-set -e
+set -euo pipefail
 
 # Source common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

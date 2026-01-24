@@ -149,13 +149,14 @@ repos:
   # pip-audit: Auto-configured by ai-guardrails-init based on detected dependency tool
   # Or manually enable based on your setup:
   #
-  # For uv:
-  #   args: ["--strict", "--progress-spinner", "off", "--locked", "."]
+  # For uv (ai-guardrails-init exports to requirements-audit.txt):
+  #   args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]
+  #   Note: --locked requires PEP 751 lockfiles (pylock.*.toml), not uv.lock
   #
   # For pip + requirements.txt:
   #   args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]
   #
-  # For pip + pyproject.toml:
+  # For pip + pyproject.toml (with PEP 751 lockfile):
   #   args: ["--strict", "--progress-spinner", "off", "--locked", "."]
   #
   # See README.md section "CVE Scanning with pip-audit" for details.
