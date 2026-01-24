@@ -1,0 +1,132 @@
+# CodeRabbit Configuration
+# https://docs.coderabbit.ai/reference/configuration
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+
+reviews:
+  # ============================================
+  # Review Profile
+  # ============================================
+  # "assertive" - Thorough, detailed feedback (recommended for pedantic enforcement)
+  # "chill" - Relaxed, fewer nitpicks
+  profile: "assertive"
+
+  # ============================================
+  # Approval Workflow
+  # ============================================
+  # When true: Submit "Request Changes" when actionable comments exist
+  # When all comments are resolved: Submit "Approved"
+  # This integrates with branch protection rules requiring approvals
+  request_changes_workflow: true
+
+  # ============================================
+  # Review Output
+  # ============================================
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+
+  # ============================================
+  # Auto Review
+  # ============================================
+  auto_review:
+    enabled: true
+    drafts: false
+    # Only review changed code on subsequent pushes (faster reviews)
+    auto_incremental_review: true
+    # Ignore PRs from these users (e.g., bots)
+    # ignore_usernames:
+    #   - "dependabot[bot]"
+    #   - "renovate[bot]"
+
+  # Stop review if PR is closed/merged
+  abort_on_close: true
+
+  # ============================================
+  # Path-Specific Instructions
+  # ============================================
+  # Custom review focus per file pattern
+  # Uncomment and customize for your project
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        - Enforce type hints on all function signatures
+        - Check for proper exception handling (no bare except)
+        - Verify docstrings on public functions/classes
+    - path: "**/*.ts"
+      instructions: |
+        - Ensure strict TypeScript (no any, no type assertions without reason)
+        - Check for proper error handling
+        - Verify JSDoc on exported functions
+    - path: "**/*.sh"
+      instructions: |
+        - Verify scripts use set -euo pipefail
+        - Check for proper quoting of variables
+        - Ensure portable syntax (POSIX where possible)
+    - path: "**/tests/**"
+      instructions: |
+        - Focus on test coverage and edge cases
+        - Verify meaningful assertions (not just checking for no errors)
+        - Check for test isolation (no shared state)
+    - path: "**/*.md"
+      instructions: |
+        - Check for spelling and grammar
+        - Verify links are valid
+        - Ensure consistent formatting
+
+  # ============================================
+  # Static Analysis Tools
+  # ============================================
+  # CodeRabbit runs these automatically when corresponding files exist
+  # Configure specific tools or disable ones you don't need
+  tools:
+    # Python
+    ruff:
+      enabled: true
+    # JavaScript/TypeScript
+    biome:
+      enabled: true
+    eslint:
+      enabled: true
+    # Shell
+    shellcheck:
+      enabled: true
+    # Markdown
+    markdownlint:
+      enabled: true
+    # YAML
+    yamllint:
+      enabled: true
+    # Security scanning
+    gitleaks:
+      enabled: true
+    # Spell checking
+    languagetool:
+      enabled: true
+
+  # ============================================
+  # Finishing Touches (AI-generated additions)
+  # ============================================
+  finishing_touches:
+    # Generate docstrings for undocumented code
+    docstrings:
+      enabled: true
+    # Suggest unit tests for new code
+    unit_tests:
+      enabled: true
+
+# ============================================
+# Chat
+# ============================================
+chat:
+  auto_reply: true
+
+# ============================================
+# Knowledge Base
+# ============================================
+# CodeRabbit automatically detects and uses these files as coding guidelines:
+# - CLAUDE.md, .cursorrules, CODING_STANDARDS.md, etc.
+# knowledge_base:
+#   opt_out: false

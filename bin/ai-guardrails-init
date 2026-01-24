@@ -29,6 +29,15 @@ if [[ -d "$HOME/.ai-guardrails/configs" ]]; then
   TEMPLATES_DIR="$HOME/.ai-guardrails/templates"
 fi
 
+# Portable sed -i (works on both GNU and BSD/macOS)
+sed_inplace() {
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    sed -i '' "$@"
+  else
+    sed -i "$@"
+  fi
+}
+
 usage() {
   cat <<EOF
 Usage: ai-guardrails-init [OPTIONS]
@@ -36,11 +45,18 @@ Usage: ai-guardrails-init [OPTIONS]
 Set up pedantic code enforcement configs for the current project.
 
 Options:
-  --type TYPE     Project type: dotnet, rust, lua, cpp, python, node, all
-  --all           Copy ALL configs (for multi-language projects)
-  --force         Overwrite existing config files
-  --no-precommit  Skip pre-commit config
-  -h, --help      Show this help
+  --type TYPE        Project type: dotnet, rust, lua, cpp, python, node, all
+  --all              Copy ALL configs (for multi-language projects)
+  --force            Overwrite existing config files
+  --no-precommit     Skip pre-commit config
+  --pip-audit-pip    Force pip-audit configuration for pip
+  --pip-audit-uv     Force pip-audit configuration for uv
+  --no-pip-audit     Disable pip-audit hook
+  --ci               Install CI workflow (.github/workflows/check.yml)
+  --no-ci            Skip CI workflow installation
+  --coderabbit       Install CodeRabbit config (.coderabbit.yaml)
+  --no-coderabbit    Skip CodeRabbit config installation
+  -h, --help         Show this help
 
 Configs installed per type:
   all       .editorconfig, pre-commit-config.yaml, all language configs
@@ -51,10 +67,15 @@ Configs installed per type:
   python    .editorconfig, ruff.toml
   node      .editorconfig, biome.json
 
+Also installs (for GitHub projects):
+  .coderabbit.yaml    CodeRabbit AI reviewer config (assertive + approval workflow)
+  check.yml           CI workflow for pre-commit checks
+
 Examples:
-  ai-guardrails-init                # Auto-detect project type
-  ai-guardrails-init --type rust    # Rust project
-  ai-guardrails-init --all          # Multi-language project
+  ai-guardrails-init                   # Auto-detect project type
+  ai-guardrails-init --type rust       # Rust project
+  ai-guardrails-init --all             # Multi-language project
+  ai-guardrails-init --pip-audit-uv    # Force uv configuration for pip-audit
 EOF
 }
 
@@ -62,6 +83,9 @@ PROJECT_TYPE=""
 FORCE=false
 SKIP_PRECOMMIT=false
 COPY_ALL=false
+PIP_AUDIT_MODE="auto"
+INSTALL_CI="auto"
+INSTALL_CODERABBIT="auto"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -81,6 +105,34 @@ while [[ $# -gt 0 ]]; do
       SKIP_PRECOMMIT=true
       shift
       ;;
+    --pip-audit-pip)
+      PIP_AUDIT_MODE="pip"
+      shift
+      ;;
+    --pip-audit-uv)
+      PIP_AUDIT_MODE="uv"
+      shift
+      ;;
+    --no-pip-audit)
+      PIP_AUDIT_MODE="none"
+      shift
+      ;;
+    --ci)
+      INSTALL_CI="yes"
+      shift
+      ;;
+    --no-ci)
+      INSTALL_CI="no"
+      shift
+      ;;
+    --coderabbit)
+      INSTALL_CODERABBIT="yes"
+      shift
+      ;;
+    --no-coderabbit)
+      INSTALL_CODERABBIT="no"
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -97,19 +149,19 @@ done
 detect_project_type() {
   local types=""
 
-  if [[ -f "*.csproj" ]] || [[ -f "*.sln" ]] || ls *.csproj 1>/dev/null 2>&1; then
+  if find . -maxdepth 1 \( -name "*.csproj" -o -name "*.sln" \) -print -quit | grep -q .; then
     types="$types dotnet"
   fi
   if [[ -f "Cargo.toml" ]]; then
     types="$types rust"
   fi
-  if ls *.rockspec 1>/dev/null 2>&1 || [[ -d "lua" ]] || ls *.lua 1>/dev/null 2>&1; then
+  if find . -maxdepth 1 \( -name "*.rockspec" -o -name "*.lua" \) -print -quit | grep -q . || [[ -d "lua" ]]; then
     types="$types lua"
   fi
-  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || ls *.cpp 1>/dev/null 2>&1 || ls *.c 1>/dev/null 2>&1; then
+  if [[ -f "CMakeLists.txt" ]] || [[ -f "Makefile" ]] || find . -maxdepth 1 \( -name "*.cpp" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" \) -print -quit | grep -q .; then
     types="$types cpp"
   fi
-  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || ls *.py 1>/dev/null 2>&1; then
+  if [[ -f "pyproject.toml" ]] || [[ -f "setup.py" ]] || [[ -f "requirements.txt" ]] || find . -maxdepth 1 -name "*.py" -print -quit | grep -q .; then
     types="$types python"
   fi
   if [[ -f "package.json" ]] || [[ -f "tsconfig.json" ]]; then
@@ -117,6 +169,80 @@ detect_project_type() {
   fi
 
   echo "$types"
+}
+
+detect_python_deps() {
+  # Auto-detect Python dependency management tool
+  # Returns: "uv", "pip", or "none"
+
+  if [[ -f "uv.lock" ]]; then
+    echo "uv"
+  elif [[ -f "requirements.txt" ]]; then
+    echo "pip"
+  elif [[ -f "pyproject.toml" ]]; then
+    # Has pyproject.toml but no uv.lock (already checked above)
+    echo "pip"
+  else
+    echo "none"
+  fi
+}
+
+configure_pip_audit() {
+  local tool="$1"
+  local config_file=".pre-commit-config.yaml"
+
+  case "$tool" in
+    uv)
+      # pip-audit --locked requires PEP 751 lockfiles, not uv.lock
+      # Export uv.lock to requirements.txt for pip-audit compatibility
+      if command -v uv &>/dev/null; then
+        if uv export --format requirements.txt --output-file requirements-audit.txt --quiet 2>/dev/null; then
+          # Uncomment pip-audit and configure for exported requirements
+          sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+          sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+          sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
+          sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+          sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+          sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]/' "$config_file"
+          echo -e "  ${GREEN}✓ Configured pip-audit for uv (-r requirements-audit.txt)${NC}"
+          echo -e "  ${YELLOW}  Note: Re-run 'uv export' after dependency changes${NC}"
+        else
+          echo -e "  ${YELLOW}⚠ Could not export uv.lock - pip-audit left disabled${NC}"
+          echo -e "  ${YELLOW}  Run: uv export --format requirements.txt -o requirements-audit.txt${NC}"
+        fi
+      else
+        echo -e "  ${YELLOW}⚠ uv not found - pip-audit left disabled${NC}"
+        echo -e "  ${YELLOW}  Install uv and run: uv export --format requirements.txt -o requirements-audit.txt${NC}"
+      fi
+      ;;
+    pip)
+      # Uncomment pip-audit and configure for pip
+      sed_inplace 's/^#   \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/  \1/' "$config_file"
+      sed_inplace 's/^#     \(rev: v2.10.0\)/    \1/' "$config_file"
+      sed_inplace 's/^#     \(hooks:\)/    \1/' "$config_file"
+      sed_inplace 's/^#       \(- id: pip-audit\)/      \1/' "$config_file"
+      sed_inplace 's/^#         \(name: "🐍 python · pip-audit CVE scan"\)/        \1/' "$config_file"
+      if [[ -f "requirements.txt" ]]; then
+        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "-r", "requirements.txt"]/' "$config_file"
+        echo -e "  ${GREEN}✓ Configured pip-audit for pip (-r requirements.txt)${NC}"
+      else
+        # Scan current environment (no --locked, which requires PEP 751 lockfiles)
+        sed_inplace 's/^#         args: \["--strict"[^]]*\]/        args: ["--strict", "--progress-spinner", "off", "."]/' "$config_file"
+        echo -e "  ${GREEN}✓ Configured pip-audit for pip (current environment)${NC}"
+      fi
+      ;;
+    none)
+      # Ensure pip-audit is commented out (in case --force was used on existing config)
+      sed_inplace 's/^  \(- repo: https:\/\/github.com\/pypa\/pip-audit\)/#   \1/' "$config_file"
+      sed_inplace 's/^    \(rev: v2.10.0\)/#     \1/' "$config_file"
+      sed_inplace 's/^    \(hooks:\)/#     \1/' "$config_file"
+      sed_inplace 's/^      \(- id: pip-audit\)/#       \1/' "$config_file"
+      sed_inplace 's/^        \(name: "🐍 python · pip-audit CVE scan"\)/#         \1/' "$config_file"
+      sed_inplace 's/^        \(args: \["--strict"\)/#         \1/' "$config_file"
+      echo -e "  ${YELLOW}⚠ pip-audit disabled${NC}"
+      echo -e "  ${YELLOW}  Run with --pip-audit-pip or --pip-audit-uv to enable${NC}"
+      ;;
+  esac
 }
 
 copy_config() {
@@ -208,12 +334,29 @@ esac
 if [[ "$SKIP_PRECOMMIT" == false ]]; then
   echo
   echo -e "${GREEN}Setting up pre-commit...${NC}"
+
+  # Track whether we should configure pip-audit (only if we copy our template)
+  CONFIGURE_PIP_AUDIT=false
+  if [[ ! -f ".pre-commit-config.yaml" || "$FORCE" == true ]]; then
+    CONFIGURE_PIP_AUDIT=true
+  fi
+
   copy_config "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
+
+  # Auto-detect and configure pip-audit (only if we copied our template)
+  if [[ "$CONFIGURE_PIP_AUDIT" == true && -f ".pre-commit-config.yaml" ]]; then
+    if [[ "$PIP_AUDIT_MODE" == "auto" ]]; then
+      PIP_AUDIT_MODE=$(detect_python_deps)
+    fi
+    configure_pip_audit "$PIP_AUDIT_MODE"
+  fi
 
   # Install pre-commit hooks if available
   if command -v pre-commit &>/dev/null; then
     if [[ -d ".git" ]]; then
-      pre-commit install 2>/dev/null && echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}" || true
+      if pre-commit install 2>/dev/null; then
+        echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}"
+      fi
     fi
   else
     echo -e "  ${YELLOW}Note: Install pre-commit to activate hooks:${NC}"
@@ -226,6 +369,77 @@ if [[ -d ".git" ]]; then
   if ! grep -q "^\.ai-guardrails" .gitignore 2>/dev/null; then
     echo ".ai-guardrails/" >>.gitignore
     echo -e "  ${GREEN}✓ Added .ai-guardrails/ to .gitignore${NC}"
+  fi
+fi
+
+# Install CI workflow
+if [[ "$INSTALL_CI" == "auto" && -d ".git" ]]; then
+  # Auto: install if .github directory exists or this looks like a GitHub project
+  if [[ -d ".github" ]] || git remote -v 2>/dev/null | grep -q "github.com"; then
+    INSTALL_CI="yes"
+  fi
+fi
+
+if [[ "$INSTALL_CI" == "yes" ]]; then
+  echo
+  echo -e "${GREEN}Setting up CI workflow...${NC}"
+  mkdir -p .github/workflows
+  if [[ -f "$TEMPLATES_DIR/workflows/check.yml" ]]; then
+    copy_config "$TEMPLATES_DIR/workflows/check.yml" ".github/workflows/check.yml"
+  else
+    echo -e "  ${YELLOW}⚠ CI workflow template not found${NC}"
+  fi
+fi
+
+# Install CodeRabbit config
+if [[ "$INSTALL_CODERABBIT" == "auto" && -d ".git" ]]; then
+  # Auto: install if this looks like a GitHub project
+  if [[ -d ".github" ]] || git remote -v 2>/dev/null | grep -q "github.com"; then
+    INSTALL_CODERABBIT="yes"
+  fi
+fi
+
+if [[ "$INSTALL_CODERABBIT" == "yes" ]]; then
+  echo
+  echo -e "${GREEN}Setting up CodeRabbit...${NC}"
+  if [[ -f "$TEMPLATES_DIR/.coderabbit.yaml" ]]; then
+    copy_config "$TEMPLATES_DIR/.coderabbit.yaml" ".coderabbit.yaml"
+    echo -e "  ${BLUE}→ Customize path_instructions in .coderabbit.yaml for your project${NC}"
+  else
+    echo -e "  ${YELLOW}⚠ CodeRabbit config template not found${NC}"
+  fi
+fi
+
+# Update CLAUDE.md or AGENTS.md with guardrails rules
+GUARDRAILS_MARKER="## AI Guardrails - Code Standards"
+GUARDRAILS_TEMPLATE="$TEMPLATES_DIR/CLAUDE.md.guardrails"
+
+if [[ -f "$GUARDRAILS_TEMPLATE" ]]; then
+  echo
+  echo -e "${GREEN}Setting up agent instructions...${NC}"
+
+  append_guardrails() {
+    local file="$1"
+    if grep -q "$GUARDRAILS_MARKER" "$file" 2>/dev/null; then
+      echo -e "  ${YELLOW}⊘ $file already has guardrails section${NC}"
+      return
+    fi
+    echo "" >>"$file"
+    cat "$GUARDRAILS_TEMPLATE" >>"$file"
+    echo -e "  ${GREEN}✓ Appended guardrails rules to $file${NC}"
+  }
+
+  if [[ -f "AGENTS.md" ]]; then
+    append_guardrails "AGENTS.md"
+  fi
+
+  if [[ -f "CLAUDE.md" ]]; then
+    append_guardrails "CLAUDE.md"
+  elif [[ ! -f "AGENTS.md" ]]; then
+    # Create CLAUDE.md only if neither exists
+    echo "# Project Instructions" >"CLAUDE.md"
+    cat "$GUARDRAILS_TEMPLATE" >>"CLAUDE.md"
+    echo -e "  ${GREEN}✓ Created CLAUDE.md with guardrails rules${NC}"
   fi
 fi
 

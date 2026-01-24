@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write  # Allow Claude to approve PRs
       issues: read
       id-token: write
       actions: read # Required for Claude to read CI results on PRs
@@ -28,7 +28,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          # Checkout PR branch for all PR-related events:
+          # - issue_comment: PR context in github.event.issue.pull_request
+          # - pull_request_review/pull_request_review_comment: PR context in github.event.pull_request
+          ref: ${{ (github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number)) || (github.event.pull_request && github.event.pull_request.head.ref) || github.ref }}
 
       - name: Run Claude Code
         id: claude
