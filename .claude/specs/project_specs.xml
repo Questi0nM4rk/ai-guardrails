@@ -183,7 +183,12 @@ query($owner: String!, $repo: String!, $pr: Int!) {
       "path": "path/to/file.py",
       "line": 42,
       "startLine": 40,
-      "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Title here**\n\n..."
+      "comments": [
+        {
+          "author": {"login": "coderabbitai"},
+          "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Title**\n\n..."
+        }
+      ]
     }
   ],
   "review_bodies": [
@@ -191,6 +196,7 @@ query($owner: String!, $repo: String!, $pr: Int!) {
   ]
 }
         ]]></combined_input_json_schema>
+        <note>Schema matches GraphQL reviewThreads.nodes[].comments.nodes[] structure</note>
       </input_format>
 
       <comment_body_parsing>
@@ -240,7 +246,7 @@ query($owner: String!, $repo: String!, $pr: Int!) {
             <field name="line_range" type="string|null" required="false">Original "40-50" format from body</field>
             <field name="title" type="string" required="true">Bold title extracted from comment</field>
             <field name="severity" type="enum" required="true">major, minor, or suggestion</field>
-            <field name="source" type="enum" required="true">thread, nitpick, outside_diff, ai_prompt</field>
+            <field name="source" type="enum" required="true">thread, nitpick, outside_diff</field>
             <field name="ai_prompt" type="string|null" required="false">Full AI prompt if present</field>
             <field name="description" type="string|null" required="false">Additional context</field>
           </task>
@@ -255,7 +261,6 @@ query($owner: String!, $repo: String!, $pr: Int!) {
               <field name="thread" type="integer" required="true">From GraphQL reviewThreads</field>
               <field name="nitpick" type="integer" required="true">From 🧹 section</field>
               <field name="outside_diff" type="integer" required="true">From ⚠️ section</field>
-              <field name="ai_prompt" type="integer" required="true">From 🤖 section</field>
             </field>
             <field name="by_file" type="object" required="true">Map of file path to task count</field>
           </summary>
