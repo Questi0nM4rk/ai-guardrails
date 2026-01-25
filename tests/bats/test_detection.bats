@@ -248,7 +248,8 @@ teardown() {
 @test "returns empty for empty directory" {
   run run_assemble --list-detected
   [ "$status" -eq 0 ]
-  assert_contains "$output" "No languages detected"
+  # Output should be empty when no languages detected
+  [ -z "$output" ]
 }
 
 @test "returns empty for unrecognized files" {
@@ -257,5 +258,6 @@ teardown() {
 
   run run_assemble --list-detected
   [ "$status" -eq 0 ]
-  assert_contains "$output" "No languages detected"
+  # Output should be empty when no languages detected
+  [ -z "$output" ]
 }
