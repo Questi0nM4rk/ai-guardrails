@@ -70,10 +70,10 @@ fi
 echo -n "Test 6: Package manager detection... "
 if source lib/installers/detect_pm.sh; then
   PM=$(detect_package_manager)
-  if [[ -n "$PM" ]]; then
+  if [[ "$PM" != "none" ]]; then
     echo -e "${GREEN}✓${NC} ($PM)"
   else
-    echo -e "${YELLOW}⚠${NC} (no package manager)"
+    echo -e "  ${YELLOW}⚠${NC} No package manager detected (PM=none)"
   fi
 else
   echo -e "${RED}✗${NC}"

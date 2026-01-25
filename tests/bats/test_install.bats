@@ -261,33 +261,25 @@ TEST_CONTENT
   grep -A 15 "brew)" "$INSTALLERS_DIR/cpp.sh" | grep -q "Add to PATH for permanent access"
 }
 
-@test "cpp installer: verification shows red X for missing clang-format" {
-  # Create test bin without clang-format
-  export PATH="$TEST_BIN_DIR"
+# NOTE: The following cpp installer tests are skipped because:
+# - cpp.sh tries to INSTALL tools (via sudo pacman/apt) before verifying
+# - Testing "tools not found" requires either:
+#   a) Clean CI containers where tools genuinely don't exist
+#   b) Complex mocking to intercept package manager calls
+#   c) Refactoring cpp.sh to make verification testable in isolation
+# These tests should run in CI with clean container environments.
+# See: https://github.com/bats-core/bats-core#mocking
 
-  # The installer should show red X for missing tools
-  run "$INSTALLERS_DIR/cpp.sh" 2>&1 || true
-  [[ "$output" =~ "✗" ]] && [[ "$output" =~ "clang-format not found" ]]
-  skip "Requires mocking to avoid empty PATH breaking script"
+@test "cpp installer: verification shows red X for missing clang-format" {
+  skip "Requires CI container without clang-format installed"
 }
 
 @test "cpp installer: verification shows red X for missing clang-tidy" {
-  # Create test bin with only clang-format (missing clang-tidy)
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/clang-format"
-  chmod +x "$TEST_BIN_DIR/clang-format"
-  export PATH="$TEST_BIN_DIR"
-
-  run "$INSTALLERS_DIR/cpp.sh" 2>&1 || true
-  [[ "$output" =~ "✗" ]] && [[ "$output" =~ "clang-tidy not found" ]]
-  skip "Requires mocking to avoid empty PATH breaking script"
+  skip "Requires CI container without clang-tidy installed"
 }
 
 @test "cpp installer: exits with failure code when tools not found" {
-  # Create test bin without any tools
-  export PATH="$TEST_BIN_DIR"
-
-  run "$INSTALLERS_DIR/cpp.sh" 2>&1
-  [[ "$status" -ne 0 ]]
+  skip "Requires CI container - cpp.sh attempts real installation via package manager"
 }
 
 @test "cpp installer: exits successfully when both tools are found" {

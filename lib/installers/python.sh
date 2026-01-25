@@ -63,9 +63,9 @@ elif command -v pip3 &>/dev/null; then
     fi
   done
 
-  # Check if user bin is in PATH
-  USER_BIN="$(python3 -m site --user-base 2>/dev/null)/bin"
-  if [[ -n "$USER_BIN" && ":$PATH:" != *":$USER_BIN:"* ]]; then
+  # Check if user bin is in PATH (best-effort, don't fail if python3 errors)
+  USER_BIN="$(python3 -m site --user-base 2>/dev/null || true)/bin"
+  if [[ -n "$USER_BIN" ]] && [[ "$USER_BIN" != "/bin" ]] && [[ ":$PATH:" != *":$USER_BIN:"* ]]; then
     echo -e "${YELLOW}  Note: Add to PATH for tool access: $USER_BIN${NC}"
   fi
 else

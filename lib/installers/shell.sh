@@ -36,9 +36,17 @@ case "$PM" in
     }
     # shfmt not in apt by default, install via go
     if command -v go &>/dev/null; then
-      go install mvdan.cc/sh/v3/cmd/shfmt@latest 2>/dev/null || {
+      echo "    Installing shfmt via go..."
+      if go install mvdan.cc/sh/v3/cmd/shfmt@latest 2>/dev/null; then
+        # Add Go bin to PATH for verification
+        GOBIN_DIR="${GOBIN:-$HOME/go/bin}"
+        if [[ ":$PATH:" != *":$GOBIN_DIR:"* ]]; then
+          export PATH="$GOBIN_DIR:$PATH"
+          echo -e "${YELLOW}    Note: Add to PATH for permanent access: $GOBIN_DIR${NC}"
+        fi
+      else
         echo -e "${YELLOW}    Warning: Failed to install shfmt via go${NC}"
-      }
+      fi
     else
       echo -e "${YELLOW}    Warning: shfmt requires Go to install${NC}"
       echo "    Try: go install mvdan.cc/sh/v3/cmd/shfmt@latest"

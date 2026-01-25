@@ -24,7 +24,7 @@ setup() {
 
 teardown() {
   # Clean up test directory
-  /bin/rm -rf "$TEST_INSTALL_DIR"
+  rm -rf "$TEST_INSTALL_DIR"
   export HOME="$ORIGINAL_HOME"
   export PATH="$ORIGINAL_PATH"
 }

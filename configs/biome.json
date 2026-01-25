@@ -79,7 +79,7 @@
         "useGetterReturn": "error",
         "useIsArray": "error",
         "useNamespaceKeyword": "error",
-        "noConsole": { "level": "error", "options": { "allow": ["log"] } },
+        "noConsole": "error",
         "noVar": "error",
         "noWith": "error"
       },
