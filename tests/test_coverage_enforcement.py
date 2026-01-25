@@ -19,9 +19,7 @@ def test_ci_workflow_enforces_85_percent_coverage():
     # Ensure no other coverage thresholds exist
     cov_fail_pattern = r"--cov-fail-under=(\d+)"
     matches = re.findall(cov_fail_pattern, content)
-    assert matches == ["85"], (
-        f"Expected only 85% coverage threshold, found: {matches}"
-    )
+    assert matches == ["85"], f"Expected only 85% coverage threshold, found: {matches}"
 
 
 def test_claude_md_documents_85_percent_coverage():
