@@ -56,6 +56,8 @@ Options:
   --no-pip-audit     Disable pip-audit hook
   --ci               Install CI workflow (.github/workflows/check.yml)
   --no-ci            Skip CI workflow installation
+  --claude-review    Install Claude Code review workflow
+  --no-claude-review Skip Claude Code review workflow
   --coderabbit       Install CodeRabbit config (.coderabbit.yaml)
   --no-coderabbit    Skip CodeRabbit config installation
   -h, --help         Show this help
@@ -73,6 +75,7 @@ Languages supported (auto-detected or via --type):
 Also installs (for GitHub projects):
   .coderabbit.yaml    CodeRabbit AI reviewer config (assertive + approval workflow)
   check.yml           CI workflow for pre-commit checks
+  claude-review.yml   Claude Code review workflow (AI-powered PR review)
 
 Examples:
   ai-guardrails-init                   # Auto-detect project type
@@ -88,6 +91,7 @@ SKIP_PRECOMMIT=false
 COPY_ALL=false
 PIP_AUDIT_MODE="auto"
 INSTALL_CI="auto"
+INSTALL_CLAUDE_REVIEW="auto"
 INSTALL_CODERABBIT="auto"
 detected=""
 
@@ -127,6 +131,14 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-ci)
       INSTALL_CI="no"
+      shift
+      ;;
+    --claude-review)
+      INSTALL_CLAUDE_REVIEW="yes"
+      shift
+      ;;
+    --no-claude-review)
+      INSTALL_CLAUDE_REVIEW="no"
       shift
       ;;
     --coderabbit)
@@ -433,6 +445,27 @@ if [[ "$INSTALL_CI" == "yes" ]]; then
     copy_config "$TEMPLATES_DIR/workflows/check.yml" ".github/workflows/check.yml"
   else
     echo -e "  ${YELLOW}⚠ CI workflow template not found${NC}"
+  fi
+fi
+
+# Install Claude Code review workflow
+if [[ "$INSTALL_CLAUDE_REVIEW" == "auto" && -d ".git" ]]; then
+  # Auto: install if .github directory exists or this looks like a GitHub project
+  if [[ -d ".github" ]] || git remote -v 2>/dev/null | grep -q "github.com"; then
+    INSTALL_CLAUDE_REVIEW="yes"
+  fi
+fi
+
+if [[ "$INSTALL_CLAUDE_REVIEW" == "yes" ]]; then
+  echo
+  echo -e "${GREEN}Setting up Claude Code review...${NC}"
+  mkdir -p .github/workflows
+  if [[ -f "$TEMPLATES_DIR/workflows/claude-review.yml" ]]; then
+    copy_config "$TEMPLATES_DIR/workflows/claude-review.yml" ".github/workflows/claude-review.yml"
+    echo -e "  ${BLUE}→ Note: This workflow requires OIDC auth (must be on default branch first)${NC}"
+    echo -e "  ${BLUE}→ Or provide anthropic_api_key in workflow secrets${NC}"
+  else
+    echo -e "  ${YELLOW}⚠ Claude review workflow template not found${NC}"
   fi
 fi
 
