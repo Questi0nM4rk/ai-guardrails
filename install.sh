@@ -178,42 +178,126 @@ if command -v pipx &>/dev/null; then
   echo -n "  Installing pyyaml... "
   if python3 -c "import yaml" &>/dev/null; then
     echo -e "${YELLOW}already installed${NC}"
-  elif pip3 install --user --quiet pyyaml 2>/dev/null || pip3 install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
-    echo -e "${GREEN}✓${NC}"
   else
-    echo -e "${RED}✗${NC}"
-    echo -e "${YELLOW}    Warning: Failed to install pyyaml${NC}"
+    # Try installation methods
+    if python3 -m pip install --user --quiet pyyaml 2>/dev/null || python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
+      # Verify installation succeeded
+      if python3 -c "import yaml" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pyyaml${NC}"
+        exit 1
+      fi
+    else
+      # Installation commands failed, verify not already installed
+      if python3 -c "import yaml" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pyyaml${NC}"
+        exit 1
+      fi
+    fi
   fi
 
   # Install pre-commit framework (required for hooks)
   echo -n "  Installing pre-commit... "
-  if pipx install pre-commit &>/dev/null || pipx upgrade pre-commit &>/dev/null 2>&1; then
-    echo -e "${GREEN}✓${NC}"
-  else
+  if command -v pre-commit &>/dev/null; then
     echo -e "${YELLOW}already installed${NC}"
+  else
+    # Try installation methods
+    if pipx install pre-commit &>/dev/null || pipx upgrade pre-commit &>/dev/null 2>&1; then
+      # Verify installation succeeded
+      if command -v pre-commit &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pre-commit${NC}"
+        exit 1
+      fi
+    else
+      # Installation commands failed, verify not already installed
+      if command -v pre-commit &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pre-commit${NC}"
+        exit 1
+      fi
+    fi
   fi
 else
   # Install pyyaml (required for assemble_precommit.py)
   echo -n "  Installing pyyaml... "
   if python3 -c "import yaml" &>/dev/null; then
     echo -e "${YELLOW}already installed${NC}"
-  elif pip3 install --user --quiet pyyaml 2>/dev/null; then
-    echo -e "${GREEN}✓${NC}"
-  elif pip3 install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} (--break-system-packages)"
   else
-    echo -e "${RED}✗${NC}"
-    echo -e "${YELLOW}    Warning: Failed to install pyyaml${NC}"
+    # Try installation methods
+    if python3 -m pip install --user --quiet pyyaml 2>/dev/null; then
+      # Verify installation succeeded
+      if python3 -c "import yaml" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pyyaml${NC}"
+        exit 1
+      fi
+    elif python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
+      # Verify installation succeeded
+      if python3 -c "import yaml" &>/dev/null; then
+        echo -e "${GREEN}✓${NC} (--break-system-packages)"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pyyaml${NC}"
+        exit 1
+      fi
+    else
+      # Installation commands failed, verify not already installed
+      if python3 -c "import yaml" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pyyaml${NC}"
+        exit 1
+      fi
+    fi
   fi
 
   # Install pre-commit framework (required for hooks)
   echo -n "  Installing pre-commit... "
-  if pip3 install --user --quiet pre-commit 2>/dev/null; then
-    echo -e "${GREEN}✓${NC}"
-  elif pip3 install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
-    echo -e "${GREEN}✓${NC} (--break-system-packages)"
-  else
+  if command -v pre-commit &>/dev/null; then
     echo -e "${YELLOW}already installed${NC}"
+  else
+    # Try installation methods
+    if python3 -m pip install --user --quiet pre-commit 2>/dev/null; then
+      # Verify installation succeeded
+      if command -v pre-commit &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pre-commit${NC}"
+        exit 1
+      fi
+    elif python3 -m pip install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
+      # Verify installation succeeded
+      if command -v pre-commit &>/dev/null; then
+        echo -e "${GREEN}✓${NC} (--break-system-packages)"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pre-commit${NC}"
+        exit 1
+      fi
+    else
+      # Installation commands failed, verify not already installed
+      if command -v pre-commit &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${RED}Error: Failed to install pre-commit${NC}"
+        exit 1
+      fi
+    fi
   fi
 fi
 
