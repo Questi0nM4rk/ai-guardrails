@@ -27,7 +27,7 @@ teardown() {
 
 @test "pyyaml verification: reports 'already installed' only when import succeeds" {
   # Create mock python3 that successfully imports yaml
-  cat > "$TEST_BIN_DIR/python3" <<'EOF'
+  cat >"$TEST_BIN_DIR/python3" <<'EOF'
 #!/bin/bash
 if [[ "$*" == *"import yaml"* ]]; then
   exit 0  # yaml import succeeds
@@ -54,7 +54,7 @@ EOF
 
 @test "pyyaml verification: does not report 'already installed' when import fails" {
   # Create mock python3 that fails to import yaml
-  cat > "$TEST_BIN_DIR/python3" <<'EOF'
+  cat >"$TEST_BIN_DIR/python3" <<'EOF'
 #!/bin/bash
 if [[ "$*" == *"import yaml"* ]]; then
   exit 1  # yaml import fails
@@ -85,7 +85,7 @@ EOF
   # 3. Script exits with error
 
   # Create mock python3 that fails yaml import always
-  cat > "$TEST_BIN_DIR/python3" <<'EOF'
+  cat >"$TEST_BIN_DIR/python3" <<'EOF'
 #!/bin/bash
 if [[ "$*" == *"import yaml"* ]]; then
   exit 1  # yaml never available (even after "install")
@@ -143,7 +143,7 @@ EOF
 
 @test "pre-commit verification: reports 'already installed' only when command exists" {
   # Create mock pre-commit command
-  cat > "$TEST_BIN_DIR/pre-commit" <<'EOF'
+  cat >"$TEST_BIN_DIR/pre-commit" <<'EOF'
 #!/bin/bash
 echo "pre-commit 3.0.0"
 EOF
@@ -189,7 +189,7 @@ EOF
   # 3. Script exits with error
 
   # Mock pipx that succeeds (returns 0) but doesn't actually install pre-commit
-  /usr/bin/cat > "$TEST_BIN_DIR/pipx" <<'EOF'
+  /usr/bin/cat >"$TEST_BIN_DIR/pipx" <<'EOF'
 #!/bin/bash
 # Simulate successful pipx command that doesn't actually install
 exit 0
