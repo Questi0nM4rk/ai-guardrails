@@ -149,9 +149,12 @@ jobs:
         working-directory: tests/fixtures/node-good
         run: biome check .
 
+      - name: Install TypeScript for tsc
+        run: npm install -g typescript
+
       - name: Test good fixture passes tsc
         working-directory: tests/fixtures/node-good
-        run: npx tsc --noEmit
+        run: tsc --noEmit
 
   assembly:
     name: Assembly Script
