@@ -11,9 +11,6 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-TEST_DIR=$(mktemp -d)
-trap 'rm -rf "$TEST_DIR"' EXIT
-
 echo "Testing install.sh..."
 echo
 
@@ -68,7 +65,8 @@ else
   exit 1
 fi
 
-# Test 6: Package manager detection works
+# Test 6: Package manager detection works (smoke test - uses real system)
+# This validates detection works on the actual host; for isolated tests see test_install.bats
 echo -n "Test 6: Package manager detection... "
 if source lib/installers/detect_pm.sh; then
   PM=$(detect_package_manager)

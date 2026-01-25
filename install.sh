@@ -123,6 +123,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# Determine if any language tools should be installed
+SHOULD_INSTALL_LANGS=false
+if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] || [[ "$INSTALL_NODE" == true ]] \
+  || [[ "$INSTALL_RUST" == true ]] || [[ "$INSTALL_GO" == true ]] || [[ "$INSTALL_CPP" == true ]] \
+  || [[ "$INSTALL_LUA" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
+  SHOULD_INSTALL_LANGS=true
+fi
+
 # Uninstall
 if [[ "$UNINSTALL" == true ]]; then
   echo -e "${BLUE}Uninstalling AI Guardrails...${NC}"
@@ -340,9 +348,7 @@ for hook in common.sh dangerous-command-check.sh pre-commit.sh pre-push.sh forma
 done
 
 # Install language-specific tools
-if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] || [[ "$INSTALL_NODE" == true ]] \
-  || [[ "$INSTALL_RUST" == true ]] || [[ "$INSTALL_GO" == true ]] || [[ "$INSTALL_CPP" == true ]] \
-  || [[ "$INSTALL_LUA" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
+if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   echo
   echo -e "${GREEN}Installing language tools...${NC}"
   echo
@@ -392,9 +398,7 @@ echo "  • CLI commands: ai-review-tasks, ai-hooks-init, ai-guardrails-init"
 echo "  • Hooks: $INSTALL_DIR/hooks/"
 echo
 
-if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] || [[ "$INSTALL_NODE" == true ]] \
-  || [[ "$INSTALL_RUST" == true ]] || [[ "$INSTALL_GO" == true ]] || [[ "$INSTALL_CPP" == true ]] \
-  || [[ "$INSTALL_LUA" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
+if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   echo "Installed language tools:"
   [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] && echo "  • Python: ruff, mypy, bandit, vulture, pip-audit"
   [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_NODE" == true ]] && echo "  • Node.js: biome"
