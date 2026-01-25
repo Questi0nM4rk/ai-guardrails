@@ -405,10 +405,11 @@ SUDO_MOCK
 	echo 'exit 0' >>"$TEST_BIN_DIR/apt-get"
 	chmod +x "$TEST_BIN_DIR/apt-get"
 
-	export PATH="$TEST_BIN_DIR"
+	export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
 	# Run lua installer - should fail cargo and have no fallback
 	run bash -c "source $BATS_TEST_DIRNAME/../../lib/installers/lua.sh 2>&1"
-	# Should show failure indicator (✗)
+	# Should show failure indicator (✗) and no fallback
 	[[ "$output" =~ "Installing stylua" ]]
+	[[ ! "$output" =~ "via pacman fallback" ]]
 }
