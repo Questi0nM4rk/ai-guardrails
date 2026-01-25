@@ -296,19 +296,16 @@ TEST_CONTENT
 # ============================================
 
 @test "install.sh: accepts --python flag" {
-  skip "Requires full install.sh refactor"
   run "$BATS_TEST_DIRNAME/../../install.sh" --help
   [[ "$output" == *"--python"* ]]
 }
 
 @test "install.sh: accepts --node flag" {
-  skip "Requires full install.sh refactor"
   run "$BATS_TEST_DIRNAME/../../install.sh" --help
   [[ "$output" == *"--node"* ]]
 }
 
 @test "install.sh: accepts --all flag" {
-  skip "Requires full install.sh refactor"
   run "$BATS_TEST_DIRNAME/../../install.sh" --help
   [[ "$output" == *"--all"* ]]
 }

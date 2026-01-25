@@ -12,6 +12,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+INSTALL_FAILED=false
+
 echo -e "${GREEN}Installing Go tools...${NC}"
 
 # Check for go
@@ -29,6 +31,7 @@ if go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest 2>/dev/
 else
   echo -e "${RED}✗${NC}"
   echo -e "${YELLOW}    Warning: Failed to install golangci-lint${NC}"
+  INSTALL_FAILED=true
 fi
 
 # Install govulncheck
@@ -38,6 +41,18 @@ if go install golang.org/x/vuln/cmd/govulncheck@latest 2>/dev/null; then
 else
   echo -e "${RED}✗${NC}"
   echo -e "${YELLOW}    Warning: Failed to install govulncheck${NC}"
+  INSTALL_FAILED=true
+fi
+
+# Note about PATH
+GOBIN="${GOBIN:-${GOPATH:-$HOME/go}/bin}"
+if [[ ":$PATH:" != *":$GOBIN:"* ]]; then
+  echo -e "${YELLOW}  Note: Add to PATH for tool access: $GOBIN${NC}"
+fi
+
+if [[ "$INSTALL_FAILED" == true ]]; then
+  echo -e "${YELLOW}Go tools installation completed with errors${NC}"
+  exit 1
 fi
 
 echo -e "${GREEN}Go tools installation complete!${NC}"

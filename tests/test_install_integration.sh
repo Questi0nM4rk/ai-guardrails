@@ -37,6 +37,10 @@ echo -n "Test 3: Installer scripts exist... "
 if [[ -f lib/installers/python.sh ]] \
   && [[ -f lib/installers/node.sh ]] \
   && [[ -f lib/installers/shell.sh ]] \
+  && [[ -f lib/installers/rust.sh ]] \
+  && [[ -f lib/installers/go.sh ]] \
+  && [[ -f lib/installers/cpp.sh ]] \
+  && [[ -f lib/installers/lua.sh ]] \
   && [[ -f lib/installers/detect_pm.sh ]]; then
   echo -e "${GREEN}✓${NC}"
 else
@@ -48,7 +52,11 @@ fi
 echo -n "Test 4: Scripts are executable... "
 if [[ -x lib/installers/python.sh ]] \
   && [[ -x lib/installers/node.sh ]] \
-  && [[ -x lib/installers/shell.sh ]]; then
+  && [[ -x lib/installers/shell.sh ]] \
+  && [[ -x lib/installers/rust.sh ]] \
+  && [[ -x lib/installers/go.sh ]] \
+  && [[ -x lib/installers/cpp.sh ]] \
+  && [[ -x lib/installers/lua.sh ]]; then
   echo -e "${GREEN}✓${NC}"
 else
   echo -e "${RED}✗${NC}"

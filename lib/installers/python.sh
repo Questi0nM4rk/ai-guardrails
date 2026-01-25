@@ -36,8 +36,9 @@ if command -v pipx &>/dev/null; then
       if pipx upgrade "$tool" &>/dev/null; then
         echo -e "${GREEN}✓${NC} (upgraded)"
       else
-        # Upgrade failed but tool exists - could be network/permission issue
-        echo -e "${YELLOW}✓${NC} (upgrade skipped)"
+        # Upgrade failed - report the failure, not "already installed"
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}      Warning: Failed to upgrade $tool${NC}"
       fi
     else
       # Not installed, try install

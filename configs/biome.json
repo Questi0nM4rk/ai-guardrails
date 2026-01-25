@@ -1,12 +1,12 @@
 {
-  "root": false,
+  "root": true,
   "$schema": "https://biomejs.dev/schemas/2.3.12/schema.json",
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
       "correctness": {
-        "noUndeclaredVariables": "off",
+        "noUndeclaredVariables": "error",
         "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noUnusedPrivateClassMembers": "error",
@@ -89,7 +89,7 @@
         "useExportType": "error",
         "useImportType": "error",
         "useBlockStatements": "error",
-        "noInferrableTypes": "off",
+        "noInferrableTypes": "error",
         "noDefaultExport": "error",
         "noParameterAssign": "error",
         "noRestrictedGlobals": "error",

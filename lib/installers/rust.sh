@@ -12,6 +12,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+INSTALL_FAILED=false
+
 echo -e "${GREEN}Installing Rust tools...${NC}"
 
 # Check for cargo
@@ -30,6 +32,12 @@ else
   echo -e "${RED}✗${NC}"
   echo -e "${YELLOW}    Warning: Failed to install cargo-audit${NC}"
   echo "    Try: cargo install cargo-audit"
+  INSTALL_FAILED=true
+fi
+
+if [[ "$INSTALL_FAILED" == true ]]; then
+  echo -e "${YELLOW}Rust tools installation completed with errors${NC}"
+  exit 1
 fi
 
 echo -e "${GREEN}Rust tools installation complete!${NC}"

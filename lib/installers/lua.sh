@@ -32,9 +32,13 @@ if command -v cargo &>/dev/null; then
       echo -e "${GREEN}✓${NC} (via pacman fallback)"
     else
       echo -e "${RED}✗${NC}"
+      echo -e "${YELLOW}    Warning: Failed to install stylua${NC}"
+      echo "    Try manually: cargo install stylua"
     fi
   else
     echo -e "${RED}✗${NC}"
+    echo -e "${YELLOW}    Warning: Failed to install stylua via cargo${NC}"
+    echo "    Try manually: cargo install stylua"
   fi
 elif [[ "$PM" == "pacman" ]]; then
   if sudo pacman -S --needed --noconfirm stylua >/dev/null 2>&1; then
@@ -42,10 +46,12 @@ elif [[ "$PM" == "pacman" ]]; then
   else
     echo -e "${RED}✗${NC}"
     echo -e "${YELLOW}    Warning: Failed to install stylua via pacman${NC}"
+    echo "    Try manually: cargo install stylua"
   fi
 else
   echo -e "${YELLOW}⚠${NC}"
   echo "    Install manually: cargo install stylua"
+  echo "    Or via package manager if available"
 fi
 
 # Install luacheck (via package manager or luarocks)
@@ -57,6 +63,7 @@ case "$PM" in
     else
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install luacheck${NC}"
+      echo "    Try: luarocks install luacheck"
     fi
     ;;
   apt)
@@ -65,6 +72,7 @@ case "$PM" in
     else
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install luacheck${NC}"
+      echo "    Try: luarocks install luacheck"
     fi
     ;;
   brew)
@@ -73,6 +81,7 @@ case "$PM" in
     else
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install luacheck${NC}"
+      echo "    Try: luarocks install luacheck"
     fi
     ;;
   none)

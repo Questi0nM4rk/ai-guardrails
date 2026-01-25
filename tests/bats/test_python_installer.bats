@@ -81,14 +81,19 @@ exit 0' >"$TEST_BIN_DIR/pip3"
 # ============================================
 
 @test "python installer with pipx: upgrades when package already installed" {
-  # Create mock pipx list that shows package installed
+  # Create mock pipx list that shows all packages installed
   echo '#!/bin/bash
 if [[ "$1" == "list" ]]; then
 	echo "venvs are in /mock/.local/pipx/venvs"
 	echo "apps are in /mock/.local/bin"
 	echo "   package ruff 0.1.0, installed using Python 3.12.0"
+	echo "   package mypy 1.0.0, installed using Python 3.12.0"
+	echo "   package bandit 1.0.0, installed using Python 3.12.0"
+	echo "   package vulture 1.0.0, installed using Python 3.12.0"
+	echo "   package pip-audit 1.0.0, installed using Python 3.12.0"
 fi
-if [[ "$1" == "upgrade" && "$2" == "ruff" ]]; then
+# Handle upgrade for any tool
+if [[ "$1" == "upgrade" ]]; then
 	exit 0
 fi' >"$TEST_BIN_DIR/pipx"
   chmod +x "$TEST_BIN_DIR/pipx"
