@@ -206,13 +206,14 @@ if command -v pipx &>/dev/null; then
 
   # Install pre-commit framework (required for hooks)
   echo -n "  Installing pre-commit... "
-  if command -v pre-commit &>/dev/null; then
+  # Check via pipx list (PATH-independent) or command -v as fallback
+  if pipx list 2>/dev/null | grep -q "package pre-commit" || command -v pre-commit &>/dev/null; then
     echo -e "${YELLOW}already installed${NC}"
   else
     # Try installation methods
     if pipx install pre-commit &>/dev/null || pipx upgrade pre-commit &>/dev/null 2>&1; then
-      # Verify installation succeeded
-      if command -v pre-commit &>/dev/null; then
+      # Verify installation succeeded (pipx list is PATH-independent)
+      if pipx list 2>/dev/null | grep -q "package pre-commit"; then
         echo -e "${GREEN}✓${NC}"
       else
         echo -e "${RED}✗${NC}"
@@ -221,7 +222,7 @@ if command -v pipx &>/dev/null; then
       fi
     else
       # Installation commands failed, verify not already installed
-      if command -v pre-commit &>/dev/null; then
+      if pipx list 2>/dev/null | grep -q "package pre-commit" || command -v pre-commit &>/dev/null; then
         echo -e "${GREEN}✓${NC}"
       else
         echo -e "${RED}✗${NC}"

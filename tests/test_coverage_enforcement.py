@@ -42,22 +42,37 @@ def test_claude_md_documents_85_percent_coverage():
 
 def test_no_conflicting_coverage_configs():
     """Verify no pytest.ini, .coveragerc, or other configs override coverage."""
-    # These files could override --cov-fail-under in pytest
-    conflicting_files = [
-        "pytest.ini",
-        ".coveragerc",
-        "setup.cfg",
-        "pyproject.toml",
-    ]
+    import tomllib
 
-    for filename in conflicting_files:
+    # Plain text configs - simple substring check
+    plaintext_configs = ["pytest.ini", ".coveragerc", "setup.cfg"]
+
+    for filename in plaintext_configs:
         path = Path(filename)
         if path.exists():
             content = path.read_text()
-            # Check for fail_under or similar coverage config
             assert "fail_under" not in content, (
                 f"{filename} should not override coverage threshold"
             )
             assert "min_coverage" not in content, (
                 f"{filename} should not set minimum coverage"
             )
+
+    # pyproject.toml - parse and check specific keys to avoid false positives
+    pyproject = Path("pyproject.toml")
+    if pyproject.exists():
+        with pyproject.open("rb") as f:
+            data = tomllib.load(f)
+
+        # Check tool.coverage.report.fail_under
+        coverage_report = data.get("tool", {}).get("coverage", {}).get("report", {})
+        assert "fail_under" not in coverage_report, (
+            "pyproject.toml [tool.coverage.report] should not set fail_under"
+        )
+
+        # Check tool.pytest.ini_options for coverage settings
+        pytest_opts = data.get("tool", {}).get("pytest", {}).get("ini_options", {})
+        addopts = pytest_opts.get("addopts", "")
+        assert "--cov-fail-under" not in addopts, (
+            "pyproject.toml [tool.pytest.ini_options] should not set --cov-fail-under"
+        )
