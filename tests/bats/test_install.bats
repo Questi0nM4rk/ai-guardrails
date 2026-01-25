@@ -2,6 +2,7 @@
 # ============================================
 # Tests for install.sh and language installers
 # ============================================
+# shellcheck disable=SC2030,SC2031  # PATH modifications are intentional for BATS test isolation
 
 setup() {
   # Create temp directory for test installations
@@ -14,6 +15,9 @@ setup() {
   export ORIGINAL_HOME="$HOME"
   export HOME="$TEST_INSTALL_DIR"
 
+  # Save original PATH
+  export ORIGINAL_PATH="$PATH"
+
   # Create mock installer scripts
   export INSTALLERS_DIR="$BATS_TEST_DIRNAME/../../lib/installers"
 }
@@ -22,6 +26,7 @@ teardown() {
   # Clean up test directory
   rm -rf "$TEST_INSTALL_DIR"
   export HOME="$ORIGINAL_HOME"
+  export PATH="$ORIGINAL_PATH"
 }
 
 # ============================================
@@ -29,9 +34,10 @@ teardown() {
 # ============================================
 
 @test "detect_package_manager: identifies pacman" {
-  # Mock pacman command
-  function pacman() { :; }
-  export -f pacman
+  # Create mock pacman in test bin
+  echo '#!/bin/bash' >"$TEST_BIN_DIR/pacman"
+  chmod +x "$TEST_BIN_DIR/pacman"
+  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
   # shellcheck source=lib/installers/detect_pm.sh
   source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
@@ -40,9 +46,11 @@ teardown() {
 }
 
 @test "detect_package_manager: identifies apt" {
-  # Mock apt-get command
-  function apt-get() { :; }
-  export -f apt-get
+  # Create mock apt-get in test bin (higher priority than real pacman)
+  echo '#!/bin/bash' >"$TEST_BIN_DIR/apt-get"
+  chmod +x "$TEST_BIN_DIR/apt-get"
+  # Remove pacman from path by using only test bin
+  export PATH="$TEST_BIN_DIR"
 
   # shellcheck source=lib/installers/detect_pm.sh
   source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
@@ -51,9 +59,11 @@ teardown() {
 }
 
 @test "detect_package_manager: identifies brew" {
-  # Mock brew command
-  function brew() { :; }
-  export -f brew
+  # Create mock brew in test bin
+  echo '#!/bin/bash' >"$TEST_BIN_DIR/brew"
+  chmod +x "$TEST_BIN_DIR/brew"
+  # Remove other package managers from path
+  export PATH="$TEST_BIN_DIR"
 
   # shellcheck source=lib/installers/detect_pm.sh
   source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
@@ -62,7 +72,9 @@ teardown() {
 }
 
 @test "detect_package_manager: returns none when no package manager found" {
-  # No mocked package managers
+  # Use empty PATH to ensure no package managers found
+  export PATH="$TEST_BIN_DIR"
+
   # shellcheck source=lib/installers/detect_pm.sh
   source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
   result=$(detect_package_manager)
