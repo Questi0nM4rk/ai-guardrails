@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import tempfile
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -27,7 +28,7 @@ from lib.python.assemble_precommit import (
 
 
 @pytest.fixture
-def temp_dir() -> Path:
+def temp_dir() -> Iterator[Path]:
     """Create a temporary directory for tests."""
     with tempfile.TemporaryDirectory() as tmp:
         yield Path(tmp)
@@ -74,7 +75,7 @@ def sample_registry() -> dict[str, Any]:
 
 
 @pytest.fixture
-def templates_dir(temp_dir: Path) -> Path:
+def templates_dir(temp_dir: Path) -> Iterator[Path]:
     """Create a templates directory with sample templates."""
     tpl_dir = temp_dir / "templates"
     tpl_dir.mkdir()
@@ -114,7 +115,7 @@ def templates_dir(temp_dir: Path) -> Path:
     }
     (tpl_dir / "go.yaml").write_text(yaml.dump(go_config))
 
-    return tpl_dir
+    yield tpl_dir
 
 
 # =============================================================================

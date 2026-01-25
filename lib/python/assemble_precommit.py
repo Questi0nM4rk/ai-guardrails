@@ -145,6 +145,22 @@ def assemble_config(
     return config
 
 
+class MultilineDumper(yaml.SafeDumper):
+    """Custom YAML dumper that uses block style for multiline strings."""
+
+    pass
+
+
+def _str_representer(dumper: yaml.Dumper, data: str) -> yaml.Node:
+    """Represent multiline strings with block style."""
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+MultilineDumper.add_representer(str, _str_representer)
+
+
 def write_config(config: dict[str, Any], output_path: Path) -> None:
     """Write assembled config to file.
 
@@ -152,15 +168,6 @@ def write_config(config: dict[str, Any], output_path: Path) -> None:
         config: Assembled pre-commit configuration
         output_path: Path to write .pre-commit-config.yaml
     """
-
-    # Custom YAML representer for cleaner output
-    def str_representer(dumper: yaml.Dumper, data: str) -> yaml.Node:
-        if "\n" in data:
-            return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data)
-
-    yaml.add_representer(str, str_representer)
-
     with output_path.open("w") as f:
         # Write header comment
         f.write(
@@ -176,7 +183,12 @@ def write_config(config: dict[str, Any], output_path: Path) -> None:
             "# =============================================================================\n\n"
         )
         yaml.dump(
-            config, f, default_flow_style=False, sort_keys=False, allow_unicode=True
+            config,
+            f,
+            Dumper=MultilineDumper,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
         )
 
 
