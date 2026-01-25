@@ -63,7 +63,7 @@ cpp:
   detect:
     files:
       - CMakeLists.txt
-      - Makefile
+      # Note: Makefile excluded - too generic (used by Python, Go, Rust, etc.)
     patterns:
       - "*.cpp"
       - "*.c"
