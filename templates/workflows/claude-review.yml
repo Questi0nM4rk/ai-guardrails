@@ -1,0 +1,53 @@
+# AI Guardrails - Claude Code Review Workflow
+# Automated code review using Claude Code Action
+# Note: This workflow must exist on the default branch (main) for OIDC auth to work
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  review:
+    name: Claude Code Review
+    # Run on PR events, or on issue comments that mention @claude
+    if: >
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '@claude'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@beta
+        with:
+          # Use OIDC authentication (requires workflow on default branch)
+          # Alternatively, provide anthropic_api_key for direct API access
+          use_oauth: true
+
+          # Review configuration
+          model: claude-sonnet-4-20250514
+          timeout_minutes: 10
+
+          # Custom prompt for code review focus
+          custom_instructions: |
+            Focus on:
+            - Security vulnerabilities (OWASP top 10)
+            - Code correctness and edge cases
+            - Performance issues
+            - Adherence to project conventions in CLAUDE.md
+            - Test coverage gaps
+
+            Be concise. Prioritize actionable feedback.
+            Use severity levels: critical, major, minor, suggestion.
