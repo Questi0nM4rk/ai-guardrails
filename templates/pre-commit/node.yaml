@@ -1,0 +1,33 @@
+# =============================================================================
+# AI Guardrails - TypeScript/JavaScript Pre-Commit Hooks
+# =============================================================================
+# Pedantic Node enforcement: biome all rules, strict TypeScript.
+# Uses biome.json if present in project root.
+# =============================================================================
+
+repos:
+  - repo: https://github.com/biomejs/pre-commit
+    rev: "v0.6.1"
+    hooks:
+      - id: biome-check
+        name: "typescript - biome lint+format (pedantic)"
+        additional_dependencies: ["@biomejs/biome@1.9.4"]
+        args: ["--error-on-warnings"]
+
+  - repo: local
+    hooks:
+      - id: tsc
+        name: "typescript - tsc type check (strict)"
+        entry: npx tsc
+        args: ["--noEmit", "--strict", "--skipLibCheck"]
+        language: system
+        types: [ts, tsx]
+        pass_filenames: false
+
+      - id: npm-audit
+        name: "typescript - npm audit CVE scan"
+        entry: npm audit
+        args: ["--audit-level=moderate"]
+        language: system
+        files: package\.json$
+        pass_filenames: false

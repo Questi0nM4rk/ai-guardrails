@@ -139,7 +139,7 @@ if [[ "$FORCE" == true && -d "$INSTALL_DIR" ]]; then
   rm -rf "$INSTALL_DIR"
 fi
 
-mkdir -p "$INSTALL_DIR"/{bin,lib/hooks,lib/python,templates,configs}
+mkdir -p "$INSTALL_DIR"/{bin,lib/hooks,lib/python,templates/pre-commit,templates/workflows,configs}
 mkdir -p "$BIN_DIR"
 
 # Copy files
@@ -162,8 +162,12 @@ for hook in common.sh dangerous-command-check.sh pre-commit.sh pre-push.sh forma
 done
 
 # Copy lib/python
-cp "$SCRIPT_DIR/lib/python/coderabbit_parser.py" "$INSTALL_DIR/lib/python/"
-echo "  ✓ lib/python/coderabbit_parser.py"
+for pyfile in "$SCRIPT_DIR/lib/python/"*.py; do
+  if [[ -f "$pyfile" ]]; then
+    cp "$pyfile" "$INSTALL_DIR/lib/python/"
+    echo "  ✓ lib/python/$(basename "$pyfile")"
+  fi
+done
 
 # Copy templates (files, including dotfiles)
 for template in "$SCRIPT_DIR/templates/"* "$SCRIPT_DIR/templates/."*; do
@@ -181,6 +185,18 @@ if [[ -d "$SCRIPT_DIR/templates/workflows" ]]; then
       basename=$(basename "$workflow")
       cp "$workflow" "$INSTALL_DIR/templates/workflows/"
       echo "  ✓ templates/workflows/$basename"
+    fi
+  done
+fi
+
+# Copy templates/pre-commit directory (modular templates)
+if [[ -d "$SCRIPT_DIR/templates/pre-commit" ]]; then
+  mkdir -p "$INSTALL_DIR/templates/pre-commit"
+  for template in "$SCRIPT_DIR/templates/pre-commit/"*.yaml; do
+    if [[ -f "$template" ]]; then
+      basename=$(basename "$template")
+      cp "$template" "$INSTALL_DIR/templates/pre-commit/"
+      echo "  ✓ templates/pre-commit/$basename"
     fi
   done
 fi

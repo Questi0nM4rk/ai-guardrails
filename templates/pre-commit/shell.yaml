@@ -1,0 +1,20 @@
+# =============================================================================
+# AI Guardrails - Shell Pre-Commit Hooks
+# =============================================================================
+# Strict shell enforcement: shellcheck + shfmt.
+# =============================================================================
+
+repos:
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        name: "shell - shellcheck lint"
+        args: ["--severity=info", "-x"]
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-1
+    hooks:
+      - id: shfmt
+        name: "shell - shfmt format check"
+        args: ["-i", "2", "-ci", "-bn", "-d"]

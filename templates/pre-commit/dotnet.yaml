@@ -1,0 +1,33 @@
+# =============================================================================
+# AI Guardrails - C#/.NET Pre-Commit Hooks
+# =============================================================================
+# Pedantic .NET enforcement: warnings as errors, strict analysis.
+# Uses .globalconfig + Directory.Build.props if present.
+# =============================================================================
+
+repos:
+  - repo: local
+    hooks:
+      - id: dotnet-format-fix
+        name: "csharp - dotnet format (auto-fix)"
+        entry: dotnet format
+        args: ["--severity", "info"]
+        language: system
+        types: [c#]
+        pass_filenames: false
+
+      - id: dotnet-format
+        name: "csharp - dotnet format (pedantic)"
+        entry: dotnet format
+        args: ["--verify-no-changes", "--severity", "info"]
+        language: system
+        types: [c#]
+        pass_filenames: false
+
+      - id: dotnet-build
+        name: "csharp - dotnet build (warnings as errors)"
+        entry: dotnet build
+        args: ["--no-restore", "-warnaserror", "-c", "Release"]
+        language: system
+        types: [c#]
+        pass_filenames: false
