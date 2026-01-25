@@ -458,12 +458,14 @@ class TestWriteConfig:
 class TestFindInstallationPaths:
     """Tests for find_installation_paths function."""
 
-    def test_finds_local_paths(self) -> None:
-        """Test finding local development paths."""
-        configs_dir, templates_dir = find_installation_paths()
-        assert configs_dir.exists()
-        assert (configs_dir / "languages.yaml").exists()
-        assert templates_dir.exists()
+    def test_finds_local_paths(self, temp_dir: Path) -> None:
+        """Test finding local development paths when no global install exists."""
+        # Patch Path.home() to temp_dir so we don't pick up real ~/.ai-guardrails
+        with patch.object(Path, "home", return_value=temp_dir):
+            configs_dir, templates_dir = find_installation_paths()
+            assert configs_dir.exists()
+            assert (configs_dir / "languages.yaml").exists()
+            assert templates_dir.exists()
 
     def test_global_install_preferred(self, temp_dir: Path) -> None:
         """Test that global install is preferred when it exists."""
