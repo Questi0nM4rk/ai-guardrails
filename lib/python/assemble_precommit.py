@@ -125,6 +125,10 @@ def assemble_config(
     base_path = templates_dir / "base.yaml"
     config = load_template(base_path)
 
+    # Ensure config has "repos" key (initialize empty list if missing)
+    if "repos" not in config:
+        config["repos"] = []
+
     # Merge each detected language's template
     for lang in languages:
         lang_config = registry.get(lang, {})
@@ -139,7 +143,8 @@ def assemble_config(
             continue
 
         lang_template = load_template(template_path)
-        repos = lang_template.get("repos", [])
+        # Handle lang_template.get("repos") being None by treating as empty list
+        repos = lang_template.get("repos") or []
         config["repos"].extend(repos)
 
     return config
@@ -325,11 +330,28 @@ Examples:
     if not languages:
         print("Warning: No languages detected, using base config only", file=sys.stderr)
 
-    config = assemble_config(languages, registry, templates_dir)
+    try:
+        config = assemble_config(languages, registry, templates_dir)
+    except FileNotFoundError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+    except yaml.YAMLError as e:
+        print(f"Error: Invalid YAML in template: {e}", file=sys.stderr)
+        return 1
 
     # Output
     if parsed.dry_run:
-        yaml.dump(config, sys.stdout, default_flow_style=False, sort_keys=False)
+        yaml.dump(
+            config,
+            sys.stdout,
+            Dumper=MultilineDumper,
+            default_flow_style=False,
+            sort_keys=False,
+            allow_unicode=True,
+        )
         return 0
 
     output_path = parsed.output or (parsed.project_dir / ".pre-commit-config.yaml")

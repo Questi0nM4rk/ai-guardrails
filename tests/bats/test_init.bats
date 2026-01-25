@@ -71,10 +71,12 @@ teardown() {
   assert_contains "$output" "Detected multiple languages"
 }
 
-@test "fails when no language detected" {
+@test "succeeds with base config when no language detected" {
   run run_init --no-coderabbit --no-ci 2>&1
-  [ "$status" -ne 0 ]
-  assert_contains "$output" "Could not detect project type"
+  [ "$status" -eq 0 ]
+  assert_contains "$output" "No language detected"
+  assert_contains "$output" "base config only"
+  assert_file_exists "$TEST_DIR/.editorconfig"
 }
 
 # =============================================================================

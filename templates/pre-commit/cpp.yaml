@@ -12,7 +12,7 @@ repos:
       - id: clang-format
         name: "cpp - clang-format check"
         args: ["--dry-run", "--Werror"]
-        types_or: [c, c++, cuda]
+        types_or: [c, c++]
 
   - repo: local
     hooks:

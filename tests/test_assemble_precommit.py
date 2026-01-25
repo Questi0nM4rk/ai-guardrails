@@ -353,6 +353,73 @@ class TestAssembleConfig:
         # Should still have base repos
         assert len(result["repos"]) >= 1
 
+    def test_base_template_missing_repos_key(
+        self, temp_dir: Path, sample_registry: dict[str, Any]
+    ) -> None:
+        """Test assembling config when base template has no repos key."""
+        templates_dir = temp_dir / "templates"
+        templates_dir.mkdir()
+
+        # Base template without "repos" key
+        base_config = {"exclude": "^vendor/"}
+        (templates_dir / "base.yaml").write_text(yaml.dump(base_config))
+
+        # Python template with repos
+        python_config = {
+            "repos": [
+                {
+                    "repo": "https://github.com/astral-sh/ruff-pre-commit",
+                    "rev": "v0.8.0",
+                }
+            ]
+        }
+        (templates_dir / "python.yaml").write_text(yaml.dump(python_config))
+
+        result = assemble_config(["python"], sample_registry, templates_dir)
+        assert "repos" in result
+        assert len(result["repos"]) == 1
+        assert (
+            result["repos"][0]["repo"] == "https://github.com/astral-sh/ruff-pre-commit"
+        )
+
+    def test_lang_template_missing_repos_key(
+        self, temp_dir: Path, sample_registry: dict[str, Any]
+    ) -> None:
+        """Test assembling config when language template has no repos key."""
+        templates_dir = temp_dir / "templates"
+        templates_dir.mkdir()
+
+        # Base template
+        base_config = {"repos": [{"repo": "base-repo"}]}
+        (templates_dir / "base.yaml").write_text(yaml.dump(base_config))
+
+        # Python template without repos key
+        python_config = {"exclude": "^venv/"}
+        (templates_dir / "python.yaml").write_text(yaml.dump(python_config))
+
+        result = assemble_config(["python"], sample_registry, templates_dir)
+        assert "repos" in result
+        assert len(result["repos"]) == 1  # Only base repo
+
+    def test_lang_template_repos_is_none(
+        self, temp_dir: Path, sample_registry: dict[str, Any]
+    ) -> None:
+        """Test assembling config when language template repos is None."""
+        templates_dir = temp_dir / "templates"
+        templates_dir.mkdir()
+
+        # Base template
+        base_config = {"repos": [{"repo": "base-repo"}]}
+        (templates_dir / "base.yaml").write_text(yaml.dump(base_config))
+
+        # Python template with repos: null
+        python_config = {"repos": None}
+        (templates_dir / "python.yaml").write_text(yaml.dump(python_config))
+
+        result = assemble_config(["python"], sample_registry, templates_dir)
+        assert "repos" in result
+        assert len(result["repos"]) == 1  # Only base repo
+
 
 # =============================================================================
 # Test write_config
@@ -468,6 +535,59 @@ class TestMainCLI:
         captured = capsys.readouterr()
         assert "repos:" in captured.out
 
+    def test_dry_run_uses_multiline_dumper(
+        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test --dry-run uses MultilineDumper for consistent formatting."""
+        # Create a project that will generate config with multiline strings
+        global_dir = temp_dir / ".ai-guardrails"
+        configs = global_dir / "configs"
+        templates = global_dir / "templates" / "pre-commit"
+        configs.mkdir(parents=True)
+        templates.mkdir(parents=True)
+
+        # Create registry
+        registry_data = {
+            "python": {
+                "name": "Python",
+                "pre_commit_template": "python.yaml",
+            }
+        }
+        (configs / "languages.yaml").write_text(yaml.dump(registry_data))
+
+        # Base template
+        base_config = {"repos": [{"repo": "base"}]}
+        (templates / "base.yaml").write_text(yaml.dump(base_config))
+
+        # Python template with multiline description
+        python_config = {
+            "repos": [
+                {
+                    "repo": "https://github.com/astral-sh/ruff-pre-commit",
+                    "hooks": [
+                        {
+                            "id": "ruff",
+                            "description": "Line 1\nLine 2\nLine 3",
+                        }
+                    ],
+                }
+            ]
+        }
+        (templates / "python.yaml").write_text(yaml.dump(python_config))
+
+        # Create Python project
+        (temp_dir / "pyproject.toml").write_text("")
+
+        with patch.object(Path, "home", return_value=temp_dir):
+            result = main(
+                ["--project-dir", str(temp_dir), "--languages", "python", "--dry-run"]
+            )
+            assert result == 0
+            captured = capsys.readouterr()
+            # MultilineDumper should use block style (| or |-) for multiline strings
+            # instead of quoted flow style
+            assert "description: |" in captured.out or "description: |-" in captured.out
+
     def test_output_file(self, temp_dir: Path) -> None:
         """Test --output writes to specified file."""
         output_path = temp_dir / "custom.yaml"
@@ -499,3 +619,67 @@ class TestMainCLI:
             "No languages detected" in captured.err
             or "base config only" in captured.out
         )
+
+    def test_handles_missing_base_template(
+        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test error handling when base.yaml is missing."""
+        # Create fake installation directory without base.yaml
+        global_dir = temp_dir / ".ai-guardrails"
+        configs = global_dir / "configs"
+        templates = global_dir / "templates" / "pre-commit"
+        configs.mkdir(parents=True)
+        templates.mkdir(parents=True)
+
+        # Create languages.yaml but no base.yaml
+        (configs / "languages.yaml").write_text("python: {}")
+
+        with patch.object(Path, "home", return_value=temp_dir):
+            result = main(["--project-dir", str(temp_dir), "--dry-run"])
+            assert result == 1
+            captured = capsys.readouterr()
+            assert "Error:" in captured.err
+
+    def test_handles_invalid_yaml_in_template(
+        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test error handling when template contains invalid YAML."""
+        global_dir = temp_dir / ".ai-guardrails"
+        configs = global_dir / "configs"
+        templates = global_dir / "templates" / "pre-commit"
+        configs.mkdir(parents=True)
+        templates.mkdir(parents=True)
+
+        # Create languages.yaml
+        (configs / "languages.yaml").write_text("python: {}")
+
+        # Create base.yaml with invalid YAML
+        (templates / "base.yaml").write_text("invalid: yaml: [[[")
+
+        with patch.object(Path, "home", return_value=temp_dir):
+            result = main(["--project-dir", str(temp_dir), "--dry-run"])
+            assert result == 1
+            captured = capsys.readouterr()
+            assert "Error:" in captured.err
+
+    def test_handles_value_error_in_assemble(
+        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """Test error handling when template is not a dict."""
+        global_dir = temp_dir / ".ai-guardrails"
+        configs = global_dir / "configs"
+        templates = global_dir / "templates" / "pre-commit"
+        configs.mkdir(parents=True)
+        templates.mkdir(parents=True)
+
+        # Create languages.yaml
+        (configs / "languages.yaml").write_text("python: {}")
+
+        # Create base.yaml with list instead of dict
+        (templates / "base.yaml").write_text("- item1\n- item2")
+
+        with patch.object(Path, "home", return_value=temp_dir):
+            result = main(["--project-dir", str(temp_dir), "--dry-run"])
+            assert result == 1
+            captured = capsys.readouterr()
+            assert "Error:" in captured.err

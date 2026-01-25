@@ -31,6 +31,7 @@ jobs:
 
   bats:
     name: Bats Tests
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -53,6 +54,7 @@ jobs:
 
   fixtures-python:
     name: Python Fixtures
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,6 +85,7 @@ jobs:
 
   fixtures-go:
     name: Go Fixtures
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -125,6 +128,7 @@ jobs:
 
   fixtures-node:
     name: Node Fixtures
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -158,6 +162,7 @@ jobs:
 
   assembly:
     name: Assembly Script
+    needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -187,6 +192,7 @@ jobs:
 
       - name: Test config generation
         run: |
+          rm -rf /tmp/test-project
           mkdir -p /tmp/test-project
           touch /tmp/test-project/pyproject.toml
 
