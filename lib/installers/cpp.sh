@@ -40,8 +40,17 @@ case "$PM" in
     echo "  Using brew..."
     brew install clang-format >/dev/null 2>&1 || {
       echo -e "${YELLOW}    Warning: Failed to install clang-format${NC}"
-      echo "    Try: brew install clang-format"
     }
+    # Install llvm for clang-tidy
+    brew install llvm >/dev/null 2>&1 || {
+      echo -e "${YELLOW}    Warning: Failed to install llvm (provides clang-tidy)${NC}"
+    }
+    # Add llvm to PATH for current script
+    LLVM_BIN="$(brew --prefix llvm 2>/dev/null)/bin"
+    if [[ -d "$LLVM_BIN" ]]; then
+      export PATH="$LLVM_BIN:$PATH"
+      echo -e "${YELLOW}    Note: Add to PATH for permanent access: $LLVM_BIN${NC}"
+    fi
     ;;
   none)
     echo -e "${YELLOW}  No package manager detected${NC}"
@@ -53,12 +62,23 @@ case "$PM" in
 esac
 
 # Verify installation
+FAILED=false
 if command -v clang-format &>/dev/null; then
   echo -e "  ${GREEN}✓${NC} clang-format"
+else
+  echo -e "  ${RED}✗${NC} clang-format not found"
+  FAILED=true
 fi
 
 if command -v clang-tidy &>/dev/null; then
   echo -e "  ${GREEN}✓${NC} clang-tidy"
+else
+  echo -e "  ${RED}✗${NC} clang-tidy not found"
+  FAILED=true
+fi
+
+if [[ "$FAILED" == true ]]; then
+  exit 1
 fi
 
 echo -e "${GREEN}C/C++ tools installation complete!${NC}"
