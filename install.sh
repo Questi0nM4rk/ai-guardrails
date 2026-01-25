@@ -32,6 +32,14 @@ Install AI Guardrails globally.
 Options:
   --uninstall     Remove AI Guardrails installation
   --force         Force reinstall (overwrite existing)
+  --all           Install all language tools
+  --python        Install Python tools (ruff, mypy, bandit, vulture, pip-audit)
+  --node          Install Node.js tools (biome)
+  --rust          Install Rust tools (cargo-audit)
+  --go            Install Go tools (golangci-lint, govulncheck)
+  --cpp           Install C/C++ tools (clang-format, clang-tidy)
+  --lua           Install Lua tools (stylua, luacheck)
+  --shell         Install Shell tools (shellcheck, shfmt)
   -h, --help      Show this help
 
 Installation locations:
@@ -42,11 +50,24 @@ Prerequisites:
   - Python 3.10+
   - gh (GitHub CLI) with gh-pr-review extension
 
+Notes:
+  - pyyaml and pre-commit are always installed (required)
+  - Language tools require their respective toolchains (go, cargo, npm, etc.)
+  - System package manager (pacman/apt/brew) used where applicable
+
 EOF
 }
 
 UNINSTALL=false
 FORCE=false
+INSTALL_ALL=false
+INSTALL_PYTHON=false
+INSTALL_NODE=false
+INSTALL_RUST=false
+INSTALL_GO=false
+INSTALL_CPP=false
+INSTALL_LUA=false
+INSTALL_SHELL=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -56,6 +77,38 @@ while [[ $# -gt 0 ]]; do
       ;;
     --force)
       FORCE=true
+      shift
+      ;;
+    --all)
+      INSTALL_ALL=true
+      shift
+      ;;
+    --python)
+      INSTALL_PYTHON=true
+      shift
+      ;;
+    --node)
+      INSTALL_NODE=true
+      shift
+      ;;
+    --rust)
+      INSTALL_RUST=true
+      shift
+      ;;
+    --go)
+      INSTALL_GO=true
+      shift
+      ;;
+    --cpp)
+      INSTALL_CPP=true
+      shift
+      ;;
+    --lua)
+      INSTALL_LUA=true
+      shift
+      ;;
+    --shell)
+      INSTALL_SHELL=true
       shift
       ;;
     -h | --help)
@@ -107,6 +160,55 @@ fi
 PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 echo "  ✓ Python $PYTHON_VERSION"
 
+# Install critical Python dependencies
+echo
+echo "Installing critical dependencies..."
+
+# Determine installation method
+if command -v pipx &>/dev/null; then
+  # Install pyyaml (required for assemble_precommit.py)
+  echo -n "  Installing pyyaml... "
+  if python3 -c "import yaml" &>/dev/null; then
+    echo -e "${YELLOW}already installed${NC}"
+  elif pip3 install --user --quiet pyyaml 2>/dev/null || pip3 install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
+    echo -e "${GREEN}✓${NC}"
+  else
+    echo -e "${RED}✗${NC}"
+    echo -e "${YELLOW}    Warning: Failed to install pyyaml${NC}"
+  fi
+
+  # Install pre-commit framework (required for hooks)
+  echo -n "  Installing pre-commit... "
+  if pipx install pre-commit &>/dev/null || pipx upgrade pre-commit &>/dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC}"
+  else
+    echo -e "${YELLOW}already installed${NC}"
+  fi
+else
+  # Install pyyaml (required for assemble_precommit.py)
+  echo -n "  Installing pyyaml... "
+  if python3 -c "import yaml" &>/dev/null; then
+    echo -e "${YELLOW}already installed${NC}"
+  elif pip3 install --user --quiet pyyaml 2>/dev/null; then
+    echo -e "${GREEN}✓${NC}"
+  elif pip3 install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} (--break-system-packages)"
+  else
+    echo -e "${RED}✗${NC}"
+    echo -e "${YELLOW}    Warning: Failed to install pyyaml${NC}"
+  fi
+
+  # Install pre-commit framework (required for hooks)
+  echo -n "  Installing pre-commit... "
+  if pip3 install --user --quiet pre-commit 2>/dev/null; then
+    echo -e "${GREEN}✓${NC}"
+  elif pip3 install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
+    echo -e "${GREEN}✓${NC} (--break-system-packages)"
+  else
+    echo -e "${YELLOW}already installed${NC}"
+  fi
+fi
+
 # Check gh CLI
 if ! command -v gh &>/dev/null; then
   echo -e "${YELLOW}Warning: GitHub CLI (gh) not installed${NC}"
@@ -139,7 +241,7 @@ if [[ "$FORCE" == true && -d "$INSTALL_DIR" ]]; then
   rm -rf "$INSTALL_DIR"
 fi
 
-mkdir -p "$INSTALL_DIR"/{bin,lib/hooks,lib/python,templates/pre-commit,templates/workflows,configs}
+mkdir -p "$INSTALL_DIR"/{bin,lib/hooks,lib/python,lib/installers,templates/pre-commit,templates/workflows,configs}
 mkdir -p "$BIN_DIR"
 
 # Copy files
@@ -166,6 +268,15 @@ for pyfile in "$SCRIPT_DIR/lib/python/"*.py; do
   if [[ -f "$pyfile" ]]; then
     cp "$pyfile" "$INSTALL_DIR/lib/python/"
     echo "  ✓ lib/python/$(basename "$pyfile")"
+  fi
+done
+
+# Copy lib/installers
+for installer in "$SCRIPT_DIR/lib/installers/"*.sh; do
+  if [[ -f "$installer" ]]; then
+    cp "$installer" "$INSTALL_DIR/lib/installers/"
+    chmod +x "$INSTALL_DIR/lib/installers/$(basename "$installer")"
+    echo "  ✓ lib/installers/$(basename "$installer")"
   fi
 done
 
@@ -228,6 +339,50 @@ for hook in common.sh dangerous-command-check.sh pre-commit.sh pre-push.sh forma
   fi
 done
 
+# Install language-specific tools
+if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] || [[ "$INSTALL_NODE" == true ]] \
+  || [[ "$INSTALL_RUST" == true ]] || [[ "$INSTALL_GO" == true ]] || [[ "$INSTALL_CPP" == true ]] \
+  || [[ "$INSTALL_LUA" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
+  echo
+  echo -e "${GREEN}Installing language tools...${NC}"
+  echo
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]]; then
+    "$INSTALL_DIR/lib/installers/python.sh" || echo -e "${YELLOW}Warning: Python tools installation had issues${NC}"
+    echo
+  fi
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_NODE" == true ]]; then
+    "$INSTALL_DIR/lib/installers/node.sh" || echo -e "${YELLOW}Warning: Node.js tools installation had issues${NC}"
+    echo
+  fi
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_RUST" == true ]]; then
+    "$INSTALL_DIR/lib/installers/rust.sh" || echo -e "${YELLOW}Warning: Rust tools installation had issues${NC}"
+    echo
+  fi
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_GO" == true ]]; then
+    "$INSTALL_DIR/lib/installers/go.sh" || echo -e "${YELLOW}Warning: Go tools installation had issues${NC}"
+    echo
+  fi
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_CPP" == true ]]; then
+    "$INSTALL_DIR/lib/installers/cpp.sh" || echo -e "${YELLOW}Warning: C/C++ tools installation had issues${NC}"
+    echo
+  fi
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_LUA" == true ]]; then
+    "$INSTALL_DIR/lib/installers/lua.sh" || echo -e "${YELLOW}Warning: Lua tools installation had issues${NC}"
+    echo
+  fi
+
+  if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
+    "$INSTALL_DIR/lib/installers/shell.sh" || echo -e "${YELLOW}Warning: Shell tools installation had issues${NC}"
+    echo
+  fi
+fi
+
 echo
 echo -e "${GREEN}AI Guardrails installed successfully!${NC}"
 echo
@@ -236,6 +391,21 @@ echo "  • Main directory: $INSTALL_DIR"
 echo "  • CLI commands: ai-review-tasks, ai-hooks-init, ai-guardrails-init"
 echo "  • Hooks: $INSTALL_DIR/hooks/"
 echo
+
+if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] || [[ "$INSTALL_NODE" == true ]] \
+  || [[ "$INSTALL_RUST" == true ]] || [[ "$INSTALL_GO" == true ]] || [[ "$INSTALL_CPP" == true ]] \
+  || [[ "$INSTALL_LUA" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
+  echo "Installed language tools:"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] && echo "  • Python: ruff, mypy, bandit, vulture, pip-audit"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_NODE" == true ]] && echo "  • Node.js: biome"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_RUST" == true ]] && echo "  • Rust: cargo-audit"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_GO" == true ]] && echo "  • Go: golangci-lint, govulncheck"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_CPP" == true ]] && echo "  • C/C++: clang-format, clang-tidy"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_LUA" == true ]] && echo "  • Lua: stylua, luacheck"
+  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_SHELL" == true ]] && echo "  • Shell: shellcheck, shfmt"
+  echo
+fi
+
 echo "Quick start:"
 echo "  1. cd /path/to/your/project"
 echo "  2. ai-guardrails-init           # Set up CLAUDE.md and settings"
