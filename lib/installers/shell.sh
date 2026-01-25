@@ -61,12 +61,23 @@ case "$PM" in
 esac
 
 # Verify installation
+FAILED=false
 if command -v shellcheck &>/dev/null; then
   echo -e "  ${GREEN}✓${NC} shellcheck"
+else
+  echo -e "  ${RED}✗${NC} shellcheck not found"
+  FAILED=true
 fi
 
 if command -v shfmt &>/dev/null; then
   echo -e "  ${GREEN}✓${NC} shfmt"
+else
+  echo -e "  ${RED}✗${NC} shfmt not found"
+  FAILED=true
+fi
+
+if [[ "$FAILED" == true ]]; then
+  exit 1
 fi
 
 echo -e "${GREEN}Shell tools installation complete!${NC}"
