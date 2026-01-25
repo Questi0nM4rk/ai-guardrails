@@ -3,33 +3,29 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+  # Also trigger on review requests
+  pull_request_target:
+    types: [review_requested]
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Skip draft PRs
+    if: github.event.pull_request.draft == false
 
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
+      contents: write       # Push fixes/suggestions
+      pull-requests: write  # Post reviews, approve, request changes
+      issues: write         # Create/comment on issues
+      id-token: write       # OIDC authentication
+      actions: read         # Read CI results
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Run Claude Code Review
         id: claude-review
@@ -38,6 +34,8 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
+          additional_permissions: |
+            actions: read
           prompt: |
             Review PR ${{ github.repository }}/pull/${{ github.event.pull_request.number }} with comprehensive analysis:
 
@@ -50,6 +48,10 @@ jobs:
             7. **Testing**: Test coverage for new code, edge case coverage, test quality
             8. **Documentation**: Code comments where needed, function/class documentation
 
+            After review:
+            - Post inline comments on specific lines with issues
+            - Provide an overall summary as a PR review
+            - If no critical/major issues: APPROVE the PR
+            - If critical/major issues found: REQUEST_CHANGES with clear explanation
+
             Focus on: actionable feedback with specific line references, severity (critical/major/minor), and suggested fixes.
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
