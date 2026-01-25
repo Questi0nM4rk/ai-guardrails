@@ -57,6 +57,34 @@ Hook execution order:
 5. Type checking (strict mode)
 6. Git hygiene (no main commits, no large files)
 
+## Working with CodeRabbit Reviews
+
+When addressing CodeRabbit PR comments:
+
+```bash
+# Pull ALL unresolved comments as structured JSON tasks
+bin/ai-review-tasks --pr <NUMBER> --pretty
+
+# Filter by severity
+bin/ai-review-tasks --pr <NUMBER> --severity major
+```
+
+**Important:**
+
+- This is a BASH script, not Python - don't run with `python3`
+- Use `--pr NUMBER` flag, not positional argument
+- Tool filters `isResolved=false` automatically
+- Output includes AI prompts with exact fix instructions
+- Create TaskCreate items for each task returned
+
+**Data flow:**
+
+1. Fetches review threads via GitHub GraphQL (inline comments)
+2. Fetches review bodies via `gh pr view` (🧹 Nitpicks, ⚠️ sections)
+3. Filters: author=coderabbit AND isResolved=false
+4. Pipes to `lib/python/coderabbit_parser.py` for parsing
+5. Outputs structured JSON with actionable tasks
+
 ## Detailed Specifications
 
 See `.claude/specs/project_specs.xml` for:
