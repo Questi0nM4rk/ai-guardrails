@@ -63,6 +63,14 @@ teardown() {
   assert_contains "$output" "rust"
 }
 
+@test "detects Rust from .rs files" {
+  create_file "main.rs"
+
+  run run_assemble --list-detected
+  [ "$status" -eq 0 ]
+  assert_contains "$output" "rust"
+}
+
 # =============================================================================
 # Go Detection
 # =============================================================================
@@ -105,6 +113,30 @@ teardown() {
 
 @test "detects Node from tsconfig.json" {
   create_file "tsconfig.json"
+
+  run run_assemble --list-detected
+  [ "$status" -eq 0 ]
+  assert_contains "$output" "node"
+}
+
+@test "detects Node from .ts files" {
+  create_file "app.ts"
+
+  run run_assemble --list-detected
+  [ "$status" -eq 0 ]
+  assert_contains "$output" "node"
+}
+
+@test "detects Node from .js files" {
+  create_file "app.js"
+
+  run run_assemble --list-detected
+  [ "$status" -eq 0 ]
+  assert_contains "$output" "node"
+}
+
+@test "detects Node from .tsx files" {
+  create_file "Component.tsx"
 
   run run_assemble --list-detected
   [ "$status" -eq 0 ]
@@ -188,7 +220,8 @@ teardown() {
 }
 
 @test "detects Lua from lua/ directory" {
-  mkdir -p "$TEST_DIR/lua"
+  # Create a file inside the lua directory
+  create_file "lua/.keep"
 
   run run_assemble --list-detected
   [ "$status" -eq 0 ]

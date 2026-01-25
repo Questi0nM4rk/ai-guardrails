@@ -37,8 +37,8 @@ repos:
 
       - id: cargo-doc
         name: "rust - cargo doc (error on missing docs)"
-        entry: env RUSTDOCFLAGS="-D missing_docs -D rustdoc::broken_intra_doc_links" cargo doc
-        args: ["--no-deps", "--all-features"]
+        entry: sh
+        args: ["-c", "RUSTDOCFLAGS=\"-D missing_docs -D rustdoc::broken_intra_doc_links\" cargo doc --no-deps --all-features"]
         language: system
         types: [rust]
         pass_filenames: false

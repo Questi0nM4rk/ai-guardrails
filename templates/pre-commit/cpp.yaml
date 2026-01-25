@@ -23,4 +23,5 @@ repos:
           - "--warnings-as-errors=*"
           - "-checks=*,-llvmlibc-*,-fuchsia-*,-altera-*"
         language: system
+        # Note: CUDA excluded - clang-tidy doesn't fully support CUDA syntax
         types_or: [c, c++]

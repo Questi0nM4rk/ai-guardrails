@@ -10,8 +10,8 @@ repos:
     hooks:
       - id: go-fmt
         name: "go - gofmt check"
-        entry: gofmt
-        args: ["-l", "-d"]
+        entry: sh
+        args: ["-c", "output=$(gofmt -l \"$@\") && [ -z \"$output\" ] || (echo \"$output\" && exit 1)", "--"]
         language: system
         types: [go]
         pass_filenames: true
