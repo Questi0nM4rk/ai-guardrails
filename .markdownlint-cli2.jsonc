@@ -16,11 +16,5 @@
   },
 
   // Ignore certain paths
-  "ignores": [
-    "node_modules/**",
-    ".venv/**",
-    "venv/**",
-    "dist/**",
-    "build/**"
-  ]
+  "ignores": ["node_modules/**", ".venv/**", "venv/**", "dist/**", "build/**"]
 }
