@@ -2,7 +2,7 @@
 # ============================================
 # Tests for Python installer improvements (Group F)
 # ============================================
-# shellcheck disable=SC2030,SC2031
+# shellcheck disable=SC2016,SC2030,SC2031,SC2317  # Single quotes in heredocs, PATH modifications, and BATS test functions are intentional
 
 setup() {
 	# Create temp directory for test installations

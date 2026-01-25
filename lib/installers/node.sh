@@ -24,9 +24,9 @@ fi
 
 # Install biome globally
 echo -n "  Installing @biomejs/biome... "
-NPM_ERR=$(npm install -g @biomejs/biome 2>&1) && {
+if NPM_ERR=$(npm install -g @biomejs/biome 2>&1); then
   echo -e "${GREEN}✓${NC}"
-} || {
+else
   echo -e "${RED}✗${NC}"
   if echo "$NPM_ERR" | grep -qE "EACCES|EPERM"; then
     echo -e "${YELLOW}    Permission denied. Try: npm config set prefix ~/.npm-global${NC}"
@@ -34,6 +34,6 @@ NPM_ERR=$(npm install -g @biomejs/biome 2>&1) && {
     echo -e "${YELLOW}    Warning: Failed to install biome${NC}"
   fi
   echo "    Try: npm install -g @biomejs/biome"
-}
+fi
 
 echo -e "${GREEN}Node.js tools installation complete!${NC}"

@@ -2,7 +2,7 @@
 # ============================================
 # Tests for install.sh and language installers
 # ============================================
-# shellcheck disable=SC2030,SC2031  # PATH modifications are intentional for BATS test isolation
+# shellcheck disable=SC2030,SC2031,SC2317  # PATH modifications and BATS test functions are intentional
 
 setup() {
 	# Create temp directory for test installations

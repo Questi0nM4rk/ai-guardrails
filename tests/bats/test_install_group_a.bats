@@ -2,6 +2,7 @@
 # ============================================
 # Tests for Group A: Critical Dependency Handling
 # ============================================
+# shellcheck disable=SC2030,SC2031,SC2317,SC2329  # PATH modifications, inline functions, and BATS test functions are intentional
 
 setup() {
   # Create temp directory for test installations
