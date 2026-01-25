@@ -297,6 +297,9 @@ Examples:
     except yaml.YAMLError as e:
         print(f"Error: Invalid YAML in registry: {e}", file=sys.stderr)
         return 1
+    except ValueError as e:
+        print(f"Error: Invalid registry format: {e}", file=sys.stderr)
+        return 1
 
     # Detect or use specified languages
     if parsed.languages:
