@@ -289,12 +289,10 @@ Examples:
 
     # Handle --list-detected
     if parsed.list_detected:
-        if languages:
-            for lang in languages:
-                config = registry[lang]
-                print(f"{lang}: {config.get('name', lang)}")
-        else:
-            print("No languages detected")
+        # Output nothing if no languages detected (for bash parsing)
+        for lang in languages:
+            config = registry[lang]
+            print(f"{lang}: {config.get('name', lang)}")
         return 0
 
     # Assemble config
