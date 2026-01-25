@@ -26,9 +26,15 @@ echo -n "  Installing stylua... "
 if command -v cargo &>/dev/null; then
   if cargo install --quiet stylua 2>/dev/null; then
     echo -e "${GREEN}✓${NC} (via cargo)"
+  elif [[ "$PM" == "pacman" ]]; then
+    # Fallback to pacman if cargo fails
+    if sudo pacman -S --needed --noconfirm stylua >/dev/null 2>&1; then
+      echo -e "${GREEN}✓${NC} (via pacman fallback)"
+    else
+      echo -e "${RED}✗${NC}"
+    fi
   else
     echo -e "${RED}✗${NC}"
-    echo -e "${YELLOW}    Warning: Failed to install stylua via cargo${NC}"
   fi
 elif [[ "$PM" == "pacman" ]]; then
   if sudo pacman -S --needed --noconfirm stylua >/dev/null 2>&1; then
