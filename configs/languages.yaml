@@ -35,7 +35,8 @@ rust:
   detect:
     files:
       - Cargo.toml
-    patterns: []
+    patterns:
+      - "*.rs"
     directories: []
   configs:
     - rustfmt.toml
@@ -94,7 +95,13 @@ node:
     files:
       - package.json
       - tsconfig.json
-    patterns: []
+    patterns:
+      - "*.js"
+      - "*.jsx"
+      - "*.ts"
+      - "*.tsx"
+      - "*.mjs"
+      - "*.cjs"
     directories: []
   configs:
     - biome.json

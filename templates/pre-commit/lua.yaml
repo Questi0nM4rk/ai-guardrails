@@ -18,6 +18,7 @@ repos:
       - id: luacheck
         name: "lua - luacheck lint"
         entry: luacheck
-        args: ["--globals", "vim", "--no-unused-args", "--std", "luajit"]
+        # Note: Add --globals vim to args if this is a Neovim project
+        args: ["--std", "luajit"]
         language: system
         types: [lua]

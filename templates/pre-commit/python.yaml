@@ -42,13 +42,14 @@ repos:
         exclude: ^tests/
 
   # Vulture - Dead code detection
+  # Note: pass_filenames: false + "." because vulture needs whole-project context
   - repo: https://github.com/jendrikseipp/vulture
     rev: v2.14
     hooks:
       - id: vulture
         name: "python - vulture dead code"
-        args: ["--min-confidence", "80", "."]
-        pass_filenames: false
+        args: ["--min-confidence", "80"]
+        pass_filenames: true
 
   # Python-specific pre-commit-hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks

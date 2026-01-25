@@ -123,6 +123,7 @@ repos:
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
         name: "format - end of file fixer"
+        exclude: ^\.github/workflows/claude.*\.yml$
       - id: mixed-line-ending
         name: "format - mixed line endings"
         args: [--fix=lf]
