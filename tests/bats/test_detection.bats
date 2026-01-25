@@ -175,13 +175,7 @@ teardown() {
   assert_contains "$output" "cpp"
 }
 
-@test "detects C++ from Makefile" {
-  create_file "Makefile"
-
-  run run_assemble --list-detected
-  [ "$status" -eq 0 ]
-  assert_contains "$output" "cpp"
-}
+# Note: Makefile detection removed - too generic (used by Python, Go, Rust, etc.)
 
 @test "detects C++ from .cpp files" {
   create_file "main.cpp"
