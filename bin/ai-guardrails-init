@@ -89,6 +89,7 @@ COPY_ALL=false
 PIP_AUDIT_MODE="auto"
 INSTALL_CI="auto"
 INSTALL_CODERABBIT="auto"
+detected=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
