@@ -29,11 +29,23 @@ if command -v pipx &>/dev/null; then
   echo "  Using pipx..."
   for tool in "${TOOLS[@]}"; do
     echo -n "    Installing $tool... "
-    if pipx install "$tool" &>/dev/null || pipx upgrade "$tool" &>/dev/null 2>&1; then
-      echo -e "${GREEN}✓${NC}"
+    # Check if already installed first
+    pipx_list_output=$(pipx list 2>/dev/null || true)
+    if [[ "$pipx_list_output" == *"package $tool"* ]]; then
+      # Already exists, try upgrade
+      if pipx upgrade "$tool" &>/dev/null; then
+        echo -e "${GREEN}✓${NC} (upgraded)"
+      else
+        echo -e "${YELLOW}already installed${NC}"
+      fi
     else
-      echo -e "${RED}✗${NC}"
-      echo -e "${YELLOW}      Warning: Failed to install $tool${NC}"
+      # Not installed, try install
+      if pipx install "$tool" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}      Warning: Failed to install $tool${NC}"
+      fi
     fi
   done
 elif command -v pip3 &>/dev/null; then
@@ -50,6 +62,12 @@ elif command -v pip3 &>/dev/null; then
       echo -e "${YELLOW}      Warning: Failed to install $tool${NC}"
     fi
   done
+
+  # Check if user bin is in PATH
+  USER_BIN="$(python3 -m site --user-base 2>/dev/null)/bin"
+  if [[ -n "$USER_BIN" && ":$PATH:" != *":$USER_BIN:"* ]]; then
+    echo -e "${YELLOW}  Note: Add to PATH for tool access: $USER_BIN${NC}"
+  fi
 else
   echo -e "${RED}Error: Neither pipx nor pip3 found${NC}"
   echo "Install pipx (recommended) or pip3:"
