@@ -38,7 +38,18 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
-          prompt: '/code-review:code-review ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'
+          prompt: |
+            Review PR ${{ github.repository }}/pull/${{ github.event.pull_request.number }} with comprehensive analysis:
+
+            1. **Code Quality**: Check for code smells, complexity, maintainability, DRY violations, proper naming
+            2. **Bugs & Logic Errors**: Identify potential runtime errors, edge cases, null/undefined handling
+            3. **CLAUDE.md Adherence**: Verify all project-specific guidelines from CLAUDE.md are followed
+            4. **Best Practices**: Language-specific idioms, design patterns, error handling
+            5. **Performance**: Inefficient algorithms, unnecessary computations, memory leaks
+            6. **Security**: Injection vulnerabilities, authentication/authorization issues, data validation
+            7. **Testing**: Test coverage for new code, edge case coverage, test quality
+            8. **Documentation**: Code comments where needed, function/class documentation
+
+            Focus on: actionable feedback with specific line references, severity (critical/major/minor), and suggested fixes.
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-
