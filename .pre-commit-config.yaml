@@ -144,6 +144,7 @@ repos:
         name: "🟦 typescript · biome lint+format (strict)"
         additional_dependencies: ["@biomejs/biome@2.3.12"]
         args: [
+          "--config-path=configs/biome.json",
           "--error-on-warnings",
           "--diagnostic-level=info",
         ]

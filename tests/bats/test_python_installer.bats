@@ -23,10 +23,11 @@ setup() {
 }
 
 teardown() {
+  # Restore PATH first so rm is available
+  export PATH="$ORIGINAL_PATH"
+  export HOME="$ORIGINAL_HOME"
   # Clean up test directory
   rm -rf "$TEST_INSTALL_DIR"
-  export HOME="$ORIGINAL_HOME"
-  export PATH="$ORIGINAL_PATH"
 }
 
 # ============================================
@@ -119,7 +120,7 @@ fi' >"$TEST_BIN_DIR/pipx"
   [[ "$output" != *"already installed"* ]] || [[ "$output" == *"✓"* ]]
 }
 
-@test "python installer with pipx: shows 'already installed' when upgrade fails" {
+@test "python installer with pipx: shows 'upgrade skipped' when upgrade fails" {
   # Create mock pipx that shows package installed but upgrade fails
   echo '#!/bin/bash
 if [[ "$1" == "list" ]]; then
@@ -134,5 +135,5 @@ fi' >"$TEST_BIN_DIR/pipx"
 
   run "$INSTALLERS_DIR/python.sh"
   [[ "$status" -eq 0 ]]
-  [[ "$output" == *"already installed"* ]]
+  [[ "$output" == *"upgrade skipped"* ]]
 }
