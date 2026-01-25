@@ -313,8 +313,8 @@ elif [[ -z "$PROJECT_TYPE" ]]; then
 fi
 
 if [[ -z "$PROJECT_TYPE" && -z "$detected" ]]; then
-  echo -e "${YELLOW}Could not detect project type. Use --type or --all${NC}"
-  exit 1
+  echo -e "${YELLOW}No language detected - installing base config only (.editorconfig)${NC}"
+  echo -e "${YELLOW}Use --type or --all to install language-specific configs${NC}"
 fi
 
 echo

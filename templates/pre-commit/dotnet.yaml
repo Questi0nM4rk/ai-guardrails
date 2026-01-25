@@ -8,6 +8,14 @@
 repos:
   - repo: local
     hooks:
+      - id: dotnet-format-fix
+        name: "csharp - dotnet format (auto-fix)"
+        entry: dotnet format
+        args: ["--severity", "info"]
+        language: system
+        types: [c#]
+        pass_filenames: false
+
       - id: dotnet-format
         name: "csharp - dotnet format (pedantic)"
         entry: dotnet format
