@@ -31,9 +31,14 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
     Raises:
         FileNotFoundError: If registry file doesn't exist
         yaml.YAMLError: If registry file is invalid YAML
+        ValueError: If registry is empty or not a dict
     """
     with registry_path.open() as f:
-        return yaml.safe_load(f)
+        result = yaml.safe_load(f)
+    if not isinstance(result, dict):
+        msg = f"Registry must be a dict, got {type(result).__name__}"
+        raise ValueError(msg)
+    return result
 
 
 def detect_languages(project_dir: Path, registry: dict[str, Any]) -> list[str]:
@@ -91,9 +96,14 @@ def load_template(template_path: Path) -> dict[str, Any]:
     Raises:
         FileNotFoundError: If template doesn't exist
         yaml.YAMLError: If template is invalid YAML
+        ValueError: If template is empty or not a dict
     """
     with template_path.open() as f:
-        return yaml.safe_load(f)
+        result = yaml.safe_load(f)
+    if not isinstance(result, dict):
+        msg = f"Template must be a dict, got {type(result).__name__}"
+        raise ValueError(msg)
+    return result
 
 
 def assemble_config(

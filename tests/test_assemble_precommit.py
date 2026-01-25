@@ -147,6 +147,20 @@ class TestLoadRegistry:
         with pytest.raises(yaml.YAMLError):
             load_registry(registry_path)
 
+    def test_load_empty_registry(self, temp_dir: Path) -> None:
+        """Test loading empty registry raises ValueError."""
+        registry_path = temp_dir / "empty.yaml"
+        registry_path.write_text("")
+        with pytest.raises(ValueError, match="must be a dict"):
+            load_registry(registry_path)
+
+    def test_load_list_registry(self, temp_dir: Path) -> None:
+        """Test loading list registry raises ValueError."""
+        registry_path = temp_dir / "list.yaml"
+        registry_path.write_text("- item1\n- item2")
+        with pytest.raises(ValueError, match="must be a dict"):
+            load_registry(registry_path)
+
 
 # =============================================================================
 # Test detect_languages
@@ -264,6 +278,20 @@ class TestLoadTemplate:
         """Test loading missing template raises error."""
         with pytest.raises(FileNotFoundError):
             load_template(temp_dir / "missing.yaml")
+
+    def test_load_empty_template(self, temp_dir: Path) -> None:
+        """Test loading empty template raises ValueError."""
+        template_path = temp_dir / "empty.yaml"
+        template_path.write_text("")
+        with pytest.raises(ValueError, match="must be a dict"):
+            load_template(template_path)
+
+    def test_load_list_template(self, temp_dir: Path) -> None:
+        """Test loading list template raises ValueError."""
+        template_path = temp_dir / "list.yaml"
+        template_path.write_text("- repo: local")
+        with pytest.raises(ValueError, match="must be a dict"):
+            load_template(template_path)
 
 
 # =============================================================================
