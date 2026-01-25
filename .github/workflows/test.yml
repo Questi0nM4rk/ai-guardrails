@@ -15,8 +15,8 @@ jobs:
 
       - name: ShellCheck
         run: |
-          # Check all shell scripts
-          find bin lib/hooks -name "*.sh" -o -name "ai-*" | xargs shellcheck
+          # Check all shell scripts (group -name predicates with parentheses)
+          find bin lib/hooks \( -name "*.sh" -o -name "ai-*" \) | xargs shellcheck
 
       - name: YAML Lint
         run: |
