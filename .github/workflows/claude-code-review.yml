@@ -21,6 +21,8 @@ jobs:
       actions: read         # Read CI results
 
     steps:
+      # nosemgrep: yaml.github-actions.security.pull-request-target-code-checkout.pull-request-target-code-checkout
+      # Reason: Claude Code review requires PR checkout to analyze code. No build scripts executed.
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
