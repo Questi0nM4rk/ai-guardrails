@@ -126,10 +126,14 @@ fi' >"$TEST_BIN_DIR/pipx"
 }
 
 @test "python installer with pipx: shows 'upgrade skipped' when upgrade fails" {
-  # Create mock pipx that shows package installed but upgrade fails
+  # Create mock pipx that shows all packages installed but upgrade fails
   echo '#!/bin/bash
 if [[ "$1" == "list" ]]; then
 	echo "   package ruff 0.1.0, installed using Python 3.12.0"
+	echo "   package mypy 1.0.0, installed using Python 3.12.0"
+	echo "   package bandit 1.0.0, installed using Python 3.12.0"
+	echo "   package vulture 1.0.0, installed using Python 3.12.0"
+	echo "   package pip-audit 1.0.0, installed using Python 3.12.0"
 fi
 if [[ "$1" == "upgrade" ]]; then
 	exit 1

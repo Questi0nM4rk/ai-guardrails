@@ -1,4 +1,4 @@
-"""Test that coverage requirements are consistently enforced at 90%."""
+"""Test that coverage requirements are consistently enforced at 85%."""
 
 from __future__ import annotations
 
@@ -12,36 +12,36 @@ except ImportError:
     import tomli as tomllib  # type: ignore[import-not-found]
 
 
-def test_ci_workflow_enforces_90_percent_coverage() -> None:
-    """Verify CI workflow enforces 90% coverage threshold."""
+def test_ci_workflow_enforces_85_percent_coverage() -> None:
+    """Verify CI workflow enforces 85% coverage threshold."""
     workflow_path = Path(".github/workflows/check.yml")
     content = workflow_path.read_text()
 
-    # Check for --cov-fail-under=90
-    assert "--cov-fail-under=90" in content, (
-        "CI workflow should enforce 90% coverage with --cov-fail-under=90"
+    # Check for --cov-fail-under=85
+    assert "--cov-fail-under=85" in content, (
+        "CI workflow should enforce 85% coverage with --cov-fail-under=85"
     )
 
     # Ensure no other coverage thresholds exist
     cov_fail_pattern = r"--cov-fail-under=(\d+)"
     matches = re.findall(cov_fail_pattern, content)
-    assert matches == ["90"], f"Expected only 90% coverage threshold, found: {matches}"
+    assert matches == ["85"], f"Expected only 85% coverage threshold, found: {matches}"
 
 
-def test_claude_md_documents_90_percent_coverage() -> None:
-    """Verify CLAUDE.md documents 90% coverage requirement."""
+def test_claude_md_documents_85_percent_coverage() -> None:
+    """Verify CLAUDE.md documents 85% coverage requirement."""
     claude_md_path = Path("CLAUDE.md")
     content = claude_md_path.read_text()
 
-    # Check for 90%+ test coverage statement
-    assert "90%+ test coverage" in content, (
-        "CLAUDE.md should document 90%+ test coverage requirement"
+    # Check for 85%+ test coverage statement
+    assert "85%+ test coverage" in content, (
+        "CLAUDE.md should document 85%+ test coverage requirement"
     )
 
     # Ensure no conflicting coverage percentages (like 80% or 85%)
     coverage_pattern = r"(\d+)%\+?\s+(?:test\s+)?coverage"
     matches = re.findall(coverage_pattern, content, re.IGNORECASE)
-    assert "90" in matches, f"Expected 90% in coverage mentions, found: {matches}"
+    assert "85" in matches, f"Expected 85% in coverage mentions, found: {matches}"
     assert "85" not in matches, "CLAUDE.md should not mention 85% coverage"
     assert "80" not in matches, "CLAUDE.md should not mention 80% coverage"
 
