@@ -52,6 +52,36 @@ case "$PM" in
       echo "    Try: go install mvdan.cc/sh/v3/cmd/shfmt@latest"
     fi
     ;;
+  dnf|yum)
+    echo "  Using $PM..."
+    sudo "$PM" install -y ShellCheck >/dev/null 2>&1 || {
+      echo -e "${YELLOW}    Warning: Failed to install ShellCheck${NC}"
+      echo "    Try: sudo $PM install ShellCheck"
+    }
+    # shfmt via go on RHEL/Fedora
+    if command -v go &>/dev/null; then
+      echo "    Installing shfmt via go..."
+      if go install mvdan.cc/sh/v3/cmd/shfmt@latest 2>/dev/null; then
+        GOBIN_DIR="${GOBIN:-$HOME/go/bin}"
+        if [[ ":$PATH:" != *":$GOBIN_DIR:"* ]]; then
+          export PATH="$GOBIN_DIR:$PATH"
+          echo -e "${YELLOW}    Note: Add to PATH for permanent access: $GOBIN_DIR${NC}"
+        fi
+      else
+        echo -e "${YELLOW}    Warning: Failed to install shfmt via go${NC}"
+      fi
+    else
+      echo -e "${YELLOW}    Warning: shfmt requires Go to install${NC}"
+      echo "    Try: go install mvdan.cc/sh/v3/cmd/shfmt@latest"
+    fi
+    ;;
+  apk)
+    echo "  Using apk..."
+    sudo apk add --no-cache shellcheck shfmt >/dev/null 2>&1 || {
+      echo -e "${YELLOW}    Warning: Failed to install shellcheck and shfmt${NC}"
+      echo "    Try: sudo apk add shellcheck shfmt"
+    }
+    ;;
   brew)
     echo "  Using brew..."
     brew install shellcheck shfmt >/dev/null 2>&1 || {

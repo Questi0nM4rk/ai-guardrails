@@ -445,7 +445,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/python.sh"; then
       echo -e "${YELLOW}Warning: Python tools installation had issues${NC}"
-      [[ "$INSTALL_PYTHON" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_PYTHON" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
@@ -453,7 +453,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_NODE" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/node.sh"; then
       echo -e "${YELLOW}Warning: Node.js tools installation had issues${NC}"
-      [[ "$INSTALL_NODE" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_NODE" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
@@ -461,7 +461,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_RUST" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/rust.sh"; then
       echo -e "${YELLOW}Warning: Rust tools installation had issues${NC}"
-      [[ "$INSTALL_RUST" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_RUST" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
@@ -469,7 +469,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_GO" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/go.sh"; then
       echo -e "${YELLOW}Warning: Go tools installation had issues${NC}"
-      [[ "$INSTALL_GO" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_GO" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
@@ -477,7 +477,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_CPP" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/cpp.sh"; then
       echo -e "${YELLOW}Warning: C/C++ tools installation had issues${NC}"
-      [[ "$INSTALL_CPP" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_CPP" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
@@ -485,7 +485,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_LUA" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/lua.sh"; then
       echo -e "${YELLOW}Warning: Lua tools installation had issues${NC}"
-      [[ "$INSTALL_LUA" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_LUA" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
@@ -493,7 +493,7 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
     if ! "$INSTALL_DIR/lib/installers/shell.sh"; then
       echo -e "${YELLOW}Warning: Shell tools installation had issues${NC}"
-      [[ "$INSTALL_SHELL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
+      [[ "$INSTALL_SHELL" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi

@@ -12,6 +12,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+INSTALL_FAILED=false
+
 echo -e "${GREEN}Installing Node.js tools...${NC}"
 
 # Check for npm
@@ -34,6 +36,12 @@ else
     echo -e "${YELLOW}    Warning: Failed to install biome${NC}"
   fi
   echo "    Try: npm install -g @biomejs/biome"
+  INSTALL_FAILED=true
+fi
+
+if [[ "$INSTALL_FAILED" == true ]]; then
+  echo -e "${YELLOW}Node.js tools installation completed with errors${NC}"
+  exit 1
 fi
 
 echo -e "${GREEN}Node.js tools installation complete!${NC}"

@@ -38,11 +38,11 @@ def test_claude_md_documents_85_percent_coverage() -> None:
         "CLAUDE.md should document 85%+ test coverage requirement"
     )
 
-    # Ensure no conflicting coverage percentages (like 80% or 85%)
+    # Ensure no conflicting coverage percentages (like 80% or 90%)
     coverage_pattern = r"(\d+)%\+?\s+(?:test\s+)?coverage"
     matches = re.findall(coverage_pattern, content, re.IGNORECASE)
     assert "85" in matches, f"Expected 85% in coverage mentions, found: {matches}"
-    assert "85" not in matches, "CLAUDE.md should not mention 85% coverage"
+    assert "90" not in matches, "CLAUDE.md should not mention 90% coverage"
     assert "80" not in matches, "CLAUDE.md should not mention 80% coverage"
 
 

@@ -36,6 +36,20 @@ case "$PM" in
       echo "    Try: sudo apt-get install clang-format clang-tidy"
     }
     ;;
+  dnf|yum)
+    echo "  Using $PM..."
+    sudo "$PM" install -y clang clang-tools-extra >/dev/null 2>&1 || {
+      echo -e "${YELLOW}    Warning: Failed to install clang and clang-tools-extra${NC}"
+      echo "    Try: sudo $PM install clang clang-tools-extra"
+    }
+    ;;
+  apk)
+    echo "  Using apk..."
+    sudo apk add --no-cache clang clang-extra-tools >/dev/null 2>&1 || {
+      echo -e "${YELLOW}    Warning: Failed to install clang tools${NC}"
+      echo "    Try: sudo apk add clang clang-extra-tools"
+    }
+    ;;
   brew)
     echo "  Using brew..."
     brew install clang-format >/dev/null 2>&1 || {

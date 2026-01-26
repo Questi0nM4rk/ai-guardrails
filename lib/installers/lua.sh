@@ -75,6 +75,35 @@ case "$PM" in
       echo "    Try: luarocks install luacheck"
     fi
     ;;
+  dnf|yum)
+    # luacheck not typically in dnf/yum repos, use luarocks
+    if command -v luarocks &>/dev/null; then
+      if luarocks install luacheck >/dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} (via luarocks)"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Warning: Failed to install luacheck via luarocks${NC}"
+      fi
+    else
+      echo -e "${YELLOW}⚠${NC}"
+      echo "    Install luarocks first, then: luarocks install luacheck"
+    fi
+    ;;
+  apk)
+    # Try luarocks on Alpine
+    if command -v luarocks &>/dev/null; then
+      if luarocks install luacheck >/dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} (via luarocks)"
+      else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Warning: Failed to install luacheck via luarocks${NC}"
+      fi
+    else
+      echo -e "${YELLOW}⚠${NC}"
+      echo "    Install luarocks first: apk add luarocks"
+      echo "    Then: luarocks install luacheck"
+    fi
+    ;;
   brew)
     if brew install luacheck >/dev/null 2>&1; then
       echo -e "${GREEN}✓${NC} (via brew)"
