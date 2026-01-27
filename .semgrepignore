@@ -1,0 +1,8 @@
+# Semgrep ignore patterns
+
+# Test files are excluded via --exclude tests/ flag in CI
+# This file handles additional exclusions
+
+# Claude Code review workflow - requires pull_request_target with PR checkout
+# This is intentional and safe (no build scripts executed, only code analysis)
+.github/workflows/claude-code-review.yml
