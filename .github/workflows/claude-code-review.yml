@@ -1,13 +1,14 @@
 name: Claude Architecture & Spec Review
 
 on:
-  # Trigger via /claude-review comment
+  # Trigger via /claude-review comment (primary manual trigger)
   issue_comment:
     types: [created]
 
-  # Trigger when PR has claude-review label
+  # Trigger on PR events when label is present
+  # Note: "labeled" action incompatible with track_progress, use /claude-review comment
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened, labeled]
+    types: [opened, synchronize, ready_for_review, reopened]
 
 jobs:
   claude-review:
