@@ -87,7 +87,7 @@ bin/ai-review-tasks --pr <NUMBER> --severity major
 
 ## Detailed Specifications
 
-See `.claude/specs/project_specs.xml` for:
+See `docs/specs/project_specs.xml` for:
 
 - Complete component specifications
 - Parsing requirements for coderabbit_parser.py
