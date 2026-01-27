@@ -1,15 +1,26 @@
 name: Claude Architecture & Spec Review
 
 on:
+  # Trigger via /claude-review comment
+  issue_comment:
+    types: [created]
+
+  # Trigger when PR has claude-review label
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
-  pull_request_target:
-    types: [review_requested]
+    types: [opened, synchronize, ready_for_review, reopened, labeled]
 
 jobs:
   claude-review:
-    # Skip draft PRs
-    if: github.event.pull_request.draft == false
+    # Run if:
+    # 1. Comment "/claude-review" on a PR, OR
+    # 2. PR has "claude-review" label (and not draft)
+    if: |
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/claude-review')) ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.draft == false &&
+       contains(github.event.pull_request.labels.*.name, 'claude-review'))
 
     runs-on: ubuntu-latest
     permissions:
@@ -20,15 +31,28 @@ jobs:
 
     # Prevent parallel runs on same PR
     concurrency:
-      group: claude-review-${{ github.event.pull_request.number }}
+      group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: true
 
     steps:
+      # Get PR info for comment-triggered runs
+      - name: Get PR details (comment trigger)
+        if: github.event_name == 'issue_comment'
+        id: pr-info
+        run: |
+          PR_DATA=$(gh pr view ${{ github.event.issue.number }} --repo ${{ github.repository }} --json headRefName,number,title,author)
+          echo "head_ref=$(echo $PR_DATA | jq -r '.headRefName')" >> $GITHUB_OUTPUT
+          echo "number=$(echo $PR_DATA | jq -r '.number')" >> $GITHUB_OUTPUT
+          echo "title=$(echo $PR_DATA | jq -r '.title')" >> $GITHUB_OUTPUT
+          echo "author=$(echo $PR_DATA | jq -r '.author.login')" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.ref || steps.pr-info.outputs.head_ref }}
 
       - name: Claude Architecture & Spec Review
         uses: anthropics/claude-code-action@v1
@@ -40,9 +64,9 @@ jobs:
             # ARCHITECTURE & SPEC REVIEW
 
             Repository: ${{ github.repository }}
-            PR: #${{ github.event.pull_request.number }}
-            Title: ${{ github.event.pull_request.title }}
-            Author: ${{ github.event.pull_request.user.login }}
+            PR: #${{ github.event.pull_request.number || steps.pr-info.outputs.number }}
+            Title: ${{ github.event.pull_request.title || steps.pr-info.outputs.title }}
+            Author: ${{ github.event.pull_request.user.login || steps.pr-info.outputs.author }}
 
             ## YOUR ROLE
 
@@ -63,8 +87,8 @@ jobs:
             ## REVIEW PROCESS
 
             1. First, read `docs/specs/review-checklist.md` for requirements
-            2. Fetch the PR details with `gh pr view ${{ github.event.pull_request.number }}`
-            3. Get the diff with `gh pr diff ${{ github.event.pull_request.number }}`
+            2. Fetch the PR details with `gh pr view ${{ github.event.pull_request.number || steps.pr-info.outputs.number }}`
+            3. Get the diff with `gh pr diff ${{ github.event.pull_request.number || steps.pr-info.outputs.number }}`
             4. Review against the checklist
             5. Post your review as a PR comment
 
