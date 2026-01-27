@@ -7,21 +7,25 @@ Claude Code reviews against this checklist. CodeRabbit handles code quality.
 Every PR MUST have:
 
 ### 1. Intent Section
+
 - [ ] Clear problem statement or feature description
 - [ ] Link to issue/spec if applicable
 - [ ] Why this change is needed (business justification)
 
 ### 2. Scope Section
+
 - [ ] List of affected components/files
 - [ ] What is NOT changing (boundaries)
 - [ ] Breaking changes clearly marked
 
 ### 3. Acceptance Criteria
+
 - [ ] Testable success conditions
 - [ ] Edge cases considered
 - [ ] Rollback plan for risky changes
 
 ### 4. Test Plan
+
 - [ ] How to verify the change works
 - [ ] Manual testing steps if applicable
 - [ ] Automated test coverage
@@ -29,7 +33,8 @@ Every PR MUST have:
 ## Architecture Rules
 
 ### Layering (MANDATORY)
-```
+
+```text
 API Controllers → Services → Repositories → Database
        ↓              ↓            ↓
    Validation    Business     Data Access
@@ -41,12 +46,14 @@ API Controllers → Services → Repositories → Database
 - Repositories: Data access only, no business logic
 
 ### Dependency Direction
+
 - Dependencies flow inward (outer layers depend on inner)
 - Core business logic has NO external dependencies
 - Use interfaces/abstractions at boundaries
 
 ### File Organization
-```
+
+```text
 src/
 ├── api/          # HTTP layer
 ├── services/     # Business logic
@@ -68,13 +75,16 @@ src/
 ## Documentation Requirements
 
 ### When to Update Docs
+
 - New feature → Update README
 - API change → Update API docs
 - Config change → Update setup guide
 - Breaking change → Migration guide required
 
 ### Spec Updates
-If changing behavior documented in `.claude/specs/`:
+
+If changing behavior documented in `docs/specs/`:
+
 - [ ] Spec updated BEFORE code change
 - [ ] Spec change reviewed separately or clearly marked
 
