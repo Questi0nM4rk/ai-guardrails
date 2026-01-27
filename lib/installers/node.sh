@@ -41,6 +41,7 @@ fi
 
 if [[ "$INSTALL_FAILED" == true ]]; then
   echo -e "${YELLOW}Node.js tools installation completed with warnings${NC}"
+  exit 1
 else
   echo -e "${GREEN}Node.js tools installation complete!${NC}"
 fi

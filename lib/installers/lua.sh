@@ -12,6 +12,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
+# Track installation failures
+INSTALL_FAILED=false
+
 # Source package manager detection
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/installers/detect_pm.sh
@@ -34,11 +37,13 @@ if command -v cargo &>/dev/null; then
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install stylua${NC}"
       echo "    Try manually: cargo install stylua"
+      INSTALL_FAILED=true
     fi
   else
     echo -e "${RED}✗${NC}"
     echo -e "${YELLOW}    Warning: Failed to install stylua via cargo${NC}"
     echo "    Try manually: cargo install stylua"
+    INSTALL_FAILED=true
   fi
 elif [[ "$PM" == "pacman" ]]; then
   if sudo pacman -S --needed --noconfirm stylua >/dev/null 2>&1; then
@@ -47,6 +52,7 @@ elif [[ "$PM" == "pacman" ]]; then
     echo -e "${RED}✗${NC}"
     echo -e "${YELLOW}    Warning: Failed to install stylua via pacman${NC}"
     echo "    Try manually: cargo install stylua"
+    INSTALL_FAILED=true
   fi
 else
   echo -e "${YELLOW}⚠${NC}"
@@ -64,6 +70,7 @@ case "$PM" in
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install luacheck${NC}"
       echo "    Try: luarocks install luacheck"
+      INSTALL_FAILED=true
     fi
     ;;
   apt)
@@ -73,6 +80,7 @@ case "$PM" in
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install luacheck${NC}"
       echo "    Try: luarocks install luacheck"
+      INSTALL_FAILED=true
     fi
     ;;
   dnf | yum)
@@ -83,10 +91,12 @@ case "$PM" in
       else
         echo -e "${RED}✗${NC}"
         echo -e "${YELLOW}    Warning: Failed to install luacheck via luarocks${NC}"
+        INSTALL_FAILED=true
       fi
     else
       echo -e "${YELLOW}⚠${NC}"
       echo "    Install luarocks first, then: luarocks install luacheck"
+      INSTALL_FAILED=true
     fi
     ;;
   apk)
@@ -97,11 +107,13 @@ case "$PM" in
       else
         echo -e "${RED}✗${NC}"
         echo -e "${YELLOW}    Warning: Failed to install luacheck via luarocks${NC}"
+        INSTALL_FAILED=true
       fi
     else
       echo -e "${YELLOW}⚠${NC}"
       echo "    Install luarocks first: apk add luarocks"
       echo "    Then: luarocks install luacheck"
+      INSTALL_FAILED=true
     fi
     ;;
   brew)
@@ -111,12 +123,19 @@ case "$PM" in
       echo -e "${RED}✗${NC}"
       echo -e "${YELLOW}    Warning: Failed to install luacheck${NC}"
       echo "    Try: luarocks install luacheck"
+      INSTALL_FAILED=true
     fi
     ;;
   none)
     echo -e "${YELLOW}⚠${NC}"
     echo "    Install manually: luarocks install luacheck"
+    INSTALL_FAILED=true
     ;;
 esac
 
-echo -e "${GREEN}Lua tools installation complete!${NC}"
+if [[ "$INSTALL_FAILED" == true ]]; then
+  echo -e "${YELLOW}Lua tools installation completed with warnings${NC}"
+  exit 1
+else
+  echo -e "${GREEN}Lua tools installation complete!${NC}"
+fi

@@ -140,7 +140,7 @@ teardown() {
   export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
   run bash "$INSTALLERS_DIR/node.sh" 2>&1
-  [[ "$status" -eq 0 ]] # Should not exit with error
+  [[ "$status" -eq 1 ]] # Should exit with error on install failure
   [[ "$output" == *"@biomejs/biome"* ]]
   [[ "$output" == *"Permission denied"* ]]
 }
