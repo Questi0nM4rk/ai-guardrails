@@ -1,9 +1,8 @@
-name: Claude Code Review
+name: Claude Architecture & Spec Review
 
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-  # Also trigger on review requests
   pull_request_target:
     types: [review_requested]
 
@@ -14,11 +13,15 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      contents: write       # Push fixes/suggestions
-      pull-requests: write  # Post reviews, approve, request changes
-      issues: write         # Create/comment on issues
-      id-token: write       # OIDC authentication
-      actions: read         # Read CI results
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    # Prevent parallel runs on same PR
+    concurrency:
+      group: claude-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout repository
@@ -27,31 +30,122 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.ref }}
 
-      - name: Run Claude Code Review
-        id: claude-review
+      - name: Claude Architecture & Spec Review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
-          plugins: 'code-review@claude-code-plugins'
-          additional_permissions: |
-            actions: read
+          track_progress: true
+
           prompt: |
-            Review PR ${{ github.repository }}/pull/${{ github.event.pull_request.number }} with comprehensive analysis:
+            # ARCHITECTURE & SPEC REVIEW
 
-            1. **Code Quality**: Check for code smells, complexity, maintainability, DRY violations, proper naming
-            2. **Bugs & Logic Errors**: Identify potential runtime errors, edge cases, null/undefined handling
-            3. **CLAUDE.md Adherence**: Verify all project-specific guidelines from CLAUDE.md are followed
-            4. **Best Practices**: Language-specific idioms, design patterns, error handling
-            5. **Performance**: Inefficient algorithms, unnecessary computations, memory leaks
-            6. **Security**: Injection vulnerabilities, authentication/authorization issues, data validation
-            7. **Testing**: Test coverage for new code, edge case coverage, test quality
-            8. **Documentation**: Code comments where needed, function/class documentation
+            Repository: ${{ github.repository }}
+            PR: #${{ github.event.pull_request.number }}
+            Title: ${{ github.event.pull_request.title }}
+            Author: ${{ github.event.pull_request.user.login }}
 
-            After review:
-            - Post inline comments on specific lines with issues
-            - Provide an overall summary as a PR review
-            - If no critical/major issues: APPROVE the PR
-            - If critical/major issues found: REQUEST_CHANGES with clear explanation
+            ## YOUR ROLE
 
-            Focus on: actionable feedback with specific line references, severity (critical/major/minor), and suggested fixes.
+            You are the ARCHITECTURE & SPEC reviewer. CodeRabbit handles code quality.
+
+            Your focus:
+            - Business requirements & intent
+            - Architectural decisions & patterns
+            - Spec compliance & documentation
+            - High-level PR overview
+
+            NOT your focus (CodeRabbit handles):
+            - Code style, formatting
+            - Small bugs, edge cases
+            - Performance micro-optimizations
+            - Language-specific idioms
+
+            ## REVIEW PROCESS
+
+            1. First, read `docs/specs/review-checklist.md` for requirements
+            2. Fetch the PR details with `gh pr view ${{ github.event.pull_request.number }}`
+            3. Get the diff with `gh pr diff ${{ github.event.pull_request.number }}`
+            4. Review against the checklist
+            5. Post your review as a PR comment
+
+            ## REVIEW CHECKLIST
+
+            ### 1. PR Structure (REQUIRED)
+
+            Check the PR body for:
+            - **Intent**: Why is this change needed?
+            - **Scope**: What components are affected?
+            - **Acceptance Criteria**: How do we know it's done?
+            - **Test Plan**: How to verify it works?
+
+            If ANY are missing -> REQUEST CHANGES with template.
+
+            ### 2. Architecture Compliance
+
+            - Correct layering (API -> Service -> Repo)
+            - No circular dependencies
+            - Proper separation of concerns
+            - Interface boundaries respected
+
+            ### 3. Spec Alignment
+
+            - Changes match documented specs in `docs/specs/`
+            - If behavior changes, spec is updated
+            - No undocumented breaking changes
+
+            ### 4. Documentation
+
+            - README updated for new features
+            - API docs reflect changes
+            - Migration guide for breaking changes
+
+            ## OUTPUT FORMAT
+
+            Post a PR comment using `gh pr comment` with this format:
+
+            ```
+            ## Architecture & Spec Review
+
+            ### Overview
+            [2-3 sentence summary of what this PR does at a high level]
+
+            ### Checklist Results
+
+            | Category | Status | Notes |
+            |----------|--------|-------|
+            | PR Structure | [status] | ... |
+            | Architecture | [status] | ... |
+            | Spec Compliance | [status] | ... |
+            | Documentation | [status] | ... |
+
+            ### Issues Found
+            [List specific issues if any]
+
+            ### Recommendation
+            [APPROVE / APPROVE with suggestions / REQUEST CHANGES]
+            ```
+
+            ## ENFORCEMENT
+
+            If PR body is missing required sections, include this template in your comment:
+
+            ---
+            **Please update your PR description with:**
+
+            ### Intent
+            [Why is this change needed? What problem does it solve?]
+
+            ### Scope
+            [What components/files are affected? What's NOT changing?]
+
+            ### Acceptance Criteria
+            - [ ] Criterion 1
+            - [ ] Criterion 2
+
+            ### Test Plan
+            [How to verify this works?]
+            ---
+
+          claude_args: |
+            --allowedTools "Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git diff:*),Bash(git log:*),Read,Glob,Grep"
+            --max-turns 10
