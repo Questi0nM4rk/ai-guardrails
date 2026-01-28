@@ -376,6 +376,6 @@ SUDO_MOCK
   run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
   # Should show failure indicator (✗) and no fallback
   [[ "$output" =~ "Installing stylua" ]]
-  [[ "$output" =~ "✗" ]] || [[ "$output" =~ "⚠" ]]  # Either failure or warning indicator
+  [[ "$output" =~ "✗" ]] || [[ "$output" =~ "⚠" ]] # Either failure or warning indicator
   [[ ! "$output" =~ "via pacman fallback" ]]
 }

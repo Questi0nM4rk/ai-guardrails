@@ -33,8 +33,8 @@ install_pyyaml() {
   fi
 
   # Try installation methods
-  if python3 -m pip install --user --quiet pyyaml 2>/dev/null ||
-    python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
+  if python3 -m pip install --user --quiet pyyaml 2>/dev/null \
+    || python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
     if python3 -c "import yaml" &>/dev/null; then
       echo -e "${GREEN}✓${NC}"
       return 0
@@ -84,8 +84,8 @@ install_precommit() {
       return 0
     fi
   else
-    if python3 -m pip install --user --quiet pre-commit 2>/dev/null ||
-      python3 -m pip install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
+    if python3 -m pip install --user --quiet pre-commit 2>/dev/null \
+      || python3 -m pip install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
       if python3 -c "import pre_commit" &>/dev/null; then
         echo -e "${GREEN}✓${NC}"
         return 0
