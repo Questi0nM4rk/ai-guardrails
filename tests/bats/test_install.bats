@@ -37,7 +37,8 @@ teardown() {
   # Create mock pacman in test bin
   echo '#!/bin/bash' >"$TEST_BIN_DIR/pacman"
   chmod +x "$TEST_BIN_DIR/pacman"
-  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
+  # Use only test bin to avoid real pacman in ORIGINAL_PATH
+  export PATH="$TEST_BIN_DIR"
 
   # shellcheck source=lib/installers/detect_pm.sh
   source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
@@ -95,19 +96,11 @@ teardown() {
 # ============================================
 
 @test "python installer: checks for pip3" {
-  skip "Requires mocking pip3"
-  run "$INSTALLERS_DIR/python.sh"
-  [[ "$status" -eq 0 ]] || [[ "$output" == *"pip3 not found"* ]]
+  skip "TODO: Implement pip3 mocking to test pip3 detection"
 }
 
 @test "python installer: installs ruff, mypy, bandit, vulture, pip-audit" {
-  skip "Integration test - requires actual pip3"
-  run "$INSTALLERS_DIR/python.sh" --dry-run
-  [[ "$output" == *"ruff"* ]]
-  [[ "$output" == *"mypy"* ]]
-  [[ "$output" == *"bandit"* ]]
-  [[ "$output" == *"vulture"* ]]
-  [[ "$output" == *"pip-audit"* ]]
+  skip "TODO: Integration test - requires actual pip3 and would install packages"
 }
 
 # ============================================
@@ -280,17 +273,10 @@ TEST_CONTENT
   chmod +x "$TEST_BIN_DIR/clang-tidy"
   export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
-  # Mock detect_package_manager to avoid actual installation
-  export PM_OVERRIDE="none"
-
   # This should pass verification and exit successfully
   # Note: Will fail installation but pass verification
   skip "Requires cpp.sh refactor to skip installation when tools exist"
 }
-
-# ============================================
-# Lua Installer Tests (Group H)
-# ============================================
 
 # Main Install Script Tests
 # ============================================
@@ -350,7 +336,7 @@ SUDO_MOCK
   export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
   # Run lua installer and check for pacman fallback message
-  run bash -c "source $BATS_TEST_DIRNAME/../../lib/installers/lua.sh 2>&1"
+  run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
   [[ "$output" =~ "via pacman fallback" ]]
 }
 
@@ -368,7 +354,7 @@ SUDO_MOCK
   export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
   # Run lua installer - should succeed with cargo
-  run bash -c "source $BATS_TEST_DIRNAME/../../lib/installers/lua.sh 2>&1"
+  run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
   [[ "$output" =~ "via cargo" ]]
   [[ ! "$output" =~ "via pacman" ]]
 }
@@ -387,8 +373,9 @@ SUDO_MOCK
   export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
   # Run lua installer - should fail cargo and have no fallback
-  run bash -c "source $BATS_TEST_DIRNAME/../../lib/installers/lua.sh 2>&1"
+  run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
   # Should show failure indicator (✗) and no fallback
   [[ "$output" =~ "Installing stylua" ]]
+  [[ "$output" =~ "✗" ]] || [[ "$output" =~ "⚠" ]]  # Either failure or warning indicator
   [[ ! "$output" =~ "via pacman fallback" ]]
 }

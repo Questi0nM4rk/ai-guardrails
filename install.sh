@@ -20,6 +20,89 @@ NC='\033[0m'
 INSTALL_DIR="$HOME/.ai-guardrails"
 BIN_DIR="$HOME/.local/bin"
 
+# Track installation results (for accurate summary)
+declare -A INSTALLED_LANGS=()
+declare -A FAILED_LANGS=()
+
+# Helper function to install pyyaml
+install_pyyaml() {
+  echo -n "  Installing pyyaml... "
+  if python3 -c "import yaml" &>/dev/null; then
+    echo -e "${YELLOW}already installed${NC}"
+    return 0
+  fi
+
+  # Try installation methods
+  if python3 -m pip install --user --quiet pyyaml 2>/dev/null ||
+    python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
+    if python3 -c "import yaml" &>/dev/null; then
+      echo -e "${GREEN}✓${NC}"
+      return 0
+    fi
+  fi
+
+  # Verify not already installed by other means
+  if python3 -c "import yaml" &>/dev/null; then
+    echo -e "${GREEN}✓${NC}"
+    return 0
+  fi
+
+  echo -e "${RED}✗${NC}"
+  echo -e "${RED}Error: Failed to install pyyaml${NC}"
+  return 1
+}
+
+# Helper function to install pre-commit
+install_precommit() {
+  local use_pipx=$1
+  echo -n "  Installing pre-commit... "
+
+  # Check if already installed
+  if [[ "$use_pipx" == true ]]; then
+    if pipx list 2>/dev/null | grep -q "package pre-commit" || command -v pre-commit &>/dev/null; then
+      echo -e "${YELLOW}already installed${NC}"
+      return 0
+    fi
+  else
+    if python3 -c "import pre_commit" &>/dev/null || command -v pre-commit &>/dev/null; then
+      echo -e "${YELLOW}already installed${NC}"
+      return 0
+    fi
+  fi
+
+  # Try installation
+  if [[ "$use_pipx" == true ]]; then
+    if pipx install pre-commit &>/dev/null || pipx upgrade pre-commit &>/dev/null 2>&1; then
+      if pipx list 2>/dev/null | grep -q "package pre-commit"; then
+        echo -e "${GREEN}✓${NC}"
+        return 0
+      fi
+    fi
+    # Fallback check
+    if pipx list 2>/dev/null | grep -q "package pre-commit" || command -v pre-commit &>/dev/null; then
+      echo -e "${GREEN}✓${NC}"
+      return 0
+    fi
+  else
+    if python3 -m pip install --user --quiet pre-commit 2>/dev/null ||
+      python3 -m pip install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
+      if python3 -c "import pre_commit" &>/dev/null; then
+        echo -e "${GREEN}✓${NC}"
+        return 0
+      fi
+    fi
+    # Fallback check
+    if python3 -c "import pre_commit" &>/dev/null || command -v pre-commit &>/dev/null; then
+      echo -e "${GREEN}✓${NC}"
+      return 0
+    fi
+  fi
+
+  echo -e "${RED}✗${NC}"
+  echo -e "${RED}Error: Failed to install pre-commit${NC}"
+  return 1
+}
+
 # Get script directory (source of installation)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -175,135 +258,13 @@ echo "  ✓ Python $PYTHON_VERSION"
 echo
 echo "Installing critical dependencies..."
 
-# Determine installation method
+# Use helper functions for installation
+install_pyyaml || exit 1
+
 if command -v pipx &>/dev/null; then
-  # Install pyyaml (required for assemble_precommit.py)
-  echo -n "  Installing pyyaml... "
-  if python3 -c "import yaml" &>/dev/null; then
-    echo -e "${YELLOW}already installed${NC}"
-  else
-    # Try installation methods
-    if python3 -m pip install --user --quiet pyyaml 2>/dev/null || python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
-      # Verify installation succeeded
-      if python3 -c "import yaml" &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pyyaml${NC}"
-        exit 1
-      fi
-    else
-      # Installation commands failed, verify not already installed
-      if python3 -c "import yaml" &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pyyaml${NC}"
-        exit 1
-      fi
-    fi
-  fi
-
-  # Install pre-commit framework (required for hooks)
-  echo -n "  Installing pre-commit... "
-  # Check via pipx list (PATH-independent) or command -v as fallback
-  if pipx list 2>/dev/null | grep -q "package pre-commit" || command -v pre-commit &>/dev/null; then
-    echo -e "${YELLOW}already installed${NC}"
-  else
-    # Try installation methods
-    if pipx install pre-commit &>/dev/null || pipx upgrade pre-commit &>/dev/null 2>&1; then
-      # Verify installation succeeded (pipx list is PATH-independent)
-      if pipx list 2>/dev/null | grep -q "package pre-commit"; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pre-commit${NC}"
-        exit 1
-      fi
-    else
-      # Installation commands failed, verify not already installed
-      if pipx list 2>/dev/null | grep -q "package pre-commit" || command -v pre-commit &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pre-commit${NC}"
-        exit 1
-      fi
-    fi
-  fi
+  install_precommit true || exit 1
 else
-  # Install pyyaml (required for assemble_precommit.py)
-  echo -n "  Installing pyyaml... "
-  if python3 -c "import yaml" &>/dev/null; then
-    echo -e "${YELLOW}already installed${NC}"
-  else
-    # Try installation methods
-    if python3 -m pip install --user --quiet pyyaml 2>/dev/null; then
-      # Verify installation succeeded
-      if python3 -c "import yaml" &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pyyaml${NC}"
-        exit 1
-      fi
-    elif python3 -m pip install --user --break-system-packages --quiet pyyaml 2>/dev/null; then
-      # Verify installation succeeded
-      if python3 -c "import yaml" &>/dev/null; then
-        echo -e "${GREEN}✓${NC} (--break-system-packages)"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pyyaml${NC}"
-        exit 1
-      fi
-    else
-      # Installation commands failed, verify not already installed
-      if python3 -c "import yaml" &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pyyaml${NC}"
-        exit 1
-      fi
-    fi
-  fi
-
-  # Install pre-commit framework (required for hooks)
-  echo -n "  Installing pre-commit... "
-  # Check via import (PATH-independent) or command -v as fallback
-  if python3 -c "import pre_commit" &>/dev/null || command -v pre-commit &>/dev/null; then
-    echo -e "${YELLOW}already installed${NC}"
-  else
-    # Try installation methods
-    if python3 -m pip install --user --quiet pre-commit 2>/dev/null; then
-      # Verify installation succeeded (import is PATH-independent)
-      if python3 -c "import pre_commit" &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pre-commit${NC}"
-        exit 1
-      fi
-    elif python3 -m pip install --user --break-system-packages --quiet pre-commit 2>/dev/null; then
-      # Verify installation succeeded (import is PATH-independent)
-      if python3 -c "import pre_commit" &>/dev/null; then
-        echo -e "${GREEN}✓${NC} (--break-system-packages)"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pre-commit${NC}"
-        exit 1
-      fi
-    else
-      # Installation commands failed, verify not already installed
-      if python3 -c "import pre_commit" &>/dev/null || command -v pre-commit &>/dev/null; then
-        echo -e "${GREEN}✓${NC}"
-      else
-        echo -e "${RED}✗${NC}"
-        echo -e "${RED}Error: Failed to install pre-commit${NC}"
-        exit 1
-      fi
-    fi
-  fi
+  install_precommit false || exit 1
 fi
 
 # Check gh CLI
@@ -443,56 +404,77 @@ if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
   echo
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/python.sh"; then
+    if "$INSTALL_DIR/lib/installers/python.sh"; then
+      INSTALLED_LANGS[python]=true
+    else
       echo -e "${YELLOW}Warning: Python tools installation had issues${NC}"
+      FAILED_LANGS[python]=true
       [[ "$INSTALL_PYTHON" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_NODE" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/node.sh"; then
+    if "$INSTALL_DIR/lib/installers/node.sh"; then
+      INSTALLED_LANGS[node]=true
+    else
       echo -e "${YELLOW}Warning: Node.js tools installation had issues${NC}"
+      FAILED_LANGS[node]=true
       [[ "$INSTALL_NODE" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_RUST" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/rust.sh"; then
+    if "$INSTALL_DIR/lib/installers/rust.sh"; then
+      INSTALLED_LANGS[rust]=true
+    else
       echo -e "${YELLOW}Warning: Rust tools installation had issues${NC}"
+      FAILED_LANGS[rust]=true
       [[ "$INSTALL_RUST" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_GO" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/go.sh"; then
+    if "$INSTALL_DIR/lib/installers/go.sh"; then
+      INSTALLED_LANGS[go]=true
+    else
       echo -e "${YELLOW}Warning: Go tools installation had issues${NC}"
+      FAILED_LANGS[go]=true
       [[ "$INSTALL_GO" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_CPP" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/cpp.sh"; then
+    if "$INSTALL_DIR/lib/installers/cpp.sh"; then
+      INSTALLED_LANGS[cpp]=true
+    else
       echo -e "${YELLOW}Warning: C/C++ tools installation had issues${NC}"
+      FAILED_LANGS[cpp]=true
       [[ "$INSTALL_CPP" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_LUA" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/lua.sh"; then
+    if "$INSTALL_DIR/lib/installers/lua.sh"; then
+      INSTALLED_LANGS[lua]=true
+    else
       echo -e "${YELLOW}Warning: Lua tools installation had issues${NC}"
+      FAILED_LANGS[lua]=true
       [[ "$INSTALL_LUA" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
   fi
 
   if [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_SHELL" == true ]]; then
-    if ! "$INSTALL_DIR/lib/installers/shell.sh"; then
+    if "$INSTALL_DIR/lib/installers/shell.sh"; then
+      INSTALLED_LANGS[shell]=true
+    else
       echo -e "${YELLOW}Warning: Shell tools installation had issues${NC}"
+      FAILED_LANGS[shell]=true
       [[ "$INSTALL_SHELL" == true || "$INSTALL_ALL" == true ]] && INSTALL_ERRORS=$((INSTALL_ERRORS + 1))
     fi
     echo
@@ -515,15 +497,31 @@ echo "  • Hooks: $INSTALL_DIR/hooks/"
 echo
 
 if [[ "$SHOULD_INSTALL_LANGS" == true ]]; then
-  echo "Installed language tools:"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_PYTHON" == true ]] && echo "  • Python: ruff, mypy, bandit, vulture, pip-audit"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_NODE" == true ]] && echo "  • Node.js: biome"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_RUST" == true ]] && echo "  • Rust: cargo-audit"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_GO" == true ]] && echo "  • Go: golangci-lint, govulncheck"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_CPP" == true ]] && echo "  • C/C++: clang-format, clang-tidy"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_LUA" == true ]] && echo "  • Lua: stylua, luacheck"
-  [[ "$INSTALL_ALL" == true ]] || [[ "$INSTALL_SHELL" == true ]] && echo "  • Shell: shellcheck, shfmt"
-  echo
+  # Show successfully installed tools
+  if [[ ${#INSTALLED_LANGS[@]} -gt 0 ]]; then
+    echo "Successfully installed language tools:"
+    [[ "${INSTALLED_LANGS[python]:-}" == true ]] && echo "  • Python: ruff, mypy, bandit, vulture, pip-audit"
+    [[ "${INSTALLED_LANGS[node]:-}" == true ]] && echo "  • Node.js: biome"
+    [[ "${INSTALLED_LANGS[rust]:-}" == true ]] && echo "  • Rust: cargo-audit"
+    [[ "${INSTALLED_LANGS[go]:-}" == true ]] && echo "  • Go: golangci-lint, govulncheck"
+    [[ "${INSTALLED_LANGS[cpp]:-}" == true ]] && echo "  • C/C++: clang-format, clang-tidy"
+    [[ "${INSTALLED_LANGS[lua]:-}" == true ]] && echo "  • Lua: stylua, luacheck"
+    [[ "${INSTALLED_LANGS[shell]:-}" == true ]] && echo "  • Shell: shellcheck, shfmt"
+    echo
+  fi
+
+  # Show failed installations
+  if [[ ${#FAILED_LANGS[@]} -gt 0 ]]; then
+    echo -e "${YELLOW}Failed to install:${NC}"
+    [[ "${FAILED_LANGS[python]:-}" == true ]] && echo "  • Python tools"
+    [[ "${FAILED_LANGS[node]:-}" == true ]] && echo "  • Node.js tools"
+    [[ "${FAILED_LANGS[rust]:-}" == true ]] && echo "  • Rust tools"
+    [[ "${FAILED_LANGS[go]:-}" == true ]] && echo "  • Go tools"
+    [[ "${FAILED_LANGS[cpp]:-}" == true ]] && echo "  • C/C++ tools"
+    [[ "${FAILED_LANGS[lua]:-}" == true ]] && echo "  • Lua tools"
+    [[ "${FAILED_LANGS[shell]:-}" == true ]] && echo "  • Shell tools"
+    echo
+  fi
 fi
 
 echo "Quick start:"

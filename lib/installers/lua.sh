@@ -58,6 +58,7 @@ else
   echo -e "${YELLOW}⚠${NC}"
   echo "    Install manually: cargo install stylua"
   echo "    Or via package manager if available"
+  INSTALL_FAILED=true
 fi
 
 # Install luacheck (via package manager or luarocks)
