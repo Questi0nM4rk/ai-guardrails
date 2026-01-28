@@ -83,7 +83,7 @@ src/
 
 ### Spec Updates
 
-If changing behavior documented in `docs/specs/`:
+If changing behavior documented in `.claude/specs/`:
 
 - [ ] Spec updated BEFORE code change
 - [ ] Spec change reviewed separately or clearly marked
