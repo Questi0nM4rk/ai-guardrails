@@ -1,3 +1,5 @@
+# Pull Request
+
 ## Intent
 
 <!-- Why is this change needed? What problem does it solve? -->
@@ -6,10 +8,12 @@
 
 <!-- What components/files are affected? What is NOT changing? -->
 
-**Affected areas:**
+### Affected areas
+
 -
 
-**Out of scope:**
+### Out of scope
+
 -
 
 ## Acceptance Criteria
