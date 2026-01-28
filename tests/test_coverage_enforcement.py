@@ -5,11 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# Python 3.10 compatibility: use tomli as fallback for tomllib
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib  # type: ignore[import-not-found]
+import tomllib  # Python 3.11+
 
 
 def test_ci_workflow_enforces_85_percent_coverage() -> None:

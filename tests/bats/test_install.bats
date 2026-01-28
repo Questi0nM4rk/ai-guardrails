@@ -23,10 +23,11 @@ setup() {
 }
 
 teardown() {
+  # Restore PATH first to ensure system commands work
+  export PATH="$ORIGINAL_PATH"
+  export HOME="$ORIGINAL_HOME"
   # Clean up test directory
   rm -rf "$TEST_INSTALL_DIR"
-  export HOME="$ORIGINAL_HOME"
-  export PATH="$ORIGINAL_PATH"
 }
 
 # ============================================
