@@ -92,8 +92,8 @@ class TestShellModule:
             mock_host.get_fact.side_effect = lambda _w, command=None: command == "brew"
             assert get_package_manager() == "brew"
 
-            # Simulate no package manager available
-            mock_host.get_fact.side_effect = lambda _w, _command=None: False
+            # Simulate no package manager available (command param unused but name must match)
+            mock_host.get_fact.side_effect = lambda _w, command=None: False  # noqa: ARG005
             assert get_package_manager() is None
 
 
