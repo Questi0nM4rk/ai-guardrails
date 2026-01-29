@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 # ============================================
-# Tests for install.sh and language installers
+# Tests for install.py and language installers
 # ============================================
 # shellcheck disable=SC2030,SC2031,SC2317  # PATH modifications and BATS test functions are intentional
 
@@ -33,64 +33,8 @@ teardown() {
 # ============================================
 # Package Manager Detection Tests
 # ============================================
-
-@test "detect_package_manager: identifies pacman" {
-  # Create mock pacman in test bin
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/pacman"
-  chmod +x "$TEST_BIN_DIR/pacman"
-  # Use only test bin to avoid real pacman in ORIGINAL_PATH
-  export PATH="$TEST_BIN_DIR"
-
-  # shellcheck source=lib/installers/detect_pm.sh
-  source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
-  result=$(detect_package_manager)
-  [[ "$result" == "pacman" ]]
-}
-
-@test "detect_package_manager: identifies apt" {
-  # Create mock apt-get in test bin (higher priority than real pacman)
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/apt-get"
-  chmod +x "$TEST_BIN_DIR/apt-get"
-  # Remove pacman from path by using only test bin
-  export PATH="$TEST_BIN_DIR"
-
-  # shellcheck source=lib/installers/detect_pm.sh
-  source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
-  result=$(detect_package_manager)
-  [[ "$result" == "apt" ]]
-}
-
-@test "detect_package_manager: identifies brew" {
-  # Create mock brew in test bin
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/brew"
-  chmod +x "$TEST_BIN_DIR/brew"
-  # Remove other package managers from path
-  export PATH="$TEST_BIN_DIR"
-
-  # shellcheck source=lib/installers/detect_pm.sh
-  source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
-  result=$(detect_package_manager)
-  [[ "$result" == "brew" ]]
-}
-
-@test "detect_package_manager: returns none when no package manager found" {
-  # Use empty PATH to ensure no package managers found
-  export PATH="$TEST_BIN_DIR"
-
-  # shellcheck source=lib/installers/detect_pm.sh
-  source "$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
-  result=$(detect_package_manager)
-  [[ "$result" == "none" ]]
-}
-
-@test "detect_pm.sh: has strict mode enabled (set -euo pipefail)" {
-  # Check that detect_pm.sh has strict mode after shebang
-  local file
-  file="$BATS_TEST_DIRNAME/../../lib/installers/detect_pm.sh"
-  local line2
-  line2=$(sed -n '2p' "$file")
-  [[ "$line2" == "set -euo pipefail" ]]
-}
+# NOTE: Package manager detection is now tested via Python unit tests
+# in tests/test_installers.py (TestPackageManagerDetection class)
 
 # ============================================
 # Python Installer Tests
@@ -282,34 +226,32 @@ TEST_CONTENT
 # Main Install Script Tests
 # ============================================
 
-@test "install.sh: accepts --python flag" {
-  run "$BATS_TEST_DIRNAME/../../install.sh" --help
+@test "install.py: accepts --python flag" {
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
   [[ "$output" == *"--python"* ]]
 }
 
-@test "install.sh: accepts --node flag" {
-  run "$BATS_TEST_DIRNAME/../../install.sh" --help
+@test "install.py: accepts --node flag" {
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
   [[ "$output" == *"--node"* ]]
 }
 
-@test "install.sh: accepts --all flag" {
-  run "$BATS_TEST_DIRNAME/../../install.sh" --help
+@test "install.py: accepts --all flag" {
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
   [[ "$output" == *"--all"* ]]
 }
 
-@test "install.sh: installs pyyaml and pre-commit by default" {
-  skip "Integration test - modifies system"
-  run "$BATS_TEST_DIRNAME/../../install.sh" --force --dry-run
-  [[ "$output" == *"pyyaml"* ]]
-  [[ "$output" == *"pre-commit"* ]]
+@test "install.py: dry-run shows what would be installed" {
+  skip "Integration test - requires pyinfra"
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --dry-run
+  [[ "$output" == *"Dry run"* ]]
 }
 
-@test "install.sh: copies installer scripts to installation directory" {
+@test "install.py: creates installation directory structure" {
   skip "Integration test - requires full implementation"
-  run "$BATS_TEST_DIRNAME/../../install.sh" --force
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --force
   [[ -d "$HOME/.ai-guardrails/lib/installers" ]]
-  [[ -f "$HOME/.ai-guardrails/lib/installers/python.sh" ]]
-  [[ -f "$HOME/.ai-guardrails/lib/installers/node.sh" ]]
+  [[ -d "$HOME/.ai-guardrails/bin" ]]
 }
 
 # ============================================

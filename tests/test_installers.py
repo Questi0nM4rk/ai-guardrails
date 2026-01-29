@@ -35,7 +35,7 @@ class TestCoreModule:
         """Verify get_source_dir returns the project root."""
         source_dir = get_source_dir()
         # Should be the project root (contains install.py)
-        assert (source_dir / "install.py").exists() or (source_dir / "install.sh").exists()
+        assert (source_dir / "install.py").exists()
 
     def test_bin_scripts_list(self) -> None:
         """Verify BIN_SCRIPTS contains expected CLI tools."""

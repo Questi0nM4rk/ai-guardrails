@@ -38,8 +38,6 @@ pre-commit install --hook-type commit-msg  # Commit message validation
 pre-commit run --all-files  # Run all checks
 ```
 
-> **Note**: The legacy `./install.sh` is deprecated. Use `python3 install.py`.
-
 ### Installation Options
 
 ```bash
@@ -326,8 +324,7 @@ ai-guardrails/
 ├── templates/
 │   ├── pre-commit-config.yaml
 │   └── settings.json.strict
-├── install.py                # Python installer (recommended)
-└── install.sh                # Legacy bash installer (deprecated)
+└── install.py                # Python installer
 ```
 
 ## Requirements

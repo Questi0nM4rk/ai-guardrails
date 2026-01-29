@@ -96,7 +96,7 @@ EOF
   chmod +x "$TEST_BIN_DIR/python3"
   export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
 
-  # Simulate the install.sh logic exactly
+  # Simulate the install.py logic
   install_pyyaml_with_verification() {
     if ! python3 -c "import yaml" &>/dev/null; then
       # Try first installation method
@@ -200,7 +200,7 @@ EOF
   # Only include our test bin directory
   export PATH="$TEST_BIN_DIR"
 
-  # Simulate the install.sh logic exactly
+  # Simulate the install.py logic
   install_precommit_with_verification() {
     if ! command -v pre-commit &>/dev/null; then
       # Try install with pipx

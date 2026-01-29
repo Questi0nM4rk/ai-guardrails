@@ -249,18 +249,10 @@ def install_python_tools() -> None:
   </testing>
 
   <migration>
-    <from>install.sh (548 lines bash)</from>
+    <status>COMPLETE</status>
+    <from>install.sh (548 lines bash) - REMOVED</from>
     <to>install.py + lib/installers/*.py</to>
-    <deprecation>
-      <location>install.sh header</location>
-      <message>Deprecation warning pointing users to python3 install.py</message>
-      <removal_timeline>Future release after transition period</removal_timeline>
-    </deprecation>
-    <backward_compatibility>
-      <item>Same CLI flags supported (--all, --python, --force, etc.)</item>
-      <item>Same installation paths (~/.ai-guardrails, ~/.local/bin)</item>
-      <item>Same tool selection per language</item>
-    </backward_compatibility>
+    <notes>Legacy bash installer and lib/installers/*.sh files have been removed.</notes>
   </migration>
 
   <quality_requirements>

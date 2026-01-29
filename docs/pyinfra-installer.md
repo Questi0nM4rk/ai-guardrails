@@ -2,7 +2,7 @@
 
 ## Why pyinfra?
 
-The original `install.sh` bash installer grew to 548 lines with 8 language-specific
+The original bash installer grew to 548 lines with 8 language-specific
 sub-installers totaling 613 lines. This posed several problems:
 
 1. **Duplication**: ~33% code duplication across installers (color output, package manager detection, error handling)
@@ -75,8 +75,6 @@ All pyinfra operations are idempotent by design. Running `install.py` twice:
 
 ## Command Line Interface
 
-The CLI matches the original `install.sh` for backward compatibility:
-
 ```bash
 # Install core only
 python3 install.py
@@ -134,24 +132,10 @@ Uses the project's pedantic ruff configuration with additional ignores for CLI-s
 - `T201` - print statements (expected in CLI)
 - `PLR0912/PLR0915/C901` - complexity (acceptable for CLI main())
 
-## Migration Strategy
+## Migration Status
 
-### Phase 1: Deprecation (Current)
-
-- `install.sh` shows deprecation warning
-- Points users to `python3 install.py`
-- Both installers work
-
-### Phase 2: Transition
-
-- Documentation updated to prefer `install.py`
-- New features only in Python installer
-- Bug fixes backported to bash if needed
-
-### Phase 3: Removal
-
-- Remove `install.sh` and `lib/installers/*.sh`
-- `install.py` becomes the only installer
+Migration from bash to Python installer is **complete**. The legacy `install.sh`
+and `lib/installers/*.sh` files have been removed. `install.py` is the only installer.
 
 ## Future Enhancements
 
