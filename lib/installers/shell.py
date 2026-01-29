@@ -10,22 +10,15 @@ from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
 from pyinfra.operations import apk, apt, brew, dnf, pacman, server
 
+from lib.installers._utils import get_package_manager
+
 TOOLS = ["shellcheck", "shfmt"]
-
-
-def _get_package_manager() -> str | None:
-    """Detect available package manager."""
-    managers = ["pacman", "apt-get", "dnf", "yum", "apk", "brew"]
-    for pm in managers:
-        if host.get_fact(Which, command=pm):
-            return pm.replace("-get", "")  # apt-get -> apt
-    return None
 
 
 @deploy("Install shell linting tools")
 def install_shell_tools() -> None:
     """Install shellcheck and shfmt via system package manager."""
-    pm = _get_package_manager()
+    pm = get_package_manager()
 
     if pm == "pacman":
         pacman.packages(

@@ -154,7 +154,7 @@ def main() -> int:
     if args.uninstall:
         print_color(BLUE, "Uninstalling AI Guardrails...")
         uninstall()
-        if run_pyinfra(args.dry_run):
+        if run_pyinfra(dry_run=args.dry_run):
             print_color(GREEN, "AI Guardrails uninstalled successfully!")
             return 0
         print_color(RED, "Uninstallation failed")
@@ -235,7 +235,7 @@ def main() -> int:
     print()
     if args.dry_run:
         print_color(YELLOW, "Dry run - no changes made")
-    success = run_pyinfra(args.dry_run)
+    success = run_pyinfra(dry_run=args.dry_run)
 
     if success:
         print()

@@ -5,27 +5,18 @@ Installs: clang-format, clang-tidy
 
 from __future__ import annotations
 
-from pyinfra import host
 from pyinfra.api.deploy import deploy
-from pyinfra.facts.server import Which
 from pyinfra.operations import apk, apt, brew, dnf, pacman, server
 
+from lib.installers._utils import get_package_manager
+
 TOOLS = ["clang-format", "clang-tidy"]
-
-
-def _get_package_manager() -> str | None:
-    """Detect available package manager."""
-    managers = ["pacman", "apt-get", "dnf", "yum", "apk", "brew"]
-    for pm in managers:
-        if host.get_fact(Which, command=pm):
-            return pm.replace("-get", "")
-    return None
 
 
 @deploy("Install C/C++ linting tools")
 def install_cpp_tools() -> None:
     """Install clang-format and clang-tidy via system package manager."""
-    pm = _get_package_manager()
+    pm = get_package_manager()
 
     if pm == "pacman":
         # On Arch, clang package includes both tools

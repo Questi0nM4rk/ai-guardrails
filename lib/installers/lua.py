@@ -10,16 +10,9 @@ from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
 from pyinfra.operations import pacman, server
 
+from lib.installers._utils import get_package_manager
+
 TOOLS = ["stylua", "luacheck"]
-
-
-def _get_package_manager() -> str | None:
-    """Detect available package manager."""
-    managers = ["pacman", "apt-get", "dnf", "yum", "apk", "brew"]
-    for pm in managers:
-        if host.get_fact(Which, command=pm):
-            return pm.replace("-get", "")
-    return None
 
 
 @deploy("Install Lua linting tools")
@@ -29,7 +22,7 @@ def install_lua_tools() -> None:
     - stylua: via cargo (cross-platform) or pacman (Arch)
     - luacheck: via luarocks or pacman (Arch)
     """
-    pm = _get_package_manager()
+    pm = get_package_manager()
     cargo_available = host.get_fact(Which, command="cargo")
     luarocks_available = host.get_fact(Which, command="luarocks")
 

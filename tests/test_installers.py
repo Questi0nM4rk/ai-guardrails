@@ -80,25 +80,25 @@ class TestShellModule:
 
     def test_get_package_manager_detection(self) -> None:
         """Test package manager detection logic."""
-        from lib.installers.shell import _get_package_manager
+        from lib.installers._utils import get_package_manager
 
         # Mock host.get_fact to simulate different package managers
-        with patch("lib.installers.shell.host") as mock_host:
+        with patch("lib.installers._utils.host") as mock_host:
             # Simulate pacman available
             mock_host.get_fact.side_effect = lambda _w, command=None: command == "pacman"
-            assert _get_package_manager() == "pacman"
+            assert get_package_manager() == "pacman"
 
             # Simulate apt-get available
             mock_host.get_fact.side_effect = lambda _w, command=None: command == "apt-get"
-            assert _get_package_manager() == "apt"
+            assert get_package_manager() == "apt"
 
             # Simulate brew available
             mock_host.get_fact.side_effect = lambda _w, command=None: command == "brew"
-            assert _get_package_manager() == "brew"
+            assert get_package_manager() == "brew"
 
             # Simulate no package manager
             mock_host.get_fact.side_effect = lambda _w, command=None: command is None
-            assert _get_package_manager() is None
+            assert get_package_manager() is None
 
 
 class TestCppModule:
@@ -238,30 +238,13 @@ class TestPackageManagerDetection:
             ("brew", "brew"),
         ],
     )
-    def test_shell_module_pm_detection(self, pm_command: str, expected_result: str) -> None:
-        """Test package manager detection in shell module."""
-        from lib.installers.shell import _get_package_manager
+    def test_utils_pm_detection(self, pm_command: str, expected_result: str) -> None:
+        """Test package manager detection via shared utility."""
+        from lib.installers._utils import get_package_manager
 
-        with patch("lib.installers.shell.host") as mock_host:
+        with patch("lib.installers._utils.host") as mock_host:
             mock_host.get_fact.side_effect = lambda _w, command=None: command == pm_command
-            assert _get_package_manager() == expected_result
-
-    @pytest.mark.parametrize(
-        ("pm_command", "expected_result"),
-        [
-            ("pacman", "pacman"),
-            ("apt-get", "apt"),
-            ("dnf", "dnf"),
-            ("brew", "brew"),
-        ],
-    )
-    def test_cpp_module_pm_detection(self, pm_command: str, expected_result: str) -> None:
-        """Test package manager detection in cpp module."""
-        from lib.installers.cpp import _get_package_manager
-
-        with patch("lib.installers.cpp.host") as mock_host:
-            mock_host.get_fact.side_effect = lambda _w, command=None: command == pm_command
-            assert _get_package_manager() == expected_result
+            assert get_package_manager() == expected_result
 
 
 class TestModuleExports:
