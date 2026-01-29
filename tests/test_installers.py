@@ -5,14 +5,10 @@ Tests use mocked pyinfra facts and operations to avoid actual system changes.
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
-# Add lib to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lib.installers.core import (
     BIN_DIR,
@@ -96,8 +92,8 @@ class TestShellModule:
             mock_host.get_fact.side_effect = lambda _w, command=None: command == "brew"
             assert get_package_manager() == "brew"
 
-            # Simulate no package manager
-            mock_host.get_fact.side_effect = lambda _w, command=None: command is None
+            # Simulate no package manager available
+            mock_host.get_fact.side_effect = lambda _w, _command=None: False
             assert get_package_manager() is None
 
 
@@ -168,8 +164,6 @@ class TestInstallPyMain:
 
     def test_parse_args_defaults(self) -> None:
         """Test argument parsing with defaults."""
-        # Import parse_args from install.py
-        sys.path.insert(0, str(Path(__file__).parent.parent))
         from install import parse_args
 
         with patch("sys.argv", ["install.py"]):

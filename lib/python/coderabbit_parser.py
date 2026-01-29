@@ -407,7 +407,7 @@ def parse_body_item(
     description = re.sub(r"<details>.*?</details>", "", description, flags=re.DOTALL)
     description = description.strip()
 
-    description = None if not description else truncate_with_ellipsis(description)
+    description = truncate_with_ellipsis(description) if description else None
 
     return Task(
         id="",  # Assigned later

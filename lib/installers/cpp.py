@@ -66,7 +66,7 @@ def install_cpp_tools() -> None:
         server.shell(
             name="Note llvm bin path",
             commands=[
-                "echo 'Note: clang-tidy from llvm may need PATH update:'",
+                "echo 'Note: clang-tidy from llvm may need PATH update:' && "
                 "echo '  export PATH=\"$(brew --prefix llvm)/bin:$PATH\"'",
             ],
         )

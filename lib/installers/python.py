@@ -20,23 +20,18 @@ def install_python_tools() -> None:
 
     if pipx_available:
         # Use pipx for isolated installations (PEP 668 compliant)
-        # Try upgrade first (fails if not installed), then install as fallback
+        # pipx install is idempotent - reinstalls if already present
         for tool in TOOLS:
             server.shell(
                 name=f"Install {tool} via pipx",
-                commands=[
-                    f"pipx upgrade {tool} 2>/dev/null || pipx install {tool}",
-                ],
+                commands=[f"pipx install {tool}"],
             )
     else:
-        # Fallback to pip --user with PEP 668 handling
+        # Fallback to pip --user
         tools_str = " ".join(TOOLS)
         server.shell(
             name="Install Python tools via pip",
-            commands=[
-                f"python3 -m pip install --user {tools_str} 2>/dev/null || "
-                f"python3 -m pip install --user --break-system-packages {tools_str}"
-            ],
+            commands=[f"python3 -m pip install --user {tools_str}"],
         )
 
     # Verify installations

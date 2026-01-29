@@ -42,18 +42,10 @@ def get_source_dir() -> Path:
 
 @deploy("Install pyyaml")
 def install_pyyaml() -> None:
-    """Install pyyaml Python package.
-
-    Tries pip --user first, falls back to --break-system-packages
-    for PEP 668 managed environments (Debian 12+, Ubuntu 23.04+, etc.).
-    """
-    # Try pip --user first, then fall back to --break-system-packages for PEP 668
+    """Install pyyaml Python package via pip --user."""
     server.shell(
         name="Install pyyaml via pip",
-        commands=[
-            "python3 -m pip install --user pyyaml 2>/dev/null || "
-            "python3 -m pip install --user --break-system-packages pyyaml"
-        ],
+        commands=["python3 -m pip install --user pyyaml"],
     )
 
 
@@ -64,21 +56,16 @@ def install_precommit() -> None:
 
     if pipx_available:
         # Use pipx for isolated installation
-        # Try upgrade first (fails if not installed), then install as fallback
+        # pipx install is idempotent - reinstalls if already present
         server.shell(
             name="Install pre-commit via pipx",
-            commands=[
-                "pipx upgrade pre-commit 2>/dev/null || pipx install pre-commit",
-            ],
+            commands=["pipx install pre-commit"],
         )
     else:
-        # Fallback to pip --user with PEP 668 handling
+        # Fallback to pip --user
         server.shell(
             name="Install pre-commit via pip",
-            commands=[
-                "python3 -m pip install --user pre-commit 2>/dev/null || "
-                "python3 -m pip install --user --break-system-packages pre-commit"
-            ],
+            commands=["python3 -m pip install --user pre-commit"],
         )
 
 
