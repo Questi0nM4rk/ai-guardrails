@@ -2,7 +2,8 @@
 
 ## Why pyinfra?
 
-The original `install.sh` bash installer grew to 548 lines with 8 language-specific sub-installers totaling 613 lines. This posed several problems:
+The original `install.sh` bash installer grew to 548 lines with 8 language-specific
+sub-installers totaling 613 lines. This posed several problems:
 
 1. **Duplication**: ~33% code duplication across installers (color output, package manager detection, error handling)
 2. **Testability**: Bash scripts are hard to unit test
@@ -25,7 +26,7 @@ The original `install.sh` bash installer grew to 548 lines with 8 language-speci
 
 Each language gets its own module with a single `@deploy` decorated function:
 
-```
+```text
 lib/installers/
 ├── __init__.py         # Exports all deploy functions
 ├── core.py             # Core: pyyaml, pre-commit, file copying
@@ -56,16 +57,19 @@ Priority order: pacman > apt > dnf > yum > apk > brew
 ### 3. Installation Method Hierarchy
 
 For Python tools:
+
 1. **pipx** (preferred) - PEP 668 compliant, isolated environments
 2. **pip --user** (fallback) - When pipx unavailable
 
 For system tools:
+
 1. **System package manager** - Native packages when available
 2. **Language toolchain** - go install, cargo install as fallback
 
 ### 4. Idempotent Operations
 
 All pyinfra operations are idempotent by design. Running `install.py` twice:
+
 - First run: Installs tools
 - Second run: No changes (tools already present)
 
@@ -126,6 +130,7 @@ Unchanged from bash installer:
 ### Linting
 
 Uses the project's pedantic ruff configuration with additional ignores for CLI-specific patterns:
+
 - `T201` - print statements (expected in CLI)
 - `PLR0912/PLR0915/C901` - complexity (acceptable for CLI main())
 
