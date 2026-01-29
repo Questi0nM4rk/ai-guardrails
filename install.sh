@@ -1,7 +1,12 @@
 #!/bin/bash
 # ============================================
-# AI Guardrails Installer
+# AI Guardrails Installer (DEPRECATED)
 # Installs ai-guardrails globally
+#
+# DEPRECATION NOTICE:
+#   This bash installer is deprecated.
+#   Please use the new Python-based installer:
+#     python3 install.py --help
 #
 # Usage:
 #   ./install.sh              # Install
@@ -9,6 +14,23 @@
 # ============================================
 
 set -euo pipefail
+
+# Show deprecation warning
+echo -e "\033[1;33m"
+echo "========================================"
+echo "  DEPRECATION WARNING"
+echo "========================================"
+echo "  This bash installer is deprecated."
+echo "  Please use the new Python installer:"
+echo ""
+echo "    python3 install.py --help"
+echo ""
+echo "  The bash installer will be removed in"
+echo "  a future release."
+echo "========================================"
+echo -e "\033[0m"
+echo ""
+sleep 2
 
 # Bash 4.0+ required for associative arrays
 if ((BASH_VERSINFO[0] < 4)); then
