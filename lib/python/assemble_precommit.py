@@ -31,13 +31,13 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
     Raises:
         FileNotFoundError: If registry file doesn't exist
         yaml.YAMLError: If registry file is invalid YAML
-        ValueError: If registry is empty or not a dict
+        TypeError: If registry is not a dict
     """
     with registry_path.open() as f:
         result = yaml.safe_load(f)
     if not isinstance(result, dict):
         msg = f"Registry must be a dict, got {type(result).__name__}"
-        raise ValueError(msg)
+        raise TypeError(msg)
     return result
 
 
@@ -96,13 +96,13 @@ def load_template(template_path: Path) -> dict[str, Any]:
     Raises:
         FileNotFoundError: If template doesn't exist
         yaml.YAMLError: If template is invalid YAML
-        ValueError: If template is empty or not a dict
+        TypeError: If template is not a dict
     """
     with template_path.open() as f:
         result = yaml.safe_load(f)
     if not isinstance(result, dict):
         msg = f"Template must be a dict, got {type(result).__name__}"
-        raise ValueError(msg)
+        raise TypeError(msg)
     return result
 
 
@@ -152,8 +152,6 @@ def assemble_config(
 
 class MultilineDumper(yaml.SafeDumper):
     """Custom YAML dumper that uses block style for multiline strings."""
-
-    pass
 
 
 def _str_representer(dumper: yaml.Dumper, data: str) -> yaml.Node:
@@ -302,7 +300,7 @@ Examples:
     except yaml.YAMLError as e:
         print(f"Error: Invalid YAML in registry: {e}", file=sys.stderr)
         return 1
-    except ValueError as e:
+    except TypeError as e:
         print(f"Error: Invalid registry format: {e}", file=sys.stderr)
         return 1
 
@@ -335,7 +333,7 @@ Examples:
     except FileNotFoundError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
-    except ValueError as e:
+    except TypeError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
     except yaml.YAMLError as e:

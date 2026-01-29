@@ -21,7 +21,6 @@ from lib.python.assemble_precommit import (
     write_config,
 )
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -115,7 +114,7 @@ def templates_dir(temp_dir: Path) -> Iterator[Path]:
     }
     (tpl_dir / "go.yaml").write_text(yaml.dump(go_config))
 
-    yield tpl_dir
+    return tpl_dir
 
 
 # =============================================================================
@@ -149,17 +148,17 @@ class TestLoadRegistry:
             load_registry(registry_path)
 
     def test_load_empty_registry(self, temp_dir: Path) -> None:
-        """Test loading empty registry raises ValueError."""
+        """Test loading empty registry raises TypeError."""
         registry_path = temp_dir / "empty.yaml"
         registry_path.write_text("")
-        with pytest.raises(ValueError, match="must be a dict"):
+        with pytest.raises(TypeError, match="must be a dict"):
             load_registry(registry_path)
 
     def test_load_list_registry(self, temp_dir: Path) -> None:
-        """Test loading list registry raises ValueError."""
+        """Test loading list registry raises TypeError."""
         registry_path = temp_dir / "list.yaml"
         registry_path.write_text("- item1\n- item2")
-        with pytest.raises(ValueError, match="must be a dict"):
+        with pytest.raises(TypeError, match="must be a dict"):
             load_registry(registry_path)
 
 
@@ -281,17 +280,17 @@ class TestLoadTemplate:
             load_template(temp_dir / "missing.yaml")
 
     def test_load_empty_template(self, temp_dir: Path) -> None:
-        """Test loading empty template raises ValueError."""
+        """Test loading empty template raises TypeError."""
         template_path = temp_dir / "empty.yaml"
         template_path.write_text("")
-        with pytest.raises(ValueError, match="must be a dict"):
+        with pytest.raises(TypeError, match="must be a dict"):
             load_template(template_path)
 
     def test_load_list_template(self, temp_dir: Path) -> None:
-        """Test loading list template raises ValueError."""
+        """Test loading list template raises TypeError."""
         template_path = temp_dir / "list.yaml"
         template_path.write_text("- repo: local")
-        with pytest.raises(ValueError, match="must be a dict"):
+        with pytest.raises(TypeError, match="must be a dict"):
             load_template(template_path)
 
 
@@ -664,10 +663,10 @@ class TestMainCLI:
             captured = capsys.readouterr()
             assert "Error:" in captured.err
 
-    def test_handles_value_error_in_assemble(
+    def test_handles_type_error_in_assemble(
         self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        """Test error handling when template is not a dict."""
+        """Test error handling when template is not a dict (TypeError)."""
         global_dir = temp_dir / ".ai-guardrails"
         configs = global_dir / "configs"
         templates = global_dir / "templates" / "pre-commit"

@@ -46,6 +46,7 @@ exclude_lines = [
 [tool.ruff]
 target-version = "py310"
 line-length = 100
+exclude = ["tests/fixtures"]  # Intentionally bad code for testing
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -63,8 +64,10 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "PLC0415", "F811", "ARG001"]
+"tests/*" = ["S101", "PLC0415", "F811", "ARG001", "PLR2004", "SIM108", "ERA001", "TC003"]
 "install.py" = ["T201", "UP036"]
+"lib/python/assemble_precommit.py" = ["PLR0911"]  # main() needs many returns for error handling
+"lib/python/coderabbit_parser.py" = ["PLR0911", "PLW2901"]  # main() returns, loop var reassignment ok
 
 [tool.mypy]
 python_version = "3.10"

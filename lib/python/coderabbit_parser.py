@@ -48,6 +48,10 @@ class TaskSource(Enum):
     OUTSIDE_DIFF = "outside_diff"  # ⚠️ Outside diff range comments
 
 
+# Maximum length for description text before truncation
+MAX_DESCRIPTION_LENGTH = 500
+
+
 @dataclass
 class Task:
     """Represents a single actionable task from CodeRabbit review."""
@@ -145,7 +149,8 @@ def extract_ai_prompt(body: str) -> str | None:
     """
     # Match 3 or 4 backticks (CodeRabbit uses both formats)
     pattern = re.compile(
-        r"<details>\s*<summary>🤖\s*Prompt for AI Agents</summary>\s*(`{3,4})[^\n]*\n(.*?)\1\s*</details>",
+        r"<details>\s*<summary>🤖\s*Prompt for AI Agents</summary>"
+        r"\s*(`{3,4})[^\n]*\n(.*?)\1\s*</details>",
         re.DOTALL | re.IGNORECASE,
     )
     match = pattern.search(body)
@@ -191,8 +196,8 @@ def extract_description(body: str) -> str | None:
         return None
 
     # Truncate if too long
-    if len(text) > 500:
-        text = text[:497] + "..."
+    if len(text) > MAX_DESCRIPTION_LENGTH:
+        text = text[: MAX_DESCRIPTION_LENGTH - 3] + "..."
 
     return text
 
@@ -374,8 +379,8 @@ def parse_body_item(
 
     if not description:
         description = None
-    elif len(description) > 500:
-        description = description[:497] + "..."
+    elif len(description) > MAX_DESCRIPTION_LENGTH:
+        description = description[: MAX_DESCRIPTION_LENGTH - 3] + "..."
 
     return Task(
         id="",  # Assigned later
@@ -685,10 +690,10 @@ def main() -> None:
             }
 
         indent = 2 if args.pretty else None
-        print(json.dumps(result, indent=indent))  # noqa: T201
+        print(json.dumps(result, indent=indent))
 
     except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON input: {e}", file=sys.stderr)  # noqa: T201
+        print(f"Error: Invalid JSON input: {e}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(130)
