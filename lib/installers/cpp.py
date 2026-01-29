@@ -6,7 +6,7 @@ Installs: clang-format, clang-tidy
 from __future__ import annotations
 
 from pyinfra.api.deploy import deploy
-from pyinfra.operations import apk, apt, brew, dnf, pacman, server
+from pyinfra.operations import apk, apt, brew, dnf, pacman, server, yum
 
 from lib.installers._utils import get_package_manager
 
@@ -33,10 +33,17 @@ def install_cpp_tools() -> None:
             _sudo=True,
         )
 
-    elif pm in ("dnf", "yum"):
+    elif pm == "dnf":
         dnf.packages(
             name="Install clang tools via dnf",
             packages=["clang", "clang-tools-extra"],
+            _sudo=True,
+        )
+
+    elif pm == "yum":
+        yum.packages(
+            name="Install clang tools via yum",
+            packages=["clang", "clang-analyzer"],
             _sudo=True,
         )
 

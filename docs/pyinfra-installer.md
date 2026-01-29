@@ -44,7 +44,7 @@ lib/installers/
 Modules that need system packages detect the available package manager:
 
 ```python
-def _get_package_manager() -> str | None:
+def get_package_manager() -> str | None:
     managers = ["pacman", "apt-get", "dnf", "yum", "apk", "brew"]
     for pm in managers:
         if host.get_fact(Which, command=pm):
@@ -73,9 +73,9 @@ All pyinfra operations are idempotent by design. Running `install.py` twice:
 - First run: Installs tools
 - Second run: No changes (tools already present)
 
-## CLI Interface
+## Command Line Interface
 
-The CLI interface matches the original `install.sh` for backward compatibility:
+The CLI matches the original `install.sh` for backward compatibility:
 
 ```bash
 # Install core only

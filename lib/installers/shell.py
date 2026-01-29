@@ -59,6 +59,11 @@ def install_shell_tools() -> None:
                 name="Install shfmt via go",
                 commands=["go install mvdan.cc/sh/v3/cmd/shfmt@latest"],
             )
+        else:
+            server.shell(
+                name="Warn: shfmt requires Go",
+                commands=["echo 'Warning: shfmt requires Go to install on RHEL/Fedora'"],
+            )
 
     elif pm == "yum":
         yum.packages(
@@ -72,6 +77,11 @@ def install_shell_tools() -> None:
             server.shell(
                 name="Install shfmt via go",
                 commands=["go install mvdan.cc/sh/v3/cmd/shfmt@latest"],
+            )
+        else:
+            server.shell(
+                name="Warn: shfmt requires Go",
+                commands=["echo 'Warning: shfmt requires Go to install on RHEL/CentOS'"],
             )
 
     elif pm == "apk":

@@ -17,7 +17,7 @@ from pathlib import Path
 from pyinfra import host
 from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
-from pyinfra.operations import files, pip, server
+from pyinfra.operations import files, server
 
 # Installation paths
 INSTALL_DIR = Path.home() / ".ai-guardrails"
@@ -42,11 +42,18 @@ def get_source_dir() -> Path:
 
 @deploy("Install pyyaml")
 def install_pyyaml() -> None:
-    """Install pyyaml Python package."""
-    pip.packages(
-        name="Install pyyaml",
-        packages=["pyyaml"],
-        extra_install_args="--user",
+    """Install pyyaml Python package.
+
+    Tries pip --user first, falls back to --break-system-packages
+    for PEP 668 managed environments (Debian 12+, Ubuntu 23.04+, etc.).
+    """
+    # Try pip --user first, then fall back to --break-system-packages for PEP 668
+    server.shell(
+        name="Install pyyaml via pip",
+        commands=[
+            "python3 -m pip install --user pyyaml 2>/dev/null || "
+            "python3 -m pip install --user --break-system-packages pyyaml"
+        ],
     )
 
 
@@ -57,21 +64,21 @@ def install_precommit() -> None:
 
     if pipx_available:
         # Use pipx for isolated installation
-        # Check if already installed, then upgrade or install
+        # Try upgrade first (fails if not installed), then install as fallback
         server.shell(
             name="Install pre-commit via pipx",
             commands=[
-                "pipx list 2>/dev/null | grep -q 'package pre-commit' && "
-                "pipx upgrade pre-commit || "
-                "pipx install pre-commit",
+                "pipx upgrade pre-commit 2>/dev/null || pipx install pre-commit",
             ],
         )
     else:
-        # Fallback to pip --user
-        pip.packages(
+        # Fallback to pip --user with PEP 668 handling
+        server.shell(
             name="Install pre-commit via pip",
-            packages=["pre-commit"],
-            extra_install_args="--user",
+            commands=[
+                "python3 -m pip install --user pre-commit 2>/dev/null || "
+                "python3 -m pip install --user --break-system-packages pre-commit"
+            ],
         )
 
 
@@ -116,6 +123,11 @@ def copy_bin_scripts() -> None:
                 dest=str(dst),
                 mode="755",
             )
+        else:
+            server.shell(
+                name=f"Warn: {script} not found",
+                commands=[f"echo 'Warning: Source file {src} not found, skipping'"],
+            )
 
 
 @deploy("Copy hook scripts")
@@ -133,6 +145,11 @@ def copy_hook_scripts() -> None:
                 src=str(src),
                 dest=str(dst),
                 mode="755",
+            )
+        else:
+            server.shell(
+                name=f"Warn: {hook} not found",
+                commands=[f"echo 'Warning: Source file {src} not found, skipping'"],
             )
 
 

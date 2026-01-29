@@ -43,8 +43,7 @@ def install_go_tools() -> None:
     server.shell(
         name="Note GOBIN path",
         commands=[
-            'GOBIN="${GOBIN:-${GOPATH:-$HOME/go}/bin}"',
-            'echo "Note: Ensure $GOBIN is in PATH"',
+            'GOBIN="${GOBIN:-${GOPATH:-$HOME/go}/bin}" && echo "Note: Ensure $GOBIN is in PATH"',
         ],
     )
 

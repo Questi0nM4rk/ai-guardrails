@@ -285,6 +285,30 @@ class TestPackageManagerDetection:
             mock_host.get_fact.side_effect = lambda _w, command=None: command == pm_command
             assert get_package_manager() == expected_result
 
+    def test_pm_detection_precedence_when_multiple_available(self) -> None:
+        """Test that pacman takes precedence when multiple PMs are available."""
+        from lib.installers._utils import get_package_manager
+
+        # Simulate both pacman and apt-get being available
+        available_pms = {"pacman", "apt-get", "brew"}
+
+        with patch("lib.installers._utils.host") as mock_host:
+            mock_host.get_fact.side_effect = lambda _w, command=None: command in available_pms
+            # Should return pacman since it has highest priority
+            assert get_package_manager() == "pacman"
+
+    def test_pm_detection_apt_over_brew(self) -> None:
+        """Test that apt takes precedence over brew when both available."""
+        from lib.installers._utils import get_package_manager
+
+        # Simulate apt-get and brew being available (common on macOS with Linux tools)
+        available_pms = {"apt-get", "brew"}
+
+        with patch("lib.installers._utils.host") as mock_host:
+            mock_host.get_fact.side_effect = lambda _w, command=None: command in available_pms
+            # Should return apt since it has higher priority than brew
+            assert get_package_manager() == "apt"
+
 
 class TestModuleExports:
     """Tests for lib/installers/__init__.py exports."""

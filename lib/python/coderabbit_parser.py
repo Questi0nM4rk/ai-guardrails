@@ -50,6 +50,10 @@ class TaskSource(Enum):
 
 # Maximum length for description text before truncation
 MAX_DESCRIPTION_LENGTH = 500
+# Length of the ellipsis string "..."
+ELLIPSIS_LENGTH = 3
+# Minimum max_length value that can accommodate ellipsis
+MIN_TRUNCATION_LENGTH = ELLIPSIS_LENGTH + 1
 
 
 def truncate_with_ellipsis(text: str, max_length: int = MAX_DESCRIPTION_LENGTH) -> str:
@@ -61,11 +65,15 @@ def truncate_with_ellipsis(text: str, max_length: int = MAX_DESCRIPTION_LENGTH) 
 
     Returns:
         Original text if short enough, otherwise truncated with "...".
+        For max_length < 4, returns "..." or empty string.
 
     """
     if len(text) <= max_length:
         return text
-    return text[: max_length - 3] + "..."
+    # Handle edge case where max_length is too small for ellipsis
+    if max_length < MIN_TRUNCATION_LENGTH:
+        return "..." if max_length >= ELLIPSIS_LENGTH else ""
+    return text[: max_length - ELLIPSIS_LENGTH] + "..."
 
 
 @dataclass
