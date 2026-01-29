@@ -25,8 +25,9 @@ def install_go_tools() -> None:
         server.shell(
             name="Error: go not found",
             commands=[
-                "echo 'Error: go not found'",
-                "echo 'Install Go first: https://go.dev/doc/install'",
+                "echo 'Error: go not found' >&2",
+                "echo 'Install Go first: https://go.dev/doc/install' >&2",
+                "exit 1",
             ],
         )
         return

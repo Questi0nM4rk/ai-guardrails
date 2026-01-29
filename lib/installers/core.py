@@ -4,6 +4,10 @@ Handles:
 - Installation of pyyaml and pre-commit
 - File copying to ~/.ai-guardrails/
 - Symlink creation for CLI tools
+
+NOTE: This module is designed for @local deployments only.
+Path.exists() checks run on the controller (local machine).
+For remote deployment support, replace with pyinfra facts.
 """
 
 from __future__ import annotations
@@ -53,11 +57,13 @@ def install_precommit() -> None:
 
     if pipx_available:
         # Use pipx for isolated installation
+        # Check if already installed, then upgrade or install
         server.shell(
             name="Install pre-commit via pipx",
             commands=[
-                "pipx install pre-commit 2>/dev/null || "
-                "pipx upgrade pre-commit 2>/dev/null || true",
+                "pipx list 2>/dev/null | grep -q 'package pre-commit' && "
+                "pipx upgrade pre-commit || "
+                "pipx install pre-commit",
             ],
         )
     else:
@@ -215,6 +221,14 @@ def create_symlinks() -> None:
         src = INSTALL_DIR / "bin" / cmd
         dst = BIN_DIR / cmd
 
+        # Only create symlink if source exists (avoids broken symlinks)
+        if not src.exists():
+            server.shell(
+                name=f"Warn: {cmd} not found",
+                commands=[f"echo 'Warning: {src} not found, skipping symlink'"],
+            )
+            continue
+
         files.link(
             name=f"Symlink {cmd}",
             path=str(dst),
@@ -230,6 +244,10 @@ def create_hook_symlinks() -> None:
     for hook in HOOK_SCRIPTS:
         src = INSTALL_DIR / "lib" / "hooks" / hook
         dst = INSTALL_DIR / "hooks" / hook
+
+        # Only create symlink if source exists
+        if not src.exists():
+            continue
 
         files.link(
             name=f"Symlink hook {hook}",

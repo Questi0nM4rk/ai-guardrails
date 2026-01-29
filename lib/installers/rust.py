@@ -22,16 +22,17 @@ def install_rust_tools() -> None:
         server.shell(
             name="Error: cargo not found",
             commands=[
-                "echo 'Error: cargo not found'",
-                "echo 'Install Rust first: https://rustup.rs/'",
+                "echo 'Error: cargo not found' >&2",
+                "echo 'Install Rust first: https://rustup.rs/' >&2",
+                "exit 1",
             ],
         )
         return
 
-    # Install cargo-audit
+    # Install cargo-audit (idempotent - only install if not present)
     server.shell(
         name="Install cargo-audit",
-        commands=["cargo install cargo-audit"],
+        commands=["cargo install --list | grep -q '^cargo-audit ' || cargo install cargo-audit"],
     )
 
     # Verify installation

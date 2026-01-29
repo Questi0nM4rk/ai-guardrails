@@ -52,6 +52,21 @@ class TaskSource(Enum):
 MAX_DESCRIPTION_LENGTH = 500
 
 
+def truncate_with_ellipsis(text: str, max_length: int = MAX_DESCRIPTION_LENGTH) -> str:
+    """Truncate text to max_length, adding ellipsis if needed.
+
+    Args:
+        text: Text to truncate.
+        max_length: Maximum length (default: MAX_DESCRIPTION_LENGTH).
+
+    Returns:
+        Original text if short enough, otherwise truncated with "...".
+    """
+    if len(text) <= max_length:
+        return text
+    return text[: max_length - 3] + "..."
+
+
 @dataclass
 class Task:
     """Represents a single actionable task from CodeRabbit review."""
@@ -196,10 +211,7 @@ def extract_description(body: str) -> str | None:
         return None
 
     # Truncate if too long
-    if len(text) > MAX_DESCRIPTION_LENGTH:
-        text = text[: MAX_DESCRIPTION_LENGTH - 3] + "..."
-
-    return text
+    return truncate_with_ellipsis(text)
 
 
 # =============================================================================
@@ -377,10 +389,7 @@ def parse_body_item(
     description = re.sub(r"<details>.*?</details>", "", description, flags=re.DOTALL)
     description = description.strip()
 
-    if not description:
-        description = None
-    elif len(description) > MAX_DESCRIPTION_LENGTH:
-        description = description[: MAX_DESCRIPTION_LENGTH - 3] + "..."
+    description = None if not description else truncate_with_ellipsis(description)
 
     return Task(
         id="",  # Assigned later

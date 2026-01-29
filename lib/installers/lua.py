@@ -35,9 +35,10 @@ def install_lua_tools() -> None:
             _sudo=True,
         )
     elif cargo_available:
+        # Idempotent: only install if not already present
         server.shell(
             name="Install stylua via cargo",
-            commands=["cargo install stylua"],
+            commands=["cargo install --list | grep -q '^stylua ' || cargo install stylua"],
         )
     else:
         server.shell(
@@ -56,9 +57,12 @@ def install_lua_tools() -> None:
             _sudo=True,
         )
     elif luarocks_available:
+        # Idempotent: only install if not already present
         server.shell(
             name="Install luacheck via luarocks",
-            commands=["luarocks install --local luacheck"],
+            commands=[
+                "luarocks show luacheck >/dev/null 2>&1 || luarocks install --local luacheck"
+            ],
         )
     else:
         server.shell(

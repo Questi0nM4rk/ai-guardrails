@@ -22,8 +22,9 @@ def install_node_tools() -> None:
         server.shell(
             name="Error: npm not found",
             commands=[
-                "echo 'Error: npm not found'",
-                "echo 'Install Node.js first: https://nodejs.org/'",
+                "echo 'Error: npm not found' >&2",
+                "echo 'Install Node.js first: https://nodejs.org/' >&2",
+                "exit 1",
             ],
         )
         return

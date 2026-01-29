@@ -25,8 +25,8 @@ def install_python_tools() -> None:
                 name=f"Install {tool} via pipx",
                 commands=[
                     f"pipx list 2>/dev/null | grep -q 'package {tool}' && "
-                    f"pipx upgrade {tool} 2>/dev/null || "
-                    f"pipx install {tool} 2>/dev/null || true",
+                    f"pipx upgrade {tool} || "
+                    f"pipx install {tool}",
                 ],
             )
     else:

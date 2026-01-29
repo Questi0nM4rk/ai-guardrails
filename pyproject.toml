@@ -25,7 +25,7 @@ python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["lib/installers"]
+source = ["lib/installers", "lib/python"]
 branch = true
 
 [tool.coverage.report]

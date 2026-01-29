@@ -8,7 +8,7 @@ from __future__ import annotations
 from pyinfra import host
 from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
-from pyinfra.operations import apk, apt, brew, dnf, pacman, server
+from pyinfra.operations import apk, apt, brew, dnf, pacman, server, yum
 
 from lib.installers._utils import get_package_manager
 
@@ -46,13 +46,27 @@ def install_shell_tools() -> None:
                 commands=["echo 'Warning: shfmt requires Go to install on Debian/Ubuntu'"],
             )
 
-    elif pm in ("dnf", "yum"):
+    elif pm == "dnf":
         dnf.packages(
             name="Install ShellCheck via dnf",
             packages=["ShellCheck"],
             _sudo=True,
         )
         # shfmt via go on RHEL/Fedora
+        go_available = host.get_fact(Which, command="go")
+        if go_available:
+            server.shell(
+                name="Install shfmt via go",
+                commands=["go install mvdan.cc/sh/v3/cmd/shfmt@latest"],
+            )
+
+    elif pm == "yum":
+        yum.packages(
+            name="Install ShellCheck via yum",
+            packages=["ShellCheck"],
+            _sudo=True,
+        )
+        # shfmt via go on RHEL/CentOS
         go_available = host.get_fact(Which, command="go")
         if go_available:
             server.shell(
