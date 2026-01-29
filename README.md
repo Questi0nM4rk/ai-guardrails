@@ -21,9 +21,14 @@ Everything is an error or it's ignored. Black/white only.
 ## Quick Start
 
 ```bash
-# Install globally
+# Install globally (framework only)
 git clone https://github.com/Questi0nM4rk/ai-guardrails.git
 cd ai-guardrails && ./install.sh
+
+# Install with language tools
+./install.sh --all                    # All languages
+./install.sh --python --shell         # Specific languages
+./install.sh --python --node --rust   # Multiple languages
 
 # Initialize in any project
 cd /path/to/your/project
@@ -32,6 +37,26 @@ pre-commit install          # Install hooks
 pre-commit install --hook-type commit-msg  # Commit message validation
 pre-commit run --all-files  # Run all checks
 ```
+
+### Installation Options
+
+```bash
+./install.sh              # Framework only (pyyaml + pre-commit)
+./install.sh --all        # Framework + all language tools
+./install.sh --python     # Framework + Python tools (ruff, mypy, bandit, etc.)
+./install.sh --node       # Framework + Node.js tools (biome)
+./install.sh --rust       # Framework + Rust tools (cargo-audit)
+./install.sh --go         # Framework + Go tools (golangci-lint, govulncheck)
+./install.sh --cpp        # Framework + C/C++ tools (clang-format, clang-tidy)
+./install.sh --lua        # Framework + Lua tools (stylua, luacheck)
+./install.sh --shell      # Framework + Shell tools (shellcheck, shfmt)
+```
+
+**Notes:**
+
+- `pyyaml` and `pre-commit` are always installed (required)
+- Language tools require their respective toolchains (go, cargo, npm, etc.)
+- System package manager (pacman/apt/brew) used where applicable
 
 ## Commands
 

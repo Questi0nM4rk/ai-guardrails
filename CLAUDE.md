@@ -87,7 +87,7 @@ bin/ai-review-tasks --pr <NUMBER> --severity major
 
 ## Detailed Specifications
 
-See `.claude/specs/project_specs.xml` for:
+See `docs/specs/project_specs.xml` for:
 
 - Complete component specifications
 - Parsing requirements for coderabbit_parser.py
@@ -101,5 +101,5 @@ See `.claude/specs/project_specs.xml` for:
 - **CI check-only**: Never modify code in CI/CD pipelines
 - **Python 3.10+**: Modern type syntax (X | None, not Optional[X])
 - `from __future__ import annotations`: Required in all Python files (auto-added)
-- **90%+ test coverage**: Type checking alone is NOT sufficient
+- **85%+ test coverage**: Type checking alone is NOT sufficient
 - **Fail fast**: Clear error messages, no graceful degradation

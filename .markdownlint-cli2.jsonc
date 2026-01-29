@@ -1,0 +1,20 @@
+// Markdownlint configuration for AI Guardrails
+// Strict mode with practical exceptions
+{
+  // Use default config as baseline (all rules enabled)
+  "config": {
+    // Disable MD060 - table column style enforcement
+    // Tables are readable as-is; strict spacing is too pedantic
+    "MD060": false,
+
+    // Line length: allow longer lines for tables and code
+    "MD013": {
+      "line_length": 120,
+      "tables": false,
+      "code_blocks": false
+    }
+  },
+
+  // Ignore certain paths
+  "ignores": ["node_modules/**", ".venv/**", "venv/**", "dist/**", "build/**"]
+}
