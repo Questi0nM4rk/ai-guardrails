@@ -21,10 +21,7 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["lib"]
-include = [
-  "install.py",
-  "lib/**/*.py",
-]
+include = ["install.py", "lib/**/*.py"]
 
 [tool.hatch.build.targets.sdist]
 include = [

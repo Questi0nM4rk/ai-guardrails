@@ -405,14 +405,41 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
     fi
   fi
 
+  # Copy format-and-stage.sh to project for local hook reference
+  mkdir -p ".ai-guardrails/hooks"
+  if [[ -f "$LIB_DIR/hooks/format-and-stage.sh" ]]; then
+    cp "$LIB_DIR/hooks/format-and-stage.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/format-and-stage.sh"
+    echo -e "  ${GREEN}✓ format-and-stage.sh${NC}"
+
+    # Update pre-commit config to use the local path
+    if [[ -f ".pre-commit-config.yaml" ]]; then
+      sed_inplace 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml"
+    fi
+  fi
+
   # Install pre-commit hooks if available
   if command -v pre-commit &>/dev/null; then
     if [[ -d ".git" ]]; then
+      # Fix potential hooksPath issue (empty hooksPath disables hooks)
+      if git config core.hooksPath 2>/dev/null | grep -q '^$'; then
+        git config --unset core.hooksPath 2>/dev/null || true
+        echo -e "  ${YELLOW}⚠ Fixed empty core.hooksPath setting${NC}"
+      fi
+
       if pre-commit install 2>/dev/null; then
         echo -e "  ${GREEN}✓ pre-commit hooks installed${NC}"
       fi
       if pre-commit install --hook-type commit-msg 2>/dev/null; then
         echo -e "  ${GREEN}✓ commit-msg hook installed${NC}"
+      fi
+
+      # Verify hooks are properly installed
+      if [[ -f ".git/hooks/pre-commit" ]]; then
+        echo -e "  ${GREEN}✓ Hooks verified in .git/hooks/${NC}"
+      else
+        echo -e "  ${RED}✗ Warning: pre-commit hook not found in .git/hooks/${NC}"
+        echo -e "  ${YELLOW}  Try: pre-commit install --force${NC}"
       fi
     fi
   else

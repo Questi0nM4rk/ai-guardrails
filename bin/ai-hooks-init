@@ -113,11 +113,33 @@ if [[ "$INSTALL_PRECOMMIT" == true ]]; then
     cp "$TEMPLATES_DIR/pre-commit-config.yaml" ".pre-commit-config.yaml"
     echo "  ✓ .pre-commit-config.yaml"
 
+    # Update format-and-stage.sh path for local installation
+    if [[ -f ".ai-guardrails/hooks/format-and-stage.sh" ]]; then
+      sed -i 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml" 2>/dev/null \
+        || sed -i '' 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml"
+    fi
+
     # Install pre-commit if available
     if command -v pre-commit &>/dev/null; then
       echo -e "${GREEN}Installing pre-commit hooks...${NC}"
+
+      # Fix potential hooksPath issue (empty hooksPath disables hooks)
+      if git config core.hooksPath 2>/dev/null | grep -q '^$'; then
+        git config --unset core.hooksPath 2>/dev/null || true
+        echo "  ⚠ Fixed empty core.hooksPath setting"
+      fi
+
       pre-commit install
+      pre-commit install --hook-type commit-msg
       echo "  ✓ pre-commit hooks installed"
+
+      # Verify hooks are properly installed
+      if [[ -f ".git/hooks/pre-commit" ]]; then
+        echo "  ✓ Hooks verified in .git/hooks/"
+      else
+        echo -e "${RED}  ✗ Warning: pre-commit hook not found${NC}"
+        echo "    Try: pre-commit install --force"
+      fi
     else
       echo -e "${YELLOW}Note: Install pre-commit to use the config:${NC}"
       echo "  pip install pre-commit && pre-commit install"
