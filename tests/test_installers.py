@@ -223,6 +223,45 @@ class TestInstallPyMain:
             args = parse_args()
             assert args.dry_run
 
+    def test_add_deploy_queues_function(self) -> None:
+        """Test that add_deploy queues functions for later execution."""
+        import install
+        from install import add_deploy
+
+        # Clear any existing pending deploys
+        install._pending_deploys = []
+
+        def dummy_deploy() -> None:
+            pass
+
+        add_deploy(dummy_deploy)
+        assert len(install._pending_deploys) == 1
+        assert install._pending_deploys[0][0] is dummy_deploy
+
+        # Cleanup
+        install._pending_deploys = []
+
+    def test_add_deploy_preserves_args(self) -> None:
+        """Test that add_deploy preserves positional and keyword arguments."""
+        import install
+        from install import add_deploy
+
+        # Clear any existing pending deploys
+        install._pending_deploys = []
+
+        def dummy_deploy(a: int, b: str, *, force: bool = False) -> None:
+            pass
+
+        add_deploy(dummy_deploy, 1, "test", force=True)
+        assert len(install._pending_deploys) == 1
+        func, args, kwargs = install._pending_deploys[0]
+        assert func is dummy_deploy
+        assert args == (1, "test")
+        assert kwargs == {"force": True}
+
+        # Cleanup
+        install._pending_deploys = []
+
 
 class TestPackageManagerDetection:
     """Tests for package manager detection across modules."""

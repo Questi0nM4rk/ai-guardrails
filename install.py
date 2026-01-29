@@ -14,11 +14,12 @@ import argparse
 import os
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Add lib to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from pyinfra.api import Config, State
+from pyinfra.api import Config, Inventory, State
 from pyinfra.api.connect import connect_all
 from pyinfra.api.operations import run_ops
 
@@ -34,6 +35,15 @@ from lib.installers import (
 )
 from lib.installers.core import uninstall
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    # Type alias for deploy queue entries (Python 3.10 compatible)
+    DeployEntry = tuple[Callable[..., object], tuple[object, ...], dict[str, object]]
+
+# Queue of pending deploy functions to execute within pyinfra state context
+_pending_deploys: list[tuple[Callable[..., object], tuple[object, ...], dict[str, object]]] = []
+
 # ANSI colors
 RED = "\033[0;31m"
 GREEN = "\033[0;32m"
@@ -45,6 +55,26 @@ NC = "\033[0m"
 def print_color(color: str, message: str) -> None:
     """Print a message with color."""
     print(f"{color}{message}{NC}")
+
+
+def add_deploy(
+    deploy_func: Callable[..., object],
+    *args: object,
+    **kwargs: object,
+) -> None:
+    """Queue a deploy function to execute within pyinfra state context.
+
+    Deploy functions (decorated with @deploy) must be called after pyinfra
+    state is initialized via connect_all(). This function queues them for
+    execution at the right time.
+
+    Args:
+        deploy_func: A pyinfra @deploy decorated function.
+        *args: Positional arguments to pass to the deploy function.
+        **kwargs: Keyword arguments to pass to the deploy function.
+
+    """
+    _pending_deploys.append((deploy_func, args, kwargs))
 
 
 def parse_args() -> argparse.Namespace:
@@ -128,16 +158,43 @@ Notes:
 
 
 def run_pyinfra(*, dry_run: bool = False) -> bool:
-    """Run pyinfra operations and return success status."""
+    """Run queued deploy functions and return success status.
+
+    This function:
+    1. Creates pyinfra State with @local inventory
+    2. Connects to the local host
+    3. Executes all queued deploy functions (which register operations)
+    4. Runs all registered operations
+
+    Args:
+        dry_run: If True, show what would be done without making changes.
+
+    Returns:
+        True if all operations succeeded, False otherwise.
+
+    """
+    global _pending_deploys  # noqa: PLW0603
+
+    # Create inventory for @local (execute on localhost via subprocess)
+    inventory = Inventory((["@local"], {}))
+
     config = Config()
     if dry_run:
         config.DRYRUN = True
 
-    state = State()
-    state.config = config
+    # Set up state with inventory and config
+    state = State(inventory=inventory, config=config)
 
-    # Connect to @local
+    # Connect to @local host
     connect_all(state)
+
+    # Execute all pending deploys within the state context
+    # This is when @deploy functions register their operations
+    for deploy_func, args, kwargs in _pending_deploys:
+        deploy_func(*args, **kwargs)
+
+    # Clear pending deploys after execution
+    _pending_deploys = []
 
     # Run all queued operations
     return run_ops(state)
@@ -153,7 +210,7 @@ def main() -> int:
     # Uninstall
     if args.uninstall:
         print_color(BLUE, "Uninstalling AI Guardrails...")
-        uninstall()
+        add_deploy(uninstall)
         if run_pyinfra(dry_run=args.dry_run):
             print_color(GREEN, "AI Guardrails uninstalled successfully!")
             return 0
@@ -177,7 +234,7 @@ def main() -> int:
     # Install core (always)
     print()
     print_color(GREEN, "Installing core components...")
-    install_core(force=args.force)
+    add_deploy(install_core, force=args.force)
 
     # Install language tools based on flags
     install_langs = args.all or any(
@@ -199,37 +256,37 @@ def main() -> int:
         if args.all or args.python:
             print()
             print_color(BLUE, "Python tools...")
-            install_python_tools()
+            add_deploy(install_python_tools)
 
         if args.all or args.node:
             print()
             print_color(BLUE, "Node.js tools...")
-            install_node_tools()
+            add_deploy(install_node_tools)
 
         if args.all or args.rust:
             print()
             print_color(BLUE, "Rust tools...")
-            install_rust_tools()
+            add_deploy(install_rust_tools)
 
         if args.all or args.go:
             print()
             print_color(BLUE, "Go tools...")
-            install_go_tools()
+            add_deploy(install_go_tools)
 
         if args.all or args.cpp:
             print()
             print_color(BLUE, "C/C++ tools...")
-            install_cpp_tools()
+            add_deploy(install_cpp_tools)
 
         if args.all or args.lua:
             print()
             print_color(BLUE, "Lua tools...")
-            install_lua_tools()
+            add_deploy(install_lua_tools)
 
         if args.all or args.shell:
             print()
             print_color(BLUE, "Shell tools...")
-            install_shell_tools()
+            add_deploy(install_shell_tools)
 
     # Run all operations
     print()

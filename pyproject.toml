@@ -70,6 +70,7 @@ ignore = [
   "D101",    # missing class docstring
   "D102",    # missing method docstring
   "D103",    # missing function docstring
+  "SLF001",  # private member access (needed for testing internal state)
 ]
 "install.py" = ["T201", "UP036"]
 "lib/python/assemble_precommit.py" = [
