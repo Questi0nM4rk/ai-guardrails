@@ -137,9 +137,10 @@ if [[ "$INSTALL_PRECOMMIT" == true ]]; then
         pre-commit install --hook-type commit-msg
         echo "  ✓ pre-commit hooks installed"
 
-        # Verify hooks are properly installed
-        if [[ -f ".git/hooks/pre-commit" ]]; then
-          echo "  ✓ Hooks verified in .git/hooks/"
+        # Verify hooks are properly installed (supports worktrees/custom GIT_DIR)
+        git_dir=$(git rev-parse --git-dir 2>/dev/null || echo ".git")
+        if [[ -f "$git_dir/hooks/pre-commit" ]]; then
+          echo "  ✓ Hooks verified in $git_dir/hooks/"
         else
           echo -e "${RED}  ✗ Warning: pre-commit hook not found${NC}"
           echo "    Try: pre-commit install --force"

@@ -23,12 +23,12 @@ Everything is an error or it's ignored. Black/white only.
 ```bash
 # Install globally (framework only)
 git clone https://github.com/Questi0nM4rk/ai-guardrails.git
-cd ai-guardrails && ./install.sh
+cd ai-guardrails && python3 install.py
 
 # Install with language tools
-./install.sh --all                    # All languages
-./install.sh --python --shell         # Specific languages
-./install.sh --python --node --rust   # Multiple languages
+python3 install.py --all                    # All languages
+python3 install.py --python --shell         # Specific languages
+python3 install.py --python --node --rust   # Multiple languages
 
 # Initialize in any project
 cd /path/to/your/project
@@ -38,18 +38,20 @@ pre-commit install --hook-type commit-msg  # Commit message validation
 pre-commit run --all-files  # Run all checks
 ```
 
+> **Note**: The legacy `./install.sh` is deprecated. Use `python3 install.py`.
+
 ### Installation Options
 
 ```bash
-./install.sh              # Framework only (pyyaml + pre-commit)
-./install.sh --all        # Framework + all language tools
-./install.sh --python     # Framework + Python tools (ruff, mypy, bandit, etc.)
-./install.sh --node       # Framework + Node.js tools (biome)
-./install.sh --rust       # Framework + Rust tools (cargo-audit)
-./install.sh --go         # Framework + Go tools (golangci-lint, govulncheck)
-./install.sh --cpp        # Framework + C/C++ tools (clang-format, clang-tidy)
-./install.sh --lua        # Framework + Lua tools (stylua, luacheck)
-./install.sh --shell      # Framework + Shell tools (shellcheck, shfmt)
+python3 install.py              # Framework only (pyyaml + pre-commit)
+python3 install.py --all        # Framework + all language tools
+python3 install.py --python     # Framework + Python tools (ruff, mypy, bandit, etc.)
+python3 install.py --node       # Framework + Node.js tools (biome)
+python3 install.py --rust       # Framework + Rust tools (cargo-audit)
+python3 install.py --go         # Framework + Go tools (golangci-lint, govulncheck)
+python3 install.py --cpp        # Framework + C/C++ tools (clang-format, clang-tidy)
+python3 install.py --lua        # Framework + Lua tools (stylua, luacheck)
+python3 install.py --shell      # Framework + Shell tools (shellcheck, shfmt)
 ```
 
 **Notes:**
@@ -324,7 +326,8 @@ ai-guardrails/
 ├── templates/
 │   ├── pre-commit-config.yaml
 │   └── settings.json.strict
-└── install.sh
+├── install.py                # Python installer (recommended)
+└── install.sh                # Legacy bash installer (deprecated)
 ```
 
 ## Requirements
