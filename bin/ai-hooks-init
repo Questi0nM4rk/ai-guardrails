@@ -121,24 +121,29 @@ if [[ "$INSTALL_PRECOMMIT" == true ]]; then
 
     # Install pre-commit if available
     if command -v pre-commit &>/dev/null; then
-      echo -e "${GREEN}Installing pre-commit hooks...${NC}"
-
-      # Fix potential hooksPath issue (empty hooksPath disables hooks)
-      if git config core.hooksPath 2>/dev/null | grep -q '^$'; then
-        git config --unset core.hooksPath 2>/dev/null || true
-        echo "  ⚠ Fixed empty core.hooksPath setting"
-      fi
-
-      pre-commit install
-      pre-commit install --hook-type commit-msg
-      echo "  ✓ pre-commit hooks installed"
-
-      # Verify hooks are properly installed
-      if [[ -f ".git/hooks/pre-commit" ]]; then
-        echo "  ✓ Hooks verified in .git/hooks/"
+      # Guard pre-commit install with git repo check (needed for --global mode)
+      if ! git rev-parse --git-dir &>/dev/null; then
+        echo -e "${YELLOW}Note: pre-commit install skipped (not a git repo)${NC}"
       else
-        echo -e "${RED}  ✗ Warning: pre-commit hook not found${NC}"
-        echo "    Try: pre-commit install --force"
+        echo -e "${GREEN}Installing pre-commit hooks...${NC}"
+
+        # Fix potential hooksPath issue (empty hooksPath disables hooks)
+        if git config core.hooksPath 2>/dev/null | grep -q '^$'; then
+          git config --unset core.hooksPath 2>/dev/null || true
+          echo "  ⚠ Fixed empty core.hooksPath setting"
+        fi
+
+        pre-commit install
+        pre-commit install --hook-type commit-msg
+        echo "  ✓ pre-commit hooks installed"
+
+        # Verify hooks are properly installed
+        if [[ -f ".git/hooks/pre-commit" ]]; then
+          echo "  ✓ Hooks verified in .git/hooks/"
+        else
+          echo -e "${RED}  ✗ Warning: pre-commit hook not found${NC}"
+          echo "    Try: pre-commit install --force"
+        fi
       fi
     else
       echo -e "${YELLOW}Note: Install pre-commit to use the config:${NC}"
