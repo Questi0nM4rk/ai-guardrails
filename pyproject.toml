@@ -7,18 +7,10 @@ license = { text = "MIT" }
 authors = [{ name = "Questi0nM4rk" }]
 readme = "README.md"
 
-dependencies = [
-    "pyinfra>=3.2",
-    "pyyaml>=6.0",
-]
+dependencies = ["pyinfra>=3.2", "pyyaml>=6.0"]
 
 [project.optional-dependencies]
-dev = [
-    "pytest>=8.0",
-    "pytest-cov>=4.0",
-    "mypy>=1.0",
-    "ruff>=0.4",
-]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4"]
 
 [project.scripts]
 ai-guardrails-install = "install:main"
@@ -38,36 +30,50 @@ branch = true
 
 [tool.coverage.report]
 exclude_lines = [
-    "pragma: no cover",
-    "if TYPE_CHECKING:",
-    "raise NotImplementedError",
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
 ]
 
 [tool.ruff]
 target-version = "py310"
 line-length = 100
-exclude = ["tests/fixtures"]  # Intentionally bad code for testing
+exclude = ["tests/fixtures"] # Intentionally bad code for testing
 
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D",       # pydocstyle (we use different docstring style)
-    "COM812",  # trailing comma (conflicts with formatter)
-    "ISC001",  # implicit string concatenation (conflicts with formatter)
-    "T201",    # print found (expected in CLI tools)
-    "FBT",     # boolean-typed positional arguments (acceptable for internal functions)
-    "PLR0912", # too many branches (acceptable for CLI main())
-    "PLR0915", # too many statements (acceptable for CLI main())
-    "C901",    # too complex (acceptable for CLI main())
-    "S101",    # assert (acceptable in tests)
-    "PLC0415", # import not at top (acceptable in tests)
+  "D",       # pydocstyle (we use different docstring style)
+  "COM812",  # trailing comma (conflicts with formatter)
+  "ISC001",  # implicit string concatenation (conflicts with formatter)
+  "T201",    # print found (expected in CLI tools)
+  "FBT",     # boolean-typed positional arguments (acceptable for internal functions)
+  "PLR0912", # too many branches (acceptable for CLI main())
+  "PLR0915", # too many statements (acceptable for CLI main())
+  "C901",    # too complex (acceptable for CLI main())
+  "S101",    # assert (acceptable in tests)
+  "PLC0415", # import not at top (acceptable in tests)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "PLC0415", "F811", "ARG001", "PLR2004", "SIM108", "ERA001", "TC003"]
+"tests/*" = [
+  "S101",
+  "PLC0415",
+  "F811",
+  "ARG001",
+  "PLR2004",
+  "SIM108",
+  "ERA001",
+  "TC003",
+]
 "install.py" = ["T201", "UP036"]
-"lib/python/assemble_precommit.py" = ["PLR0911"]  # main() needs many returns for error handling
-"lib/python/coderabbit_parser.py" = ["PLR0911", "PLW2901"]  # main() returns, loop var reassignment ok
+"lib/python/assemble_precommit.py" = [
+  "PLR0911",
+] # main() needs many returns for error handling
+"lib/python/coderabbit_parser.py" = [
+  "PLR0911",
+  "PLW2901",
+] # main() returns, loop var reassignment ok
 
 [tool.mypy]
 python_version = "3.10"
