@@ -43,7 +43,6 @@ exclude = ["tests/fixtures"] # Intentionally bad code for testing
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-  "D",       # pydocstyle (we use different docstring style)
   "COM812",  # trailing comma (conflicts with formatter)
   "ISC001",  # implicit string concatenation (conflicts with formatter)
   "T201",    # print found (expected in CLI tools)
@@ -53,6 +52,8 @@ ignore = [
   "C901",    # too complex (acceptable for CLI main())
   "S101",    # assert (acceptable in tests)
   "PLC0415", # import not at top (acceptable in tests)
+  "D203",    # blank line before class docstring (conflicts with D211)
+  "D213",    # multi-line summary second line (conflicts with D212)
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -65,6 +66,10 @@ ignore = [
   "SIM108",
   "ERA001",
   "TC003",
+  "D100",    # missing module docstring (tests have them but not required)
+  "D101",    # missing class docstring
+  "D102",    # missing method docstring
+  "D103",    # missing function docstring
 ]
 "install.py" = ["T201", "UP036"]
 "lib/python/assemble_precommit.py" = [

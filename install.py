@@ -144,7 +144,7 @@ def run_pyinfra(*, dry_run: bool = False) -> bool:
 
 
 def main() -> int:
-    """Main entry point."""
+    """Run the AI Guardrails installer."""
     args = parse_args()
 
     print_color(BLUE, "AI Guardrails Installer (pyinfra)")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CodeRabbit review parser.
+r"""CodeRabbit review parser.
 
 Parses CodeRabbit feedback from two sources:
 1. Review thread comments (GraphQL reviewThreads) - inline code comments
@@ -61,6 +61,7 @@ def truncate_with_ellipsis(text: str, max_length: int = MAX_DESCRIPTION_LENGTH) 
 
     Returns:
         Original text if short enough, otherwise truncated with "...".
+
     """
     if len(text) <= max_length:
         return text
@@ -113,6 +114,7 @@ def extract_severity(body: str) -> Severity:
 
     Returns:
         Detected severity level
+
     """
     first_line = body.split("\n")[0] if body else ""
     first_line_lower = first_line.lower()
@@ -132,6 +134,7 @@ def extract_title(body: str) -> str:
 
     Returns:
         Extracted title or fallback text
+
     """
     # Find first **bold** text that's on its own line (the title)
     match = re.search(r"^\*\*([^*]+)\*\*\s*$", body, re.MULTILINE)
@@ -161,6 +164,7 @@ def extract_ai_prompt(body: str) -> str | None:
 
     Returns:
         Extracted prompt text or None
+
     """
     # Match 3 or 4 backticks (CodeRabbit uses both formats)
     pattern = re.compile(
@@ -185,6 +189,7 @@ def extract_description(body: str) -> str | None:
 
     Returns:
         Cleaned description text or None
+
     """
     # Remove severity line (first line)
     lines = body.split("\n")
@@ -229,6 +234,7 @@ def strip_blockquote_prefixes(text: str) -> str:
 
     Returns:
         Text with prefixes stripped
+
     """
     lines = text.split("\n")
     cleaned = []
@@ -248,6 +254,7 @@ def parse_line_range(line_range: str) -> tuple[int, int]:
 
     Returns:
         Tuple of (start_line, end_line)
+
     """
     line_range = line_range.strip().strip("`")
     if "-" in line_range:
@@ -268,6 +275,7 @@ def extract_section_content(body: str, section_emoji: str) -> str | None:
 
     Returns:
         Section content or None if not found
+
     """
     # Map emoji to section title patterns
     section_patterns = {
@@ -335,6 +343,7 @@ def extract_file_blocks(section_content: str) -> list[tuple[str, str]]:
 
     Returns:
         List of (filename, block_content) tuples
+
     """
     results = []
 
@@ -368,6 +377,7 @@ def parse_body_item(
 
     Returns:
         Parsed Task or None if invalid
+
     """
     # Pattern: `LINE-RANGE`: **TITLE**
     match = re.match(r"`([^`]+)`:\s*\*\*([^*]+)\*\*", item_text.strip())
@@ -413,6 +423,7 @@ def parse_file_block_items(file: str, content: str) -> list[tuple[str, str]]:
 
     Returns:
         List of (file, item_text) tuples
+
     """
     # Split on backtick-line patterns, keeping the delimiter
     items = re.split(r"(?=`\d)", content)
@@ -432,6 +443,7 @@ def parse_review_body(body: str) -> list[Task]:
 
     Returns:
         List of parsed tasks (without IDs assigned)
+
     """
     tasks: list[Task] = []
 
@@ -478,6 +490,7 @@ def parse_thread(thread: dict) -> Task | None:
 
     Returns:
         Parsed Task or None if invalid
+
     """
     body = thread.get("body", "")
     if not body:
@@ -512,6 +525,7 @@ def parse_threads(data: dict) -> list[Task]:
 
     Returns:
         List of parsed tasks with assigned IDs
+
     """
     threads = data.get("threads", [])
     tasks: list[Task] = []
@@ -532,6 +546,7 @@ def generate_output(tasks: list[Task]) -> dict:
 
     Returns:
         Output dict with tasks array and summary
+
     """
     # Count by file
     by_file: Counter[str] = Counter()
@@ -564,6 +579,7 @@ def dedup_key(task: Task) -> tuple[str, int, str]:
 
     Returns:
         Tuple of (file, line_start, normalized_title)
+
     """
     line_start = task.start_line or task.line
     title_norm = task.title.lower().strip()[:50]
@@ -581,6 +597,7 @@ def merge_tasks(thread_tasks: list[Task], body_tasks: list[Task]) -> list[Task]:
 
     Returns:
         Merged and deduplicated task list
+
     """
     seen: dict[tuple[str, int, str], Task] = {}
 
@@ -612,6 +629,7 @@ def parse_input(input_file: TextIO) -> dict:
 
     Returns:
         Output dict with tasks and summary
+
     """
     data = json.load(input_file)
 

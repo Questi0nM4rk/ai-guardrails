@@ -32,6 +32,7 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
         FileNotFoundError: If registry file doesn't exist
         yaml.YAMLError: If registry file is invalid YAML
         TypeError: If registry is not a dict
+
     """
     with registry_path.open() as f:
         result = yaml.safe_load(f)
@@ -55,6 +56,7 @@ def detect_languages(project_dir: Path, registry: dict[str, Any]) -> list[str]:
 
     Returns:
         List of detected language keys (e.g., ["python", "go"])
+
     """
     detected: list[str] = []
 
@@ -97,6 +99,7 @@ def load_template(template_path: Path) -> dict[str, Any]:
         FileNotFoundError: If template doesn't exist
         yaml.YAMLError: If template is invalid YAML
         TypeError: If template is not a dict
+
     """
     with template_path.open() as f:
         result = yaml.safe_load(f)
@@ -120,6 +123,7 @@ def assemble_config(
 
     Returns:
         Merged pre-commit configuration dictionary
+
     """
     # Always start with base template
     base_path = templates_dir / "base.yaml"
@@ -170,6 +174,7 @@ def write_config(config: dict[str, Any], output_path: Path) -> None:
     Args:
         config: Assembled pre-commit configuration
         output_path: Path to write .pre-commit-config.yaml
+
     """
     with output_path.open("w") as f:
         # Write header comment
@@ -203,6 +208,7 @@ def find_installation_paths() -> tuple[Path, Path]:
 
     Raises:
         FileNotFoundError: If installation directories not found
+
     """
     # Check global installation first
     global_install = Path.home() / ".ai-guardrails"
@@ -231,6 +237,7 @@ def main(args: list[str] | None = None) -> int:
 
     Returns:
         Exit code (0 for success, 1 for failure)
+
     """
     parser = argparse.ArgumentParser(
         description="Assemble pre-commit config from modular templates",

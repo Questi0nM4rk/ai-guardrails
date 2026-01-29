@@ -284,6 +284,7 @@ def install_core(*, force: bool = False) -> None:
 
     Args:
         force: If True, remove existing installation first.
+
     """
     if force and INSTALL_DIR.exists():
         files.directory(

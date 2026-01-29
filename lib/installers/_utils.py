@@ -14,6 +14,7 @@ def get_package_manager() -> str | None:
 
     Returns:
         Package manager name (without -get suffix) or None if not found.
+
     """
     managers = ["pacman", "apt-get", "dnf", "yum", "apk", "brew"]
     for pm in managers:
