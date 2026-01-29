@@ -180,15 +180,17 @@ def main() -> int:
     install_core(force=args.force)
 
     # Install language tools based on flags
-    install_langs = args.all or any([
-        args.python,
-        args.node,
-        args.rust,
-        args.go,
-        args.cpp,
-        args.lua,
-        args.shell,
-    ])
+    install_langs = args.all or any(
+        [
+            args.python,
+            args.node,
+            args.rust,
+            args.go,
+            args.cpp,
+            args.lua,
+            args.shell,
+        ]
+    )
 
     if install_langs:
         print()

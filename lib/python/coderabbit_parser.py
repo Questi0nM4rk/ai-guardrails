@@ -539,9 +539,7 @@ def generate_output(tasks: list[Task]) -> dict:
         "by_source": {
             "thread": sum(1 for t in tasks if t.source == TaskSource.THREAD),
             "nitpick": sum(1 for t in tasks if t.source == TaskSource.NITPICK),
-            "outside_diff": sum(
-                1 for t in tasks if t.source == TaskSource.OUTSIDE_DIFF
-            ),
+            "outside_diff": sum(1 for t in tasks if t.source == TaskSource.OUTSIDE_DIFF),
         },
         "by_file": dict(by_file),
     }
@@ -641,9 +639,7 @@ def main() -> None:
         default=sys.stdin,
         help="Input JSON file (default: stdin)",
     )
-    parser.add_argument(
-        "--pretty", "-p", action="store_true", help="Pretty-print JSON output"
-    )
+    parser.add_argument("--pretty", "-p", action="store_true", help="Pretty-print JSON output")
     parser.add_argument(
         "--severity",
         "-s",
@@ -661,9 +657,7 @@ def main() -> None:
             severity_order = ["major", "minor", "suggestion"]
             min_idx = severity_order.index(args.severity)
             result["tasks"] = [
-                t
-                for t in result["tasks"]
-                if severity_order.index(t["severity"]) <= min_idx
+                t for t in result["tasks"] if severity_order.index(t["severity"]) <= min_idx
             ]
             # Recalculate summary
             filtered = result["tasks"]
@@ -675,16 +669,12 @@ def main() -> None:
                 "by_severity": {
                     "major": sum(1 for t in filtered if t["severity"] == "major"),
                     "minor": sum(1 for t in filtered if t["severity"] == "minor"),
-                    "suggestion": sum(
-                        1 for t in filtered if t["severity"] == "suggestion"
-                    ),
+                    "suggestion": sum(1 for t in filtered if t["severity"] == "suggestion"),
                 },
                 "by_source": {
                     "thread": sum(1 for t in filtered if t["source"] == "thread"),
                     "nitpick": sum(1 for t in filtered if t["source"] == "nitpick"),
-                    "outside_diff": sum(
-                        1 for t in filtered if t["source"] == "outside_diff"
-                    ),
+                    "outside_diff": sum(1 for t in filtered if t["source"] == "outside_diff"),
                 },
                 "by_file": dict(by_file),
             }

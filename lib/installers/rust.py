@@ -38,7 +38,6 @@ def install_rust_tools() -> None:
     server.shell(
         name="Verify cargo-audit installation",
         commands=[
-            "command -v cargo-audit && cargo-audit --version || "
-            "echo 'cargo-audit: NOT FOUND'"
+            "command -v cargo-audit && cargo-audit --version || echo 'cargo-audit: NOT FOUND'"
         ],
     )

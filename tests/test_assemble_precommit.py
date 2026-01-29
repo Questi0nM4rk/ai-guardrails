@@ -202,25 +202,19 @@ class TestDetectLanguages:
         result = detect_languages(temp_dir, sample_registry)
         assert "python" in result
 
-    def test_detect_go_from_go_mod(
-        self, temp_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_detect_go_from_go_mod(self, temp_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test detecting Go from go.mod."""
         (temp_dir / "go.mod").touch()
         result = detect_languages(temp_dir, sample_registry)
         assert "go" in result
 
-    def test_detect_go_from_go_sum(
-        self, temp_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_detect_go_from_go_sum(self, temp_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test detecting Go from go.sum."""
         (temp_dir / "go.sum").touch()
         result = detect_languages(temp_dir, sample_registry)
         assert "go" in result
 
-    def test_detect_go_from_pattern(
-        self, temp_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_detect_go_from_pattern(self, temp_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test detecting Go from .go file pattern."""
         (temp_dir / "main.go").touch()
         result = detect_languages(temp_dir, sample_registry)
@@ -234,9 +228,7 @@ class TestDetectLanguages:
         result = detect_languages(temp_dir, sample_registry)
         assert "lua" in result
 
-    def test_detect_lua_from_pattern(
-        self, temp_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_detect_lua_from_pattern(self, temp_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test detecting Lua from .lua file pattern."""
         (temp_dir / "init.lua").touch()
         result = detect_languages(temp_dir, sample_registry)
@@ -252,9 +244,7 @@ class TestDetectLanguages:
         assert "python" in result
         assert "go" in result
 
-    def test_detect_empty_directory(
-        self, temp_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_detect_empty_directory(self, temp_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test detecting nothing in empty directory."""
         result = detect_languages(temp_dir, sample_registry)
         assert result == []
@@ -302,30 +292,21 @@ class TestLoadTemplate:
 class TestAssembleConfig:
     """Tests for assemble_config function."""
 
-    def test_base_only(
-        self, templates_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_base_only(self, templates_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test assembling base-only config."""
         result = assemble_config([], sample_registry, templates_dir)
         assert "repos" in result
         assert len(result["repos"]) == 1
-        assert (
-            result["repos"][0]["repo"]
-            == "https://github.com/pre-commit/pre-commit-hooks"
-        )
+        assert result["repos"][0]["repo"] == "https://github.com/pre-commit/pre-commit-hooks"
 
-    def test_with_python(
-        self, templates_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_with_python(self, templates_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test assembling config with Python."""
         result = assemble_config(["python"], sample_registry, templates_dir)
         assert len(result["repos"]) == 2
         repos = [r["repo"] for r in result["repos"]]
         assert "https://github.com/astral-sh/ruff-pre-commit" in repos
 
-    def test_with_go(
-        self, templates_dir: Path, sample_registry: dict[str, Any]
-    ) -> None:
+    def test_with_go(self, templates_dir: Path, sample_registry: dict[str, Any]) -> None:
         """Test assembling config with Go."""
         result = assemble_config(["go"], sample_registry, templates_dir)
         assert len(result["repos"]) == 2
@@ -377,9 +358,7 @@ class TestAssembleConfig:
         result = assemble_config(["python"], sample_registry, templates_dir)
         assert "repos" in result
         assert len(result["repos"]) == 1
-        assert (
-            result["repos"][0]["repo"] == "https://github.com/astral-sh/ruff-pre-commit"
-        )
+        assert result["repos"][0]["repo"] == "https://github.com/astral-sh/ruff-pre-commit"
 
     def test_lang_template_missing_repos_key(
         self, temp_dir: Path, sample_registry: dict[str, Any]
@@ -489,18 +468,14 @@ class TestFindInstallationPaths:
 class TestMainCLI:
     """Tests for main CLI function."""
 
-    def test_list_detected_empty(
-        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_list_detected_empty(self, temp_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test --list-detected with no languages."""
         result = main(["--project-dir", str(temp_dir), "--list-detected"])
         assert result == 0
         captured = capsys.readouterr()
         assert captured.out == ""
 
-    def test_list_detected_python(
-        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_list_detected_python(self, temp_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test --list-detected with Python project."""
         (temp_dir / "pyproject.toml").touch()
         result = main(["--project-dir", str(temp_dir), "--list-detected"])
@@ -508,13 +483,9 @@ class TestMainCLI:
         captured = capsys.readouterr()
         assert "python:" in captured.out
 
-    def test_explicit_languages(
-        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_explicit_languages(self, temp_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test explicit --languages flag."""
-        result = main(
-            ["--project-dir", str(temp_dir), "--languages", "python", "go", "--dry-run"]
-        )
+        result = main(["--project-dir", str(temp_dir), "--languages", "python", "go", "--dry-run"])
         assert result == 0
         captured = capsys.readouterr()
         assert "ruff" in captured.out
@@ -527,9 +498,7 @@ class TestMainCLI:
         captured = capsys.readouterr()
         assert "Unknown languages: invalid-lang" in captured.err
 
-    def test_dry_run_output(
-        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_dry_run_output(self, temp_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test --dry-run outputs to stdout."""
         result = main(["--project-dir", str(temp_dir), "--dry-run"])
         assert result == 0
@@ -580,9 +549,7 @@ class TestMainCLI:
         (temp_dir / "pyproject.toml").write_text("")
 
         with patch.object(Path, "home", return_value=temp_dir):
-            result = main(
-                ["--project-dir", str(temp_dir), "--languages", "python", "--dry-run"]
-            )
+            result = main(["--project-dir", str(temp_dir), "--languages", "python", "--dry-run"])
             assert result == 0
             captured = capsys.readouterr()
             # MultilineDumper should use block style (| or |-) for multiline strings
@@ -608,18 +575,13 @@ class TestMainCLI:
         assert "Python" in captured.out
         assert output_path.exists()
 
-    def test_no_languages_warning(
-        self, temp_dir: Path, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    def test_no_languages_warning(self, temp_dir: Path, capsys: pytest.CaptureFixture[str]) -> None:
         """Test warning when no languages detected."""
         output_path = temp_dir / ".pre-commit-config.yaml"
         result = main(["--project-dir", str(temp_dir), "--output", str(output_path)])
         assert result == 0
         captured = capsys.readouterr()
-        assert (
-            "No languages detected" in captured.err
-            or "base config only" in captured.out
-        )
+        assert "No languages detected" in captured.err or "base config only" in captured.out
 
     def test_handles_missing_base_template(
         self, temp_dir: Path, capsys: pytest.CaptureFixture[str]

@@ -548,10 +548,7 @@ class TestParseBodyItem:
     def test_invalid_format(self) -> None:
         """Test invalid format returns None."""
         item = "No backticks or bold"
-        assert (
-            parse_body_item("test.py", item, TaskSource.NITPICK, Severity.SUGGESTION)
-            is None
-        )
+        assert parse_body_item("test.py", item, TaskSource.NITPICK, Severity.SUGGESTION) is None
 
 
 class TestParseReviewBody:
@@ -608,9 +605,7 @@ class TestMergeTasks:
 
     def test_no_duplicates(self) -> None:
         """Test merging without duplicates."""
-        thread_tasks = [
-            Task(id="", file="a.py", line=10, title="Issue A", severity=Severity.MAJOR)
-        ]
+        thread_tasks = [Task(id="", file="a.py", line=10, title="Issue A", severity=Severity.MAJOR)]
         body_tasks = [
             Task(
                 id="",
@@ -695,9 +690,7 @@ class TestIntegrationThreadFormat:
         """Test parsing thread format fixture."""
         fixture_file = fixtures_dir / "thread_comments.json"
         if not fixture_file.exists():
-            pytest.skip(
-                "Fixture file not found - create tests/fixtures/thread_comments.json"
-            )
+            pytest.skip("Fixture file not found - create tests/fixtures/thread_comments.json")
 
         with fixture_file.open() as f:
             result = parse_input(f)
