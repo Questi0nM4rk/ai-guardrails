@@ -26,8 +26,9 @@ dotnet_diagnostic.CA1018.severity = error
 # CA1036: Override methods on comparable types
 dotnet_diagnostic.CA1036.severity = error
 
-# CA1040: Avoid empty interfaces (allow for marker interfaces)
-dotnet_diagnostic.CA1040.severity = suggestion
+# CA1040: Avoid empty interfaces
+# Note: Use [MarkerInterface] attribute pattern instead of empty interfaces
+dotnet_diagnostic.CA1040.severity = error
 
 # CA1050: Declare types in namespaces
 dotnet_diagnostic.CA1050.severity = error
@@ -56,7 +57,8 @@ dotnet_diagnostic.CA1064.severity = error
 dotnet_diagnostic.CA1065.severity = error
 
 # CA1303: Do not pass literals as localized parameters
-dotnet_diagnostic.CA1303.severity = suggestion
+# Use resource files or const strings for user-facing text
+dotnet_diagnostic.CA1303.severity = error
 
 # CA1304-CA1311: Specify culture for string operations
 dotnet_diagnostic.CA1304.severity = error
@@ -406,14 +408,15 @@ dotnet_diagnostic.SA1513.severity = error
 # SA1516: Elements should be separated by blank line
 dotnet_diagnostic.SA1516.severity = error
 
-# SA1600: Elements should be documented (per project)
-dotnet_diagnostic.SA1600.severity = suggestion
+# SA1600: Elements should be documented
+# All public API must have XML documentation
+dotnet_diagnostic.SA1600.severity = error
 
 # SA1601: Partial elements should be documented
-dotnet_diagnostic.SA1601.severity = suggestion
+dotnet_diagnostic.SA1601.severity = error
 
 # SA1602: Enumeration items should be documented
-dotnet_diagnostic.SA1602.severity = suggestion
+dotnet_diagnostic.SA1602.severity = error
 
 # SA1633: File should have header (disabled)
 dotnet_diagnostic.SA1633.severity = none

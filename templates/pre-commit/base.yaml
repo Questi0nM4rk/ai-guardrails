@@ -58,6 +58,20 @@ repos:
         exclude: ^tests/
 
   # ===========================================================================
+  # SUPPRESSION DETECTION - No lint/type suppression comments allowed
+  # ===========================================================================
+  # Philosophy: "Everything is an error or it's ignored"
+  # Suppression comments create gray areas - fix the issue or change the config
+
+  - repo: local
+    hooks:
+      - id: detect-suppression-comments
+        name: "quality - no suppression comments"
+        entry: lib/hooks/detect-suppression-comments.sh
+        language: script
+        types_or: [python, javascript, typescript, tsx, c, c++, csharp, rust, go, shell, lua]
+
+  # ===========================================================================
   # COMMIT MESSAGE - CONVENTIONAL COMMITS REQUIRED
   # ===========================================================================
 

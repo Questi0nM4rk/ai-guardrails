@@ -16,9 +16,15 @@ repos:
   - repo: local
     hooks:
       - id: luacheck
-        name: "lua - luacheck lint"
+        name: "lua - luacheck lint (strict)"
         entry: luacheck
-        # Note: Add --globals vim to args if this is a Neovim project
-        args: ["--std", "luajit"]
+        # Strict mode: all warnings are errors, no unused args allowed
+        # Add --globals vim for Neovim projects
+        args: [
+          "--std", "luajit",
+          "--max-line-length", "100",
+          "--max-code-line-length", "100",
+          "--codes",  # Show error codes for clarity
+        ]
         language: system
         types: [lua]
