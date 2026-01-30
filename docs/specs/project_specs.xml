@@ -17,7 +17,7 @@
       <user>Projects requiring pedantic type checking and documentation</user>
     </target_users>
     <typical_workflow>
-      <step>1. Install ai-guardrails globally via install.sh</step>
+      <step>1. Install ai-guardrails globally via python3 install.py</step>
       <step>2. Run ai-guardrails-init in any project (auto-detects language)</step>
       <step>3. Install pre-commit hooks with ai-hooks-init</step>
       <step>4. All commits blocked until ALL checks pass (no warnings)</step>

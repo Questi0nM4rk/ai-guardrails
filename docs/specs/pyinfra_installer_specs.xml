@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component_specification>
+  <metadata>
+    <name>pyinfra-installer</name>
+    <description>Python-based installer using pyinfra framework for modular, idempotent tool installation</description>
+    <version>1.0.0</version>
+    <created>2026-01-29</created>
+    <status>implemented</status>
+  </metadata>
+
+  <overview>
+    <purpose>Replace bash-based install.sh with a Python pyinfra-based installer for better maintainability, testability, and cross-platform support</purpose>
+    <philosophy>Modular deploy functions per language, idempotent operations, package manager detection</philosophy>
+    <python_version>3.10+ required</python_version>
+    <pyinfra_version>3.2+ required (pipx operations support)</pyinfra_version>
+  </overview>
+
+  <architecture>
+    <component name="install.py">
+      <type>cli_entry_point</type>
+      <location>install.py</location>
+      <purpose>Main CLI orchestrator for installation</purpose>
+      <responsibilities>
+        <item>Parse command-line arguments</item>
+        <item>Orchestrate modular installer calls</item>
+        <item>Execute pyinfra operations via @local connector</item>
+        <item>Display colored progress output</item>
+        <item>Handle uninstall flow</item>
+      </responsibilities>
+      <cli_flags>
+        <flag name="--all">Install all language tools</flag>
+        <flag name="--python">Install Python tools (ruff, mypy, bandit, vulture, pip-audit)</flag>
+        <flag name="--node">Install Node.js tools (biome)</flag>
+        <flag name="--rust">Install Rust tools (cargo-audit)</flag>
+        <flag name="--go">Install Go tools (golangci-lint, govulncheck)</flag>
+        <flag name="--cpp">Install C/C++ tools (clang-format, clang-tidy)</flag>
+        <flag name="--lua">Install Lua tools (stylua, luacheck)</flag>
+        <flag name="--shell">Install Shell tools (shellcheck, shfmt)</flag>
+        <flag name="--force">Force reinstall (overwrite existing)</flag>
+        <flag name="--uninstall">Remove AI Guardrails installation</flag>
+        <flag name="--dry-run">Show what would be done without making changes</flag>
+      </cli_flags>
+    </component>
+
+    <component name="lib/installers/__init__.py">
+      <type>python_package</type>
+      <location>lib/installers/__init__.py</location>
+      <purpose>Export all deploy functions for clean imports</purpose>
+      <exports>
+        <export>install_core</export>
+        <export>install_python_tools</export>
+        <export>install_node_tools</export>
+        <export>install_rust_tools</export>
+        <export>install_go_tools</export>
+        <export>install_cpp_tools</export>
+        <export>install_lua_tools</export>
+        <export>install_shell_tools</export>
+      </exports>
+    </component>
+
+    <component name="lib/installers/core.py">
+      <type>deploy_module</type>
+      <location>lib/installers/core.py</location>
+      <purpose>Core installation: directories, files, symlinks, dependencies</purpose>
+      <deploy_functions>
+        <function name="install_pyyaml">Install pyyaml package via pip</function>
+        <function name="install_precommit">Install pre-commit via pipx (preferred) or pip</function>
+        <function name="create_directories">Create ~/.ai-guardrails/ directory structure</function>
+        <function name="copy_bin_scripts">Copy CLI scripts (ai-review-tasks, ai-hooks-init, ai-guardrails-init)</function>
+        <function name="copy_hook_scripts">Copy git hook scripts</function>
+        <function name="copy_python_lib">Copy lib/python/*.py files</function>
+        <function name="copy_templates">Copy template files</function>
+        <function name="copy_configs">Copy configuration files</function>
+        <function name="create_symlinks">Create ~/.local/bin/ symlinks for CLI commands</function>
+        <function name="create_hook_symlinks">Create symlinks in hooks/ for easy access</function>
+        <function name="uninstall">Remove AI Guardrails installation</function>
+        <function name="install_core">Main deploy: orchestrates all core installation</function>
+      </deploy_functions>
+      <paths>
+        <path name="INSTALL_DIR">~/.ai-guardrails</path>
+        <path name="BIN_DIR">~/.local/bin</path>
+      </paths>
+    </component>
+
+    <component name="lib/installers/python.py">
+      <type>deploy_module</type>
+      <location>lib/installers/python.py</location>
+      <purpose>Install Python linting tools</purpose>
+      <tools>
+        <tool>ruff</tool>
+        <tool>mypy</tool>
+        <tool>bandit</tool>
+        <tool>vulture</tool>
+        <tool>pip-audit</tool>
+      </tools>
+      <installation_method>
+        <primary>pipx (PEP 668 compliant, isolated environments)</primary>
+        <fallback>pip --user</fallback>
+      </installation_method>
+    </component>
+
+    <component name="lib/installers/shell.py">
+      <type>deploy_module</type>
+      <location>lib/installers/shell.py</location>
+      <purpose>Install shell linting tools via system package manager</purpose>
+      <tools>
+        <tool>shellcheck</tool>
+        <tool>shfmt</tool>
+      </tools>
+      <package_managers>
+        <pm name="pacman">shellcheck, shfmt</pm>
+        <pm name="apt">shellcheck (shfmt via go install)</pm>
+        <pm name="dnf">ShellCheck (shfmt via go install)</pm>
+        <pm name="apk">shellcheck, shfmt</pm>
+        <pm name="brew">shellcheck, shfmt</pm>
+      </package_managers>
+    </component>
+
+    <component name="lib/installers/cpp.py">
+      <type>deploy_module</type>
+      <location>lib/installers/cpp.py</location>
+      <purpose>Install C/C++ linting tools via system package manager</purpose>
+      <tools>
+        <tool>clang-format</tool>
+        <tool>clang-tidy</tool>
+      </tools>
+      <package_managers>
+        <pm name="pacman">clang (includes both)</pm>
+        <pm name="apt">clang-format, clang-tidy</pm>
+        <pm name="dnf">clang, clang-tools-extra</pm>
+        <pm name="apk">clang, clang-extra-tools</pm>
+        <pm name="brew">clang-format, llvm (for clang-tidy)</pm>
+      </package_managers>
+    </component>
+
+    <component name="lib/installers/node.py">
+      <type>deploy_module</type>
+      <location>lib/installers/node.py</location>
+      <purpose>Install Node.js linting tools</purpose>
+      <tools>
+        <tool>@biomejs/biome</tool>
+      </tools>
+      <installation_method>npm install -g</installation_method>
+      <prerequisite>npm must be installed</prerequisite>
+    </component>
+
+    <component name="lib/installers/rust.py">
+      <type>deploy_module</type>
+      <location>lib/installers/rust.py</location>
+      <purpose>Install Rust security tools</purpose>
+      <tools>
+        <tool>cargo-audit</tool>
+      </tools>
+      <installation_method>cargo install</installation_method>
+      <prerequisite>cargo must be installed</prerequisite>
+    </component>
+
+    <component name="lib/installers/go.py">
+      <type>deploy_module</type>
+      <location>lib/installers/go.py</location>
+      <purpose>Install Go linting tools</purpose>
+      <tools>
+        <tool name="golangci-lint">github.com/golangci/golangci-lint/cmd/golangci-lint@latest</tool>
+        <tool name="govulncheck">golang.org/x/vuln/cmd/govulncheck@latest</tool>
+      </tools>
+      <installation_method>go install</installation_method>
+      <prerequisite>go must be installed</prerequisite>
+      <path_note>GOBIN must be in PATH for tools to be accessible</path_note>
+    </component>
+
+    <component name="lib/installers/lua.py">
+      <type>deploy_module</type>
+      <location>lib/installers/lua.py</location>
+      <purpose>Install Lua linting tools</purpose>
+      <tools>
+        <tool name="stylua">via cargo or pacman</tool>
+        <tool name="luacheck">via luarocks or pacman</tool>
+      </tools>
+      <installation_methods>
+        <method pm="pacman">stylua, luacheck from community repo</method>
+        <method pm="cargo">stylua via cargo install</method>
+        <method pm="luarocks">luacheck via luarocks install --local</method>
+      </installation_methods>
+    </component>
+  </architecture>
+
+  <package_manager_detection>
+    <description>Each module that requires system packages detects available package manager</description>
+    <detection_order>
+      <step>1. pacman (Arch Linux)</step>
+      <step>2. apt-get (Debian/Ubuntu)</step>
+      <step>3. dnf (Fedora/RHEL 8+)</step>
+      <step>4. yum (RHEL 7)</step>
+      <step>5. apk (Alpine)</step>
+      <step>6. brew (macOS)</step>
+    </detection_order>
+    <implementation>
+      <function>_get_package_manager() -> str | None</function>
+      <uses>pyinfra.facts.server.Which to check command availability</uses>
+    </implementation>
+  </package_manager_detection>
+
+  <pyinfra_patterns>
+    <pattern name="deploy_decorator">
+      <description>All installer functions use @deploy decorator for grouping operations</description>
+      <example><![CDATA[@deploy("Install Python linting tools")
+def install_python_tools() -> None:
+    ...]]></example>
+    </pattern>
+
+    <pattern name="fact_checking">
+      <description>Use pyinfra facts to check tool/command availability</description>
+      <example><![CDATA[pipx_available = host.get_fact(Which, command="pipx")]]></example>
+    </pattern>
+
+    <pattern name="idempotent_operations">
+      <description>All pyinfra operations are idempotent by design</description>
+      <behavior>Running install.py twice makes no changes on second run</behavior>
+    </pattern>
+
+    <pattern name="sudo_handling">
+      <description>System package installations use _sudo=True for privilege escalation</description>
+      <example><![CDATA[pacman.packages(packages=["shellcheck"], _sudo=True)]]></example>
+    </pattern>
+  </pyinfra_patterns>
+
+  <testing>
+    <location>tests/test_installers.py</location>
+    <test_count>32 tests</test_count>
+    <coverage_approach>
+      <item>Unit tests for module structure and data (TOOLS lists, paths)</item>
+      <item>Mocked pyinfra host.get_fact for package manager detection</item>
+      <item>Argument parsing tests for install.py CLI</item>
+      <item>pyinfra operations not unit-tested (require runtime state)</item>
+    </coverage_approach>
+    <test_classes>
+      <class name="TestCoreModule">Tests for core.py paths and lists</class>
+      <class name="TestPythonModule">Tests for python.py TOOLS list</class>
+      <class name="TestShellModule">Tests for shell.py including PM detection</class>
+      <class name="TestCppModule">Tests for cpp.py TOOLS list</class>
+      <class name="TestNodeModule">Tests for node.py TOOLS list</class>
+      <class name="TestRustModule">Tests for rust.py TOOLS list</class>
+      <class name="TestGoModule">Tests for go.py TOOLS list and install paths</class>
+      <class name="TestLuaModule">Tests for lua.py TOOLS list</class>
+      <class name="TestInstallPyMain">Tests for CLI argument parsing</class>
+      <class name="TestPackageManagerDetection">Parametrized PM detection tests</class>
+      <class name="TestModuleExports">Tests for __init__.py exports</class>
+    </test_classes>
+  </testing>
+
+  <migration>
+    <status>COMPLETE</status>
+    <from>install.sh (548 lines bash) - REMOVED</from>
+    <to>install.py + lib/installers/*.py</to>
+    <notes>Legacy bash installer and lib/installers/*.sh files have been removed.</notes>
+  </migration>
+
+  <quality_requirements>
+    <requirement>All ruff checks pass (zero warnings/errors)</requirement>
+    <requirement>All 132 project tests pass</requirement>
+    <requirement>Type hints on all functions</requirement>
+    <requirement>Google-style docstrings on public functions</requirement>
+    <requirement>No noqa comments (no skipping lints)</requirement>
+  </quality_requirements>
+</component_specification>

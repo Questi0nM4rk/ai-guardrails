@@ -24,8 +24,6 @@ def test_readme_compound_modifiers_are_hyphenated() -> None:
         for match in matches:
             # Find line number for better error reporting
             lines_before = content[: match.start()].count("\n")
-            errors.append(
-                f"Line {lines_before + 1}: {match.group()} - should be hyphenated"
-            )
+            errors.append(f"Line {lines_before + 1}: {match.group()} - should be hyphenated")
 
     assert not errors, "Compound modifier hyphenation issues:\n" + "\n".join(errors)
