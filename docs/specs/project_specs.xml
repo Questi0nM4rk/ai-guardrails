@@ -407,6 +407,30 @@ query($owner: String!, $repo: String!, $pr: Int!) {
           <hook name="bandit">Python security linter</hook>
         </category>
 
+        <category name="suppression_detection" priority="1.5" fail_fast="true">
+          <hook name="detect-suppression-comments">
+            <purpose>Reject lint/type suppression comments in source code</purpose>
+            <philosophy>"Everything is an error or it's ignored" - suppression comments create gray areas</philosophy>
+            <location>lib/hooks/detect-suppression-comments.sh</location>
+            <patterns>
+              <pattern language="python"># noqa, # type: ignore, # pylint: disable, # pragma: no cover</pattern>
+              <pattern language="typescript">// @ts-ignore, // @ts-expect-error, // @ts-nocheck, /* eslint-disable, // eslint-disable</pattern>
+              <pattern language="csharp">#pragma warning disable, // ReSharper disable, [SuppressMessage]</pattern>
+              <pattern language="rust">#[allow(...)], #![allow(...)]</pattern>
+              <pattern language="go">//nolint</pattern>
+              <pattern language="shell"># shellcheck disable</pattern>
+              <pattern language="lua">--luacheck: ignore</pattern>
+              <pattern language="cpp">// NOLINT, /* NOLINT, #pragma clang diagnostic ignored, #pragma GCC diagnostic ignored</pattern>
+            </patterns>
+            <exclusions>Test files (tests/, test/, __tests__/, spec/, *_test.*, test_*, *_spec.*, *.spec.*)</exclusions>
+            <alternatives>
+              <option>Fix the underlying issue that triggered the lint/type error</option>
+              <option>Disable the rule in config if it's wrong for the project</option>
+              <option>Document legitimate exceptions in project EXCEPTIONS.md</option>
+            </alternatives>
+          </hook>
+        </category>
+
         <category name="vulnerability_scanning" priority="2">
           <hook name="pip-audit">
             <purpose>Python dependency CVEs</purpose>
