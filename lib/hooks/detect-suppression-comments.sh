@@ -14,7 +14,7 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Patterns to detect (case-insensitive where appropriate)
+# Patterns to detect (all matching is case-insensitive via grep -i)
 # Format: "pattern|description|file_types"
 PATTERNS=(
   # Python
@@ -90,14 +90,14 @@ for file in "${FILES[@]}"; do
       continue
     fi
 
-    # Search for the pattern
-    if grep -qE "$pattern" "$file" 2>/dev/null; then
+    # Search for the pattern (case-insensitive to catch NOQA, TYPE: IGNORE, etc.)
+    if grep -qiE "$pattern" "$file" 2>/dev/null; then
       FOUND_SUPPRESSIONS=true
       ((SUPPRESSION_COUNT++)) || true
 
       # Show the offending lines
       echo -e "${RED}ERROR: $desc found in $file${NC}"
-      grep -nE "$pattern" "$file" | head -5 | while read -r line; do
+      grep -niE "$pattern" "$file" | head -5 | while read -r line; do
         echo -e "  ${YELLOW}$line${NC}"
       done
       echo
