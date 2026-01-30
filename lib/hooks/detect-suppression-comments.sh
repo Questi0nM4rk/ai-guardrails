@@ -81,6 +81,29 @@ for file in "${FILES[@]}"; do
 
   # Get file extension
   ext="${file##*.}"
+  basename="${file##*/}"
+
+  # Handle extensionless files and dotfiles by inferring type
+  if [[ "$ext" == "$basename" ]] || [[ -z "$ext" ]] || [[ "$basename" == .* ]]; then
+    # Map common dotfiles to their shell type
+    case "$basename" in
+      .bashrc | .bash_profile | .bash_aliases) ext="bash" ;;
+      .zshrc | .zprofile | .zshenv) ext="bash" ;; # zsh uses same patterns as bash
+      .profile) ext="sh" ;;
+      *)
+        # Try to infer from shebang
+        if shebang=$(head -1 "$file" 2>/dev/null); then
+          case "$shebang" in
+            *"/bash"* | *"env bash"*) ext="bash" ;;
+            *"/sh"* | *"env sh"*) ext="sh" ;;
+            *"/zsh"* | *"env zsh"*) ext="bash" ;; # zsh uses same patterns
+            *"/python"* | *"env python"*) ext="py" ;;
+            *"/node"* | *"env node"*) ext="js" ;;
+          esac
+        fi
+        ;;
+    esac
+  fi
 
   for pattern_spec in "${PATTERNS[@]}"; do
     IFS='|' read -r pattern desc file_types <<<"$pattern_spec"
@@ -95,9 +118,9 @@ for file in "${FILES[@]}"; do
       FOUND_SUPPRESSIONS=true
       ((SUPPRESSION_COUNT++)) || true
 
-      # Show the offending lines
+      # Show the offending lines (use -m 5 to avoid SIGPIPE with pipefail)
       echo -e "${RED}ERROR: $desc found in $file${NC}"
-      grep -niE "$pattern" "$file" | head -5 | while read -r line; do
+      grep -niE -m 5 "$pattern" "$file" | while read -r line; do
         echo -e "  ${YELLOW}$line${NC}"
       done
       echo
