@@ -80,6 +80,7 @@ ignore = [
   "PLC0415",
   "F811",
   "ARG001",
+  "ARG005",  # unused lambda argument (needed for mock side_effect signatures)
   "PLR2004",
   "SIM108",
   "ERA001",
@@ -90,7 +91,11 @@ ignore = [
   "D103",    # missing function docstring
   "SLF001",  # private member access (needed for testing internal state)
 ]
-"install.py" = ["T201", "UP036"]
+"install.py" = [
+  "T201",
+  "UP036",
+  "PLW0603",
+] # print, UP036, global statement (pyinfra pattern)
 "lib/python/assemble_precommit.py" = [
   "PLR0911",
 ] # main() needs many returns for error handling

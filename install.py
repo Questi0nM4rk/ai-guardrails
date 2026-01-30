@@ -173,7 +173,7 @@ def run_pyinfra(*, dry_run: bool = False) -> bool:
         True if all operations succeeded, False otherwise.
 
     """
-    global _pending_deploys  # noqa: PLW0603
+    global _pending_deploys
 
     # Create inventory for @local (execute on localhost via subprocess)
     inventory = Inventory((["@local"], {}))

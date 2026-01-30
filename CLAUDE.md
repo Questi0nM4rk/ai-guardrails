@@ -51,11 +51,12 @@ Hook execution order:
    - Markdown: `markdownlint --fix`
    - TypeScript/JS: `biome check --write`
    - TOML: `taplo format`
-2. Security (gitleaks, detect-secrets, semgrep, bandit)
-3. CVE scanning (pip-audit, npm-audit, cargo-audit)
-4. Static analysis (check-only, already fixed above)
-5. Type checking (strict mode)
-6. Git hygiene (no main commits, no large files)
+2. Suppression detection - Reject `# noqa`, `// @ts-ignore`, etc.
+3. Security (gitleaks, detect-secrets, semgrep, bandit)
+4. CVE scanning (pip-audit, npm-audit, cargo-audit)
+5. Static analysis (check-only, already fixed above)
+6. Type checking (strict mode)
+7. Git hygiene (no main commits, no large files)
 
 ## Working with CodeRabbit Reviews
 

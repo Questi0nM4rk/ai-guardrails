@@ -18,10 +18,9 @@
     <AnalysisMode>All</AnalysisMode>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
-    <!-- Documentation -->
+    <!-- Documentation - XML comments required for all public members -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- CS1591: Missing XML comment - enable per-project if desired -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- CS1591: Missing XML comment - enforced as error (no suppression) -->
 
     <!-- Strict implicit usings -->
     <ImplicitUsings>enable</ImplicitUsings>
