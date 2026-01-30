@@ -1,7 +1,11 @@
 #!/usr/bin/env bats
 # ============================================
-# Tests for install.py and language installers
+# Tests for install.py CLI
 # ============================================
+# NOTE: Language installer tests have been migrated to Python unit tests
+# in tests/test_installers.py. The bash installer scripts (lib/installers/*.sh)
+# have been replaced by Python modules (lib/installers/*.py).
+#
 # shellcheck disable=SC2030,SC2031,SC2317  # PATH modifications and BATS test functions are intentional
 
 setup() {
@@ -17,9 +21,6 @@ setup() {
 
   # Save original PATH
   export ORIGINAL_PATH="$PATH"
-
-  # Create mock installer scripts
-  export INSTALLERS_DIR="$BATS_TEST_DIRNAME/../../lib/installers"
 }
 
 teardown() {
@@ -31,294 +32,96 @@ teardown() {
 }
 
 # ============================================
-# Package Manager Detection Tests
+# install.py CLI Tests
 # ============================================
-# NOTE: Package manager detection is now tested via Python unit tests
-# in tests/test_installers.py (TestPackageManagerDetection class)
-
-# ============================================
-# Python Installer Tests
-# ============================================
-
-@test "python installer: checks for pip3" {
-  skip "TODO: Implement pip3 mocking to test pip3 detection"
-}
-
-@test "python installer: installs ruff, mypy, bandit, vulture, pip-audit" {
-  skip "TODO: Integration test - requires actual pip3 and would install packages"
-}
-
-# ============================================
-# Node Installer Tests
-# ============================================
-
-@test "node installer: checks for npm" {
-  skip "Requires mocking npm"
-  run "$INSTALLERS_DIR/node.sh"
-  [[ "$status" -eq 0 ]] || [[ "$output" == *"npm not found"* ]]
-}
-
-@test "node installer: installs biome globally" {
-  skip "Integration test - requires actual npm"
-  run "$INSTALLERS_DIR/node.sh" --dry-run
-  [[ "$output" == *"@biomejs/biome"* ]]
-}
-
-# ============================================
-# Node Installer Stderr Capture Tests (Group G)
-# ============================================
-
-@test "node installer: captures npm stderr on failure" {
-  # Mock npm to fail with permission error
-  echo '#!/bin/bash
-  echo "npm EACCES: permission denied" >&2
-  exit 1
-  ' >"$TEST_BIN_DIR/npm"
-  chmod +x "$TEST_BIN_DIR/npm"
-  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
-
-  run bash "$INSTALLERS_DIR/node.sh" 2>&1
-  [[ "$status" -eq 1 ]] # Should exit with error on install failure
-  [[ "$output" == *"@biomejs/biome"* ]]
-  [[ "$output" == *"Permission denied"* ]]
-}
-
-@test "node installer: shows helpful message for permission errors" {
-  skip "Requires node.sh refactor to implement helpful error messages"
-}
-
-# ============================================
-# Shell Installer Tests
-# ============================================
-
-@test "shell installer: installs shellcheck and shfmt" {
-  skip "Integration test - requires actual package manager"
-  run "$INSTALLERS_DIR/shell.sh" --dry-run
-  [[ "$output" == *"shellcheck"* ]]
-  [[ "$output" == *"shfmt"* ]]
-}
-
-# ============================================
-# Shell Installer Verification Tests (Group E)
-# ============================================
-
-@test "shell installer: verification section includes failure handling" {
-  # Verify that shell.sh has the failure indicator code
-  local shell_script="$INSTALLERS_DIR/shell.sh"
-
-  # Check for FAILED variable
-  grep -q "FAILED=false" "$shell_script" || return 1
-
-  # Check for failure indicators (RED X)
-  grep -q "RED.*✗" "$shell_script" || return 1
-
-  # Check for "not found" messages
-  grep -q "not found" "$shell_script" || return 1
-
-  # Check for exit 1 on failure
-  grep -q "exit 1" "$shell_script" || return 1
-
-  # All checks passed
-  return 0
-}
-
-@test "shell installer: verification shows success indicators for installed tools" {
-  # Create real tools for verification testing
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/shellcheck"
-  chmod +x "$TEST_BIN_DIR/shellcheck"
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/shfmt"
-  chmod +x "$TEST_BIN_DIR/shfmt"
-
-  # Test script that uses our mocked tools
-  TEST_SCRIPT=$(mktemp)
-  cat >"$TEST_SCRIPT" <<"TEST_CONTENT"
-#!/bin/bash
-# Simulate the verification section with our mocked tools available
-
-export PATH="$TEST_BIN_DIR:/bin:/usr/bin"
-
-FAILED=false
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-NC='\033[0m'
-
-if command -v shellcheck &>/dev/null; then
-  echo -e "  ${GREEN}✓${NC} shellcheck"
-else
-  echo -e "  ${RED}✗${NC} shellcheck not found"
-  FAILED=true
-fi
-
-if command -v shfmt &>/dev/null; then
-  echo -e "  ${GREEN}✓${NC} shfmt"
-else
-  echo -e "  ${RED}✗${NC} shfmt not found"
-  FAILED=true
-fi
-
-if [[ "$FAILED" == true ]]; then
-  exit 1
-fi
-TEST_CONTENT
-
-  run bash "$TEST_SCRIPT" 2>&1
-  rm -f "$TEST_SCRIPT"
-  [[ "$status" -eq 0 ]]
-  [[ "$output" == *"✓"* ]]
-  [[ "$output" == *"shellcheck"* ]]
-  [[ "$output" == *"shfmt"* ]]
-}
-
-# ============================================
-# C++ Installer Tests (Group D)
-# ============================================
-
-@test "cpp installer: has RED color variable defined" {
-  grep -q "^RED=" "$INSTALLERS_DIR/cpp.sh"
-}
-
-@test "cpp installer: brew case installs llvm package" {
-  grep -A 15 "brew)" "$INSTALLERS_DIR/cpp.sh" | grep -q "brew install llvm"
-}
-
-@test "cpp installer: brew case adds llvm to PATH" {
-  grep -A 15 "brew)" "$INSTALLERS_DIR/cpp.sh" | grep -q 'export PATH=.*LLVM_BIN'
-}
-
-@test "cpp installer: brew case shows PATH note" {
-  grep -A 15 "brew)" "$INSTALLERS_DIR/cpp.sh" | grep -q "Add to PATH for permanent access"
-}
-
-# NOTE: The following cpp installer tests are skipped because:
-# - cpp.sh tries to INSTALL tools (via sudo pacman/apt) before verifying
-# - Testing "tools not found" requires either:
-#   a) Clean CI containers where tools genuinely don't exist
-#   b) Complex mocking to intercept package manager calls
-#   c) Refactoring cpp.sh to make verification testable in isolation
-# These tests should run in CI with clean container environments.
-# See: https://github.com/bats-core/bats-core#mocking
-
-@test "cpp installer: verification shows red X for missing clang-format" {
-  skip "Requires CI container without clang-format installed"
-}
-
-@test "cpp installer: verification shows red X for missing clang-tidy" {
-  skip "Requires CI container without clang-tidy installed"
-}
-
-@test "cpp installer: exits with failure code when tools not found" {
-  skip "Requires CI container - cpp.sh attempts real installation via package manager"
-}
-
-@test "cpp installer: exits successfully when both tools are found" {
-  # Create mock clang-format and clang-tidy
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/clang-format"
-  chmod +x "$TEST_BIN_DIR/clang-format"
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/clang-tidy"
-  chmod +x "$TEST_BIN_DIR/clang-tidy"
-  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
-
-  # This should pass verification and exit successfully
-  # Note: Will fail installation but pass verification
-  skip "Requires cpp.sh refactor to skip installation when tools exist"
-}
-
-# Main Install Script Tests
-# ============================================
+# NOTE: These tests verify CLI argument parsing. Full installer tests
+# are in tests/test_installers.py using pytest with mocked pyinfra.
 
 @test "install.py: accepts --python flag" {
+  # Check if pyinfra is available, skip if not
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
   run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
   [[ "$output" == *"--python"* ]]
 }
 
 @test "install.py: accepts --node flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
   run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
   [[ "$output" == *"--node"* ]]
 }
 
 @test "install.py: accepts --all flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
   run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
   [[ "$output" == *"--all"* ]]
 }
 
+@test "install.py: accepts --shell flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--shell"* ]]
+}
+
+@test "install.py: accepts --rust flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--rust"* ]]
+}
+
+@test "install.py: accepts --go flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--go"* ]]
+}
+
+@test "install.py: accepts --cpp flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--cpp"* ]]
+}
+
+@test "install.py: accepts --lua flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--lua"* ]]
+}
+
+@test "install.py: accepts --force flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--force"* ]]
+}
+
+@test "install.py: accepts --uninstall flag" {
+  if ! python3 -c "import pyinfra" 2>/dev/null; then
+    skip "pyinfra not installed"
+  fi
+  run python3 "$BATS_TEST_DIRNAME/../../install.py" --help
+  [[ "$output" == *"--uninstall"* ]]
+}
+
 @test "install.py: dry-run shows what would be installed" {
-  skip "Integration test - requires pyinfra"
-  run python3 "$BATS_TEST_DIRNAME/../../install.py" --dry-run
-  [[ "$output" == *"Dry run"* ]]
+  skip "Integration test - requires pyinfra runtime"
 }
 
 @test "install.py: creates installation directory structure" {
-  skip "Integration test - requires full implementation"
-  run python3 "$BATS_TEST_DIRNAME/../../install.py" --force
-  [[ -d "$HOME/.ai-guardrails/lib/installers" ]]
-  [[ -d "$HOME/.ai-guardrails/bin" ]]
-}
-
-# ============================================
-# Lua Installer Tests (Group H)
-# ============================================
-
-@test "lua installer: stylua cargo install fails and pacman fallback succeeds" {
-  # Create mock cargo that fails
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/cargo"
-  echo 'exit 1' >>"$TEST_BIN_DIR/cargo"
-  chmod +x "$TEST_BIN_DIR/cargo"
-
-  # Create mock sudo that passes through to command
-  cat >"$TEST_BIN_DIR/sudo" <<'SUDO_MOCK'
-#!/bin/bash
-"$@"
-SUDO_MOCK
-  chmod +x "$TEST_BIN_DIR/sudo"
-
-  # Create mock pacman that succeeds
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/pacman"
-  echo 'exit 0' >>"$TEST_BIN_DIR/pacman"
-  chmod +x "$TEST_BIN_DIR/pacman"
-
-  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
-
-  # Run lua installer and check for pacman fallback message
-  run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
-  [[ "$output" =~ "via pacman fallback" ]]
-}
-
-@test "lua installer: stylua cargo install succeeds, no fallback attempted" {
-  # Create mock cargo that succeeds
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/cargo"
-  echo 'exit 0' >>"$TEST_BIN_DIR/cargo"
-  chmod +x "$TEST_BIN_DIR/cargo"
-
-  # Create mock pacman that should not be called
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/pacman"
-  echo 'exit 1' >>"$TEST_BIN_DIR/pacman"
-  chmod +x "$TEST_BIN_DIR/pacman"
-
-  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
-
-  # Run lua installer - should succeed with cargo
-  run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
-  [[ "$output" =~ "via cargo" ]]
-  [[ ! "$output" =~ "via pacman" ]]
-}
-
-@test "lua installer: stylua cargo fails and non-pacman system shows error" {
-  # Create mock cargo that fails
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/cargo"
-  echo 'exit 1' >>"$TEST_BIN_DIR/cargo"
-  chmod +x "$TEST_BIN_DIR/cargo"
-
-  # Create mock apt-get (not pacman, no fallback)
-  echo '#!/bin/bash' >"$TEST_BIN_DIR/apt-get"
-  echo 'exit 0' >>"$TEST_BIN_DIR/apt-get"
-  chmod +x "$TEST_BIN_DIR/apt-get"
-
-  export PATH="$TEST_BIN_DIR:$ORIGINAL_PATH"
-
-  # Run lua installer - should fail cargo and have no fallback
-  run bash "$BATS_TEST_DIRNAME/../../lib/installers/lua.sh" 2>&1
-  # Should show failure indicator (✗) and no fallback
-  [[ "$output" =~ "Installing stylua" ]]
-  [[ "$output" =~ "✗" ]] || [[ "$output" =~ "⚠" ]] # Either failure or warning indicator
-  [[ ! "$output" =~ "via pacman fallback" ]]
+  skip "Integration test - requires pyinfra runtime"
 }

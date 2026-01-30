@@ -57,9 +57,11 @@ jobs:
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
+          # Note: lib/installers contains pyinfra deploy functions that require
+          # runtime state to test. Coverage is measured for lib/python only.
+          # Installer modules are tested via integration tests.
           pytest tests/ \
             --cov=lib/python \
-            --cov=lib/installers \
             --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml \
