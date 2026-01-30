@@ -54,12 +54,8 @@ def test_no_conflicting_coverage_configs() -> None:
         path = Path(filename)
         if path.exists():
             content = path.read_text()
-            assert "fail_under" not in content, (
-                f"{filename} should not override coverage threshold"
-            )
-            assert "min_coverage" not in content, (
-                f"{filename} should not set minimum coverage"
-            )
+            assert "fail_under" not in content, f"{filename} should not override coverage threshold"
+            assert "min_coverage" not in content, f"{filename} should not set minimum coverage"
 
     # pyproject.toml - parse and check specific keys to avoid false positives
     pyproject = Path("pyproject.toml")

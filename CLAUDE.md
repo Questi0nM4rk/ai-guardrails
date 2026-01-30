@@ -11,7 +11,7 @@ Everything is an error or it's ignored. Black/white only.
 
 ```bash
 # Install globally
-./install.sh
+python3 install.py
 
 # In any project - auto-detects language
 ai-guardrails-init

@@ -1,0 +1,106 @@
+[project]
+name = "ai-guardrails"
+version = "0.1.0"
+description = "Pedantic code enforcement for AI-maintained repositories"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Questi0nM4rk" }]
+readme = "README.md"
+
+dependencies = ["pyinfra>=3.2", "pyyaml>=6.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4"]
+
+[project.scripts]
+ai-guardrails-install = "install:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lib"]
+include = ["install.py", "lib/**/*.py", "bin/**", "templates/**", "configs/**"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "install.py",
+  "lib/**/*.py",
+  "bin/**",
+  "templates/**",
+  "configs/**",
+  "tests/**/*.py",
+  "pyproject.toml",
+  "README.md",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["lib/installers", "lib/python"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "if TYPE_CHECKING:",
+  "raise NotImplementedError",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = ["tests/fixtures"] # Intentionally bad code for testing
+
+[tool.ruff.lint]
+select = ["ALL"]
+pydocstyle.convention = "google"
+ignore = [
+  "COM812",  # trailing comma (conflicts with formatter)
+  "ISC001",  # implicit string concatenation (conflicts with formatter)
+  "T201",    # print found (expected in CLI tools)
+  "FBT",     # boolean-typed positional arguments (acceptable for internal functions)
+  "PLR0912", # too many branches (acceptable for CLI main())
+  "PLR0915", # too many statements (acceptable for CLI main())
+  "C901",    # too complex (acceptable for CLI main())
+  "S101",    # assert (acceptable in tests)
+  "PLC0415", # import not at top (acceptable in tests)
+  "D203",    # blank line before class docstring (conflicts with D211)
+  "D213",    # multi-line summary second line (conflicts with D212)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+  "S101",
+  "PLC0415",
+  "F811",
+  "ARG001",
+  "PLR2004",
+  "SIM108",
+  "ERA001",
+  "TC003",
+  "D100",    # missing module docstring (tests have them but not required)
+  "D101",    # missing class docstring
+  "D102",    # missing method docstring
+  "D103",    # missing function docstring
+  "SLF001",  # private member access (needed for testing internal state)
+]
+"install.py" = ["T201", "UP036"]
+"lib/python/assemble_precommit.py" = [
+  "PLR0911",
+] # main() needs many returns for error handling
+"lib/python/coderabbit_parser.py" = [
+  "PLR0911",
+  "PLW2901",
+] # main() returns, loop var reassignment ok
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true

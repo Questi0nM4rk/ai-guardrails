@@ -51,12 +51,15 @@ jobs:
           python-version: "3.12"
 
       - name: Install test dependencies
-        run: pip install pytest pytest-cov pyyaml
+        run: pip install pytest pytest-cov pyyaml pyinfra
 
       - name: Run tests with coverage
         env:
           PYTHONPATH: ${{ github.workspace }}
         run: |
+          # Note: lib/installers contains pyinfra deploy functions that require
+          # runtime state to test. Coverage is measured for lib/python only.
+          # Installer modules are tested via integration tests.
           pytest tests/ \
             --cov=lib/python \
             --cov-branch \

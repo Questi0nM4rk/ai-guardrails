@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CodeRabbit review parser.
+r"""CodeRabbit review parser.
 
 Parses CodeRabbit feedback from two sources:
 1. Review thread comments (GraphQL reviewThreads) - inline code comments
@@ -48,6 +48,34 @@ class TaskSource(Enum):
     OUTSIDE_DIFF = "outside_diff"  # ⚠️ Outside diff range comments
 
 
+# Maximum length for description text before truncation
+MAX_DESCRIPTION_LENGTH = 500
+# Length of the ellipsis string "..."
+ELLIPSIS_LENGTH = 3
+# Minimum max_length value that can accommodate ellipsis
+MIN_TRUNCATION_LENGTH = ELLIPSIS_LENGTH + 1
+
+
+def truncate_with_ellipsis(text: str, max_length: int = MAX_DESCRIPTION_LENGTH) -> str:
+    """Truncate text to max_length, adding ellipsis if needed.
+
+    Args:
+        text: Text to truncate.
+        max_length: Maximum length (default: MAX_DESCRIPTION_LENGTH).
+
+    Returns:
+        Original text if short enough, otherwise truncated with "...".
+        For max_length < 4, returns "..." or empty string.
+
+    """
+    if len(text) <= max_length:
+        return text
+    # Handle edge case where max_length is too small for ellipsis
+    if max_length < MIN_TRUNCATION_LENGTH:
+        return "..." if max_length >= ELLIPSIS_LENGTH else ""
+    return text[: max_length - ELLIPSIS_LENGTH] + "..."
+
+
 @dataclass
 class Task:
     """Represents a single actionable task from CodeRabbit review."""
@@ -94,6 +122,7 @@ def extract_severity(body: str) -> Severity:
 
     Returns:
         Detected severity level
+
     """
     first_line = body.split("\n")[0] if body else ""
     first_line_lower = first_line.lower()
@@ -113,6 +142,7 @@ def extract_title(body: str) -> str:
 
     Returns:
         Extracted title or fallback text
+
     """
     # Find first **bold** text that's on its own line (the title)
     match = re.search(r"^\*\*([^*]+)\*\*\s*$", body, re.MULTILINE)
@@ -142,10 +172,12 @@ def extract_ai_prompt(body: str) -> str | None:
 
     Returns:
         Extracted prompt text or None
+
     """
     # Match 3 or 4 backticks (CodeRabbit uses both formats)
     pattern = re.compile(
-        r"<details>\s*<summary>🤖\s*Prompt for AI Agents</summary>\s*(`{3,4})[^\n]*\n(.*?)\1\s*</details>",
+        r"<details>\s*<summary>🤖\s*Prompt for AI Agents</summary>"
+        r"\s*(`{3,4})[^\n]*\n(.*?)\1\s*</details>",
         re.DOTALL | re.IGNORECASE,
     )
     match = pattern.search(body)
@@ -165,6 +197,7 @@ def extract_description(body: str) -> str | None:
 
     Returns:
         Cleaned description text or None
+
     """
     # Remove severity line (first line)
     lines = body.split("\n")
@@ -191,10 +224,7 @@ def extract_description(body: str) -> str | None:
         return None
 
     # Truncate if too long
-    if len(text) > 500:
-        text = text[:497] + "..."
-
-    return text
+    return truncate_with_ellipsis(text)
 
 
 # =============================================================================
@@ -212,6 +242,7 @@ def strip_blockquote_prefixes(text: str) -> str:
 
     Returns:
         Text with prefixes stripped
+
     """
     lines = text.split("\n")
     cleaned = []
@@ -231,6 +262,7 @@ def parse_line_range(line_range: str) -> tuple[int, int]:
 
     Returns:
         Tuple of (start_line, end_line)
+
     """
     line_range = line_range.strip().strip("`")
     if "-" in line_range:
@@ -251,6 +283,7 @@ def extract_section_content(body: str, section_emoji: str) -> str | None:
 
     Returns:
         Section content or None if not found
+
     """
     # Map emoji to section title patterns
     section_patterns = {
@@ -318,6 +351,7 @@ def extract_file_blocks(section_content: str) -> list[tuple[str, str]]:
 
     Returns:
         List of (filename, block_content) tuples
+
     """
     results = []
 
@@ -351,6 +385,7 @@ def parse_body_item(
 
     Returns:
         Parsed Task or None if invalid
+
     """
     # Pattern: `LINE-RANGE`: **TITLE**
     match = re.match(r"`([^`]+)`:\s*\*\*([^*]+)\*\*", item_text.strip())
@@ -372,10 +407,7 @@ def parse_body_item(
     description = re.sub(r"<details>.*?</details>", "", description, flags=re.DOTALL)
     description = description.strip()
 
-    if not description:
-        description = None
-    elif len(description) > 500:
-        description = description[:497] + "..."
+    description = truncate_with_ellipsis(description) if description else None
 
     return Task(
         id="",  # Assigned later
@@ -399,6 +431,7 @@ def parse_file_block_items(file: str, content: str) -> list[tuple[str, str]]:
 
     Returns:
         List of (file, item_text) tuples
+
     """
     # Split on backtick-line patterns, keeping the delimiter
     items = re.split(r"(?=`\d)", content)
@@ -418,6 +451,7 @@ def parse_review_body(body: str) -> list[Task]:
 
     Returns:
         List of parsed tasks (without IDs assigned)
+
     """
     tasks: list[Task] = []
 
@@ -464,6 +498,7 @@ def parse_thread(thread: dict) -> Task | None:
 
     Returns:
         Parsed Task or None if invalid
+
     """
     body = thread.get("body", "")
     if not body:
@@ -498,6 +533,7 @@ def parse_threads(data: dict) -> list[Task]:
 
     Returns:
         List of parsed tasks with assigned IDs
+
     """
     threads = data.get("threads", [])
     tasks: list[Task] = []
@@ -518,6 +554,7 @@ def generate_output(tasks: list[Task]) -> dict:
 
     Returns:
         Output dict with tasks array and summary
+
     """
     # Count by file
     by_file: Counter[str] = Counter()
@@ -534,9 +571,7 @@ def generate_output(tasks: list[Task]) -> dict:
         "by_source": {
             "thread": sum(1 for t in tasks if t.source == TaskSource.THREAD),
             "nitpick": sum(1 for t in tasks if t.source == TaskSource.NITPICK),
-            "outside_diff": sum(
-                1 for t in tasks if t.source == TaskSource.OUTSIDE_DIFF
-            ),
+            "outside_diff": sum(1 for t in tasks if t.source == TaskSource.OUTSIDE_DIFF),
         },
         "by_file": dict(by_file),
     }
@@ -552,6 +587,7 @@ def dedup_key(task: Task) -> tuple[str, int, str]:
 
     Returns:
         Tuple of (file, line_start, normalized_title)
+
     """
     line_start = task.start_line or task.line
     title_norm = task.title.lower().strip()[:50]
@@ -569,6 +605,7 @@ def merge_tasks(thread_tasks: list[Task], body_tasks: list[Task]) -> list[Task]:
 
     Returns:
         Merged and deduplicated task list
+
     """
     seen: dict[tuple[str, int, str], Task] = {}
 
@@ -600,6 +637,7 @@ def parse_input(input_file: TextIO) -> dict:
 
     Returns:
         Output dict with tasks and summary
+
     """
     data = json.load(input_file)
 
@@ -636,9 +674,7 @@ def main() -> None:
         default=sys.stdin,
         help="Input JSON file (default: stdin)",
     )
-    parser.add_argument(
-        "--pretty", "-p", action="store_true", help="Pretty-print JSON output"
-    )
+    parser.add_argument("--pretty", "-p", action="store_true", help="Pretty-print JSON output")
     parser.add_argument(
         "--severity",
         "-s",
@@ -656,9 +692,7 @@ def main() -> None:
             severity_order = ["major", "minor", "suggestion"]
             min_idx = severity_order.index(args.severity)
             result["tasks"] = [
-                t
-                for t in result["tasks"]
-                if severity_order.index(t["severity"]) <= min_idx
+                t for t in result["tasks"] if severity_order.index(t["severity"]) <= min_idx
             ]
             # Recalculate summary
             filtered = result["tasks"]
@@ -670,25 +704,21 @@ def main() -> None:
                 "by_severity": {
                     "major": sum(1 for t in filtered if t["severity"] == "major"),
                     "minor": sum(1 for t in filtered if t["severity"] == "minor"),
-                    "suggestion": sum(
-                        1 for t in filtered if t["severity"] == "suggestion"
-                    ),
+                    "suggestion": sum(1 for t in filtered if t["severity"] == "suggestion"),
                 },
                 "by_source": {
                     "thread": sum(1 for t in filtered if t["source"] == "thread"),
                     "nitpick": sum(1 for t in filtered if t["source"] == "nitpick"),
-                    "outside_diff": sum(
-                        1 for t in filtered if t["source"] == "outside_diff"
-                    ),
+                    "outside_diff": sum(1 for t in filtered if t["source"] == "outside_diff"),
                 },
                 "by_file": dict(by_file),
             }
 
         indent = 2 if args.pretty else None
-        print(json.dumps(result, indent=indent))  # noqa: T201
+        print(json.dumps(result, indent=indent))
 
     except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON input: {e}", file=sys.stderr)  # noqa: T201
+        print(f"Error: Invalid JSON input: {e}", file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:
         sys.exit(130)
