@@ -71,7 +71,11 @@ for file in "${FILES[@]}"; do
   [[ -f "$file" ]] || continue
 
   # Skip test files and fixtures (tests may need relaxed rules)
-  if [[ "$file" == *"/tests/"* ]] || [[ "$file" == *"/test_"* ]] || [[ "$file" == *"_test."* ]]; then
+  # Covers: tests/, test/, __tests__/, spec/, *_test.*, test_*, *_spec.*, *.spec.*
+  if [[ "$file" == *"/tests/"* ]] || [[ "$file" == *"/test/"* ]] \
+    || [[ "$file" == *"/__tests__/"* ]] || [[ "$file" == *"/spec/"* ]] \
+    || [[ "$file" == *"/test_"* ]] || [[ "$file" == *"_test."* ]] \
+    || [[ "$file" == *"_spec."* ]] || [[ "$file" == *".spec."* ]]; then
     continue
   fi
 
