@@ -301,6 +301,39 @@ environment - check your args configuration.
 - No merge conflicts
 - Executables must have shebangs
 
+### Suppression Detection
+
+**Philosophy**: "Everything is an error or it's ignored."
+
+Suppression comments (`# noqa`, `// @ts-ignore`, `#pragma warning disable`, etc.)
+create gray areas. They're hidden escape hatches that let issues accumulate
+silently. AI agents will use them to bypass checks instead of fixing problems.
+
+The `detect-suppression-comments` hook rejects all suppression patterns across
+all supported languages:
+
+| Language | Patterns Detected |
+|----------|-------------------|
+| Python | `# noqa`, `# type: ignore`, `# pylint: disable`, `# pragma: no cover` |
+| TypeScript/JS | `// @ts-ignore`, `// @ts-expect-error`, `// @ts-nocheck`, `eslint-disable` |
+| C# | `#pragma warning disable`, `// ReSharper disable`, `[SuppressMessage]` |
+| Rust | `#[allow(...)]`, `#![allow(...)]` |
+| Go | `//nolint` |
+| Shell | `# shellcheck disable` |
+| Lua | `--luacheck: ignore` |
+| C/C++ | `// NOLINT`, `#pragma diagnostic ignored` |
+
+**Test files are excluded** - tests may need relaxed rules for mocking, fixtures,
+or testing error conditions.
+
+**Alternatives to suppression comments:**
+
+1. **Fix the underlying issue** - The rule exists for a reason
+2. **Disable in config** - If a rule is wrong for your project, disable it
+   globally in the linter config file
+3. **Document exceptions** - For truly legitimate exceptions, document in
+   `EXCEPTIONS.md` with justification
+
 ## Directory Structure
 
 ```text

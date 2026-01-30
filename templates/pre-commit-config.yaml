@@ -73,6 +73,20 @@ repos:
         exclude: ^tests/
 
   # ===========================================================================
+  # 🚫 SUPPRESSION DETECTION - No lint/type suppression comments allowed
+  # ===========================================================================
+  # Philosophy: "Everything is an error or it's ignored"
+  # Suppression comments create gray areas - fix the issue or change the config
+
+  - repo: local
+    hooks:
+      - id: detect-suppression-comments
+        name: "🚫 quality · no suppression comments"
+        entry: lib/hooks/detect-suppression-comments.sh
+        language: script
+        types_or: [python, javascript, jsx, typescript, tsx, c, c++, c#, rust, go, shell, lua]
+
+  # ===========================================================================
   # 📝 COMMIT MESSAGE - CONVENTIONAL COMMITS REQUIRED
   # ===========================================================================
 
@@ -304,9 +318,11 @@ repos:
   - repo: local
     hooks:
       - id: luacheck
-        name: "🌙 lua · luacheck lint"
+        name: "🌙 lua · luacheck lint (strict)"
         entry: luacheck
-        args: ["--globals", "vim", "--no-unused-args", "--std", "luajit"]
+        # Strict: no --no-unused-args, enforce line length
+        # Add --globals vim for Neovim projects via .luacheckrc
+        args: ["--std", "luajit", "--max-line-length", "100", "--codes"]
         language: system
         types: [lua]
 
