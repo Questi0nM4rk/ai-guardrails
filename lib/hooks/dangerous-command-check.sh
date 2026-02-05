@@ -38,6 +38,14 @@ case "$COMMAND" in
     ;;
 esac
 
+# Patterns requiring explicit approval (allow but warn strongly)
+case "$COMMAND" in
+  *'--no-verify'*)
+    echo -e "${YELLOW}⚠ REQUIRES APPROVAL:${NC} --no-verify bypasses all pre-commit hooks."
+    echo -e "  This defeats the purpose of guardrails. Only proceed if user explicitly approves."
+    ;;
+esac
+
 # Warning patterns (allow but warn)
 case "$COMMAND" in
   *'rm -rf'*)
