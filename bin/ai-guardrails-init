@@ -331,9 +331,10 @@ fi
 
 echo
 
-# Always copy .editorconfig
+# Always copy .editorconfig and markdownlint config
 echo -e "${GREEN}Copying configs...${NC}"
 copy_config "$CONFIGS_DIR/.editorconfig" ".editorconfig"
+copy_config "$CONFIGS_DIR/.markdownlint.jsonc" ".markdownlint.jsonc"
 
 # Copy language-specific configs
 if [[ "$PROJECT_TYPE" == "all" ]]; then
