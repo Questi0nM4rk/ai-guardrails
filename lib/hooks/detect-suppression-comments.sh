@@ -55,6 +55,41 @@ PATTERNS=(
   '#pragma GCC diagnostic ignored|GCC diagnostic ignore|c,cpp,h,hpp'
 )
 
+# ============================================
+# Allowlist support
+# ============================================
+# A `.suppression-allowlist` file in the repo root lists approved suppressions.
+# Format: one entry per line, each is a grep -E pattern matched against
+# the full line text (file:lineno:content). Blank lines and # comments ignored.
+#
+# Example .suppression-allowlist:
+#   # MCP tool boundaries need catch-all
+#   # noqa: BLE001
+#   # MCP tools have many params by design
+#   # noqa: PLR0913
+#   # shellcheck disable=SC2317
+#
+ALLOWLIST_FILE=".suppression-allowlist"
+ALLOWLIST_PATTERNS=()
+if [[ -f "$ALLOWLIST_FILE" ]]; then
+  while IFS= read -r line; do
+    # Skip blank lines and comments
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    ALLOWLIST_PATTERNS+=("$line")
+  done <"$ALLOWLIST_FILE"
+fi
+
+# Check if a line is allowlisted
+is_allowlisted() {
+  local line_text="$1"
+  for allowed in "${ALLOWLIST_PATTERNS[@]}"; do
+    if grep -qiE "$allowed" <<<"$line_text" 2>/dev/null; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 # Files to check (passed as arguments)
 FILES=("$@")
 
@@ -114,14 +149,23 @@ for file in "${FILES[@]}"; do
     fi
 
     # Search for the pattern (case-insensitive to catch NOQA, TYPE: IGNORE, etc.)
-    if grep -qiE "$pattern" "$file" 2>/dev/null; then
+    # Filter out allowlisted lines, only report non-allowlisted matches
+    has_violation=false
+    violation_lines=()
+    while IFS= read -r match_line; do
+      if ! is_allowlisted "$match_line"; then
+        has_violation=true
+        violation_lines+=("$match_line")
+      fi
+    done < <(grep -niE -m 10 "$pattern" "$file" 2>/dev/null)
+
+    if [[ "$has_violation" == true ]]; then
       FOUND_SUPPRESSIONS=true
       ((SUPPRESSION_COUNT++)) || true
 
-      # Show the offending lines (use -m 5 to avoid SIGPIPE with pipefail)
       echo -e "${RED}ERROR: $desc found in $file${NC}"
-      grep -niE -m 5 "$pattern" "$file" | while read -r line; do
-        echo -e "  ${YELLOW}$line${NC}"
+      for vline in "${violation_lines[@]}"; do
+        echo -e "  ${YELLOW}$vline${NC}"
       done
       echo
     fi
@@ -139,7 +183,8 @@ if [[ "$FOUND_SUPPRESSIONS" == true ]]; then
   echo "Options:"
   echo "  1. Fix the underlying issue that triggered the lint/type error"
   echo "  2. If the rule is wrong for this project, disable it in config"
-  echo "  3. For legitimate exceptions, document in project EXCEPTIONS.md"
+  echo "  3. For legitimate exceptions, add pattern to .suppression-allowlist"
+  echo "     (requires user approval and documented reason)"
   echo
   exit 1
 fi
