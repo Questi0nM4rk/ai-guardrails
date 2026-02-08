@@ -1,0 +1,66 @@
+"""Generate biome.json by merging base template with project exceptions."""
+
+from __future__ import annotations
+
+import json
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from registry import ExceptionRegistry
+
+
+def _build_biome_override(
+    includes: list[str],
+    rules: list[str],
+) -> dict[str, Any]:
+    """Build a biome override entry.
+
+    Args:
+        includes: Glob patterns to match.
+        rules: Biome rule paths (e.g. "style/noDefaultExport") to set to "off".
+
+    Returns:
+        Biome override dictionary.
+
+    """
+    _expected_parts = 2
+    linter_rules: dict[str, dict[str, str]] = {}
+    for rule in rules:
+        parts = rule.split("/", 1)
+        if len(parts) == _expected_parts:
+            category, name = parts
+            linter_rules.setdefault(category, {})[name] = "off"
+
+    return {
+        "includes": includes,
+        "linter": {"rules": linter_rules},
+    }
+
+
+def generate_biome(
+    registry: ExceptionRegistry,
+    base_path: Path,
+    output_path: Path,
+) -> None:
+    """Merge base biome.json with registry exceptions.
+
+    Args:
+        registry: Parsed exception registry.
+        base_path: Path to base biome.json template.
+        output_path: Path to write merged biome.json.
+
+    """
+    config = json.loads(base_path.read_text())
+
+    overrides = config.get("overrides", [])
+
+    for fe in registry.get_file_exceptions("biome"):
+        overrides.append(_build_biome_override(fe.glob, fe.rules))
+
+    config["overrides"] = overrides
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    content = json.dumps(config, indent=2) + "\n"
+    output_path.write_text(content)
