@@ -124,7 +124,7 @@ def extract_severity(body: str) -> Severity:
         Detected severity level
 
     """
-    first_line = body.split("\n")[0] if body else ""
+    first_line = body.split("\n", maxsplit=1)[0] if body else ""
     first_line_lower = first_line.lower()
 
     if "🟠" in first_line or "major" in first_line_lower:

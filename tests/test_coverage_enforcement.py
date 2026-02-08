@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
-
 import tomllib  # Python 3.11+
+from pathlib import Path
 
 
 def test_ci_workflow_enforces_85_percent_coverage() -> None:

@@ -42,6 +42,7 @@ class TestCoreModule:
         assert "ai-review-tasks" in BIN_SCRIPTS
         assert "ai-hooks-init" in BIN_SCRIPTS
         assert "ai-guardrails-init" in BIN_SCRIPTS
+        assert "ai-guardrails-generate" in BIN_SCRIPTS
 
     def test_hook_scripts_list(self) -> None:
         """Verify HOOK_SCRIPTS contains expected hooks."""
