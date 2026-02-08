@@ -1,0 +1,22 @@
+#!/bin/bash
+# ============================================
+# ai-guardrails-generate
+# Generate tool configs from .guardrails-exceptions.toml
+#
+# Usage:
+#   ai-guardrails-generate              # Generate all configs
+#   ai-guardrails-generate --check      # Check if configs are up to date
+#   ai-guardrails-generate --dry-run    # Validate registry only
+# ============================================
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib"
+
+# Check if installed globally
+if [[ -d "$HOME/.ai-guardrails/lib/python" ]]; then
+  LIB_DIR="$HOME/.ai-guardrails/lib"
+fi
+
+exec python3 "$LIB_DIR/python/generate_configs.py" "$@"
