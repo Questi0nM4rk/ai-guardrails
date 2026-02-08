@@ -72,6 +72,19 @@ repos:
         types_or: [python, javascript, jsx, ts, tsx, c, c++, c#, rust, go, shell, lua]
 
   # ===========================================================================
+  # GENERATED CONFIG FRESHNESS - Ensure configs match exception registry
+  # ===========================================================================
+
+  - repo: local
+    hooks:
+      - id: validate-generated-configs
+        name: "quality - generated configs are fresh"
+        entry: .ai-guardrails/hooks/validate-generated-configs.sh
+        language: script
+        pass_filenames: false
+        files: '\.guardrails-exceptions\.toml$'
+
+  # ===========================================================================
   # COMMIT MESSAGE - CONVENTIONAL COMMITS REQUIRED
   # ===========================================================================
 

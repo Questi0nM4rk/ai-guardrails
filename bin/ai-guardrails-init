@@ -406,17 +406,28 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
     fi
   fi
 
-  # Copy format-and-stage.sh to project for local hook reference
+  # Copy hook scripts to project for local reference
   mkdir -p ".ai-guardrails/hooks"
   if [[ -f "$LIB_DIR/hooks/format-and-stage.sh" ]]; then
     cp "$LIB_DIR/hooks/format-and-stage.sh" ".ai-guardrails/hooks/"
     chmod +x ".ai-guardrails/hooks/format-and-stage.sh"
     echo -e "  ${GREEN}✓ format-and-stage.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/detect-suppression-comments.sh" ]]; then
+    cp "$LIB_DIR/hooks/detect-suppression-comments.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/detect-suppression-comments.sh"
+    echo -e "  ${GREEN}✓ detect-suppression-comments.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/validate-generated-configs.sh" ]]; then
+    cp "$LIB_DIR/hooks/validate-generated-configs.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/validate-generated-configs.sh"
+    echo -e "  ${GREEN}✓ validate-generated-configs.sh${NC}"
+  fi
 
-    # Update pre-commit config to use the local path
-    if [[ -f ".pre-commit-config.yaml" ]]; then
-      sed_inplace 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml"
-    fi
+  # Update pre-commit config to use local hook paths
+  if [[ -f ".pre-commit-config.yaml" ]]; then
+    sed_inplace 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml"
+    sed_inplace 's|entry: lib/hooks/detect-suppression-comments.sh|entry: .ai-guardrails/hooks/detect-suppression-comments.sh|g' ".pre-commit-config.yaml"
   fi
 
   # Install pre-commit hooks if available
@@ -454,6 +465,26 @@ if [[ -d ".git" ]]; then
   if ! grep -q "^\.ai-guardrails" .gitignore 2>/dev/null; then
     echo ".ai-guardrails/" >>.gitignore
     echo -e "  ${GREEN}✓ Added .ai-guardrails/ to .gitignore${NC}"
+  fi
+fi
+
+# Scaffold exception registry if not present
+EXCEPTIONS_FILE=".guardrails-exceptions.toml"
+EXCEPTIONS_TEMPLATE="$TEMPLATES_DIR/guardrails-exceptions.toml"
+if [[ ! -f "$EXCEPTIONS_FILE" || "$FORCE" == true ]]; then
+  if [[ -f "$EXCEPTIONS_TEMPLATE" ]]; then
+    cp "$EXCEPTIONS_TEMPLATE" "$EXCEPTIONS_FILE"
+    echo -e "${GREEN}✓ $EXCEPTIONS_FILE${NC}"
+  fi
+fi
+
+# Generate merged configs from exception registry
+if [[ -f "$EXCEPTIONS_FILE" ]]; then
+  GENERATE_SCRIPT="$LIB_DIR/python/generate_configs.py"
+  if [[ -f "$GENERATE_SCRIPT" ]]; then
+    if python3 "$GENERATE_SCRIPT" 2>/dev/null; then
+      echo -e "  ${GREEN}✓ Generated configs from exception registry${NC}"
+    fi
   fi
 fi
 
