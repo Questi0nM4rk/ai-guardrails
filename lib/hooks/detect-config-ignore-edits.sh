@@ -15,11 +15,10 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-# Config file patterns to check
-CONFIG_PATTERN='pyproject\.toml$|setup\.cfg$|\.eslintrc|tsconfig\.json$|\.flake8$'
-
-# Ignore patterns to detect (same as protect-generated-configs.sh)
-IGNORE_PATTERN='ignore[-_]?words|ignore\s*=|per-file-ignores|reportMissing.*false|eslint-disable|noqa|nolint|pragma.*disable|skip\s*=.*\['
+# Source shared constants
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=guardrails-patterns.sh disable=SC1091
+source "$SCRIPT_DIR/guardrails-patterns.sh"
 
 # Get staged config files (Added, Copied, Modified, Renamed)
 STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null || true)"
@@ -29,22 +28,22 @@ if [[ -z "$STAGED_FILES" ]]; then
 fi
 
 # Filter to only config files
-CONFIG_FILES=""
+MATCHING_FILES=""
 while IFS= read -r file; do
   if echo "$file" | grep -qE "$CONFIG_PATTERN"; then
-    CONFIG_FILES="$CONFIG_FILES $file"
+    MATCHING_FILES="$MATCHING_FILES $file"
   fi
 done <<<"$STAGED_FILES"
 
-CONFIG_FILES="${CONFIG_FILES# }" # trim leading space
+MATCHING_FILES="${MATCHING_FILES# }" # trim leading space
 
-if [[ -z "$CONFIG_FILES" ]]; then
+if [[ -z "$MATCHING_FILES" ]]; then
   exit 0
 fi
 
 FOUND_VIOLATIONS=false
 
-for file in $CONFIG_FILES; do
+for file in $MATCHING_FILES; do
   # Skip if file doesn't exist (deleted)
   [[ -f "$file" ]] || continue
 

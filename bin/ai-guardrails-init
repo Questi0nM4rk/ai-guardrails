@@ -408,6 +408,11 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
 
   # Copy hook scripts to project for local reference
   mkdir -p ".ai-guardrails/hooks"
+  # Copy shared constants first (sourced by other hooks)
+  if [[ -f "$LIB_DIR/hooks/guardrails-patterns.sh" ]]; then
+    cp "$LIB_DIR/hooks/guardrails-patterns.sh" ".ai-guardrails/hooks/"
+    echo -e "  ${GREEN}✓ guardrails-patterns.sh${NC}"
+  fi
   if [[ -f "$LIB_DIR/hooks/format-and-stage.sh" ]]; then
     cp "$LIB_DIR/hooks/format-and-stage.sh" ".ai-guardrails/hooks/"
     chmod +x ".ai-guardrails/hooks/format-and-stage.sh"

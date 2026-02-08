@@ -21,6 +21,11 @@ if [[ ! -f ".guardrails-exceptions.toml" ]]; then
   exit 0
 fi
 
+# Source shared constants
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=guardrails-patterns.sh disable=SC1091
+source "$SCRIPT_DIR/guardrails-patterns.sh"
+
 # Read JSON from stdin
 INPUT="$(cat)"
 
@@ -49,9 +54,6 @@ emit_ask() {
   exit 0
 }
 
-# --- Known generated config basenames ---
-GENERATED_CONFIGS="ruff.toml biome.json .markdownlint.jsonc .codespellrc .suppression-allowlist"
-
 # --- Check 1: Auto-generated config files ---
 for cfg in $GENERATED_CONFIGS; do
   if [[ "$BASENAME" == "$cfg" ]]; then
@@ -69,10 +71,6 @@ if [[ "$BASENAME" == ".guardrails-exceptions.toml" ]]; then
 fi
 
 # --- Check 3: Ignore patterns in config files ---
-CONFIG_FILES="pyproject.toml setup.cfg .flake8 .eslintrc.json .eslintrc.js .eslintrc.yml tsconfig.json tslint.json"
-
-IGNORE_PATTERN='ignore[-_]?words|ignore\s*=|per-file-ignores|reportMissing.*false|eslint-disable|noqa|nolint|pragma.*disable|skip\s*=.*\['
-
 for cfg in $CONFIG_FILES; do
   if [[ "$BASENAME" == "$cfg" ]]; then
     # Get the new content from tool_input (Edit uses new_string, Write uses content)
