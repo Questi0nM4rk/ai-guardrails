@@ -148,6 +148,31 @@ def _check_freshness(registry: ExceptionRegistry, project_path: Path) -> bool:
         return False
 
 
+def _load_registry(project_path: Path) -> ExceptionRegistry | None:
+    """Load and validate the exception registry, printing errors on failure."""
+    registry_path = project_path / REGISTRY_FILENAME
+
+    if not registry_path.exists():
+        print(f"{RED}Error: {REGISTRY_FILENAME} not found in {project_path}{NC}", file=sys.stderr)
+        print("Run 'ai-guardrails-init' to scaffold one.", file=sys.stderr)
+        return None
+
+    try:
+        registry = ExceptionRegistry.load(registry_path)
+    except ValueError as e:
+        print(f"{RED}Error loading {REGISTRY_FILENAME}: {e}{NC}", file=sys.stderr)
+        return None
+
+    errors = registry.validate()
+    if errors:
+        print(f"{RED}Validation errors in {REGISTRY_FILENAME}:{NC}", file=sys.stderr)
+        for err in errors:
+            print(f"  - {err}", file=sys.stderr)
+        return None
+
+    return registry
+
+
 def run_generate_configs(
     project_dir: str = ".",
     dry_run: bool = False,
@@ -165,24 +190,8 @@ def run_generate_configs(
 
     """
     project_path = Path(project_dir).resolve()
-    registry_path = project_path / REGISTRY_FILENAME
-
-    if not registry_path.exists():
-        print(f"{RED}Error: {REGISTRY_FILENAME} not found in {project_path}{NC}", file=sys.stderr)
-        print("Run 'ai-guardrails-init' to scaffold one.", file=sys.stderr)
-        return False
-
-    # Load and validate
-    try:
-        registry = ExceptionRegistry.load(registry_path)
-    except ValueError as e:
-        print(f"{RED}Error loading {REGISTRY_FILENAME}: {e}{NC}", file=sys.stderr)
-        return False
-    errors = registry.validate()
-    if errors:
-        print(f"{RED}Validation errors in {REGISTRY_FILENAME}:{NC}", file=sys.stderr)
-        for err in errors:
-            print(f"  - {err}", file=sys.stderr)
+    registry = _load_registry(project_path)
+    if registry is None:
         return False
 
     if dry_run:
@@ -193,7 +202,12 @@ def run_generate_configs(
         return _check_freshness(registry, project_path)
 
     # Generate in-place
-    generated = _generate_to_dir(registry, project_path, project_path)
+    try:
+        generated = _generate_to_dir(registry, project_path, project_path)
+    except Exception as e:  # noqa: BLE001
+        print(f"{RED}Error during config generation: {e}{NC}", file=sys.stderr)
+        print("Some configs may have been partially written.", file=sys.stderr)
+        return False
     for name in generated:
         print(f"  {GREEN}\u2713{NC} {name}")
 
@@ -218,12 +232,13 @@ def main(args: list[str] | None = None) -> int:
         default=".",
         help="Project directory (default: current directory)",
     )
-    parser.add_argument(
+    mode_group = parser.add_mutually_exclusive_group()
+    mode_group.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate registry only, don't write files",
     )
-    parser.add_argument(
+    mode_group.add_argument(
         "--check",
         action="store_true",
         help="Check if generated configs are up to date (exit 1 if stale)",

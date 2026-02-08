@@ -73,7 +73,8 @@ ALLOWLIST_FILE=".suppression-allowlist"
 ALLOWLIST_PATTERNS=()
 if [[ -f "$ALLOWLIST_FILE" ]]; then
   while IFS= read -r line; do
-    # Skip blank lines and comments
+    # Skip blank lines and comments (trim leading whitespace)
+    line="${line#"${line%%[![:space:]]*}"}"
     [[ -z "$line" || "$line" == \#* ]] && continue
     ALLOWLIST_PATTERNS+=("$line")
   done <"$ALLOWLIST_FILE"

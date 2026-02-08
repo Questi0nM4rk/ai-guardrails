@@ -19,4 +19,9 @@ if [[ ! -d "$LIB_DIR/python" ]] && [[ -d "$HOME/.ai-guardrails/lib/python" ]]; t
   LIB_DIR="$HOME/.ai-guardrails/lib"
 fi
 
+if [[ ! -f "$LIB_DIR/python/generate_configs.py" ]]; then
+  echo "Error: generate_configs.py not found. Run 'ai-guardrails-init' first." >&2
+  exit 1
+fi
+
 exec python3 "$LIB_DIR/python/generate_configs.py" "$@"
