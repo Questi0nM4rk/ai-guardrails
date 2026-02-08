@@ -104,6 +104,9 @@ ignore = [
   "PLW2901",
 ] # main() returns, loop var reassignment ok
 
+[tool.codespell]
+ignore-words-list = "brin,crate"
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
