@@ -1,0 +1,15 @@
+#!/bin/bash
+# Unified CLI entry point for ai-guardrails
+# All logic lives in Python — this shim sets PYTHONPATH and delegates.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_PYTHON="$SCRIPT_DIR/../lib/python"
+
+if [[ ! -d "$LIB_PYTHON/guardrails" ]] && [[ -d "$HOME/.ai-guardrails/lib/python/guardrails" ]]; then
+  LIB_PYTHON="$HOME/.ai-guardrails/lib/python"
+fi
+
+export PYTHONPATH="$LIB_PYTHON:${PYTHONPATH:-}"
+exec python3 -m guardrails "$@"

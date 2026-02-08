@@ -39,6 +39,7 @@ class TestCoreModule:
 
     def test_bin_scripts_list(self) -> None:
         """Verify BIN_SCRIPTS contains expected CLI tools."""
+        assert "ai-guardrails" in BIN_SCRIPTS
         assert "ai-review-tasks" in BIN_SCRIPTS
         assert "ai-hooks-init" in BIN_SCRIPTS
         assert "ai-guardrails-init" in BIN_SCRIPTS
@@ -48,7 +49,11 @@ class TestCoreModule:
         """Verify HOOK_SCRIPTS contains expected hooks."""
         assert "pre-commit.sh" in HOOK_SCRIPTS
         assert "pre-push.sh" in HOOK_SCRIPTS
-        assert "common.sh" in HOOK_SCRIPTS
+        assert "dangerous-command-check.sh" in HOOK_SCRIPTS
+        assert "detect-suppression-comments.sh" in HOOK_SCRIPTS
+        assert "format-and-stage.sh" in HOOK_SCRIPTS
+        assert "validate-generated-configs.sh" in HOOK_SCRIPTS
+        assert "common.sh" not in HOOK_SCRIPTS
 
 
 class TestPythonModule:

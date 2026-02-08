@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 # Path setup handled by conftest.py
-from coderabbit_parser import (
+from guardrails.coderabbit import (
     Severity,
     Task,
     TaskSource,

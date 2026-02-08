@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 r"""CodeRabbit review parser.
 
 Parses CodeRabbit feedback from two sources:
@@ -127,9 +126,9 @@ def extract_severity(body: str) -> Severity:
     first_line = body.split("\n", maxsplit=1)[0] if body else ""
     first_line_lower = first_line.lower()
 
-    if "🟠" in first_line or "major" in first_line_lower:
+    if "\U0001f7e0" in first_line or "major" in first_line_lower:
         return Severity.MAJOR
-    if "🟡" in first_line or "minor" in first_line_lower:
+    if "\U0001f7e1" in first_line or "minor" in first_line_lower:
         return Severity.MINOR
     return Severity.SUGGESTION
 
