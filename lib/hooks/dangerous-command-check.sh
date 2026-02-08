@@ -36,13 +36,22 @@ case "$COMMAND" in
     echo -e "${RED}BLOCKED:${NC} Fork bomb detected"
     exit 2
     ;;
-esac
-
-# Patterns requiring explicit approval (allow but warn strongly)
-case "$COMMAND" in
-  *'--no-verify'*)
-    echo -e "${YELLOW}⚠ REQUIRES APPROVAL:${NC} --no-verify bypasses all pre-commit hooks."
-    echo -e "  This defeats the purpose of guardrails. Only proceed if user explicitly approves."
+  *'--no-verify'* | *'-n '*)
+    echo -e "${RED}BLOCKED:${NC} --no-verify bypasses all pre-commit hooks and guardrails."
+    echo -e "  This is never allowed. Fix the issue that's causing hooks to fail."
+    exit 2
+    ;;
+  *'--no-gpg-sign'*)
+    echo -e "${RED}BLOCKED:${NC} --no-gpg-sign bypasses commit signing."
+    exit 2
+    ;;
+  *'core.hooksPath=/dev/null'* | *'core.hooksPath='*)
+    echo -e "${RED}BLOCKED:${NC} Overriding core.hooksPath bypasses all git hooks."
+    exit 2
+    ;;
+  *'SKIP='*'pre-commit'* | *'PRE_COMMIT_ALLOW_NO_CONFIG'*)
+    echo -e "${RED}BLOCKED:${NC} Bypassing pre-commit via environment variables."
+    exit 2
     ;;
 esac
 
