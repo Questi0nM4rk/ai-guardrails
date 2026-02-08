@@ -449,7 +449,7 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
         .hooks.PreToolUse = (.hooks.PreToolUse // []) + [$entry]
       ' "$CLAUDE_SETTINGS" 2>/dev/null)" || true
       if [[ -n "$UPDATED" ]]; then
-        echo "$UPDATED" > "$CLAUDE_SETTINGS"
+        echo "$UPDATED" >"$CLAUDE_SETTINGS"
         echo -e "  ${GREEN}✓ Claude Code PreToolUse hook installed${NC}"
       else
         echo -e "  ${YELLOW}⚠ Could not update Claude settings (jq error)${NC}"
@@ -457,7 +457,7 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
     else
       # Create new settings file
       mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
-      jq -n --argjson entry "$HOOK_ENTRY" '{ hooks: { PreToolUse: [$entry] } }' > "$CLAUDE_SETTINGS"
+      jq -n --argjson entry "$HOOK_ENTRY" '{ hooks: { PreToolUse: [$entry] } }' >"$CLAUDE_SETTINGS"
       echo -e "  ${GREEN}✓ Claude Code PreToolUse hook installed (created settings)${NC}"
     fi
   fi
@@ -520,8 +520,10 @@ fi
 if [[ -f "$EXCEPTIONS_FILE" ]]; then
   GENERATE_SCRIPT="$LIB_DIR/python/generate_configs.py"
   if [[ -f "$GENERATE_SCRIPT" ]]; then
-    if python3 "$GENERATE_SCRIPT" 2>/dev/null; then
+    if python3 "$GENERATE_SCRIPT"; then
       echo -e "  ${GREEN}✓ Generated configs from exception registry${NC}"
+    else
+      echo -e "  ${YELLOW}⚠ Config generation failed (check .guardrails-exceptions.toml)${NC}"
     fi
   fi
 fi

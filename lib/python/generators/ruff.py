@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import tomllib
 from typing import TYPE_CHECKING
 
 import tomli_w
-import tomllib
 
 if TYPE_CHECKING:
     from pathlib import Path
