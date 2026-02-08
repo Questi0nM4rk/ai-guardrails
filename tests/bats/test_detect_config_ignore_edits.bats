@@ -191,6 +191,7 @@ TOML
 
   run bash "$HOOK_SCRIPT"
   [ "$status" -eq 1 ]
+  assert_contains "$output" "pyproject.toml"
 }
 
 # =============================================================================

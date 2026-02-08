@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -201,15 +202,17 @@ def run_generate_configs(
     if check:
         return _check_freshness(registry, project_path)
 
-    # Generate in-place
-    try:
-        generated = _generate_to_dir(registry, project_path, project_path)
-    except Exception as e:  # noqa: BLE001
-        print(f"{RED}Error during config generation: {e}{NC}", file=sys.stderr)
-        print("Some configs may have been partially written.", file=sys.stderr)
-        return False
-    for name in generated:
-        print(f"  {GREEN}\u2713{NC} {name}")
+    # Generate atomically: write to tempdir, then move on success
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        try:
+            generated = _generate_to_dir(registry, project_path, tmp)
+        except Exception as e:  # noqa: BLE001
+            print(f"{RED}Error during config generation: {e}{NC}", file=sys.stderr)
+            return False
+        for name in generated:
+            shutil.move(str(tmp / name), str(project_path / name))
+            print(f"  {GREEN}\u2713{NC} {name}")
 
     # Merge pyright into pyproject.toml (in-place only, not checkable)
     pyproject = project_path / "pyproject.toml"
