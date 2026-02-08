@@ -173,7 +173,11 @@ def run_generate_configs(
         return False
 
     # Load and validate
-    registry = ExceptionRegistry.load(registry_path)
+    try:
+        registry = ExceptionRegistry.load(registry_path)
+    except ValueError as e:
+        print(f"{RED}Error loading {REGISTRY_FILENAME}: {e}{NC}", file=sys.stderr)
+        return False
     errors = registry.validate()
     if errors:
         print(f"{RED}Validation errors in {REGISTRY_FILENAME}:{NC}", file=sys.stderr)

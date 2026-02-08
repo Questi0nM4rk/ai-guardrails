@@ -14,8 +14,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$SCRIPT_DIR/../lib"
 
-# Check if installed globally
-if [[ -d "$HOME/.ai-guardrails/lib/python" ]]; then
+# Use global install only if local repo path doesn't exist
+if [[ ! -d "$LIB_DIR/python" ]] && [[ -d "$HOME/.ai-guardrails/lib/python" ]]; then
   LIB_DIR="$HOME/.ai-guardrails/lib"
 fi
 

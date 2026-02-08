@@ -82,6 +82,9 @@ fi
 # Check if a line is allowlisted
 is_allowlisted() {
   local line_text="$1"
+  if [[ ${#ALLOWLIST_PATTERNS[@]} -eq 0 ]]; then
+    return 1
+  fi
   for allowed in "${ALLOWLIST_PATTERNS[@]}"; do
     if grep -qiE "$allowed" <<<"$line_text" 2>/dev/null; then
       return 0

@@ -141,6 +141,7 @@ CFG
 
   run bash "$HOOK_SCRIPT"
   [ "$status" -eq 1 ]
+  assert_contains "$output" ".flake8"
 }
 
 @test "fails when pyproject.toml adds reportMissing false" {
@@ -158,6 +159,7 @@ TOML
 
   run bash "$HOOK_SCRIPT"
   [ "$status" -eq 1 ]
+  assert_contains "$output" "pyproject.toml"
 }
 
 # =============================================================================

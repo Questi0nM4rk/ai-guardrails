@@ -9,16 +9,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Find the generate_configs.py script
+# Find the generate_configs.py script (prefer local repo over global install)
 GENERATE_SCRIPT=""
-if [[ -f "$HOME/.ai-guardrails/lib/python/generate_configs.py" ]]; then
-  GENERATE_SCRIPT="$HOME/.ai-guardrails/lib/python/generate_configs.py"
-elif [[ -f "$SCRIPT_DIR/../python/generate_configs.py" ]]; then
+if [[ -f "$SCRIPT_DIR/../python/generate_configs.py" ]]; then
   GENERATE_SCRIPT="$SCRIPT_DIR/../python/generate_configs.py"
+elif [[ -f "$HOME/.ai-guardrails/lib/python/generate_configs.py" ]]; then
+  GENERATE_SCRIPT="$HOME/.ai-guardrails/lib/python/generate_configs.py"
 fi
 
 if [[ -z "$GENERATE_SCRIPT" ]]; then
-  echo "Warning: generate_configs.py not found, skipping freshness check"
+  echo "Warning: generate_configs.py not found, skipping freshness check" >&2
   exit 0
 fi
 
