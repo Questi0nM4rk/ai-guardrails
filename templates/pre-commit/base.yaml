@@ -85,6 +85,19 @@ repos:
         files: '\.guardrails-exceptions\.toml$'
 
   # ===========================================================================
+  # CONFIG IGNORE PROTECTION - No direct ignore-pattern edits in config files
+  # ===========================================================================
+
+  - repo: local
+    hooks:
+      - id: detect-config-ignore-edits
+        name: "quality - no direct ignore-pattern edits"
+        entry: .ai-guardrails/hooks/detect-config-ignore-edits.sh
+        language: script
+        pass_filenames: false
+        files: '(pyproject\.toml|setup\.cfg|\.eslintrc|tsconfig\.json|\.flake8)$'
+
+  # ===========================================================================
   # COMMIT MESSAGE - CONVENTIONAL COMMITS REQUIRED
   # ===========================================================================
 

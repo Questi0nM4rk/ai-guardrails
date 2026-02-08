@@ -137,7 +137,7 @@ EOF
 
   [ "$status" -eq 0 ]
   assert_contains "$output" '"ask"'
-  assert_contains "$output" "ignore pattern"
+  assert_contains "$output" "Ignore pattern"
 }
 
 @test "prompts ask when adding eslint-disable to .eslintrc.json" {

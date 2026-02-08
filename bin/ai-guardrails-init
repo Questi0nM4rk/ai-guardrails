@@ -423,6 +423,44 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
     chmod +x ".ai-guardrails/hooks/validate-generated-configs.sh"
     echo -e "  ${GREEN}✓ validate-generated-configs.sh${NC}"
   fi
+  if [[ -f "$LIB_DIR/hooks/protect-generated-configs.sh" ]]; then
+    cp "$LIB_DIR/hooks/protect-generated-configs.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/protect-generated-configs.sh"
+    echo -e "  ${GREEN}✓ protect-generated-configs.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/detect-config-ignore-edits.sh" ]]; then
+    cp "$LIB_DIR/hooks/detect-config-ignore-edits.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/detect-config-ignore-edits.sh"
+    echo -e "  ${GREEN}✓ detect-config-ignore-edits.sh${NC}"
+  fi
+
+  # Install Claude Code PreToolUse hook for config protection
+  CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+  # shellcheck disable=SC2088  # Tilde is intentional - stored as literal for Claude Code's shell
+  HOOK_CMD="~/.ai-guardrails/hooks/protect-generated-configs.sh 2>/dev/null"
+  if [[ -f "$CLAUDE_SETTINGS" ]] && grep -q "protect-generated-configs" "$CLAUDE_SETTINGS" 2>/dev/null; then
+    echo -e "  ${YELLOW}⊘ Claude Code PreToolUse hook already installed${NC}"
+  else
+    # Build the new hook entry
+    HOOK_ENTRY='{"matcher":"Write|Edit","hooks":[{"type":"command","command":"'"$HOOK_CMD"'"}]}'
+    if [[ -f "$CLAUDE_SETTINGS" ]]; then
+      # Merge into existing settings
+      UPDATED="$(jq --argjson entry "$HOOK_ENTRY" '
+        .hooks.PreToolUse = (.hooks.PreToolUse // []) + [$entry]
+      ' "$CLAUDE_SETTINGS" 2>/dev/null)" || true
+      if [[ -n "$UPDATED" ]]; then
+        echo "$UPDATED" > "$CLAUDE_SETTINGS"
+        echo -e "  ${GREEN}✓ Claude Code PreToolUse hook installed${NC}"
+      else
+        echo -e "  ${YELLOW}⚠ Could not update Claude settings (jq error)${NC}"
+      fi
+    else
+      # Create new settings file
+      mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
+      jq -n --argjson entry "$HOOK_ENTRY" '{ hooks: { PreToolUse: [$entry] } }' > "$CLAUDE_SETTINGS"
+      echo -e "  ${GREEN}✓ Claude Code PreToolUse hook installed (created settings)${NC}"
+    fi
+  fi
 
   # Update pre-commit config to use local hook paths
   if [[ -f ".pre-commit-config.yaml" ]]; then
