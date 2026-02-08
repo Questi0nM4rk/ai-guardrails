@@ -331,9 +331,10 @@ fi
 
 echo
 
-# Always copy .editorconfig
+# Always copy .editorconfig and markdownlint config
 echo -e "${GREEN}Copying configs...${NC}"
 copy_config "$CONFIGS_DIR/.editorconfig" ".editorconfig"
+copy_config "$CONFIGS_DIR/.markdownlint.jsonc" ".markdownlint.jsonc"
 
 # Copy language-specific configs
 if [[ "$PROJECT_TYPE" == "all" ]]; then
@@ -405,17 +406,71 @@ if [[ "$SKIP_PRECOMMIT" == false ]]; then
     fi
   fi
 
-  # Copy format-and-stage.sh to project for local hook reference
+  # Copy hook scripts to project for local reference
   mkdir -p ".ai-guardrails/hooks"
+  # Copy shared constants first (sourced by other hooks)
+  if [[ -f "$LIB_DIR/hooks/guardrails-patterns.sh" ]]; then
+    cp "$LIB_DIR/hooks/guardrails-patterns.sh" ".ai-guardrails/hooks/"
+    echo -e "  ${GREEN}✓ guardrails-patterns.sh${NC}"
+  fi
   if [[ -f "$LIB_DIR/hooks/format-and-stage.sh" ]]; then
     cp "$LIB_DIR/hooks/format-and-stage.sh" ".ai-guardrails/hooks/"
     chmod +x ".ai-guardrails/hooks/format-and-stage.sh"
     echo -e "  ${GREEN}✓ format-and-stage.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/detect-suppression-comments.sh" ]]; then
+    cp "$LIB_DIR/hooks/detect-suppression-comments.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/detect-suppression-comments.sh"
+    echo -e "  ${GREEN}✓ detect-suppression-comments.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/validate-generated-configs.sh" ]]; then
+    cp "$LIB_DIR/hooks/validate-generated-configs.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/validate-generated-configs.sh"
+    echo -e "  ${GREEN}✓ validate-generated-configs.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/protect-generated-configs.sh" ]]; then
+    cp "$LIB_DIR/hooks/protect-generated-configs.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/protect-generated-configs.sh"
+    echo -e "  ${GREEN}✓ protect-generated-configs.sh${NC}"
+  fi
+  if [[ -f "$LIB_DIR/hooks/detect-config-ignore-edits.sh" ]]; then
+    cp "$LIB_DIR/hooks/detect-config-ignore-edits.sh" ".ai-guardrails/hooks/"
+    chmod +x ".ai-guardrails/hooks/detect-config-ignore-edits.sh"
+    echo -e "  ${GREEN}✓ detect-config-ignore-edits.sh${NC}"
+  fi
 
-    # Update pre-commit config to use the local path
-    if [[ -f ".pre-commit-config.yaml" ]]; then
-      sed_inplace 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml"
+  # Install Claude Code PreToolUse hook for config protection
+  CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+  # shellcheck disable=SC2088  # Tilde is intentional - stored as literal for Claude Code's shell
+  HOOK_CMD="~/.ai-guardrails/hooks/protect-generated-configs.sh 2>/dev/null"
+  if [[ -f "$CLAUDE_SETTINGS" ]] && grep -q "protect-generated-configs" "$CLAUDE_SETTINGS" 2>/dev/null; then
+    echo -e "  ${YELLOW}⊘ Claude Code PreToolUse hook already installed${NC}"
+  else
+    # Build the new hook entry
+    HOOK_ENTRY='{"matcher":"Write|Edit","hooks":[{"type":"command","command":"'"$HOOK_CMD"'"}]}'
+    if [[ -f "$CLAUDE_SETTINGS" ]]; then
+      # Merge into existing settings
+      UPDATED="$(jq --argjson entry "$HOOK_ENTRY" '
+        .hooks.PreToolUse = (.hooks.PreToolUse // []) + [$entry]
+      ' "$CLAUDE_SETTINGS" 2>/dev/null)" || true
+      if [[ -n "$UPDATED" ]]; then
+        echo "$UPDATED" >"$CLAUDE_SETTINGS"
+        echo -e "  ${GREEN}✓ Claude Code PreToolUse hook installed${NC}"
+      else
+        echo -e "  ${YELLOW}⚠ Could not update Claude settings (jq error)${NC}"
+      fi
+    else
+      # Create new settings file
+      mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
+      jq -n --argjson entry "$HOOK_ENTRY" '{ hooks: { PreToolUse: [$entry] } }' >"$CLAUDE_SETTINGS"
+      echo -e "  ${GREEN}✓ Claude Code PreToolUse hook installed (created settings)${NC}"
     fi
+  fi
+
+  # Update pre-commit config to use local hook paths
+  if [[ -f ".pre-commit-config.yaml" ]]; then
+    sed_inplace 's|entry: lib/hooks/format-and-stage.sh|entry: .ai-guardrails/hooks/format-and-stage.sh|g' ".pre-commit-config.yaml"
+    sed_inplace 's|entry: lib/hooks/detect-suppression-comments.sh|entry: .ai-guardrails/hooks/detect-suppression-comments.sh|g' ".pre-commit-config.yaml"
   fi
 
   # Install pre-commit hooks if available
@@ -453,6 +508,28 @@ if [[ -d ".git" ]]; then
   if ! grep -q "^\.ai-guardrails" .gitignore 2>/dev/null; then
     echo ".ai-guardrails/" >>.gitignore
     echo -e "  ${GREEN}✓ Added .ai-guardrails/ to .gitignore${NC}"
+  fi
+fi
+
+# Scaffold exception registry if not present
+EXCEPTIONS_FILE=".guardrails-exceptions.toml"
+EXCEPTIONS_TEMPLATE="$TEMPLATES_DIR/guardrails-exceptions.toml"
+if [[ ! -f "$EXCEPTIONS_FILE" || "$FORCE" == true ]]; then
+  if [[ -f "$EXCEPTIONS_TEMPLATE" ]]; then
+    cp "$EXCEPTIONS_TEMPLATE" "$EXCEPTIONS_FILE"
+    echo -e "${GREEN}✓ $EXCEPTIONS_FILE${NC}"
+  fi
+fi
+
+# Generate merged configs from exception registry
+if [[ -f "$EXCEPTIONS_FILE" ]]; then
+  GENERATE_SCRIPT="$LIB_DIR/python/generate_configs.py"
+  if [[ -f "$GENERATE_SCRIPT" ]]; then
+    if python3 "$GENERATE_SCRIPT"; then
+      echo -e "  ${GREEN}✓ Generated configs from exception registry${NC}"
+    else
+      echo -e "  ${YELLOW}⚠ Config generation failed (check .guardrails-exceptions.toml)${NC}"
+    fi
   fi
 fi
 

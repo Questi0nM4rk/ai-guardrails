@@ -24,7 +24,7 @@ INSTALL_DIR = Path.home() / ".ai-guardrails"
 BIN_DIR = Path.home() / ".local" / "bin"
 
 # Files to copy (relative to source root)
-BIN_SCRIPTS = ["ai-review-tasks", "ai-hooks-init", "ai-guardrails-init"]
+BIN_SCRIPTS = ["ai-review-tasks", "ai-hooks-init", "ai-guardrails-init", "ai-guardrails-generate"]
 HOOK_SCRIPTS = [
     "common.sh",
     "dangerous-command-check.sh",

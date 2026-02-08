@@ -36,6 +36,28 @@ case "$COMMAND" in
     echo -e "${RED}BLOCKED:${NC} Fork bomb detected"
     exit 2
     ;;
+  *'--no-verify'*)
+    echo -e "${RED}BLOCKED:${NC} --no-verify bypasses all pre-commit hooks and guardrails."
+    echo -e "  This is never allowed. Fix the issue that's causing hooks to fail."
+    exit 2
+    ;;
+  *'git commit'*' -n'*)
+    echo -e "${RED}BLOCKED:${NC} git commit -n is short for --no-verify."
+    echo -e "  This is never allowed. Fix the issue that's causing hooks to fail."
+    exit 2
+    ;;
+  *'--no-gpg-sign'*)
+    echo -e "${RED}BLOCKED:${NC} --no-gpg-sign bypasses commit signing."
+    exit 2
+    ;;
+  *'core.hooksPath=/dev/null'* | *'core.hooksPath='*)
+    echo -e "${RED}BLOCKED:${NC} Overriding core.hooksPath bypasses all git hooks."
+    exit 2
+    ;;
+  *'SKIP='*'pre-commit'* | *'PRE_COMMIT_ALLOW_NO_CONFIG'*)
+    echo -e "${RED}BLOCKED:${NC} Bypassing pre-commit via environment variables."
+    exit 2
+    ;;
 esac
 
 # Warning patterns (allow but warn)

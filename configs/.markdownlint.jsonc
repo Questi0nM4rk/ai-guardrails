@@ -1,0 +1,148 @@
+// Markdownlint Configuration
+// Philosophy: Only enforce rules that catch real issues, not formatting nitpicks.
+// Time-wasters are disabled. Substantive rules are enabled.
+{
+  "default": true,
+
+  // === DISABLED - Time wasters ===
+
+  // MD013: Line length - soft wraps are fine, editors handle this
+  "MD013": false,
+
+  // MD031: Fenced code blocks should be surrounded by blank lines
+  // Often triggers on valid markdown, manual blank line management is tedious
+  "MD031": false,
+
+  // MD032: Lists should be surrounded by blank lines
+  // Same issue - valid markdown often triggers this
+  "MD032": false,
+
+  // MD033: No inline HTML - we allow specific elements
+  // More permissive now - HTML is sometimes needed
+  "MD033": false,
+
+  // MD036: Emphasis used instead of heading
+  // False positives on bold text that isn't meant to be a heading
+  "MD036": false,
+
+  // MD040: Fenced code blocks should have a language specified
+  // Sometimes plain text blocks don't need a language
+  "MD040": false,
+
+  // MD041: First line should be a heading
+  // Not all markdown files start with headings (e.g., includes, partials)
+  "MD041": false,
+
+  // MD047: Files should end with a single newline
+  // Handled by other tools (end-of-file-fixer)
+  "MD047": false,
+
+  // MD060: Table column style (spacing around pipes)
+  // Auto-formatter can't fix this, cosmetic only, AI doesn't care
+  "MD060": false,
+
+  // === ENABLED - Actually useful ===
+
+  // MD001: Heading levels should only increment by one
+  "MD001": true,
+
+  // MD003: Heading style - use ATX style (#)
+  "MD003": { "style": "atx" },
+
+  // MD004: Unordered list style - use dashes
+  "MD004": { "style": "dash" },
+
+  // MD005: Consistent indentation for list items
+  "MD005": true,
+
+  // MD007: Unordered list indentation
+  "MD007": { "indent": 2 },
+
+  // MD009: Trailing spaces - handled by trailing-whitespace hook
+  "MD009": false,
+
+  // MD010: No hard tabs - handled by editorconfig
+  "MD010": false,
+
+  // MD011: Reversed link syntax [text](url) not (text)[url]
+  "MD011": true,
+
+  // MD012: Multiple consecutive blank lines
+  "MD012": { "maximum": 2 },
+
+  // MD014: Dollar signs in commands - cosmetic, AI doesn't care
+  "MD014": false,
+
+  // MD018: No space after hash on atx style heading
+  "MD018": true,
+
+  // MD019: Multiple spaces after hash on atx style heading
+  "MD019": true,
+
+  // MD022: Headings should be surrounded by blank lines
+  // Auto-formatter can't fix this, and AI reads markdown fine without it
+  "MD022": false,
+
+  // MD023: Headings must start at beginning of line
+  "MD023": true,
+
+  // MD024: Multiple headings with same content (siblings only)
+  "MD024": { "siblings_only": true },
+
+  // MD025: Single top-level heading (H1)
+  "MD025": { "level": 1 },
+
+  // MD026: Trailing punctuation in heading
+  "MD026": { "punctuation": ".,;:!?" },
+
+  // MD027: Multiple spaces after blockquote symbol
+  "MD027": true,
+
+  // MD028: Blank line inside blockquote
+  "MD028": true,
+
+  // MD029: Ordered list item prefix
+  "MD029": { "style": "ordered" },
+
+  // MD030: Spaces after list markers
+  "MD030": { "ul_single": 1, "ol_single": 1, "ul_multi": 1, "ol_multi": 1 },
+
+  // MD034: Bare URLs - should be in angle brackets or linked
+  "MD034": true,
+
+  // MD035: Horizontal rule style
+  "MD035": { "style": "---" },
+
+  // MD037: Spaces inside emphasis markers
+  "MD037": true,
+
+  // MD038: Spaces inside code span elements
+  "MD038": true,
+
+  // MD039: Spaces inside link text
+  "MD039": true,
+
+  // MD042: No empty links
+  "MD042": true,
+
+  // MD045: No alt text for images
+  "MD045": true,
+
+  // MD046: Code block style
+  "MD046": { "style": "fenced" },
+
+  // MD048: Code fence style
+  "MD048": { "style": "backtick" },
+
+  // MD049: Emphasis style - cosmetic, formatter can't fix
+  "MD049": false,
+
+  // MD050: Strong style - cosmetic, formatter can't fix
+  "MD050": false,
+
+  // MD051: Link fragments should be valid
+  "MD051": true,
+
+  // MD053: Link and image reference definitions should be needed
+  "MD053": true
+}
