@@ -70,7 +70,7 @@ Bats tests exist for functionality that's now Python. Migrate them to pytest.
 
 5. **Update `tests/bats/helpers.bash`**
    - Remove `run_init`, `INIT_SCRIPT` (no longer used)
-   - Keep `run_assemble` only if still referenced
+   - Remove `run_assemble`, `ASSEMBLE_MODULE` (bats assembly tests deleted)
 
 ---
 

@@ -10,8 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-import yaml
-from guardrails.assemble import detect_languages
+from guardrails.assemble import detect_languages, load_registry
 
 
 @pytest.fixture
@@ -19,10 +18,7 @@ def registry() -> dict[str, Any]:
     """Load the real language registry from configs/languages.yaml."""
     repo_root = Path(__file__).parent.parent
     registry_path = repo_root / "configs" / "languages.yaml"
-    with registry_path.open() as f:
-        data = yaml.safe_load(f)
-    assert isinstance(data, dict)
-    return data
+    return load_registry(registry_path)
 
 
 # =============================================================================
