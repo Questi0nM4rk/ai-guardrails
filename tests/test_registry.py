@@ -6,7 +6,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from registry import ExceptionRegistry
+from guardrails.registry import ExceptionRegistry
 
 
 @pytest.fixture

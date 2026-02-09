@@ -1,27 +1,15 @@
 #!/bin/bash
-# ============================================
-# ai-guardrails-generate
-# Generate tool configs from .guardrails-exceptions.toml
-#
-# Usage:
-#   ai-guardrails-generate              # Generate all configs
-#   ai-guardrails-generate --check      # Check if configs are up to date
-#   ai-guardrails-generate --dry-run    # Validate registry only
-# ============================================
+# Legacy wrapper — delegates to: ai-guardrails generate
+# Kept for backwards compatibility. Prefer 'ai-guardrails generate' directly.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$SCRIPT_DIR/../lib"
+LIB_PYTHON="$SCRIPT_DIR/../lib/python"
 
-# Use global install only if local repo path doesn't exist
-if [[ ! -d "$LIB_DIR/python" ]] && [[ -d "$HOME/.ai-guardrails/lib/python" ]]; then
-  LIB_DIR="$HOME/.ai-guardrails/lib"
+if [[ ! -d "$LIB_PYTHON/guardrails" ]] && [[ -d "$HOME/.ai-guardrails/lib/python/guardrails" ]]; then
+  LIB_PYTHON="$HOME/.ai-guardrails/lib/python"
 fi
 
-if [[ ! -f "$LIB_DIR/python/generate_configs.py" ]]; then
-  echo "Error: generate_configs.py not found. Run 'ai-guardrails-init' first." >&2
-  exit 1
-fi
-
-exec python3 "$LIB_DIR/python/generate_configs.py" "$@"
+export PYTHONPATH="$LIB_PYTHON:${PYTHONPATH:-}"
+exec python3 -m guardrails generate "$@"

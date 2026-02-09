@@ -6,12 +6,13 @@ import tomllib
 from typing import TYPE_CHECKING
 
 import tomli_w
-from generators import make_header
+
+from guardrails.generators import make_header
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from registry import ExceptionRegistry
+    from guardrails.registry import ExceptionRegistry
 
 HEADER = make_header() + "\n"
 

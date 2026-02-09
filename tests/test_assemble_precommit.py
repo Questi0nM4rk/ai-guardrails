@@ -10,8 +10,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-
-from lib.python.assemble_precommit import (
+from guardrails.assemble import (
     assemble_config,
     detect_languages,
     find_installation_paths,

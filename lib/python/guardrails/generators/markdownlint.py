@@ -6,12 +6,12 @@ import json
 import re
 from typing import TYPE_CHECKING
 
-from generators import make_header
+from guardrails.generators import make_header
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from registry import ExceptionRegistry
+    from guardrails.registry import ExceptionRegistry
 
 HEADER = make_header("//")
 

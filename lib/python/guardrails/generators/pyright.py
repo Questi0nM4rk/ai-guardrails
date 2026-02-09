@@ -9,7 +9,7 @@ import tomlkit
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from registry import ExceptionRegistry
+    from guardrails.registry import ExceptionRegistry
 
 
 def generate_pyright(

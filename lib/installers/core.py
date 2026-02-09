@@ -24,13 +24,22 @@ INSTALL_DIR = Path.home() / ".ai-guardrails"
 BIN_DIR = Path.home() / ".local" / "bin"
 
 # Files to copy (relative to source root)
-BIN_SCRIPTS = ["ai-review-tasks", "ai-hooks-init", "ai-guardrails-init", "ai-guardrails-generate"]
+BIN_SCRIPTS = [
+    "ai-guardrails",
+    "ai-guardrails-init",
+    "ai-guardrails-generate",
+    "ai-review-tasks",
+    "ai-hooks-init",
+]
 HOOK_SCRIPTS = [
-    "common.sh",
     "dangerous-command-check.sh",
+    "detect-config-ignore-edits.sh",
+    "detect-suppression-comments.sh",
+    "format-and-stage.sh",
     "pre-commit.sh",
     "pre-push.sh",
-    "format-and-stage.sh",
+    "protect-generated-configs.sh",
+    "validate-generated-configs.sh",
 ]
 
 
@@ -142,18 +151,34 @@ def copy_hook_scripts() -> None:
 
 @deploy("Copy Python library files")
 def copy_python_lib() -> None:
-    """Copy Python library files to installation directory."""
+    """Copy guardrails Python package to installation directory."""
     source_dir = get_source_dir()
-    py_src = source_dir / "lib" / "python"
+    pkg_src = source_dir / "lib" / "python" / "guardrails"
 
-    if py_src.exists():
-        for pyfile in py_src.glob("*.py"):
-            files.put(
-                name=f"Copy {pyfile.name}",
-                src=str(pyfile),
-                dest=str(INSTALL_DIR / "lib" / "python" / pyfile.name),
-                mode="644",
+    if not pkg_src.exists():
+        return
+
+    pkg_dst = INSTALL_DIR / "lib" / "python" / "guardrails"
+
+    for pyfile in pkg_src.rglob("*.py"):
+        rel = pyfile.relative_to(pkg_src)
+        dest = pkg_dst / rel
+
+        # Ensure parent directory exists
+        dest_parent = dest.parent
+        if dest_parent != pkg_dst:
+            files.directory(
+                name=f"Create {dest_parent}",
+                path=str(dest_parent),
+                present=True,
             )
+
+        files.put(
+            name=f"Copy guardrails/{rel}",
+            src=str(pyfile),
+            dest=str(dest),
+            mode="644",
+        )
 
 
 @deploy("Copy templates")

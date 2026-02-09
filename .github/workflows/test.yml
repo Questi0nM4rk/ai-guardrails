@@ -42,7 +42,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python dependencies
-        run: pip install pyyaml
+        run: pip install pyyaml tomli-w tomlkit
 
       - name: Install bats
         run: |
@@ -176,6 +176,8 @@ jobs:
         run: pip install pyyaml
 
       - name: Test language detection
+        env:
+          PYTHONPATH: lib/python
         run: |
           # Create test project
           mkdir -p /tmp/test-project
@@ -183,7 +185,7 @@ jobs:
           touch /tmp/test-project/go.mod
 
           # Run detection
-          output=$(python3 lib/python/assemble_precommit.py --project-dir /tmp/test-project --list-detected)
+          output=$(python3 -m guardrails.assemble --project-dir /tmp/test-project --list-detected)
           echo "$output"
 
           # Verify both languages detected
@@ -191,12 +193,14 @@ jobs:
           echo "$output" | grep -q "go" || (echo "Go not detected" && exit 1)
 
       - name: Test config generation
+        env:
+          PYTHONPATH: lib/python
         run: |
           rm -rf /tmp/test-project
           mkdir -p /tmp/test-project
           touch /tmp/test-project/pyproject.toml
 
-          python3 lib/python/assemble_precommit.py \
+          python3 -m guardrails.assemble \
             --project-dir /tmp/test-project \
             --output /tmp/test-project/.pre-commit-config.yaml
 
@@ -211,13 +215,15 @@ jobs:
           grep -q "mypy" /tmp/test-project/.pre-commit-config.yaml
 
       - name: Test multi-language config
+        env:
+          PYTHONPATH: lib/python
         run: |
           mkdir -p /tmp/multi-project
           touch /tmp/multi-project/pyproject.toml
           touch /tmp/multi-project/go.mod
           touch /tmp/multi-project/script.sh
 
-          python3 lib/python/assemble_precommit.py \
+          python3 -m guardrails.assemble \
             --project-dir /tmp/multi-project \
             --output /tmp/multi-project/.pre-commit-config.yaml
 

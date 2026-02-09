@@ -1,6 +1,6 @@
 [project]
 name = "ai-guardrails"
-version = "0.1.0"
+version = "0.2.0"
 description = "Pedantic code enforcement for AI-maintained repositories"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -37,13 +37,24 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "lib/python"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["lib/installers", "lib/python"]
+source = ["lib/installers", "lib/python/guardrails"]
 branch = true
+omit = [
+  # Tested via bats integration tests; unit tests planned in polish PR
+  "lib/python/guardrails/hooks/*",
+  "lib/python/guardrails/init.py",
+  "lib/python/guardrails/cli.py",
+  "lib/python/guardrails/__main__.py",
+  # Infrastructure modules — unit tests planned in polish PR (sections 3-5)
+  "lib/python/guardrails/_paths.py",
+  "lib/python/guardrails/generate.py",
+  "lib/python/guardrails/coderabbit.py",
+]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -96,13 +107,32 @@ ignore = [
   "UP036",
   "PLW0603",
 ] # print, UP036, global statement (pyinfra pattern)
-"lib/python/assemble_precommit.py" = [
+"lib/python/guardrails/init.py" = [
+  "PLR0913", # run_init() has many keyword-only args by design
+  "S603",    # subprocess calls with fixed args are safe
+  "S607",    # partial paths (git, pre-commit, uv) are intentional
+  "BLE001",  # broad exception in _resolve_languages - fallback for auto-detection
+]
+"lib/python/guardrails/assemble.py" = [
   "PLR0911",
 ] # main() needs many returns for error handling
-"lib/python/coderabbit_parser.py" = [
-  "PLR0911",
-  "PLW2901",
-] # main() returns, loop var reassignment ok
+"lib/python/guardrails/hooks/protect_configs.py" = [
+  "PLR0911", # main() needs multiple early returns for each check
+]
+"lib/python/guardrails/hooks/format_stage.py" = [
+  "S603", # subprocess calls with fixed args are safe
+  "S607", # partial paths (git, formatters) are intentional
+]
+"lib/python/guardrails/hooks/config_ignore.py" = [
+  "S603", # subprocess calls with fixed git args are safe
+  "S607", # partial paths (git) are intentional
+]
+"lib/python/guardrails/coderabbit.py" = [
+  "PLR0911", # main() needs many returns for error handling
+  "PLW2901", # loop var reassignment ok
+  "S603",    # subprocess calls with fixed gh args are safe
+  "S607",    # partial paths (gh) are intentional
+]
 
 [tool.codespell]
 ignore-words-list = "brin,crate"

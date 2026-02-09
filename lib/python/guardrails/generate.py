@@ -4,7 +4,7 @@ Orchestrates config generation by merging base templates (from ai-guardrails)
 with project-specific exceptions (from .guardrails-exceptions.toml).
 
 Usage:
-    python3 generate_configs.py [project_dir] [--dry-run] [--check]
+    python3 -m guardrails.generate [project_dir] [--dry-run] [--check]
 """
 
 from __future__ import annotations
@@ -16,57 +16,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-from generators.allowlist import generate_allowlist
-from generators.biome import generate_biome
-from generators.codespell import generate_codespell
-from generators.markdownlint import generate_markdownlint
-from generators.pyright import generate_pyright
-from generators.ruff import generate_ruff
-from registry import ExceptionRegistry
-
-REGISTRY_FILENAME = ".guardrails-exceptions.toml"
-
-# ANSI colors (consistent with ai-guardrails bash scripts)
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-BOLD = "\033[1m"
-NC = "\033[0m"
-
-
-def _find_configs_dir() -> Path:
-    """Find the ai-guardrails configs directory.
-
-    Checks:
-        1. Global installation (~/.ai-guardrails/configs/)
-        2. Repo-relative (for development)
-
-    Raises:
-        FileNotFoundError: If no configs directory found.
-
-    """
-    # Check global installation
-    global_configs = Path.home() / ".ai-guardrails" / "configs"
-    if global_configs.exists():
-        return global_configs
-
-    # Check repo-relative (lib/python/ -> lib/ -> repo root)
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent.parent
-    local_configs = repo_root / "configs"
-    if local_configs.exists():
-        return local_configs
-
-    msg = "Could not find ai-guardrails configs directory"
-    raise FileNotFoundError(msg)
-
-
-def _find_base(name: str, local_configs: Path, global_configs: Path) -> Path | None:
-    """Find a base template, preferring project-local over global."""
-    for d in [local_configs, global_configs]:
-        p = d / name
-        if p.exists():
-            return p
-    return None
+from guardrails._paths import find_base_config
+from guardrails.constants import BOLD, GREEN, NC, RED, REGISTRY_FILENAME
+from guardrails.generators.allowlist import generate_allowlist
+from guardrails.generators.biome import generate_biome
+from guardrails.generators.codespell import generate_codespell
+from guardrails.generators.markdownlint import generate_markdownlint
+from guardrails.generators.pyright import generate_pyright
+from guardrails.generators.ruff import generate_ruff
+from guardrails.registry import ExceptionRegistry
 
 
 def _generate_to_dir(
@@ -80,25 +38,19 @@ def _generate_to_dir(
         List of generated filenames.
 
     """
-    local_configs = project_path / "configs"
-    try:
-        global_configs = _find_configs_dir()
-    except FileNotFoundError:
-        global_configs = Path("/nonexistent")
-
     generated: list[str] = []
 
-    base_ruff = _find_base("ruff.toml", local_configs, global_configs)
+    base_ruff = find_base_config("ruff.toml", project_path)
     if base_ruff:
         generate_ruff(registry, base_ruff, output_dir / "ruff.toml")
         generated.append("ruff.toml")
 
-    base_biome = _find_base("biome.json", local_configs, global_configs)
+    base_biome = find_base_config("biome.json", project_path)
     if base_biome:
         generate_biome(registry, base_biome, output_dir / "biome.json")
         generated.append("biome.json")
 
-    base_mdlint = _find_base(".markdownlint.jsonc", local_configs, global_configs)
+    base_mdlint = find_base_config(".markdownlint.jsonc", project_path)
     if base_mdlint:
         generate_markdownlint(registry, base_mdlint, output_dir / ".markdownlint.jsonc")
         generated.append(".markdownlint.jsonc")
