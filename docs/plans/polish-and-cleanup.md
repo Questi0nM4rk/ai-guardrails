@@ -112,8 +112,9 @@ writes proper pytest coverage and removes the exclusions.
 
 6. **Note**: `test_init.py` was deferred — `init.py` remains in coverage omit
 
-7. **Remove all coverage omit entries** from `pyproject.toml`
-   - Delete the entire `omit = [...]` block
+7. **Remove coverage omit entries** from `pyproject.toml`
+   - Remove all entries except `init.py` and `__main__.py` (those remain until `test_init.py` is added)
+   - Track remaining omit removals in Phase 5 once init is fully tested
    - Verify `--cov-fail-under=85` still passes
 
 ---
