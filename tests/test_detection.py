@@ -27,6 +27,8 @@ def registry() -> dict[str, Any]:
 
 
 class TestPythonDetection:
+    """Detect Python from pyproject.toml, setup.py, requirements.txt, *.py."""
+
     def test_detects_from_pyproject_toml(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "pyproject.toml").touch()
         result = detect_languages(tmp_path, registry)
@@ -54,6 +56,8 @@ class TestPythonDetection:
 
 
 class TestRustDetection:
+    """Detect Rust from Cargo.toml, *.rs."""
+
     def test_detects_from_cargo_toml(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "Cargo.toml").touch()
         result = detect_languages(tmp_path, registry)
@@ -71,6 +75,8 @@ class TestRustDetection:
 
 
 class TestGoDetection:
+    """Detect Go from go.mod, go.sum, *.go."""
+
     def test_detects_from_go_mod(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "go.mod").touch()
         result = detect_languages(tmp_path, registry)
@@ -93,6 +99,8 @@ class TestGoDetection:
 
 
 class TestNodeDetection:
+    """Detect Node/TypeScript from package.json, tsconfig.json, *.ts, *.js, *.tsx."""
+
     def test_detects_from_package_json(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "package.json").touch()
         result = detect_languages(tmp_path, registry)
@@ -125,6 +133,8 @@ class TestNodeDetection:
 
 
 class TestDotnetDetection:
+    """Detect .NET from *.csproj, *.sln."""
+
     def test_detects_from_csproj_files(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "Project.csproj").touch()
         result = detect_languages(tmp_path, registry)
@@ -142,6 +152,8 @@ class TestDotnetDetection:
 
 
 class TestCppDetection:
+    """Detect C/C++ from CMakeLists.txt, *.cpp, *.c."""
+
     def test_detects_from_cmakelists(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "CMakeLists.txt").touch()
         result = detect_languages(tmp_path, registry)
@@ -164,6 +176,8 @@ class TestCppDetection:
 
 
 class TestLuaDetection:
+    """Detect Lua from *.lua, *.rockspec, lua/ directory."""
+
     def test_detects_from_lua_files(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "init.lua").touch()
         result = detect_languages(tmp_path, registry)
@@ -186,6 +200,8 @@ class TestLuaDetection:
 
 
 class TestShellDetection:
+    """Detect Shell from *.sh, *.bash."""
+
     def test_detects_from_sh_files(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "script.sh").touch()
         result = detect_languages(tmp_path, registry)
@@ -203,6 +219,8 @@ class TestShellDetection:
 
 
 class TestMultiLanguageDetection:
+    """Detect multiple languages from mixed project markers."""
+
     def test_detects_python_and_node(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         (tmp_path / "pyproject.toml").touch()
         (tmp_path / "package.json").touch()
@@ -226,6 +244,8 @@ class TestMultiLanguageDetection:
 
 
 class TestNoDetection:
+    """Empty or unrecognized directories yield no detected languages."""
+
     def test_empty_directory_returns_empty(self, tmp_path: Path, registry: dict[str, Any]) -> None:
         result = detect_languages(tmp_path, registry)
         assert result == []

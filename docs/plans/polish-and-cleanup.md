@@ -7,7 +7,7 @@ CLI scripts into a proper `guardrails` Python package. This plan covers
 everything needed to make the project production-quality.
 
 **Current state**: 3725 lines of Python, 1799 lines of bats tests (to be
-replaced), 159 pytest tests at 94% coverage (but only because 7 modules are
+replaced), 211 pytest tests at 94% coverage (but only because 7 modules are
 excluded from measurement).
 
 ## GetShitDone Framework
