@@ -192,5 +192,5 @@ writes proper pytest coverage and removes the exclusions.
 | 4 | `feat/polish-phase4` | Zero bats, pyright clean, CI updated | #23 |
 | 5 | `feat/polish-phase5` | Docs updated, dead code removed, 90%+ coverage | #24 |
 
-**Actual execution**: Each phase was implemented as a separate PR (#20–#23)
+**Actual execution**: Each phase was implemented as a separate PR (#20–#24)
 on stacked branches. Phases were developed sequentially using git worktrees.

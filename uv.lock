@@ -22,7 +22,7 @@ dev = [
 ]
 
 [package.dev-dependencies]
-dev = [
+type-check = [
     { name = "pyright" },
 ]
 
@@ -40,7 +40,7 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pyright", specifier = ">=1.1.408" }]
+type-check = [{ name = "pyright", specifier = ">=1.1.408" }]
 
 [[package]]
 name = "annotated-types"

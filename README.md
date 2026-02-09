@@ -369,7 +369,7 @@ ai-guardrails/
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - [pre-commit](https://pre-commit.com/)
 - Language-specific tools (installed automatically by pre-commit):
   - Python: ruff, mypy, bandit, pip-audit
