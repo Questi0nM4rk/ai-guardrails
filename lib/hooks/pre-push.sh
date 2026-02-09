@@ -1,16 +1,11 @@
 #!/bin/bash
 # ============================================
 # AI Guardrails Pre-Push Hook
-# Runs before any git push
+# Runs security scan and full test suite before push.
 # ============================================
 set -euo pipefail
 
-# Source common functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/hooks/common.sh
-source "$SCRIPT_DIR/common.sh"
-
-echo "Running pre-push checks..."
+checks_ran=0
 
 # Security scan with semgrep (if available)
 if command -v semgrep &>/dev/null; then
@@ -20,14 +15,21 @@ if command -v semgrep &>/dev/null; then
     exit 1
   fi
   echo "  Security scan passed"
+  checks_ran=1
 fi
 
-# Run full test suite (verbose mode)
-echo "  Running full test suite..."
-run_all_tests "" || {
-  echo "  Tests failed! Fix before pushing."
-  exit 1
-}
+# Run pre-commit framework (full suite)
+if command -v pre-commit &>/dev/null; then
+  echo "  Running pre-commit checks..."
+  pre-commit run --all-files --hook-stage pre-push || {
+    echo "  Pre-push checks failed!"
+    exit 1
+  }
+  checks_ran=1
+fi
 
-echo "Pre-push checks passed"
-exit 0
+if [[ $checks_ran -eq 1 ]]; then
+  echo "Pre-push checks passed"
+else
+  echo "Warning: No pre-push tools found (semgrep, pre-commit). Install at least one." >&2
+fi

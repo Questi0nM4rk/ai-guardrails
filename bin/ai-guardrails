@@ -1,6 +1,6 @@
 #!/bin/bash
-# Legacy wrapper — delegates to: ai-guardrails init
-# Kept for backwards compatibility. Prefer 'ai-guardrails init' directly.
+# Unified CLI entry point for ai-guardrails
+# All logic lives in Python — this shim sets PYTHONPATH and delegates.
 
 set -euo pipefail
 
@@ -12,4 +12,4 @@ if [[ ! -d "$LIB_PYTHON/guardrails" ]] && [[ -d "$HOME/.ai-guardrails/lib/python
 fi
 
 export PYTHONPATH="$LIB_PYTHON:${PYTHONPATH:-}"
-exec python3 -m guardrails init "$@"
+exec python3 -m guardrails "$@"

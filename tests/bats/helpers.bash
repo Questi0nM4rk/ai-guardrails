@@ -10,9 +10,9 @@
 REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 export REPO_ROOT
 
-# Assembly script path
-ASSEMBLE_SCRIPT="$REPO_ROOT/lib/python/assemble_precommit.py"
-export ASSEMBLE_SCRIPT
+# Assembly module (invoke via python -m)
+ASSEMBLE_MODULE="guardrails.assemble"
+export ASSEMBLE_MODULE
 
 # CLI script path
 INIT_SCRIPT="$REPO_ROOT/bin/ai-guardrails-init"
@@ -46,9 +46,9 @@ create_file() {
   fi
 }
 
-# Run the assembly script with test directory
+# Run the assembly module with test directory
 run_assemble() {
-  python3 "$ASSEMBLE_SCRIPT" --project-dir "$TEST_DIR" "$@"
+  PYTHONPATH="$REPO_ROOT/lib/python:${PYTHONPATH:-}" python3 -m "$ASSEMBLE_MODULE" --project-dir "$TEST_DIR" "$@"
 }
 
 # Run the init script in test directory

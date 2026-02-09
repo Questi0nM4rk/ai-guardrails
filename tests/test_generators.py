@@ -8,7 +8,7 @@ from pathlib import Path
 from textwrap import dedent
 
 import pytest
-from registry import ExceptionRegistry
+from guardrails.registry import ExceptionRegistry
 
 
 @pytest.fixture
@@ -151,7 +151,7 @@ class TestRuffGenerator:
         base_ruff_toml: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.ruff import generate_ruff
+        from guardrails.generators.ruff import generate_ruff
 
         output = tmp_path / "output" / "ruff.toml"
         generate_ruff(registry, base_ruff_toml, output)
@@ -171,7 +171,7 @@ class TestRuffGenerator:
         base_ruff_toml: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.ruff import generate_ruff
+        from guardrails.generators.ruff import generate_ruff
 
         output = tmp_path / "output" / "ruff.toml"
         generate_ruff(registry, base_ruff_toml, output)
@@ -191,7 +191,7 @@ class TestRuffGenerator:
         base_ruff_toml: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.ruff import generate_ruff
+        from guardrails.generators.ruff import generate_ruff
 
         output = tmp_path / "output" / "ruff.toml"
         generate_ruff(registry, base_ruff_toml, output)
@@ -210,7 +210,7 @@ class TestRuffGenerator:
         base_ruff_toml: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.ruff import generate_ruff
+        from guardrails.generators.ruff import generate_ruff
 
         output = tmp_path / "output" / "ruff.toml"
         generate_ruff(registry, base_ruff_toml, output)
@@ -231,7 +231,7 @@ class TestBiomeGenerator:
         base_biome_json: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.biome import generate_biome
+        from guardrails.generators.biome import generate_biome
 
         output = tmp_path / "output" / "biome.json"
         generate_biome(registry, base_biome_json, output)
@@ -253,7 +253,7 @@ class TestBiomeGenerator:
         base_biome_json: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.biome import generate_biome
+        from guardrails.generators.biome import generate_biome
 
         output = tmp_path / "output" / "biome.json"
         generate_biome(registry, base_biome_json, output)
@@ -274,7 +274,7 @@ class TestMarkdownlintGenerator:
         base_markdownlint: Path,
         tmp_path: Path,
     ) -> None:
-        from generators.markdownlint import generate_markdownlint
+        from guardrails.generators.markdownlint import generate_markdownlint
 
         output = tmp_path / "output" / ".markdownlint.jsonc"
         generate_markdownlint(registry, base_markdownlint, output)
@@ -301,7 +301,7 @@ class TestCodespellGenerator:
         registry: ExceptionRegistry,
         tmp_path: Path,
     ) -> None:
-        from generators.codespell import generate_codespell
+        from guardrails.generators.codespell import generate_codespell
 
         output = tmp_path / ".codespellrc"
         generate_codespell(registry, output)
@@ -326,7 +326,7 @@ class TestAllowlistGenerator:
         registry: ExceptionRegistry,
         tmp_path: Path,
     ) -> None:
-        from generators.allowlist import generate_allowlist
+        from guardrails.generators.allowlist import generate_allowlist
 
         output = tmp_path / ".suppression-allowlist"
         generate_allowlist(registry, output)
@@ -341,7 +341,7 @@ class TestAllowlistGenerator:
         registry: ExceptionRegistry,
         tmp_path: Path,
     ) -> None:
-        from generators.allowlist import generate_allowlist
+        from guardrails.generators.allowlist import generate_allowlist
 
         output = tmp_path / ".suppression-allowlist"
         generate_allowlist(registry, output)
@@ -354,7 +354,7 @@ class TestAllowlistGenerator:
         registry: ExceptionRegistry,
         tmp_path: Path,
     ) -> None:
-        from generators.allowlist import generate_allowlist
+        from guardrails.generators.allowlist import generate_allowlist
 
         output = tmp_path / ".suppression-allowlist"
         generate_allowlist(registry, output)
@@ -374,7 +374,7 @@ class TestPyrightGenerator:
         registry: ExceptionRegistry,
         tmp_path: Path,
     ) -> None:
-        from generators.pyright import generate_pyright
+        from guardrails.generators.pyright import generate_pyright
 
         pyproject = tmp_path / "pyproject.toml"
         pyproject.write_text(
@@ -462,7 +462,7 @@ class TestFreshnessCheck:
         return project
 
     def test_check_passes_when_fresh(self, tmp_path: Path) -> None:
-        from generate_configs import run_generate_configs
+        from guardrails.generate import run_generate_configs
 
         project = self._setup_project(tmp_path)
 
@@ -473,7 +473,7 @@ class TestFreshnessCheck:
         assert run_generate_configs(str(project), check=True) is True
 
     def test_check_fails_when_stale(self, tmp_path: Path) -> None:
-        from generate_configs import run_generate_configs
+        from guardrails.generate import run_generate_configs
 
         project = self._setup_project(tmp_path)
 
@@ -488,7 +488,7 @@ class TestFreshnessCheck:
         assert run_generate_configs(str(project), check=True) is False
 
     def test_check_fails_when_missing(self, tmp_path: Path) -> None:
-        from generate_configs import run_generate_configs
+        from guardrails.generate import run_generate_configs
 
         project = self._setup_project(tmp_path)
 

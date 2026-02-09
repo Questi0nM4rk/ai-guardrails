@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 r"""CodeRabbit review parser.
 
 Parses CodeRabbit feedback from two sources:
@@ -127,9 +126,9 @@ def extract_severity(body: str) -> Severity:
     first_line = body.split("\n", maxsplit=1)[0] if body else ""
     first_line_lower = first_line.lower()
 
-    if "🟠" in first_line or "major" in first_line_lower:
+    if "\U0001f7e0" in first_line or "major" in first_line_lower:
         return Severity.MAJOR
-    if "🟡" in first_line or "minor" in first_line_lower:
+    if "\U0001f7e1" in first_line or "minor" in first_line_lower:
         return Severity.MINOR
     return Severity.SUGGESTION
 
@@ -579,6 +578,36 @@ def generate_output(tasks: list[Task]) -> dict:
     return {"tasks": [t.to_dict() for t in tasks], "summary": summary}
 
 
+def _filter_by_severity(output: dict, severity: str) -> dict:
+    """Filter tasks by minimum severity and recalculate summary.
+
+    Args:
+        output: Output dict with "tasks" and "summary" keys.
+        severity: Minimum severity level ("major", "minor", "suggestion").
+
+    Returns:
+        Modified output dict with filtered tasks and recalculated summary.
+
+    """
+    severity_order = ["major", "minor", "suggestion"]
+    min_idx = severity_order.index(severity)
+    output["tasks"] = [t for t in output["tasks"] if severity_order.index(t["severity"]) <= min_idx]
+    filtered = output["tasks"]
+    by_file: Counter[str] = Counter()
+    for t in filtered:
+        by_file[t["file"]] += 1
+    output["summary"] = {
+        "total": len(filtered),
+        "by_severity": {s: sum(1 for t in filtered if t["severity"] == s) for s in severity_order},
+        "by_source": {
+            s: sum(1 for t in filtered if t["source"] == s)
+            for s in ("thread", "nitpick", "outside_diff")
+        },
+        "by_file": dict(by_file),
+    }
+    return output
+
+
 def dedup_key(task: Task) -> tuple[str, int, str]:
     """Generate deduplication key for a task.
 
@@ -659,6 +688,175 @@ def parse_input(input_file: TextIO) -> dict:
     return generate_output(all_tasks)
 
 
+def run_review(
+    *,
+    pr: int | None = None,
+    pretty: bool = False,
+    severity: str | None = None,
+) -> int:
+    """Fetch CodeRabbit review comments and output structured tasks.
+
+    Calls ``gh`` CLI to fetch review threads and bodies, then parses them.
+
+    Args:
+        pr: PR number (default: current branch's PR).
+        pretty: Pretty-print JSON output.
+        severity: Filter by minimum severity (major, minor, suggestion).
+
+    Returns:
+        Exit code (0 success, 1 error).
+
+    """
+    import io
+    import subprocess
+
+    # Get PR number if not specified
+    if pr is None:
+        result = subprocess.run(
+            ["gh", "pr", "view", "--json", "number", "--jq", ".number"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            print("Error: No PR found for current branch. Use --pr NUMBER", file=sys.stderr)
+            return 1
+        try:
+            pr = int(result.stdout.strip())
+        except ValueError:
+            print(
+                f"Error: Unexpected PR number format: {result.stdout.strip()!r}",
+                file=sys.stderr,
+            )
+            return 1
+
+    # Get repo owner and name
+    result = subprocess.run(
+        ["gh", "repo", "view", "--json", "owner,name", "--jq", r'"\(.owner.login) \(.name)"'],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print("Error: Could not determine repository info", file=sys.stderr)
+        return 1
+    parts = result.stdout.strip().split()
+    expected_parts = 2
+    if len(parts) != expected_parts:
+        print("Error: Unexpected repo info format", file=sys.stderr)
+        return 1
+    owner, repo = parts
+
+    # GraphQL query for review threads
+    query = """
+    query($owner: String!, $repo: String!, $pr: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pr) {
+          reviewThreads(first: 100) {
+            nodes {
+              isResolved
+              comments(first: 1) {
+                nodes {
+                  author { login }
+                  body
+                  path
+                  line
+                  startLine
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    """
+
+    # Fetch review threads via GraphQL
+    jq_filter = (
+        ".data.repository.pullRequest.reviewThreads.nodes"
+        " | map(select("
+        "    .isResolved == false"
+        '    and (.comments.nodes[0].author.login | ascii_downcase | contains("coderabbit"))'
+        "  ))"
+        " | map({"
+        "    path: .comments.nodes[0].path,"
+        "    line: .comments.nodes[0].line,"
+        "    startLine: .comments.nodes[0].startLine,"
+        "    body: .comments.nodes[0].body"
+        "  })"
+    )
+    result = subprocess.run(
+        [
+            "gh",
+            "api",
+            "graphql",
+            "-f",
+            f"query={query}",
+            "-f",
+            f"owner={owner}",
+            "-f",
+            f"repo={repo}",
+            "-F",
+            f"pr={pr}",
+            "--jq",
+            jq_filter,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print("Warning: Failed to fetch review threads via GraphQL", file=sys.stderr)
+    threads_json = result.stdout.strip() if result.returncode == 0 else "[]"
+
+    # Fetch review bodies
+    result = subprocess.run(
+        [
+            "gh",
+            "pr",
+            "view",
+            str(pr),
+            "--json",
+            "reviews",
+            "--jq",
+            "[.reviews[]"
+            ' | select(.author.login | ascii_downcase | contains("coderabbit"))'
+            " | .body]",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        print("Warning: Failed to fetch review bodies", file=sys.stderr)
+    bodies_json = result.stdout.strip() if result.returncode == 0 else "[]"
+
+    # Combine and parse
+    try:
+        combined = json.dumps(
+            {
+                "threads": json.loads(threads_json),
+                "review_bodies": json.loads(bodies_json),
+            }
+        )
+        output = parse_input(io.StringIO(combined))
+    except (json.JSONDecodeError, KeyError) as e:
+        print(f"Error parsing review data: {e}", file=sys.stderr)
+        return 1
+
+    # Filter by severity if requested
+    if severity:
+        severity_order = ["major", "minor", "suggestion"]
+        if severity not in severity_order:
+            print(f"Error: Invalid severity '{severity}'", file=sys.stderr)
+            return 1
+        output = _filter_by_severity(output, severity)
+
+    indent = 2 if pretty else None
+    print(json.dumps(output, indent=indent))
+    return 0
+
+
 def main() -> None:
     """CLI entry point."""
     import argparse
@@ -689,30 +887,7 @@ def main() -> None:
 
         # Filter by severity if requested
         if args.severity:
-            severity_order = ["major", "minor", "suggestion"]
-            min_idx = severity_order.index(args.severity)
-            result["tasks"] = [
-                t for t in result["tasks"] if severity_order.index(t["severity"]) <= min_idx
-            ]
-            # Recalculate summary
-            filtered = result["tasks"]
-            by_file: Counter[str] = Counter()
-            for t in filtered:
-                by_file[t["file"]] += 1
-            result["summary"] = {
-                "total": len(filtered),
-                "by_severity": {
-                    "major": sum(1 for t in filtered if t["severity"] == "major"),
-                    "minor": sum(1 for t in filtered if t["severity"] == "minor"),
-                    "suggestion": sum(1 for t in filtered if t["severity"] == "suggestion"),
-                },
-                "by_source": {
-                    "thread": sum(1 for t in filtered if t["source"] == "thread"),
-                    "nitpick": sum(1 for t in filtered if t["source"] == "nitpick"),
-                    "outside_diff": sum(1 for t in filtered if t["source"] == "outside_diff"),
-                },
-                "by_file": dict(by_file),
-            }
+            result = _filter_by_severity(result, args.severity)
 
         indent = 2 if args.pretty else None
         print(json.dumps(result, indent=indent))
