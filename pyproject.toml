@@ -44,17 +44,7 @@ addopts = "-v --tb=short"
 [tool.coverage.run]
 source = ["lib/installers", "lib/python/guardrails"]
 branch = true
-omit = [
-  # Tested via bats integration tests; unit tests planned in polish PR
-  "lib/python/guardrails/hooks/*",
-  "lib/python/guardrails/init.py",
-  "lib/python/guardrails/cli.py",
-  "lib/python/guardrails/__main__.py",
-  # Infrastructure modules — unit tests planned in polish PR (sections 3-5)
-  "lib/python/guardrails/_paths.py",
-  "lib/python/guardrails/generate.py",
-  "lib/python/guardrails/coderabbit.py",
-]
+omit = ["lib/python/guardrails/init.py", "lib/python/guardrails/__main__.py"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -91,7 +81,9 @@ ignore = [
   "PLC0415",
   "F811",
   "ARG001",
+  "ARG002",  # unused method argument (needed for @patch-injected mocks)
   "ARG005",  # unused lambda argument (needed for mock side_effect signatures)
+  "PT019",   # @patch-injected mocks look like unused fixtures to ruff
   "PLR2004",
   "SIM108",
   "ERA001",

@@ -801,7 +801,7 @@ class TestAssemblyIntegration:
 
     def test_all_languages(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
         """Assembly with all languages includes hooks for every language."""
-        all_langs = ["python", "rust", "dotnet", "cpp", "lua", "node", "go", "shell"]
+        all_langs = list(real_registry.keys())
         config = assemble_config(all_langs, real_registry, real_templates_dir)
         hook_ids = _get_all_hook_ids(config)
 
