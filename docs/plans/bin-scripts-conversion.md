@@ -1,6 +1,6 @@
 # Plan: Convert bin/ Scripts from Bash to Python/Lua
 
-## Status: Planned
+## Status: COMPLETE (PR #19 — feat/python-rewrite)
 
 ## Overview
 
