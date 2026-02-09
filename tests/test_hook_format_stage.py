@@ -164,7 +164,7 @@ class TestMain:
         f.write_text("x = 1\n")
         mock_staged.return_value = [str(f)]
 
-        def change_file(cmd: list[str], filepath: str) -> None:
+        def change_file(_cmd: list[str], filepath: str) -> None:
             Path(filepath).write_text("x = 1  # formatted\n")
 
         with patch("guardrails.hooks.format_stage._run_formatter", side_effect=change_file):

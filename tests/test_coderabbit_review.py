@@ -136,8 +136,11 @@ class TestRunReviewSuccess:
         result = run_review(pr=1, pretty=True)
         assert result == 0
         captured = capsys.readouterr()
-        assert "\n" in captured.out
-        assert "  " in captured.out
+        output = json.loads(captured.out)
+        assert output["summary"]["total"] == 0
+        # Pretty-printed JSON starts with {\n and contains indentation
+        assert captured.out.startswith("{\n")
+        assert json.dumps(output, indent=2) + "\n" == captured.out
 
 
 class TestRunReviewSeverityFilter:

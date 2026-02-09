@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
+from guardrails import __version__
 from guardrails.cli import _get_version, main
 
 
@@ -13,13 +14,13 @@ class TestVersion:
 
     def test_returns_version_string(self) -> None:
         version = _get_version()
-        assert version == "0.2.0"
+        assert version == __version__
 
     def test_version_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
         with pytest.raises(SystemExit, match="0"):
             main(["--version"])
         captured = capsys.readouterr()
-        assert "0.2.0" in captured.out
+        assert __version__ in captured.out
 
 
 class TestSubcommandRequired:

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import patch
 
+import pytest
 from guardrails.hooks.suppress_comments import (
     _infer_extension,
     _is_allowlisted,
@@ -13,9 +14,6 @@ from guardrails.hooks.suppress_comments import (
     _load_allowlist,
     main,
 )
-
-if TYPE_CHECKING:
-    import pytest
 
 
 class TestIsTestFile:
@@ -164,9 +162,14 @@ class TestMain:
     """Test the main() entry point for suppression detection.
 
     Note: pytest tmp_path names contain "test_" which triggers _is_test_file().
-    We mock _is_test_file to return False so we can test suppression detection
-    on files that we know are not test files (by their filename).
+    An autouse fixture mocks _is_test_file to return False so we can test
+    suppression detection on files without path-based false positives.
     """
+
+    @pytest.fixture(autouse=True)
+    def _bypass_test_file_detection(self) -> Iterator[None]:
+        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
+            yield
 
     def test_no_files_returns_0(self) -> None:
         assert main([]) == 0
@@ -174,39 +177,27 @@ class TestMain:
     def test_clean_file_returns_0(self, tmp_path: Path) -> None:
         f = tmp_path / "clean.py"
         f.write_text("x = 1\ny = 2\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 0
+        assert main([str(f)]) == 0
 
     def test_noqa_in_python_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.py"
         f.write_text("x = 1  # noqa: E501\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
+        assert main([str(f)]) == 1
 
     def test_type_ignore_in_python_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.py"
         f.write_text("x: int = 'a'  # type: ignore\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
+        assert main([str(f)]) == 1
 
     def test_eslint_disable_in_ts_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.ts"
         f.write_text("// eslint-disable-next-line no-unused-vars\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
+        assert main([str(f)]) == 1
 
     def test_ts_ignore_in_tsx_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.tsx"
         f.write_text("// @ts-ignore\nconst x = 1;\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
-
-    def test_test_files_are_skipped(self, tmp_path: Path) -> None:
-        """Files with test patterns in path/name should be skipped."""
-        f = tmp_path / "test_foo.py"
-        f.write_text("x = 1  # noqa: E501\n")
-        # Use real _is_test_file here -- it should detect the test file
-        assert main([str(f)]) == 0
+        assert main([str(f)]) == 1
 
     def test_nonexistent_file_skipped(self, tmp_path: Path) -> None:
         assert main([str(tmp_path / "missing.py")]) == 0
@@ -219,34 +210,40 @@ class TestMain:
         allowlist.write_text("noqa: BLE001\n")
         f = tmp_path / "ok.py"
         f.write_text("x = 1  # noqa: BLE001\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 0
+        assert main([str(f)]) == 0
 
     def test_shell_check_disable_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.sh"
         f.write_text("#!/bin/bash\n# shellcheck disable=SC2034\nx=unused\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
+        assert main([str(f)]) == 1
 
     def test_rust_allow_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.rs"
         f.write_text("#[allow(dead_code)]\nfn unused() {}\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
+        assert main([str(f)]) == 1
 
     def test_pragma_no_cover_returns_1(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.py"
         f.write_text("if False:  # pragma: no cover\n    pass\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            assert main([str(f)]) == 1
+        assert main([str(f)]) == 1
 
     def test_output_contains_error_message(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
         f = tmp_path / "bad.py"
         f.write_text("x = 1  # noqa\n")
-        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
-            main([str(f)])
+        main([str(f)])
         captured = capsys.readouterr()
         assert "ERROR" in captured.out
         assert "noqa" in captured.out.lower()
+
+
+class TestMainTestFileSkipping:
+    """Test that test files are correctly skipped by main()."""
+
+    def test_test_files_are_skipped(self, tmp_path: Path) -> None:
+        """Files detected as test files should be skipped."""
+        f = tmp_path / "test_foo.py"
+        f.write_text("x = 1  # noqa: E501\n")
+        with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=True):
+            assert main([str(f)]) == 0

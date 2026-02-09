@@ -78,12 +78,11 @@ class TestFindBaseConfig:
 
     def test_finds_from_global_configs(self, tmp_path: Path) -> None:
         """Falls back to global ai-guardrails configs."""
-        # tmp_path has no local configs/, so should fall back to global
         result = find_base_config("ruff.toml", tmp_path)
-        # In dev mode, the global configs should exist
-        if result is not None:
-            assert result.name == "ruff.toml"
-            assert result.is_file()
+        # In dev mode, the repo-local configs dir is found via _repo_root()
+        assert result is not None
+        assert result.name == "ruff.toml"
+        assert result.is_file()
 
     def test_returns_none_for_nonexistent_config(self, tmp_path: Path) -> None:
         result = find_base_config("nonexistent_config.xyz", tmp_path)
