@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit tests for coderabbit_parser.
+"""Unit tests for guardrails.coderabbit.
 
 Tests the dual-source implementation that parses:
 1. Review thread comments (GraphQL reviewThreads)

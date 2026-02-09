@@ -1,124 +1,199 @@
 # Plan: Complete Polish, Cleanup & Hardening
 
-## Context
+## Overview
 
-The `feat/python-rewrite` PR converted all bash hook logic and CLI scripts into a
-proper `guardrails` Python package. This plan covers everything needed to make the
-project production-quality after that rewrite merges.
+The `feat/python-rewrite` PR (merged as #19) converted all bash hook logic and
+CLI scripts into a proper `guardrails` Python package. This plan covers
+everything needed to make the project production-quality.
 
-## 1. Delete Dead Bash Scripts
+**Current state**: 3725 lines of Python, 1799 lines of bats tests (to be
+replaced), 159 pytest tests at 94% coverage (but only because 7 modules are
+excluded from measurement).
 
-The following scripts are fully superseded by the Python package and the unified
-`ai-guardrails` CLI. They should be deleted:
+## GetShitDone Framework
 
-| File | Replaced By |
-|------|-------------|
-| `bin/ai-guardrails-init` (639 lines) | `guardrails.init` via `ai-guardrails init` |
-| `bin/ai-guardrails-generate` | `guardrails.generate` via `ai-guardrails generate` |
-| `bin/ai-review-tasks` | `guardrails.coderabbit` via `ai-guardrails review` |
-| `bin/ai-hooks-init` | Evaluate if still needed or fold into `ai-guardrails init` |
+Each phase is designed to be completed by a single subagent in one shot
+(< 200k tokens). The orchestrator holds context and validates between phases.
 
-Update `lib/installers/core.py` BIN_SCRIPTS to remove deleted entries.
+---
 
-## 2. Rename Test Files
+## Phase 1: Dead Code Removal & File Renames
 
-| Old Name | New Name |
-|----------|----------|
-| `tests/test_assemble_precommit.py` | `tests/test_assemble.py` |
-| `tests/test_coderabbit_parser.py` | `tests/test_coderabbit.py` |
+**Estimated complexity**: Small (< 50k tokens)
+**Branch**: `feat/polish-phase1`
 
-Update docstrings inside to match.
+1. **Delete `bin/ai-hooks-init`** (181 lines of old bash)
+   - Its functionality is fully covered by `ai-guardrails init`
+   - Remove from `lib/installers/core.py` BIN_SCRIPTS list
+   - Update any references in README.md or templates
 
-## 3. Add Tests for Hook Modules
+2. **Rename test files** to match new module names
+   - `tests/test_assemble_precommit.py` → `tests/test_assemble.py`
+   - `tests/test_coderabbit_parser.py` → `tests/test_coderabbit.py`
+   - Update docstrings inside each file
 
-Zero test coverage on the 5 new hook modules:
+3. **Update `docs/plans/bin-scripts-conversion.md`** — mark as COMPLETE
 
-- `tests/test_hook_suppress_comments.py`
-- `tests/test_hook_config_ignore.py`
-- `tests/test_hook_protect_configs.py`
-- `tests/test_hook_dangerous_cmd.py`
-- `tests/test_hook_format_stage.py`
+4. **Clean up `conftest.py`** — verify comment is current
 
-Each hook module has a `main()` that reads git state and exits with a code.
-Test with mocked `subprocess.run` and temp git repos.
+5. **Remove dead ruff ignores** from `pyproject.toml`
+   - Run `ruff check lib/python/ --statistics` to find which rules actually trigger
+   - Remove any per-file-ignores that are no longer needed
 
-## 4. Add Tests for `init.py`
+---
 
-`guardrails/init.py` has ~400 lines with zero test coverage. Key functions
-to test:
+## Phase 2: Migrate Bats to Pytest (Assembly, Detection, Install)
 
-- `run_init()` — end-to-end with a temp project dir
-- `_detect_python_deps()` — pip vs uv detection
-- `_resolve_languages()` — language auto-detection
-- `_copy_config()` — file copy with force/skip logic
-- `_scaffold_registry()` — creates `.guardrails-exceptions.toml`
-- `_setup_precommit()` — pre-commit config assembly
+**Estimated complexity**: Medium (< 100k tokens)
+**Branch**: `feat/polish-phase2`
 
-## 5. Add Tests for `cli.py`
+Bats tests exist for functionality that's now Python. Migrate them to pytest.
 
-Test CLI arg parsing and dispatch for all three subcommands.
+1. **Migrate `test_assembly.bats` (277 lines) → enhance `test_assemble.py`**
+   - The existing pytest file already covers most cases
+   - Port any bats-only scenarios (CLI invocation, output format)
+   - Delete `test_assembly.bats`
 
-## 6. Type Checking (pyright)
+2. **Migrate `test_detection.bats` (290 lines) → `tests/test_detection.py`**
+   - Tests language detection from file markers (pyproject.toml → python, etc.)
+   - Port to pytest using `tmp_path` fixture and `detect_languages()`
+   - Delete `test_detection.bats`
 
-Add pyright to the dev workflow:
+3. **Migrate `test_install.bats` + `test_install_group_a.bats` (369 lines) → enhance `test_installers.py`**
+   - Tests `install.py` CLI flags
+   - Port to pytest (may need mocking since pyinfra is heavy)
+   - Delete both bats files
 
-```toml
-[tool.pyright]
-include = ["lib/python/guardrails"]
-pythonVersion = "3.10"
-typeCheckingMode = "standard"
-```
+4. **Delete `test_init.bats` (264 lines)**
+   - All init functionality will be tested via pytest in Phase 3
+   - The bats tests test the bash shim, not the Python logic
 
-Fix any type errors.
+5. **Update `tests/bats/helpers.bash`**
+   - Remove `run_init`, `INIT_SCRIPT` (no longer used)
+   - Keep `run_assemble` only if still referenced
 
-## 7. ~~Remove `pre-commit.sh` and `pre-push.sh`~~ (DONE)
+---
 
-`pre-commit.sh` and `pre-push.sh` were rewritten in the `feat/python-rewrite`
-PR. `pre-commit.sh` now delegates to the `pre-commit` framework (exits 1 if
-not installed). `pre-push.sh` runs semgrep and pre-commit full-suite checks,
-only printing success when at least one tool ran.
+## Phase 3: Write Tests for Untested Python Modules
 
-## 8. Clean Up `conftest.py`
+**Estimated complexity**: Large (< 150k tokens)
+**Branch**: `feat/polish-phase3`
 
-- Update comment from "importing coderabbit_parser" to "importing guardrails"
-- The `sys.path` insert for `lib/python` is still correct (needed for
-  `from guardrails.X import` to resolve)
+These modules have 0% coverage and are excluded from measurement. This phase
+writes proper pytest coverage and removes the exclusions.
 
-## 9. Clean Up `pyproject.toml`
+1. **`tests/test_hooks.py`** — test all 5 hook modules
+   - `suppress_comments.py` — mock `subprocess.run`, test pattern detection
+   - `config_ignore.py` — mock git diff, test ignore-pattern matching
+   - `protect_configs.py` — test JSON stdin/stdout protocol, test each decision path
+   - `dangerous_cmd.py` — test `--no-verify` detection in command strings
+   - `format_stage.py` — mock formatters, test hash-based re-staging logic
 
-- Remove any remaining dead per-file-ignores for old file paths
-- Audit all ruff ignore rules — remove any that are no longer triggered
+2. **`tests/test_init.py`** — test init module
+   - `_detect_python_deps()` — pip vs uv detection
+   - `_resolve_languages()` — auto-detection with mocked assemble
+   - `_copy_config()` — force/skip logic with tmp_path
+   - `_scaffold_registry()` — creates template
+   - `_add_to_gitignore()` — append logic, no-trailing-newline edge case
+   - `_install_claude_hook()` — settings.json manipulation
+   - `run_init()` — end-to-end with tmp_path project dir
 
-## 10. Update CI Workflow
+3. **`tests/test_cli.py`** — test CLI arg parsing
+   - Test each subcommand dispatches correctly (mock the handler)
+   - Test `--version`
+   - Test missing subcommand error
 
-`.github/workflows/test.yml` references old module paths. Update all
-`python3 lib/python/assemble_precommit.py` calls to use
-`python3 -m guardrails.assemble`.
+4. **`tests/test_paths.py`** — test `_paths.py`
+   - Test `find_configs_dir()`, `find_templates_dir()`, `find_lib_dir()`
+   - Test fallback to `~/.ai-guardrails/`
+   - Test `find_base_config()` precedence
 
-## 11. Documentation
+5. **`tests/test_generate.py`** — test generate module
+   - Test `run_generate_configs()` end-to-end
+   - Test `--dry-run` and `--check` modes
+   - Test error handling (missing registry, invalid registry)
 
-- Update `CLAUDE.md` references to old module names
-- Update any README sections about usage/installation
-- Update `docs/plans/bin-scripts-conversion.md` status
+6. **Enhance `tests/test_coderabbit.py`** — test `run_review()`
+   - Mock `subprocess.run` for `gh api` calls
+   - Test filtering by severity
+   - Test error handling (gh not installed, API failures)
 
-## 12. Compact the Codebase
+7. **Remove all coverage omit entries** from `pyproject.toml`
+   - Delete the entire `omit = [...]` block
+   - Verify `--cov-fail-under=85` still passes
 
-- Remove any unused imports across the package
-- Remove dead code paths (functions never called)
-- Consolidate duplicate logic
-- Ensure consistent error handling patterns (all hooks use same exit codes)
+---
 
-## 13. Coverage Target
+## Phase 4: Delete Remaining Bats, Add Pyright, Update CI
 
-Aim for 85%+ coverage on the `guardrails` package. Current coverage is
-high on generators/registry/assemble/coderabbit but zero on hooks/init/cli.
+**Estimated complexity**: Medium (< 100k tokens)
+**Branch**: `feat/polish-phase4`
 
-## Execution Order
+1. **Migrate remaining bats hook tests to pytest**
+   - `test_detect_config_ignore_edits.bats` (218 lines) → already covered by `test_hooks.py` from Phase 3
+   - `test_protect_generated_configs.bats` (268 lines) → already covered by `test_hooks.py` from Phase 3
+   - Verify pytest tests cover all bats scenarios, then delete both files
 
-1. Delete dead bash scripts (quick win, reduces confusion)
-2. Rename test files
-3. Add hook + init + cli tests (biggest effort)
-4. pyright type checking
-5. CI workflow updates
-6. Documentation pass
-7. Final coverage audit
+2. **Delete bats infrastructure**
+   - Delete `tests/bats/` directory entirely
+   - Delete bats CI job from `.github/workflows/test.yml`
+   - Remove `pyyaml tomli-w tomlkit` from bats CI deps (no longer needed)
+
+3. **Add pyright type checking**
+
+   ```toml
+   [tool.pyright]
+   include = ["lib/python/guardrails"]
+   pythonVersion = "3.11"
+   typeCheckingMode = "standard"
+   ```
+
+   - Fix all type errors
+   - Add pyright to CI (`check.yml` lint job)
+
+4. **Update CI workflow**
+   - Remove bats job from `test.yml`
+   - Add pyright step to lint job in `check.yml`
+   - Clean up any remaining old module path references
+
+---
+
+## Phase 5: Documentation & Final Polish
+
+**Estimated complexity**: Small (< 50k tokens)
+**Branch**: `feat/polish-phase5`
+
+1. **Update README.md**
+   - Document `ai-guardrails` unified CLI (init/generate/review)
+   - Remove references to old separate scripts
+   - Update installation instructions
+
+2. **Update `docs/plans/bin-scripts-conversion.md`** — mark COMPLETE with summary
+
+3. **Update this plan** — mark all sections DONE
+
+4. **Compact the codebase**
+   - Run `vulture lib/python/` to find dead code
+   - Remove any unused imports (`ruff check --select F401`)
+   - Consolidate duplicate logic across modules
+   - Ensure consistent error handling (all hooks use same exit codes)
+
+5. **Final coverage audit**
+   - Run coverage report, identify any remaining gaps
+   - Ensure 85%+ with NO omit entries
+   - Target 90%+ if feasible
+
+---
+
+## Execution Checklist
+
+| Phase | Branch | Key Deliverable | PR |
+|-------|--------|----------------|----|
+| 1 | `feat/polish-phase1` | Dead code gone, files renamed | |
+| 2 | `feat/polish-phase2` | Assembly/detection/install bats → pytest | |
+| 3 | `feat/polish-phase3` | Full test coverage, no omit entries | |
+| 4 | `feat/polish-phase4` | Zero bats, pyright clean, CI updated | |
+| 5 | `feat/polish-phase5` | Docs updated, dead code removed, 90%+ coverage | |
+
+Each phase merges before the next starts. Phases 1-2 can potentially be
+combined into a single PR if the diff stays small.
