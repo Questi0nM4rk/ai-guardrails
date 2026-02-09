@@ -73,7 +73,7 @@ def sample_registry() -> dict[str, Any]:
 
 
 @pytest.fixture
-def templates_dir(temp_dir: Path) -> Iterator[Path]:
+def templates_dir(temp_dir: Path) -> Path:
     """Create a templates directory with sample templates."""
     tpl_dir = temp_dir / "templates"
     tpl_dir.mkdir()
@@ -655,19 +655,20 @@ class TestMainCLI:
 # =============================================================================
 
 
+_REPO_ROOT = Path(__file__).parent.parent
+
+
 @pytest.fixture
 def real_registry() -> dict[str, Any]:
     """Load the real language registry from configs/languages.yaml."""
-    repo_root = Path(__file__).parent.parent
-    registry_path = repo_root / "configs" / "languages.yaml"
+    registry_path = _REPO_ROOT / "configs" / "languages.yaml"
     return load_registry(registry_path)
 
 
 @pytest.fixture
 def real_templates_dir() -> Path:
     """Return path to the real pre-commit templates directory."""
-    repo_root = Path(__file__).parent.parent
-    return repo_root / "templates" / "pre-commit"
+    return _REPO_ROOT / "templates" / "pre-commit"
 
 
 def _get_all_hook_ids(config: dict[str, Any]) -> list[str]:

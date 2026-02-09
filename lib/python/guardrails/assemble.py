@@ -157,7 +157,7 @@ class MultilineDumper(yaml.SafeDumper):
     """Custom YAML dumper that uses block style for multiline strings."""
 
 
-def _str_representer(dumper: yaml.Dumper, data: str) -> yaml.Node:
+def _str_representer(dumper: MultilineDumper, data: str) -> yaml.Node:
     """Represent multiline strings with block style."""
     if "\n" in data:
         return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")

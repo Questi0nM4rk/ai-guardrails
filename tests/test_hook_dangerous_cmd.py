@@ -107,6 +107,13 @@ class TestCheckWarned:
         warnings = _check_warned("npm install --force")
         assert not any("Force flag" in w for w in warnings)
 
+    def test_triggers_multiple_warnings(self) -> None:
+        """A single command string can trigger multiple distinct warnings."""
+        warnings = _check_warned("rm -rf ./build && git push --force origin main")
+        assert len(warnings) > 1
+        assert any("Recursive force delete" in w for w in warnings)
+        assert any("Force flag" in w for w in warnings)
+
     def test_no_warnings_on_safe_command(self) -> None:
         assert _check_warned("git status") == []
 
