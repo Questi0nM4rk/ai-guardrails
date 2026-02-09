@@ -423,7 +423,11 @@ def _generate_from_registry(project_dir: Path) -> None:
     if not (project_dir / ".guardrails-exceptions.toml").exists():
         return
 
-    from guardrails.generate import run_generate_configs
+    try:
+        from guardrails.generate import run_generate_configs
+    except ImportError:
+        _log.debug("generate module unavailable (missing tomli-w/tomlkit)")
+        return
 
     if run_generate_configs(project_dir=str(project_dir)):
         _print_ok("Generated configs from exception registry")

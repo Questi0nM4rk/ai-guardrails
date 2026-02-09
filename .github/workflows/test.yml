@@ -42,7 +42,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install Python dependencies
-        run: pip install pyyaml
+        run: pip install pyyaml tomli-w tomlkit
 
       - name: Install bats
         run: |

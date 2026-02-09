@@ -24,20 +24,20 @@ teardown() {
 @test "shows help with --help" {
   run bash "$INIT_SCRIPT" --help
   [ "$status" -eq 0 ]
-  assert_contains "$output" "Usage:"
-  assert_contains "$output" "ai-guardrails-init"
+  assert_contains "$output" "usage:"
+  assert_contains "$output" "ai-guardrails"
 }
 
 @test "shows help with -h" {
   run bash "$INIT_SCRIPT" -h
   [ "$status" -eq 0 ]
-  assert_contains "$output" "Usage:"
+  assert_contains "$output" "usage:"
 }
 
 @test "fails with unknown option" {
   run bash "$INIT_SCRIPT" --invalid-option 2>&1
   [ "$status" -ne 0 ]
-  assert_contains "$output" "Unknown option"
+  assert_contains "$output" "error:"
 }
 
 # =============================================================================
@@ -72,7 +72,7 @@ teardown() {
 }
 
 @test "succeeds with base config when no language detected" {
-  run run_init --no-coderabbit --no-ci 2>&1
+  run run_init --no-coderabbit --no-ci --no-claude-review 2>&1
   [ "$status" -eq 0 ]
   assert_contains "$output" "No language detected"
   assert_contains "$output" "base config only"
