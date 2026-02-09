@@ -1,22 +1,12 @@
 #!/bin/bash
 # ============================================
 # AI Guardrails Pre-Commit Hook
-# Runs before any git commit
+# Runs pre-commit framework checks before any git commit.
 # ============================================
 set -euo pipefail
 
-# Source common functions
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib/hooks/common.sh
-source "$SCRIPT_DIR/common.sh"
-
-echo "Running pre-commit checks..."
-
-# Run tests in quiet mode
-run_all_tests "quiet" || {
-  echo "Pre-commit checks failed!"
-  exit 1
-}
-
-echo "Pre-commit checks passed"
-exit 0
+if command -v pre-commit &>/dev/null; then
+  exec pre-commit run --hook-stage pre-commit
+else
+  echo "Warning: pre-commit not installed, skipping checks" >&2
+fi

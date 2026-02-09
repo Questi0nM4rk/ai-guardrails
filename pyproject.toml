@@ -96,13 +96,6 @@ ignore = [
   "UP036",
   "PLW0603",
 ] # print, UP036, global statement (pyinfra pattern)
-"lib/python/assemble_precommit.py" = [
-  "PLR0911",
-] # main() needs many returns for error handling
-"lib/python/coderabbit_parser.py" = [
-  "PLR0911",
-  "PLW2901",
-] # main() returns, loop var reassignment ok
 "lib/python/guardrails/init.py" = [
   "PLR0913", # run_init() has many keyword-only args by design
   "S603",    # subprocess calls with fixed args are safe
@@ -112,9 +105,11 @@ ignore = [
   "PLR0911",
 ] # main() needs many returns for error handling
 "lib/python/guardrails/coderabbit.py" = [
-  "PLR0911",
-  "PLW2901",
-] # main() returns, loop var reassignment ok
+  "PLR0911", # main() needs many returns for error handling
+  "PLW2901", # loop var reassignment ok
+  "S603",    # subprocess calls with fixed gh args are safe
+  "S607",    # partial paths (gh) are intentional
+]
 
 [tool.codespell]
 ignore-words-list = "brin,crate"
