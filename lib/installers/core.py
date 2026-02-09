@@ -29,7 +29,6 @@ BIN_SCRIPTS = [
     "ai-guardrails-init",
     "ai-guardrails-generate",
     "ai-review-tasks",
-    "ai-hooks-init",
 ]
 HOOK_SCRIPTS = [
     "dangerous-command-check.sh",
