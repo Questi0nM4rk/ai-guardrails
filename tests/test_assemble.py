@@ -1,4 +1,4 @@
-"""Tests for assemble_precommit.py module."""
+"""Tests for guardrails.assemble module."""
 
 from __future__ import annotations
 
