@@ -213,3 +213,5 @@ class TestRunReviewGraphQLFailure:
         assert result == 0
         captured = capsys.readouterr()
         assert "Warning" in captured.err
+        output = json.loads(captured.out)
+        assert output["summary"]["total"] == 0

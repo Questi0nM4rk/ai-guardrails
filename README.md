@@ -32,7 +32,7 @@ python3 install.py --python --node --rust   # Multiple languages
 
 # Initialize in any project
 cd /path/to/your/project
-ai-guardrails-init          # Auto-detects language, copies configs
+ai-guardrails init          # Auto-detects language, copies configs
 pre-commit install          # Install hooks
 pre-commit install --hook-type commit-msg  # Commit message validation
 pre-commit run --all-files  # Run all checks
@@ -60,15 +60,18 @@ python3 install.py --shell      # Framework + Shell tools (shellcheck, shfmt)
 
 ## Commands
 
-### ai-guardrails-init
+All commands use the unified `ai-guardrails` CLI:
 
-Copies pedantic configs to your project based on detected language(s).
+### ai-guardrails init
+
+Initialize a project with pedantic configs, pre-commit hooks, and CI workflows.
 
 ```bash
-ai-guardrails-init              # Auto-detect
-ai-guardrails-init --type rust  # Specific type
-ai-guardrails-init --all        # Multi-language project
-ai-guardrails-init --force      # Overwrite existing configs
+ai-guardrails init                  # Auto-detect languages
+ai-guardrails init --type python    # Specific language
+ai-guardrails init --force          # Overwrite existing configs
+ai-guardrails init --ci             # Also generate CI workflows
+ai-guardrails init --no-precommit   # Skip pre-commit installation
 ```
 
 **Installed per type:**
@@ -83,23 +86,25 @@ ai-guardrails-init --force      # Overwrite existing configs
 | `lua` | `.editorconfig`, `stylua.toml` |
 | `all` | All of the above |
 
-### ai-hooks-init
+### ai-guardrails generate
 
-Sets up git hooks for the project.
+Generate tool configs from `.guardrails-exceptions.toml` registry.
 
 ```bash
-ai-hooks-init              # Local hooks
-ai-hooks-init --global     # Global hooks
-ai-hooks-init --pre-commit # Also install pre-commit config
+ai-guardrails generate              # Generate all configs
+ai-guardrails generate --dry-run    # Preview without writing
+ai-guardrails generate --check      # Check if configs are up to date
 ```
 
-### ai-review-tasks
+### ai-guardrails review
 
-Extracts actionable tasks from CodeRabbit PR reviews.
+Extract actionable tasks from CodeRabbit PR reviews.
 
 ```bash
-gh pr-review review view --pr 1 | ai-review-tasks --pretty
-ai-review-tasks --severity major reviews.json
+ai-guardrails review                # Current PR
+ai-guardrails review --pr 42        # Specific PR
+ai-guardrails review --pretty       # Pretty-printed JSON
+ai-guardrails review --severity major  # Filter by severity
 ```
 
 ## Configs
@@ -185,12 +190,12 @@ The included `.pre-commit-config.yaml` runs 40+ checks:
 ### CVE Scanning with pip-audit
 
 The `pip-audit` hook scans Python dependencies for known CVEs. It's
-**auto-configured** by `ai-guardrails-init` based on detected dependency
+**auto-configured** by `ai-guardrails init` based on detected dependency
 management tool (uv or pip).
 
 #### Auto-Detection
 
-When you run `ai-guardrails-init`, it detects your Python dependency tool:
+When you run `ai-guardrails init`, it detects your Python dependency tool:
 
 - **uv detected** (`uv.lock` exists) → Configured with `--locked .`
 - **pip detected** (`requirements.txt` or `pyproject.toml`) → Configured
@@ -203,13 +208,13 @@ Use flags to override auto-detection:
 
 ```bash
 # Force uv configuration
-ai-guardrails-init --pip-audit-uv
+ai-guardrails init --pip-audit-uv
 
 # Force pip configuration
-ai-guardrails-init --pip-audit-pip
+ai-guardrails init --pip-audit-pip
 
 # Disable pip-audit
-ai-guardrails-init --no-pip-audit
+ai-guardrails init --no-pip-audit
 ```
 
 #### Why This Matters
@@ -339,9 +344,10 @@ or testing error conditions.
 ```text
 ai-guardrails/
 ├── bin/
-│   ├── ai-guardrails-init    # Project setup
-│   ├── ai-hooks-init         # Git hooks setup
-│   └── ai-review-tasks       # PR task extraction
+│   ├── ai-guardrails         # Unified CLI entry point
+│   ├── ai-guardrails-init    # Legacy wrapper → ai-guardrails init
+│   ├── ai-guardrails-generate # Legacy wrapper → ai-guardrails generate
+│   └── ai-review-tasks       # Legacy wrapper → ai-guardrails review
 ├── configs/
 │   ├── .editorconfig         # Universal formatting
 │   ├── ruff.toml             # Python (pedantic)
@@ -352,17 +358,18 @@ ai-guardrails/
 │   ├── Directory.Build.props # C# build config
 │   └── .globalconfig         # C# analyzer rules
 ├── lib/
-│   ├── hooks/                # Git hook scripts
-│   └── python/               # Python utilities
+│   ├── hooks/                # Pre-commit hook shell scripts
+│   └── python/guardrails/    # Python package (CLI, hooks, generators)
 ├── templates/
-│   ├── pre-commit-config.yaml
-│   └── settings.json.strict
-└── install.py                # Python installer
+│   ├── pre-commit/           # Per-language pre-commit templates
+│   └── workflows/            # CI workflow templates
+├── tests/                    # Pytest suite (400+ tests, 90% coverage)
+└── install.py                # System-level tool installer (pyinfra)
 ```
 
 ## Requirements
 
-- Python 3.10+
+- Python 3.11+
 - [pre-commit](https://pre-commit.com/)
 - Language-specific tools (installed automatically by pre-commit):
   - Python: ruff, mypy, bandit, pip-audit
