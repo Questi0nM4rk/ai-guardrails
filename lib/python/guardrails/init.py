@@ -49,12 +49,6 @@ _HOOK_SCRIPTS: list[str] = [
     "detect-config-ignore-edits.sh",
 ]
 
-# Hook shim scripts also need the Python package
-_PYTHON_DIRS_TO_COPY: list[str] = [
-    "python/guardrails",
-]
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -331,8 +325,11 @@ def _install_claude_hook() -> None:
     pre_tool_use = hooks.setdefault("PreToolUse", [])
     pre_tool_use.append(hook_entry)
 
-    # Write settings
+    # Write settings (backup first if file exists)
     settings_path.parent.mkdir(parents=True, exist_ok=True)
+    if settings_path.exists():
+        backup_path = settings_path.with_suffix(".json.bak")
+        shutil.copy2(settings_path, backup_path)
     settings_path.write_text(json.dumps(settings, indent=2) + "\n")
     _print_ok("Claude Code PreToolUse hook installed")
 
@@ -492,6 +489,11 @@ def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
             _print_skip(f"{filepath.name} already has guardrails section")
             return
         with filepath.open("a") as f:
+            # Ensure file ends with newline before appending
+            if filepath.stat().st_size > 0:
+                existing = filepath.read_text()
+                if not existing.endswith("\n"):
+                    f.write("\n")
             f.write("\n")
             f.write(template_content)
         _print_ok(f"Appended guardrails rules to {filepath.name}")
@@ -504,7 +506,10 @@ def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
     if claude_md.exists():
         _append(claude_md)
     elif not agents_md.exists():
-        claude_md.write_text(f"# Project Instructions\n{template_content}")
+        content = f"# Project Instructions\n{template_content}"
+        if not content.endswith("\n"):
+            content += "\n"
+        claude_md.write_text(content)
         _print_ok("Created CLAUDE.md with guardrails rules")
 
 
@@ -638,7 +643,7 @@ def _resolve_languages(project_type: str, configs_dir: Path, project_dir: Path) 
                 else:
                     print(f"{BLUE}Detected project type:{NC} {detected[0]}")
                 return detected
-    except Exception:  # noqa: BLE001
+    except Exception:
         _log.debug("Language auto-detection failed", exc_info=True)
 
     print(f"{YELLOW}No language detected - installing base config only (.editorconfig){NC}")

@@ -58,7 +58,7 @@ def _add_review_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument("--pr", type=int, help="PR number (default: current branch)")
     p.add_argument("--pretty", "-p", action="store_true", help="Pretty-print JSON output")
-    p.add_argument("--severity", "-s", help="Filter by severity (major, minor, nitpick)")
+    p.add_argument("--severity", "-s", help="Filter by severity (major, minor, suggestion)")
 
 
 def _cmd_init(args: argparse.Namespace) -> int:

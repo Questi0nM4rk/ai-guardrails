@@ -100,10 +100,18 @@ ignore = [
   "PLR0913", # run_init() has many keyword-only args by design
   "S603",    # subprocess calls with fixed args are safe
   "S607",    # partial paths (git, pre-commit, uv) are intentional
+  "BLE001",  # broad exception in _resolve_languages - fallback for auto-detection
 ]
 "lib/python/guardrails/assemble.py" = [
   "PLR0911",
 ] # main() needs many returns for error handling
+"lib/python/guardrails/hooks/protect_configs.py" = [
+  "PLR0911", # main() needs multiple early returns for each check
+]
+"lib/python/guardrails/hooks/config_ignore.py" = [
+  "S603", # subprocess calls with fixed git args are safe
+  "S607", # partial paths (git) are intentional
+]
 "lib/python/guardrails/coderabbit.py" = [
   "PLR0911", # main() needs many returns for error handling
   "PLW2901", # loop var reassignment ok

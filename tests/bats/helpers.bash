@@ -48,7 +48,7 @@ create_file() {
 
 # Run the assembly module with test directory
 run_assemble() {
-  PYTHONPATH="$REPO_ROOT/lib/python" python3 -m "$ASSEMBLE_MODULE" --project-dir "$TEST_DIR" "$@"
+  PYTHONPATH="$REPO_ROOT/lib/python:${PYTHONPATH:-}" python3 -m "$ASSEMBLE_MODULE" --project-dir "$TEST_DIR" "$@"
 }
 
 # Run the init script in test directory

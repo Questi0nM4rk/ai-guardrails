@@ -36,7 +36,7 @@ def _emit_ask(reason: str) -> int:
     return 0
 
 
-def main() -> int:  # noqa: PLR0911
+def main() -> int:
     """Entry point. Reads JSON from stdin, emits decision to stdout."""
     # Bail out if no guardrails project
     if not Path(REGISTRY_FILENAME).is_file():

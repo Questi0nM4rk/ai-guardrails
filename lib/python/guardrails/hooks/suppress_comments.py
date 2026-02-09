@@ -47,7 +47,7 @@ def _infer_extension(filepath: str) -> str | None:
 
     # Shebang detection
     try:
-        with Path(filepath).open() as f:
+        with Path(filepath).open(encoding="utf-8", errors="replace") as f:
             first_line = f.readline()
     except OSError:
         return None
