@@ -95,6 +95,52 @@ class TestRunGenerateConfigsCheck:
         result = run_generate_configs(project_dir=str(tmp_path), check=True)
         assert result is False
 
+    @patch("guardrails.generate._generate_to_dir")
+    def test_check_passes_when_configs_up_to_date(
+        self,
+        mock_gen: MagicMock,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """Check succeeds when generated configs match existing files."""
+        registry_file = tmp_path / ".guardrails-exceptions.toml"
+        registry_file.write_text("schema_version = 1\n")
+        # Write existing config that matches what _generate_to_dir produces
+        (tmp_path / "ruff.toml").write_text("# generated\n")
+
+        def write_matching(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+            (output_dir / "ruff.toml").write_text("# generated\n")
+            return ["ruff.toml"]
+
+        mock_gen.side_effect = write_matching
+        result = run_generate_configs(project_dir=str(tmp_path), check=True)
+        assert result is True
+        captured = capsys.readouterr()
+        assert "up to date" in captured.out.lower()
+
+    @patch("guardrails.generate._generate_to_dir")
+    def test_check_detects_stale_configs(
+        self,
+        mock_gen: MagicMock,
+        tmp_path: Path,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        """Check fails when generated configs differ from existing files."""
+        registry_file = tmp_path / ".guardrails-exceptions.toml"
+        registry_file.write_text("schema_version = 1\n")
+        # Write existing config that differs from what _generate_to_dir produces
+        (tmp_path / "ruff.toml").write_text("# old content\n")
+
+        def write_different(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+            (output_dir / "ruff.toml").write_text("# new content\n")
+            return ["ruff.toml"]
+
+        mock_gen.side_effect = write_different
+        result = run_generate_configs(project_dir=str(tmp_path), check=True)
+        assert result is False
+        captured = capsys.readouterr()
+        assert "stale" in captured.err.lower()
+
 
 class TestRunGenerateConfigsGenerate:
     """Test actual generation mode."""

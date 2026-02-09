@@ -126,6 +126,11 @@ ignore = [
   "S607",    # partial paths (gh) are intentional
 ]
 
+[tool.pyright]
+include = ["lib/python/guardrails"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+
 [tool.codespell]
 ignore-words-list = "brin,crate"
 
@@ -134,3 +139,9 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true
+
+[dependency-groups]
+# pyright lives here (not in [project.optional-dependencies]) because it
+# requires uv's dependency-groups support.  Use `uv sync --group dev` to
+# install both this group AND the optional-dependencies dev extras.
+dev = ["pyright>=1.1.408"]
