@@ -73,7 +73,7 @@ def sample_registry() -> dict[str, Any]:
 
 
 @pytest.fixture
-def templates_dir(temp_dir: Path) -> Iterator[Path]:
+def templates_dir(temp_dir: Path) -> Path:
     """Create a templates directory with sample templates."""
     tpl_dir = temp_dir / "templates"
     tpl_dir.mkdir()
