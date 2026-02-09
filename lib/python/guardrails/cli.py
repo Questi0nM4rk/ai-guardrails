@@ -62,6 +62,7 @@ def _add_review_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
+    """Run the ``init`` subcommand to set up guardrails for a project."""
     from guardrails.init import run_init
 
     ci = "no" if args.no_ci else ("yes" if args.ci else "auto")
@@ -80,6 +81,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
 
 
 def _cmd_generate(args: argparse.Namespace) -> int:
+    """Run the ``generate`` subcommand to produce tool configs from the exception registry."""
     from guardrails.generate import run_generate_configs
 
     ok = run_generate_configs(
@@ -91,6 +93,7 @@ def _cmd_generate(args: argparse.Namespace) -> int:
 
 
 def _cmd_review(args: argparse.Namespace) -> int:
+    """Run the ``review`` subcommand to extract CodeRabbit comments as tasks."""
     from guardrails.coderabbit import run_review
 
     return run_review(pr=args.pr, pretty=args.pretty, severity=args.severity)

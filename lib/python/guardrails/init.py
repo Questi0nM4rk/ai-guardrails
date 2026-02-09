@@ -229,7 +229,7 @@ def _setup_precommit(
 
 
 def _has_python(languages: list[str]) -> bool:
-    return "python" in languages or "all" in languages
+    return "python" in languages
 
 
 def _configure_pip_audit(mode: str, project_dir: Path) -> None:
@@ -401,8 +401,15 @@ def _add_to_gitignore(project_dir: Path) -> None:
     if gitignore.exists() and marker in gitignore.read_text():
         return
 
+    # Ensure we start on a new line if the file doesn't end with a newline
+    prefix = ""
+    if gitignore.exists() and gitignore.stat().st_size > 0:
+        existing = gitignore.read_text()
+        if not existing.endswith("\n"):
+            prefix = "\n"
+
     with gitignore.open("a") as f:
-        f.write(f"{marker}\n")
+        f.write(f"{prefix}{marker}\n")
     _print_ok("Added .ai-guardrails/ to .gitignore")
 
 
@@ -489,17 +496,15 @@ def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
     template_content = template.read_text()
 
     def _append(filepath: Path) -> None:
-        if filepath.exists() and marker in filepath.read_text():
+        existing = filepath.read_text() if filepath.exists() else ""
+        if marker in existing:
             _print_skip(f"{filepath.name} already has guardrails section")
             return
+        prefix = ""
+        if existing and not existing.endswith("\n"):
+            prefix = "\n"
         with filepath.open("a") as f:
-            # Ensure file ends with newline before appending
-            if filepath.stat().st_size > 0:
-                existing = filepath.read_text()
-                if not existing.endswith("\n"):
-                    f.write("\n")
-            f.write("\n")
-            f.write(template_content)
+            f.write(f"{prefix}\n{template_content}")
         _print_ok(f"Appended guardrails rules to {filepath.name}")
 
     agents_md = project_dir / "AGENTS.md"

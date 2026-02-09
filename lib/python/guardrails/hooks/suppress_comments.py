@@ -27,12 +27,14 @@ _MAX_VIOLATIONS_PER_PATTERN = 10
 
 
 def _is_test_file(filepath: str) -> bool:
+    """Return True if *filepath* belongs to a test directory or matches a test filename pattern."""
     return any(segment in filepath for segment in TEST_PATH_SEGMENTS) or any(
         pattern in filepath for pattern in TEST_BASENAME_PATTERNS
     )
 
 
 def _infer_extension(filepath: str) -> str | None:
+    """Infer the language extension for *filepath* using suffix, dotfile map, or shebang."""
     path = Path(filepath)
     basename = path.name
 
@@ -61,12 +63,13 @@ def _infer_extension(filepath: str) -> str | None:
 
 
 def _load_allowlist(path: str = ".suppression-allowlist") -> list[str]:
+    """Load regex patterns from the suppression allowlist file."""
     allowlist_path = Path(path)
     if not allowlist_path.is_file():
         return []
 
     patterns: list[str] = []
-    for raw_line in allowlist_path.read_text().splitlines():
+    for raw_line in allowlist_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#"):
             continue
@@ -75,6 +78,7 @@ def _load_allowlist(path: str = ".suppression-allowlist") -> list[str]:
 
 
 def _is_allowlisted(line_text: str, allowlist: list[str]) -> bool:
+    """Return True if *line_text* matches any allowlist regex pattern."""
     for pattern in allowlist:
         try:
             if re.search(pattern, line_text, re.IGNORECASE):
@@ -106,8 +110,8 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         try:
-            lines = Path(filepath).read_text().splitlines()
-        except OSError:
+            lines = Path(filepath).read_text(encoding="utf-8", errors="replace").splitlines()
+        except (OSError, UnicodeDecodeError):
             continue
 
         for regex, desc, extensions in SUPPRESSION_PATTERNS:

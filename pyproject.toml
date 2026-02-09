@@ -119,6 +119,10 @@ ignore = [
 "lib/python/guardrails/hooks/protect_configs.py" = [
   "PLR0911", # main() needs multiple early returns for each check
 ]
+"lib/python/guardrails/hooks/format_stage.py" = [
+  "S603", # subprocess calls with fixed args are safe
+  "S607", # partial paths (git, formatters) are intentional
+]
 "lib/python/guardrails/hooks/config_ignore.py" = [
   "S603", # subprocess calls with fixed git args are safe
   "S607", # partial paths (git) are intentional
