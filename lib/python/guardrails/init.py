@@ -589,9 +589,13 @@ def run_init(
     # Gitignore
     _add_to_gitignore(project_dir)
 
-    # Exception registry
+    # Exception registry — only regenerate configs when the registry
+    # already existed (user may have customized it).  A freshly scaffolded
+    # template has no custom exceptions so generating is a no-op.
+    registry_existed = (project_dir / ".guardrails-exceptions.toml").exists()
     _scaffold_registry(templates_dir, project_dir, force=force)
-    _generate_from_registry(project_dir)
+    if registry_existed or force:
+        _generate_from_registry(project_dir)
 
     # CI / Claude Review / CodeRabbit (auto-detect GitHub)
     is_github = _is_github_project(project_dir)
