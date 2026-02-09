@@ -645,3 +645,275 @@ class TestMainCLI:
             assert result == 1
             captured = capsys.readouterr()
             assert "Error:" in captured.err
+
+
+# =============================================================================
+# Integration tests using real registry and templates
+# =============================================================================
+# Migrated from tests/bats/test_assembly.bats. These tests use the actual
+# languages.yaml and pre-commit templates to verify end-to-end assembly.
+# =============================================================================
+
+
+@pytest.fixture
+def real_registry() -> dict[str, Any]:
+    """Load the real language registry from configs/languages.yaml."""
+    repo_root = Path(__file__).parent.parent
+    registry_path = repo_root / "configs" / "languages.yaml"
+    return load_registry(registry_path)
+
+
+@pytest.fixture
+def real_templates_dir() -> Path:
+    """Return path to the real pre-commit templates directory."""
+    repo_root = Path(__file__).parent.parent
+    return repo_root / "templates" / "pre-commit"
+
+
+def _get_all_hook_ids(config: dict[str, Any]) -> list[str]:
+    """Extract all hook IDs from an assembled config."""
+    return [hook["id"] for repo in config.get("repos", []) for hook in repo.get("hooks", [])]
+
+
+class TestAssemblyIntegration:
+    """Integration tests using real registry and templates (migrated from bats)."""
+
+    def test_base_hooks_always_present(
+        self, real_registry: dict[str, Any], real_templates_dir: Path
+    ) -> None:
+        """Base hooks (security, spelling, formatting) should always be included."""
+        config = assemble_config([], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "gitleaks" in hook_ids
+        assert "detect-secrets" in hook_ids
+        assert "codespell" in hook_ids
+        assert "trailing-whitespace" in hook_ids
+        assert "check-yaml" in hook_ids
+
+    def test_python_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Python assembly should include ruff, mypy, bandit, vulture."""
+        config = assemble_config(["python"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "ruff" in hook_ids
+        assert "mypy" in hook_ids
+        assert "bandit" in hook_ids
+        assert "vulture" in hook_ids
+
+        # Should NOT contain other language hooks
+        assert "cargo-fmt" not in hook_ids
+        assert "golangci-lint" not in hook_ids
+
+    def test_go_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Go assembly should include go-fmt, go-vet, golangci-lint, go-vulncheck."""
+        config = assemble_config(["go"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "go-fmt" in hook_ids
+        assert "go-vet" in hook_ids
+        assert "golangci-lint" in hook_ids
+        assert "go-vulncheck" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "cargo-fmt" not in hook_ids
+
+    def test_rust_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Rust assembly should include cargo-fmt, cargo-clippy, cargo-doc, cargo-audit."""
+        config = assemble_config(["rust"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "cargo-fmt" in hook_ids
+        assert "cargo-clippy" in hook_ids
+        assert "cargo-doc" in hook_ids
+        assert "cargo-audit" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "golangci-lint" not in hook_ids
+
+    def test_node_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Node assembly should include biome-check, tsc, npm-audit."""
+        config = assemble_config(["node"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "biome-check" in hook_ids
+        assert "tsc" in hook_ids
+        assert "npm-audit" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "cargo-fmt" not in hook_ids
+
+    def test_dotnet_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Dotnet assembly should include dotnet-format, dotnet-build."""
+        config = assemble_config(["dotnet"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "dotnet-format" in hook_ids
+        assert "dotnet-build" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "cargo-fmt" not in hook_ids
+
+    def test_cpp_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """C++ assembly should include clang-format, clang-tidy."""
+        config = assemble_config(["cpp"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "clang-format" in hook_ids
+        assert "clang-tidy" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "cargo-fmt" not in hook_ids
+
+    def test_lua_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Lua assembly should include stylua, luacheck."""
+        config = assemble_config(["lua"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "stylua" in hook_ids
+        assert "luacheck" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "cargo-fmt" not in hook_ids
+
+    def test_shell_hooks(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Shell assembly should include shellcheck, shfmt."""
+        config = assemble_config(["shell"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "shellcheck" in hook_ids
+        assert "shfmt" in hook_ids
+
+        assert "ruff" not in hook_ids
+        assert "cargo-fmt" not in hook_ids
+
+    def test_multiple_languages(
+        self, real_registry: dict[str, Any], real_templates_dir: Path
+    ) -> None:
+        """Assembly with multiple languages should include hooks for all."""
+        config = assemble_config(["python", "go"], real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "ruff" in hook_ids
+        assert "mypy" in hook_ids
+        assert "go-fmt" in hook_ids
+        assert "golangci-lint" in hook_ids
+
+    def test_all_languages(self, real_registry: dict[str, Any], real_templates_dir: Path) -> None:
+        """Assembly with all languages includes hooks for every language."""
+        all_langs = ["python", "rust", "dotnet", "cpp", "lua", "node", "go", "shell"]
+        config = assemble_config(all_langs, real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "ruff" in hook_ids  # Python
+        assert "cargo-fmt" in hook_ids  # Rust
+        assert "dotnet-format" in hook_ids  # .NET
+        assert "clang-format" in hook_ids  # C++
+        assert "stylua" in hook_ids  # Lua
+        assert "biome-check" in hook_ids  # Node
+        assert "go-fmt" in hook_ids  # Go
+        assert "shellcheck" in hook_ids  # Shell
+
+
+class TestAssemblyOutputIntegration:
+    """Integration tests for file output (migrated from bats)."""
+
+    def test_writes_config_to_output_file(
+        self,
+        tmp_path: Path,
+        real_registry: dict[str, Any],
+        real_templates_dir: Path,
+    ) -> None:
+        """Assembled config is written to the output file with correct content."""
+        config = assemble_config(["python"], real_registry, real_templates_dir)
+        output_path = tmp_path / ".pre-commit-config.yaml"
+        write_config(config, output_path)
+
+        assert output_path.exists()
+        content = output_path.read_text()
+        assert "ruff" in content
+        assert "mypy" in content
+
+    def test_output_file_has_header_comment(
+        self,
+        tmp_path: Path,
+        real_registry: dict[str, Any],
+        real_templates_dir: Path,
+    ) -> None:
+        """Output file should contain the AI Guardrails header."""
+        config = assemble_config(["python"], real_registry, real_templates_dir)
+        output_path = tmp_path / ".pre-commit-config.yaml"
+        write_config(config, output_path)
+
+        content = output_path.read_text()
+        assert "AI Guardrails" in content
+        assert "Auto-Generated" in content
+
+    def test_output_is_valid_yaml(
+        self,
+        tmp_path: Path,
+        real_registry: dict[str, Any],
+        real_templates_dir: Path,
+    ) -> None:
+        """Output file must be valid YAML that round-trips."""
+        config = assemble_config(["python", "go"], real_registry, real_templates_dir)
+        output_path = tmp_path / ".pre-commit-config.yaml"
+        write_config(config, output_path)
+
+        # yaml.safe_load should not raise
+        with output_path.open() as f:
+            loaded = yaml.safe_load(f)
+        assert isinstance(loaded, dict)
+        assert "repos" in loaded
+
+
+class TestAssemblyAutoDetectIntegration:
+    """Integration tests for auto-detection + assembly (migrated from bats)."""
+
+    def test_auto_detects_python_and_generates(
+        self,
+        tmp_path: Path,
+        real_registry: dict[str, Any],
+        real_templates_dir: Path,
+    ) -> None:
+        """Auto-detecting Python project generates config with Python hooks."""
+        (tmp_path / "pyproject.toml").touch()
+        languages = detect_languages(tmp_path, real_registry)
+        config = assemble_config(languages, real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "ruff" in hook_ids
+        assert "mypy" in hook_ids
+
+    def test_auto_detects_go_and_generates(
+        self,
+        tmp_path: Path,
+        real_registry: dict[str, Any],
+        real_templates_dir: Path,
+    ) -> None:
+        """Auto-detecting Go project generates config with Go hooks."""
+        (tmp_path / "go.mod").touch()
+        languages = detect_languages(tmp_path, real_registry)
+        config = assemble_config(languages, real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "go-fmt" in hook_ids
+        assert "golangci-lint" in hook_ids
+
+    def test_auto_detects_multi_language_and_generates(
+        self,
+        tmp_path: Path,
+        real_registry: dict[str, Any],
+        real_templates_dir: Path,
+    ) -> None:
+        """Auto-detecting multi-language project generates hooks for all."""
+        (tmp_path / "pyproject.toml").touch()
+        (tmp_path / "go.mod").touch()
+        (tmp_path / "script.sh").touch()
+        languages = detect_languages(tmp_path, real_registry)
+        config = assemble_config(languages, real_registry, real_templates_dir)
+        hook_ids = _get_all_hook_ids(config)
+
+        assert "ruff" in hook_ids
+        assert "go-fmt" in hook_ids
+        assert "shellcheck" in hook_ids

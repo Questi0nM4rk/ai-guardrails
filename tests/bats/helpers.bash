@@ -10,14 +10,6 @@
 REPO_ROOT="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../.." && pwd)"
 export REPO_ROOT
 
-# Assembly module (invoke via python -m)
-ASSEMBLE_MODULE="guardrails.assemble"
-export ASSEMBLE_MODULE
-
-# CLI script path
-INIT_SCRIPT="$REPO_ROOT/bin/ai-guardrails-init"
-export INIT_SCRIPT
-
 # Create a temporary test directory
 setup_test_dir() {
   TEST_DIR="$(mktemp -d)"
@@ -44,17 +36,6 @@ create_file() {
   else
     touch "$TEST_DIR/$path"
   fi
-}
-
-# Run the assembly module with test directory
-run_assemble() {
-  PYTHONPATH="$REPO_ROOT/lib/python:${PYTHONPATH:-}" python3 -m "$ASSEMBLE_MODULE" --project-dir "$TEST_DIR" "$@"
-}
-
-# Run the init script in test directory
-run_init() {
-  cd "$TEST_DIR" || exit 1
-  bash "$INIT_SCRIPT" "$@"
 }
 
 # Check if a string contains a substring

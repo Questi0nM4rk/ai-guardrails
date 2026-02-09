@@ -7,7 +7,7 @@ CLI scripts into a proper `guardrails` Python package. This plan covers
 everything needed to make the project production-quality.
 
 **Current state**: 3725 lines of Python, 1799 lines of bats tests (to be
-replaced), 159 pytest tests at 94% coverage (but only because 7 modules are
+replaced), 211 pytest tests at 94% coverage (but only because 7 modules are
 excluded from measurement).
 
 ## GetShitDone Framework
@@ -70,7 +70,7 @@ Bats tests exist for functionality that's now Python. Migrate them to pytest.
 
 5. **Update `tests/bats/helpers.bash`**
    - Remove `run_init`, `INIT_SCRIPT` (no longer used)
-   - Keep `run_assemble` only if still referenced
+   - Remove `run_assemble`, `ASSEMBLE_MODULE` (bats assembly tests deleted)
 
 ---
 

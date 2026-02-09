@@ -198,6 +198,19 @@ class TestInstallPyMain:
             assert not args.node
             assert not args.go
 
+    @pytest.mark.parametrize(
+        "flag",
+        ["--python", "--node", "--rust", "--go", "--cpp", "--lua", "--shell"],
+    )
+    def test_parse_args_each_language_flag(self, flag: str) -> None:
+        """Each language flag is accepted and sets the corresponding attribute."""
+        from install import parse_args
+
+        attr_name = flag.lstrip("-")
+        with patch("sys.argv", ["install.py", flag]):
+            args = parse_args()
+            assert getattr(args, attr_name)
+
     def test_parse_args_force_flag(self) -> None:
         """Test --force flag parsing."""
         from install import parse_args
