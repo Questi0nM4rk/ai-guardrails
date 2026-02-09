@@ -1,6 +1,6 @@
 """Pytest configuration for ai-guardrails tests.
 
-Adds lib/python to sys.path for imports.
+Adds lib/python to sys.path so ``from guardrails.X import Y`` resolves.
 """
 
 from __future__ import annotations

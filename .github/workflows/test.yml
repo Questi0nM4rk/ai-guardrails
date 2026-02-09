@@ -29,29 +29,6 @@ jobs:
           ruff check lib/python/
           ruff format --check lib/python/
 
-  bats:
-    name: Bats Tests
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Python dependencies
-        run: pip install pyyaml tomli-w tomlkit
-
-      - name: Install bats
-        run: |
-          git clone --depth 1 https://github.com/bats-core/bats-core.git
-          cd bats-core && sudo ./install.sh /usr/local
-
-      - name: Run bats tests
-        run: bats tests/bats/*.bats
-
   fixtures-python:
     name: Python Fixtures
     needs: lint

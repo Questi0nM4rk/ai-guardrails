@@ -126,6 +126,11 @@ ignore = [
   "S607",    # partial paths (gh) are intentional
 ]
 
+[tool.pyright]
+include = ["lib/python/guardrails"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+
 [tool.codespell]
 ignore-words-list = "brin,crate"
 
@@ -134,3 +139,6 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true
+
+[dependency-groups]
+dev = ["pyright>=1.1.408"]
