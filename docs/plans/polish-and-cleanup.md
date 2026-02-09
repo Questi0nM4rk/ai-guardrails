@@ -4,7 +4,7 @@
 
 All 5 phases executed via PRs #20–#24.
 
-**Final state**: 400 pytest tests, 90% coverage, zero bats, pyright clean,
+**Final state**: 400+ pytest tests, 90% coverage, zero bats, pyright clean,
 unified `ai-guardrails` CLI documented.
 
 ## Overview

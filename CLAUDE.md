@@ -103,5 +103,5 @@ uv run pytest tests/ --cov=lib/python/guardrails --cov-report=term-missing
 - **CI check-only**: Never modify code in CI/CD pipelines
 - **Python 3.11+**: Modern type syntax (X | None, not Optional[X])
 - `from __future__ import annotations`: Required in all Python files
-- **85%+ test coverage**: 400 pytest tests, pyright clean
+- **85%+ test coverage**: 400+ pytest tests, pyright clean
 - **Fail fast**: Clear error messages, no graceful degradation
