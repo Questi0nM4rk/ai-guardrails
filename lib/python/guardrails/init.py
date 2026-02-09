@@ -644,12 +644,3 @@ def _resolve_languages(project_type: str, configs_dir: Path, project_dir: Path) 
     print(f"{YELLOW}No language detected - installing base config only (.editorconfig){NC}")
     print(f"{YELLOW}Use --type or --all to install language-specific configs{NC}")
     return []
-
-
-def _resolve_auto(value: str, *, condition: bool) -> bool:
-    """Resolve an ``"auto"``/``"yes"``/``"no"`` flag."""
-    if value == "yes":
-        return True
-    if value == "no":
-        return False
-    return condition

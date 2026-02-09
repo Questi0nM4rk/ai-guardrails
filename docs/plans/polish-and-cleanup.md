@@ -71,13 +71,12 @@ typeCheckingMode = "standard"
 
 Fix any type errors.
 
-## 7. Remove `pre-commit.sh` and `pre-push.sh`
+## 7. ~~Remove `pre-commit.sh` and `pre-push.sh`~~ (DONE)
 
-These are legacy Claude Code hooks that source the deleted `common.sh`.
-They run test suites before commit/push — this is what pre-commit framework
-already does. Evaluate whether they serve any purpose beyond what
-`.pre-commit-config.yaml` provides. If not, delete them and remove from
-`HOOK_SCRIPTS` in `core.py`.
+`pre-commit.sh` and `pre-push.sh` were rewritten in the `feat/python-rewrite`
+PR. `pre-commit.sh` now delegates to the `pre-commit` framework (exits 1 if
+not installed). `pre-push.sh` runs semgrep and pre-commit full-suite checks,
+only printing success when at least one tool ran.
 
 ## 8. Clean Up `conftest.py`
 

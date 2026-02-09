@@ -578,6 +578,36 @@ def generate_output(tasks: list[Task]) -> dict:
     return {"tasks": [t.to_dict() for t in tasks], "summary": summary}
 
 
+def _filter_by_severity(output: dict, severity: str) -> dict:
+    """Filter tasks by minimum severity and recalculate summary.
+
+    Args:
+        output: Output dict with "tasks" and "summary" keys.
+        severity: Minimum severity level ("major", "minor", "suggestion").
+
+    Returns:
+        Modified output dict with filtered tasks and recalculated summary.
+
+    """
+    severity_order = ["major", "minor", "suggestion"]
+    min_idx = severity_order.index(severity)
+    output["tasks"] = [t for t in output["tasks"] if severity_order.index(t["severity"]) <= min_idx]
+    filtered = output["tasks"]
+    by_file: Counter[str] = Counter()
+    for t in filtered:
+        by_file[t["file"]] += 1
+    output["summary"] = {
+        "total": len(filtered),
+        "by_severity": {s: sum(1 for t in filtered if t["severity"] == s) for s in severity_order},
+        "by_source": {
+            s: sum(1 for t in filtered if t["source"] == s)
+            for s in ("thread", "nitpick", "outside_diff")
+        },
+        "by_file": dict(by_file),
+    }
+    return output
+
+
 def dedup_key(task: Task) -> tuple[str, int, str]:
     """Generate deduplication key for a task.
 
@@ -691,7 +721,14 @@ def run_review(
         if result.returncode != 0 or not result.stdout.strip():
             print("Error: No PR found for current branch. Use --pr NUMBER", file=sys.stderr)
             return 1
-        pr = int(result.stdout.strip())
+        try:
+            pr = int(result.stdout.strip())
+        except ValueError:
+            print(
+                f"Error: Unexpected PR number format: {result.stdout.strip()!r}",
+                file=sys.stderr,
+            )
+            return 1
 
     # Get repo owner and name
     result = subprocess.run(
@@ -768,6 +805,8 @@ def run_review(
         text=True,
         check=False,
     )
+    if result.returncode != 0:
+        print("Warning: Failed to fetch review threads via GraphQL", file=sys.stderr)
     threads_json = result.stdout.strip() if result.returncode == 0 else "[]"
 
     # Fetch review bodies
@@ -788,17 +827,18 @@ def run_review(
         text=True,
         check=False,
     )
+    if result.returncode != 0:
+        print("Warning: Failed to fetch review bodies", file=sys.stderr)
     bodies_json = result.stdout.strip() if result.returncode == 0 else "[]"
 
     # Combine and parse
-    combined = json.dumps(
-        {
-            "threads": json.loads(threads_json),
-            "review_bodies": json.loads(bodies_json),
-        }
-    )
-
     try:
+        combined = json.dumps(
+            {
+                "threads": json.loads(threads_json),
+                "review_bodies": json.loads(bodies_json),
+            }
+        )
         output = parse_input(io.StringIO(combined))
     except (json.JSONDecodeError, KeyError) as e:
         print(f"Error parsing review data: {e}", file=sys.stderr)
@@ -810,25 +850,7 @@ def run_review(
         if severity not in severity_order:
             print(f"Error: Invalid severity '{severity}'", file=sys.stderr)
             return 1
-        min_idx = severity_order.index(severity)
-        output["tasks"] = [
-            t for t in output["tasks"] if severity_order.index(t["severity"]) <= min_idx
-        ]
-        filtered = output["tasks"]
-        by_file: Counter[str] = Counter()
-        for t in filtered:
-            by_file[t["file"]] += 1
-        output["summary"] = {
-            "total": len(filtered),
-            "by_severity": {
-                s: sum(1 for t in filtered if t["severity"] == s) for s in severity_order
-            },
-            "by_source": {
-                s: sum(1 for t in filtered if t["source"] == s)
-                for s in ("thread", "nitpick", "outside_diff")
-            },
-            "by_file": dict(by_file),
-        }
+        output = _filter_by_severity(output, severity)
 
     indent = 2 if pretty else None
     print(json.dumps(output, indent=indent))
@@ -865,30 +887,7 @@ def main() -> None:
 
         # Filter by severity if requested
         if args.severity:
-            severity_order = ["major", "minor", "suggestion"]
-            min_idx = severity_order.index(args.severity)
-            result["tasks"] = [
-                t for t in result["tasks"] if severity_order.index(t["severity"]) <= min_idx
-            ]
-            # Recalculate summary
-            filtered = result["tasks"]
-            by_file: Counter[str] = Counter()
-            for t in filtered:
-                by_file[t["file"]] += 1
-            result["summary"] = {
-                "total": len(filtered),
-                "by_severity": {
-                    "major": sum(1 for t in filtered if t["severity"] == "major"),
-                    "minor": sum(1 for t in filtered if t["severity"] == "minor"),
-                    "suggestion": sum(1 for t in filtered if t["severity"] == "suggestion"),
-                },
-                "by_source": {
-                    "thread": sum(1 for t in filtered if t["source"] == "thread"),
-                    "nitpick": sum(1 for t in filtered if t["source"] == "nitpick"),
-                    "outside_diff": sum(1 for t in filtered if t["source"] == "outside_diff"),
-                },
-                "by_file": dict(by_file),
-            }
+            result = _filter_by_severity(result, args.severity)
 
         indent = 2 if args.pretty else None
         print(json.dumps(result, indent=indent))

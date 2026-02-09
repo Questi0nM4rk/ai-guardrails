@@ -5,6 +5,8 @@
 # ============================================
 set -euo pipefail
 
+checks_ran=0
+
 # Security scan with semgrep (if available)
 if command -v semgrep &>/dev/null; then
   echo "  Security: Running semgrep scan..."
@@ -13,6 +15,7 @@ if command -v semgrep &>/dev/null; then
     exit 1
   fi
   echo "  Security scan passed"
+  checks_ran=1
 fi
 
 # Run pre-commit framework (full suite)
@@ -22,6 +25,11 @@ if command -v pre-commit &>/dev/null; then
     echo "  Pre-push checks failed!"
     exit 1
   }
+  checks_ran=1
 fi
 
-echo "Pre-push checks passed"
+if [[ $checks_ran -eq 1 ]]; then
+  echo "Pre-push checks passed"
+else
+  echo "Warning: No pre-push tools found (semgrep, pre-commit). Install at least one." >&2
+fi

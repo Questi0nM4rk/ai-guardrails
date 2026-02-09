@@ -14,6 +14,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import typing
 
 
 def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -110,18 +111,13 @@ def main(argv: list[str] | None = None) -> int:
 
     args = parser.parse_args(argv)
 
-    dispatch: dict[str, object] = {
+    dispatch: dict[str, typing.Callable[[argparse.Namespace], int]] = {
         "init": _cmd_init,
         "generate": _cmd_generate,
         "review": _cmd_review,
     }
 
-    handler = dispatch.get(args.command)
-    if handler is None:
-        parser.print_help()
-        return 1
-
-    return handler(args)  # type: ignore[operator]
+    return dispatch[args.command](args)
 
 
 def _get_version() -> str:

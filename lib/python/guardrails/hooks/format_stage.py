@@ -9,14 +9,15 @@ Replaces lib/hooks/format-and-stage.sh.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import subprocess
 from pathlib import Path
 
 # Extension -> list of (command, args) formatters
 _FORMATTERS: dict[str, list[list[str]]] = {
     ".py": [
-        ["ruff", "format"],
         ["ruff", "check", "--fix"],
+        ["ruff", "format"],
     ],
     ".sh": [
         ["shfmt", "-w", "-i", "2", "-ci", "-bn"],
@@ -77,11 +78,25 @@ def _git_add(filepath: str) -> None:
     )
 
 
+def _file_hash(filepath: str) -> str | None:
+    """Return SHA-256 hex digest of file contents, or None if unreadable."""
+    try:
+        return hashlib.sha256(Path(filepath).read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
 def main() -> int:
     """Entry point. Formats staged files and re-stages them."""
     staged = _git_staged_files()
     if not staged:
         return 0
+
+    # Snapshot file hashes before formatting
+    hashes_before: dict[str, str | None] = {}
+    for filepath in staged:
+        if Path(filepath).is_file():
+            hashes_before[filepath] = _file_hash(filepath)
 
     for filepath in staged:
         if not Path(filepath).is_file():
@@ -95,9 +110,12 @@ def main() -> int:
         for cmd in formatters:
             _run_formatter(cmd, filepath)
 
-    # Re-stage all staged files (they may have been modified by formatters)
+    # Only re-stage files that were actually modified by formatters
     for filepath in staged:
-        if Path(filepath).is_file():
+        if not Path(filepath).is_file():
+            continue
+        hash_after = _file_hash(filepath)
+        if hash_after != hashes_before.get(filepath):
             _git_add(filepath)
 
     return 0

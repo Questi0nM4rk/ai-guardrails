@@ -92,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
 
     allowlist = _load_allowlist()
     found_suppressions = False
-    suppression_count = 0
+    suppression_pattern_count = 0
 
     for filepath in files:
         if not Path(filepath).is_file():
@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
 
             if violation_lines:
                 found_suppressions = True
-                suppression_count += 1
+                suppression_pattern_count += 1
                 print(f"{RED}ERROR: {desc} found in {filepath}{NC}")
                 for vline in violation_lines:
                     print(f"  {YELLOW}{vline}{NC}")
@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if found_suppressions:
         print(f"{RED}========================================{NC}")
-        print(f"{RED}Found {suppression_count} suppression comment(s){NC}")
+        print(f"{RED}Found {suppression_pattern_count} suppression pattern(s) across files{NC}")
         print(f"{RED}========================================{NC}")
         print()
         print("AI Guardrails philosophy: 'Everything is an error or it's ignored.'")
