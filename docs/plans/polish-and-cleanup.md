@@ -1,12 +1,19 @@
 # Plan: Complete Polish, Cleanup & Hardening
 
+## Status: COMPLETE
+
+All 5 phases executed via PRs #20–#24.
+
+**Final state**: 400+ pytest tests, 90% coverage, zero bats, pyright clean,
+unified `ai-guardrails` CLI documented.
+
 ## Overview
 
 The `feat/python-rewrite` PR (merged as #19) converted all bash hook logic and
 CLI scripts into a proper `guardrails` Python package. This plan covers
 everything needed to make the project production-quality.
 
-**Current state**: 3725 lines of Python, 1799 lines of bats tests (to be
+**Current state** (pre-polish): 3725 lines of Python, 1799 lines of bats tests (to be
 replaced), 211 pytest tests at 94% coverage (but only because 7 modules are
 excluded from measurement).
 
@@ -17,9 +24,8 @@ Each phase is designed to be completed by a single subagent in one shot
 
 ---
 
-## Phase 1: Dead Code Removal & File Renames
+## Phase 1: Dead Code Removal & File Renames -- DONE (PR #20)
 
-**Estimated complexity**: Small (< 50k tokens)
 **Branch**: `feat/polish-phase1`
 
 1. **Delete `bin/ai-hooks-init`** (181 lines of old bash)
@@ -42,9 +48,8 @@ Each phase is designed to be completed by a single subagent in one shot
 
 ---
 
-## Phase 2: Migrate Bats to Pytest (Assembly, Detection, Install)
+## Phase 2: Migrate Bats to Pytest (Assembly, Detection, Install) -- DONE (PR #21)
 
-**Estimated complexity**: Medium (< 100k tokens)
 **Branch**: `feat/polish-phase2`
 
 Bats tests exist for functionality that's now Python. Migrate them to pytest.
@@ -74,9 +79,8 @@ Bats tests exist for functionality that's now Python. Migrate them to pytest.
 
 ---
 
-## Phase 3: Write Tests for Untested Python Modules
+## Phase 3: Write Tests for Untested Python Modules -- DONE (PR #22)
 
-**Estimated complexity**: Large (< 150k tokens)
 **Branch**: `feat/polish-phase3`
 
 These modules have 0% coverage and are excluded from measurement. This phase
@@ -119,9 +123,8 @@ writes proper pytest coverage and removes the exclusions.
 
 ---
 
-## Phase 4: Delete Remaining Bats, Add Pyright, Update CI
+## Phase 4: Delete Remaining Bats, Add Pyright, Update CI -- DONE (PR #23)
 
-**Estimated complexity**: Medium (< 100k tokens)
 **Branch**: `feat/polish-phase4`
 
 1. **Migrate remaining bats hook tests to pytest**
@@ -153,9 +156,8 @@ writes proper pytest coverage and removes the exclusions.
 
 ---
 
-## Phase 5: Documentation & Final Polish
+## Phase 5: Documentation & Final Polish -- DONE (PR #24)
 
-**Estimated complexity**: Small (< 50k tokens)
 **Branch**: `feat/polish-phase5`
 
 1. **Update README.md**
@@ -184,11 +186,11 @@ writes proper pytest coverage and removes the exclusions.
 
 | Phase | Branch | Key Deliverable | PR |
 |-------|--------|----------------|----|
-| 1 | `feat/polish-phase1` | Dead code gone, files renamed | |
-| 2 | `feat/polish-phase2` | Assembly/detection/install bats → pytest | |
-| 3 | `feat/polish-phase3` | Full test coverage, no omit entries | |
-| 4 | `feat/polish-phase4` | Zero bats, pyright clean, CI updated | |
-| 5 | `feat/polish-phase5` | Docs updated, dead code removed, 90%+ coverage | |
+| 1 | `feat/polish-phase1` | Dead code gone, files renamed | #20 |
+| 2 | `feat/polish-phase2` | Assembly/detection/install bats → pytest | #21 |
+| 3 | `feat/polish-phase3` | Full test coverage, no omit entries | #22 |
+| 4 | `feat/polish-phase4` | Zero bats, pyright clean, CI updated | #23 |
+| 5 | `feat/polish-phase5` | Docs updated, dead code removed, 90%+ coverage | #24 |
 
-**Actual execution**: Each phase was implemented as a separate PR (#20–#23)
+**Actual execution**: Each phase was implemented as a separate PR (#20–#24)
 on stacked branches. Phases were developed sequentially using git worktrees.

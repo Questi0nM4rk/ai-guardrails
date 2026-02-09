@@ -141,7 +141,4 @@ warn_return_any = true
 warn_unused_ignores = true
 
 [dependency-groups]
-# pyright lives here (not in [project.optional-dependencies]) because it
-# requires uv's dependency-groups support.  Use `uv sync --group dev` to
-# install both this group AND the optional-dependencies dev extras.
-dev = ["pyright>=1.1.408"]
+type-check = ["pyright>=1.1.408"]
