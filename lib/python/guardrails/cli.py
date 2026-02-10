@@ -36,6 +36,27 @@ def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--no-claude-review", action="store_true")
     p.add_argument("--coderabbit", action="store_true", default=None)
     p.add_argument("--no-coderabbit", action="store_true")
+    p.add_argument(
+        "--gemini",
+        action="store_true",
+        default=None,
+        help="Install Gemini Code Assist config",
+    )
+    p.add_argument("--no-gemini", action="store_true", help="Skip Gemini config")
+    p.add_argument(
+        "--deepsource",
+        action="store_true",
+        default=None,
+        help="Install DeepSource config",
+    )
+    p.add_argument("--no-deepsource", action="store_true", help="Skip DeepSource config")
+    p.add_argument(
+        "--review-all",
+        action="store_true",
+        default=None,
+        help="Install /review-all workflow",
+    )
+    p.add_argument("--no-review-all", action="store_true", help="Skip /review-all workflow")
 
 
 def _add_generate_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -68,6 +89,9 @@ def _cmd_init(args: argparse.Namespace) -> int:
     ci = "no" if args.no_ci else ("yes" if args.ci else "auto")
     claude_review = "no" if args.no_claude_review else ("yes" if args.claude_review else "auto")
     coderabbit = "no" if args.no_coderabbit else ("yes" if args.coderabbit else "auto")
+    gemini = "no" if args.no_gemini else ("yes" if args.gemini else "auto")
+    deepsource = "no" if args.no_deepsource else ("yes" if args.deepsource else "auto")
+    review_all = "no" if args.no_review_all else ("yes" if args.review_all else "auto")
 
     return run_init(
         project_type=args.project_type or ("all" if args.all else ""),
@@ -77,6 +101,9 @@ def _cmd_init(args: argparse.Namespace) -> int:
         install_ci=ci,
         install_claude_review=claude_review,
         install_coderabbit=coderabbit,
+        install_gemini=gemini,
+        install_deepsource=deepsource,
+        install_review_all=review_all,
     )
 
 
