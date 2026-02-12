@@ -1,0 +1,42 @@
+# Trigger all review bots on-demand via "/review-all" PR comment.
+#
+# Usage: Comment "/review-all" on any PR to trigger CodeRabbit and Gemini reviews.
+# DeepSource runs automatically on push (status check) and is not comment-triggered.
+#
+# Why on-demand: Auto-review on every push causes cascading issues with
+# dismiss_stale_reviews + required approvals. This workflow gives developers
+# control over when reviews happen — push freely, trigger once when ready.
+
+name: Trigger All Reviews
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  trigger-reviews:
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '/review-all') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Trigger CodeRabbit
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body "@coderabbitai review"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}
+
+      - name: Trigger Gemini
+        run: |
+          gh pr comment "$PR_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --body "/gemini review"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.issue.number }}

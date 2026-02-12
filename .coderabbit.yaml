@@ -17,9 +17,9 @@ reviews:
   review_status: true
   collapse_walkthrough: false
 
-  # Auto-review on PR open and push
+  # Auto-review disabled — trigger on-demand via /review-all
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
     auto_incremental_review: true
 
