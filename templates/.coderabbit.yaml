@@ -99,11 +99,26 @@ reviews:
     # YAML
     yamllint:
       enabled: true
-    # Security scanning
+    # Security — secret detection
     gitleaks:
       enabled: true
-    # Spell checking
+    # Security — SAST
+    semgrep:
+      enabled: true
+    # Security — dependency vulnerabilities
+    osv-scanner:
+      enabled: true
+    # Security — IaC scanning
+    checkov:
+      enabled: true
+    # Spell/grammar checking
     languagetool:
+      enabled: true
+    # GitHub Actions workflow validation
+    actionlint:
+      enabled: true
+    # Dockerfile best practices
+    hadolint:
       enabled: true
 
   # ============================================
