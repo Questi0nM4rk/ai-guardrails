@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 from guardrails.hooks.format_stage import (
     _FORMATTERS,
+    _detect_shell_by_shebang,
     _file_hash,
     _git_staged_files,
     _run_formatter,
@@ -236,3 +237,77 @@ class TestMain:
         assert main() == 0
         mock_format.assert_called_once()
         assert mock_format.call_args[0][0][0] == "shfmt"
+
+
+class TestDetectShellByShebang:
+    """Test shebang-based shell detection for extensionless scripts."""
+
+    def test_detects_bin_sh(self, tmp_path: Path) -> None:
+        f = tmp_path / "myscript"
+        f.write_text("#!/bin/sh\necho hello\n")
+        assert _detect_shell_by_shebang(str(f)) is True
+
+    def test_detects_bin_bash(self, tmp_path: Path) -> None:
+        f = tmp_path / "myscript"
+        f.write_text("#!/bin/bash\necho hello\n")
+        assert _detect_shell_by_shebang(str(f)) is True
+
+    def test_detects_usr_bin_env_bash(self, tmp_path: Path) -> None:
+        f = tmp_path / "myscript"
+        f.write_text("#!/usr/bin/env bash\necho hello\n")
+        assert _detect_shell_by_shebang(str(f)) is True
+
+    def test_detects_zsh(self, tmp_path: Path) -> None:
+        f = tmp_path / "myscript"
+        f.write_text("#!/bin/zsh\necho hello\n")
+        assert _detect_shell_by_shebang(str(f)) is True
+
+    def test_rejects_python_shebang(self, tmp_path: Path) -> None:
+        f = tmp_path / "myscript"
+        f.write_text("#!/usr/bin/env python3\nprint('hello')\n")
+        assert _detect_shell_by_shebang(str(f)) is False
+
+    def test_rejects_no_shebang(self, tmp_path: Path) -> None:
+        f = tmp_path / "myscript"
+        f.write_text("echo hello\n")
+        assert _detect_shell_by_shebang(str(f)) is False
+
+    def test_returns_false_for_missing_file(self, tmp_path: Path) -> None:
+        assert _detect_shell_by_shebang(str(tmp_path / "missing")) is False
+
+
+class TestMainShebangFallback:
+    """Test that main() formats extensionless shell scripts via shebang detection."""
+
+    @patch("guardrails.hooks.format_stage._git_add")
+    @patch("guardrails.hooks.format_stage._run_formatter")
+    @patch("guardrails.hooks.format_stage._git_staged_files")
+    def test_formats_extensionless_shell_script(
+        self,
+        mock_staged: MagicMock,
+        mock_format: MagicMock,
+        _mock_add: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        f = tmp_path / "my-tool"
+        f.write_text("#!/bin/sh\necho hello\n")
+        mock_staged.return_value = [str(f)]
+        assert main() == 0
+        mock_format.assert_called_once()
+        assert mock_format.call_args[0][0][0] == "shfmt"
+
+    @patch("guardrails.hooks.format_stage._git_add")
+    @patch("guardrails.hooks.format_stage._run_formatter")
+    @patch("guardrails.hooks.format_stage._git_staged_files")
+    def test_skips_extensionless_non_shell(
+        self,
+        mock_staged: MagicMock,
+        mock_format: MagicMock,
+        _mock_add: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        f = tmp_path / "my-tool"
+        f.write_text("#!/usr/bin/env python3\nprint('hello')\n")
+        mock_staged.return_value = [str(f)]
+        assert main() == 0
+        mock_format.assert_not_called()
