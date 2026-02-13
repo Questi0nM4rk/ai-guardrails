@@ -1,0 +1,187 @@
+#!/bin/sh
+# Query DeepSource GraphQL API for code analysis results.
+#
+# Requires DEEPSOURCE_PAT env var (Personal Access Token).
+# Get one at: https://app.deepsource.com/settings/tokens
+#
+# Usage:
+#   deepsource-query issues [--repo NAME]     # List issue occurrences
+#   deepsource-query runs [--repo NAME]       # List analysis runs with summaries
+#   deepsource-query repos                    # List all repos and activation status
+#   deepsource-query raw QUERY                # Run arbitrary GraphQL query
+#
+# Examples:
+#   DEEPSOURCE_PAT=dsp_... deepsource-query issues
+#   DEEPSOURCE_PAT=dsp_... deepsource-query issues --repo ai-guardrails
+#   DEEPSOURCE_PAT=dsp_... deepsource-query runs --repo ai-guardrails
+
+set -eu
+
+API_URL="https://api.deepsource.io/graphql/"
+
+if [ -z "${DEEPSOURCE_PAT:-}" ]; then
+  echo "Error: DEEPSOURCE_PAT environment variable is required." >&2
+  echo "Get a token at: https://app.deepsource.com/settings/tokens" >&2
+  exit 1
+fi
+
+if ! command -v curl >/dev/null 2>&1; then
+  echo "Error: curl is required." >&2
+  exit 1
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Error: python3 is required (for JSON formatting)." >&2
+  exit 1
+fi
+
+# Run a GraphQL query and pretty-print the result.
+graphql() {
+  curl -s "$API_URL" -X POST \
+    -H "Authorization: Bearer $DEEPSOURCE_PAT" \
+    -H "accept: application/json" \
+    -H "content-type: application/json" \
+    --data "{\"query\": \"$1\"}" \
+    | python3 -m json.tool
+}
+
+# Queries -------------------------------------------------------------------
+
+query_repos() {
+  graphql "{ viewer { accounts { edges { node { login repositories(first:50) { edges { node { name isActivated defaultBranch } } } } } } } }"
+}
+
+query_issues() {
+  repo="${1:-}"
+  if [ -n "$repo" ]; then
+    # Filter to just the named repo's issues via jq-like python
+    graphql "{ viewer { accounts { edges { node { login repositories(first:50) { edges { node { name isActivated issueOccurrences(first:50) { edges { node { issue { shortcode title category } path beginLine endLine } } } } } } } } } } }" \
+      | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+repos = data['data']['viewer']['accounts']['edges'][0]['node']['repositories']['edges']
+for r in repos:
+    if r['node']['name'] == '$repo':
+        issues = r['node']['issueOccurrences']['edges']
+        for i in issues:
+            n = i['node']
+            print(f\"{n['issue']['shortcode']:12s} {n['path']}:{n['beginLine']}  {n['issue']['title']}\")
+        if not issues:
+            print('No issues found.')
+        break
+else:
+    print(f'Repository \"$repo\" not found.', file=sys.stderr)
+    sys.exit(1)
+"
+  else
+    graphql "{ viewer { accounts { edges { node { login repositories(first:50) { edges { node { name isActivated issueOccurrences(first:50) { edges { node { issue { shortcode title category } path beginLine endLine } } } } } } } } } } }"
+  fi
+}
+
+query_runs() {
+  repo="${1:-}"
+  query="{ viewer { accounts { edges { node { login repositories(first:50) { edges { node { name isActivated analysisRuns(first:5) { edges { node { runUid status branchName commitOid summary { occurrencesIntroduced occurrencesResolved } checks(first:10) { edges { node { analyzer { shortcode } status issues(first:20) { edges { node { shortcode title path beginLine endLine severity category } } } } } } } } } } } } } } } } }"
+
+  if [ -n "$repo" ]; then
+    graphql "$query" \
+      | python3 -c "
+import json, sys
+data = json.load(sys.stdin)
+repos = data['data']['viewer']['accounts']['edges'][0]['node']['repositories']['edges']
+for r in repos:
+    if r['node']['name'] == '$repo':
+        runs = r['node']['analysisRuns']['edges']
+        for run in runs:
+            n = run['node']
+            s = n['summary']
+            print(f\"Run {n['runUid'][:8]}  branch={n['branchName']}  status={n['status']}\")
+            print(f\"  commit={n['commitOid'][:12]}  +{s['occurrencesIntroduced']} -{s['occurrencesResolved']}\")
+            for check in n['checks']['edges']:
+                c = check['node']
+                print(f\"  [{c['analyzer']['shortcode']}] {c['status']}\")
+                for issue in c['issues']['edges']:
+                    i = issue['node']
+                    print(f\"    {i['shortcode']:12s} {i['path']}:{i['beginLine']}  {i['title']}\")
+            print()
+        if not runs:
+            print('No analysis runs found.')
+        break
+else:
+    print(f'Repository \"$repo\" not found.', file=sys.stderr)
+    sys.exit(1)
+"
+  else
+    graphql "$query"
+  fi
+}
+
+# Main ----------------------------------------------------------------------
+
+usage() {
+  echo "Usage: deepsource-query <command> [options]"
+  echo ""
+  echo "Commands:"
+  echo "  repos                    List repositories and activation status"
+  echo "  issues [--repo NAME]     List issue occurrences"
+  echo "  runs   [--repo NAME]     List analysis runs with introduced/resolved counts"
+  echo "  raw    QUERY             Run arbitrary GraphQL query"
+  echo ""
+  echo "Environment:"
+  echo "  DEEPSOURCE_PAT           Personal Access Token (required)"
+}
+
+cmd="${1:-help}"
+shift || true
+
+case "$cmd" in
+  repos)
+    query_repos
+    ;;
+  issues)
+    repo=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --repo)
+          repo="$2"
+          shift 2
+          ;;
+        *)
+          echo "Unknown option: $1" >&2
+          exit 1
+          ;;
+      esac
+    done
+    query_issues "$repo"
+    ;;
+  runs)
+    repo=""
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --repo)
+          repo="$2"
+          shift 2
+          ;;
+        *)
+          echo "Unknown option: $1" >&2
+          exit 1
+          ;;
+      esac
+    done
+    query_runs "$repo"
+    ;;
+  raw)
+    if [ $# -eq 0 ]; then
+      echo "Error: raw requires a GraphQL query string." >&2
+      exit 1
+    fi
+    graphql "$1"
+    ;;
+  help | --help | -h)
+    usage
+    ;;
+  *)
+    echo "Unknown command: $cmd" >&2
+    usage >&2
+    exit 1
+    ;;
+esac
