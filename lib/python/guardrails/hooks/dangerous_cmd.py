@@ -1,13 +1,19 @@
-"""Dangerous command checker for Claude Code ExecTool hook.
+"""Dangerous command checker for Claude Code PreToolUse hook.
 
 Blocks (exit 2) or warns (exit 0 with message) on dangerous bash commands.
 Exit 0 = allow, Exit 2 = block.
 
-Replaces lib/hooks/dangerous-command-check.sh.
+Claude Code PreToolUse hooks receive JSON on stdin::
+
+    {"tool_name": "Bash", "tool_input": {"command": "..."}}
+
+Block/warn messages go to stderr (Claude Code feeds stderr back on exit 2).
+Falls back to ``sys.argv[1]`` for direct CLI testing.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 
@@ -30,6 +36,12 @@ _SPECIAL_BLOCKS: tuple[tuple[str, str], ...] = (
     ),
     # dd writing to block device
     (r"dd\s+if=.*of=/dev/", "Refusing to write directly to block device"),
+    # gh --admin bypasses branch protection
+    (
+        r"\bgh\s+.*--admin\b",
+        "--admin bypasses branch protection rules.\n"
+        "  This requires explicit user approval. Ask before using.",
+    ),
 )
 
 # Force flags only warn on specific destructive commands
@@ -65,27 +77,38 @@ def _check_warned(command: str) -> list[str]:
     return warnings
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Entry point. Takes command string as first arg.
+def _read_command_from_stdin() -> str:
+    """Read command from Claude Code PreToolUse JSON on stdin."""
+    try:
+        data = json.load(sys.stdin)
+        return str(data.get("tool_input", {}).get("command", ""))
+    except (json.JSONDecodeError, AttributeError):
+        return ""
 
-    Returns 0 (allow) or 2 (block).
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point.
+
+    Reads command from stdin JSON (Claude Code protocol) or argv[1] for
+    direct testing. Returns 0 (allow) or 2 (block).
     """
     args = argv if argv is not None else sys.argv[1:]
-    if not args:
-        return 0
 
-    command = args[0]
+    command = args[0] if args else _read_command_from_stdin()
+
+    if not command:
+        return 0
 
     # Check blocked patterns first
     blocked_msg = _check_blocked(command)
     if blocked_msg is not None:
-        print(f"{RED}BLOCKED:{NC} {blocked_msg}")
+        print(f"{RED}BLOCKED:{NC} {blocked_msg}", file=sys.stderr)
         return 2
 
     # Check warning patterns
     warnings = _check_warned(command)
     for msg in warnings:
-        print(f"{YELLOW}WARNING:{NC} {msg}")
+        print(f"{YELLOW}WARNING:{NC} {msg}", file=sys.stderr)
 
     return 0
 

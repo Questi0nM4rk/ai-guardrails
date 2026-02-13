@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import io
+import json
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
-from guardrails.hooks.dangerous_cmd import _check_blocked, _check_warned, main
+from guardrails.hooks.dangerous_cmd import (
+    _check_blocked,
+    _check_warned,
+    _read_command_from_stdin,
+    main,
+)
 
 if TYPE_CHECKING:
     import pytest
@@ -47,6 +55,19 @@ class TestCheckBlocked:
 
     def test_blocks_pre_commit_allow_no_config(self) -> None:
         assert _check_blocked("PRE_COMMIT_ALLOW_NO_CONFIG=1 pre-commit run") is not None
+
+    def test_blocks_admin_flag(self) -> None:
+        msg = _check_blocked("gh pr merge 123 --admin")
+        assert msg is not None
+        assert "--admin" in msg
+        assert "branch protection" in msg
+
+    def test_blocks_admin_in_middle(self) -> None:
+        assert _check_blocked("gh pr merge --admin --squash 42") is not None
+
+    def test_allows_admin_in_commit_message(self) -> None:
+        """--admin in a commit message body should not trigger the block."""
+        assert _check_blocked("git commit -m 'fix: block --admin flag'") is None
 
     def test_allows_safe_command(self) -> None:
         assert _check_blocked("git status") is None
@@ -118,11 +139,35 @@ class TestCheckWarned:
         assert _check_warned("git status") == []
 
 
+class TestReadCommandFromStdin:
+    """Test stdin JSON parsing (Claude Code protocol)."""
+
+    def test_reads_command_from_valid_json(self) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {"command": "git status"}})
+        with patch("sys.stdin", io.StringIO(payload)):
+            assert _read_command_from_stdin() == "git status"
+
+    def test_returns_empty_on_invalid_json(self) -> None:
+        with patch("sys.stdin", io.StringIO("not json")):
+            assert _read_command_from_stdin() == ""
+
+    def test_returns_empty_on_missing_command(self) -> None:
+        payload = json.dumps({"tool_name": "Bash", "tool_input": {}})
+        with patch("sys.stdin", io.StringIO(payload)):
+            assert _read_command_from_stdin() == ""
+
+    def test_returns_empty_on_missing_tool_input(self) -> None:
+        payload = json.dumps({"tool_name": "Bash"})
+        with patch("sys.stdin", io.StringIO(payload)):
+            assert _read_command_from_stdin() == ""
+
+
 class TestMain:
     """Test the main() entry point."""
 
-    def test_returns_0_for_no_args(self) -> None:
-        assert main([]) == 0
+    def test_returns_0_for_no_args_no_stdin(self) -> None:
+        with patch("sys.stdin", io.StringIO("")):
+            assert main([]) == 0
 
     def test_returns_0_for_safe_command(self) -> None:
         assert main(["git status"]) == 0
@@ -130,16 +175,35 @@ class TestMain:
     def test_returns_2_for_blocked_command(self) -> None:
         assert main(["git commit --no-verify"]) == 2
 
+    def test_returns_2_for_admin_command(self) -> None:
+        assert main(["gh pr merge 123 --admin"]) == 2
+
     def test_returns_0_for_warned_command(self) -> None:
         """Warned commands are allowed (exit 0), just print warnings."""
         assert main(["rm -rf ./build"]) == 0
 
-    def test_blocked_message_printed(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_blocked_message_on_stderr(self, capsys: pytest.CaptureFixture[str]) -> None:
         main(["rm -rf /"])
         captured = capsys.readouterr()
-        assert "BLOCKED" in captured.out
+        assert "BLOCKED" in captured.err
+        assert captured.out == ""
 
-    def test_warning_message_printed(self, capsys: pytest.CaptureFixture[str]) -> None:
+    def test_warning_message_on_stderr(self, capsys: pytest.CaptureFixture[str]) -> None:
         main(["chmod -R 777 /tmp"])
         captured = capsys.readouterr()
-        assert "WARNING" in captured.out
+        assert "WARNING" in captured.err
+        assert captured.out == ""
+
+    def test_reads_from_stdin_when_no_args(self) -> None:
+        payload = json.dumps(
+            {
+                "tool_name": "Bash",
+                "tool_input": {"command": "gh pr merge --admin"},
+            }
+        )
+        with patch("sys.stdin", io.StringIO(payload)):
+            assert main([]) == 2
+
+    def test_argv_takes_precedence_over_stdin(self) -> None:
+        """When argv is provided, stdin is not read."""
+        assert main(["git status"]) == 0
