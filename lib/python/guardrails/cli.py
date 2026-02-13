@@ -5,7 +5,7 @@ ai-review-tasks) with a single ``ai-guardrails`` command using subcommands.
 
 Usage::
 
-    ai-guardrails init [--type X] [--force] [--ci]
+    ai-guardrails init [--type X] [--force] [--ci] [--gemini] [--deepsource] [--review-all]
     ai-guardrails generate [--check] [--dry-run]
     ai-guardrails review [--pr N] [--severity X]
 
@@ -82,28 +82,34 @@ def _add_review_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--severity", "-s", help="Filter by severity (major, minor, suggestion)")
 
 
-def _cmd_init(args: argparse.Namespace) -> int:
-    """Run the ``init`` subcommand to set up guardrails for a project."""
-    from guardrails.init import run_init
+def _resolve_flag(args: argparse.Namespace, name: str) -> str:
+    """Resolve a --flag/--no-flag pair to ``"yes"``, ``"no"``, or ``"auto"``."""
+    no_attr = f"no_{name}"
+    if getattr(args, no_attr, False):
+        return "no"
+    if getattr(args, name, None):
+        return "yes"
+    return "auto"
 
-    ci = "no" if args.no_ci else ("yes" if args.ci else "auto")
-    claude_review = "no" if args.no_claude_review else ("yes" if args.claude_review else "auto")
-    coderabbit = "no" if args.no_coderabbit else ("yes" if args.coderabbit else "auto")
-    gemini = "no" if args.no_gemini else ("yes" if args.gemini else "auto")
-    deepsource = "no" if args.no_deepsource else ("yes" if args.deepsource else "auto")
-    review_all = "no" if args.no_review_all else ("yes" if args.review_all else "auto")
+
+def _cmd_init(args: argparse.Namespace) -> int:
+    """Run the ``init`` subcommand to set up guardrails for a project.
+
+    Resolves ``--flag/--no-flag`` pairs and delegates to :func:`run_init`.
+    """
+    from guardrails.init import run_init
 
     return run_init(
         project_type=args.project_type or ("all" if args.all else ""),
         force=args.force,
         skip_precommit=args.no_precommit,
         pip_audit_mode=args.pip_audit or "auto",
-        install_ci=ci,
-        install_claude_review=claude_review,
-        install_coderabbit=coderabbit,
-        install_gemini=gemini,
-        install_deepsource=deepsource,
-        install_review_all=review_all,
+        install_ci=_resolve_flag(args, "ci"),
+        install_claude_review=_resolve_flag(args, "claude_review"),
+        install_coderabbit=_resolve_flag(args, "coderabbit"),
+        install_gemini=_resolve_flag(args, "gemini"),
+        install_deepsource=_resolve_flag(args, "deepsource"),
+        install_review_all=_resolve_flag(args, "review_all"),
     )
 
 

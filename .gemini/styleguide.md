@@ -15,8 +15,8 @@
 
 - `set -euo pipefail` at script start
 - Quote all variables: `"$var"` not `$var`
-- Use `[[` not `[` for conditionals
-- Prefer portable POSIX syntax where possible
+- Use `[[` not `[` for conditionals (Bash scripts only)
+- For `/bin/sh` scripts, use POSIX-compatible `[` instead
 - Validate with shellcheck
 
 ## Testing

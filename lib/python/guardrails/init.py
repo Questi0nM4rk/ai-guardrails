@@ -18,6 +18,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import typing
 from pathlib import Path
 
 from guardrails._paths import find_configs_dir, find_lib_dir, find_templates_dir
@@ -653,26 +654,20 @@ def run_init(
     if registry_existed or force:
         _generate_from_registry(project_dir)
 
-    # CI / Claude Review / CodeRabbit (auto-detect GitHub)
+    # CI / Claude Review / CodeRabbit / Gemini / DeepSource / review-all
     is_github = _is_github_project(project_dir)
 
-    if install_ci == "yes" or (install_ci == "auto" and is_github):
-        _install_ci_workflow(templates_dir, project_dir, force=force)
-
-    if install_claude_review == "yes" or (install_claude_review == "auto" and is_github):
-        _install_claude_review(templates_dir, project_dir, force=force)
-
-    if install_coderabbit == "yes" or (install_coderabbit == "auto" and is_github):
-        _install_coderabbit(templates_dir, project_dir, force=force)
-
-    if install_gemini == "yes" or (install_gemini == "auto" and is_github):
-        _install_gemini(templates_dir, project_dir, force=force)
-
-    if install_deepsource == "yes" or (install_deepsource == "auto" and is_github):
-        _install_deepsource(templates_dir, project_dir, force=force)
-
-    if install_review_all == "yes" or (install_review_all == "auto" and is_github):
-        _install_review_all_workflow(templates_dir, project_dir, force=force)
+    _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
+        (install_ci, lambda t, p: _install_ci_workflow(t, p, force=force)),
+        (install_claude_review, lambda t, p: _install_claude_review(t, p, force=force)),
+        (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
+        (install_gemini, lambda t, p: _install_gemini(t, p, force=force)),
+        (install_deepsource, lambda t, p: _install_deepsource(t, p, force=force)),
+        (install_review_all, lambda t, p: _install_review_all_workflow(t, p, force=force)),
+    ]
+    for flag, installer in _github_integrations:
+        if flag == "yes" or (flag == "auto" and is_github):
+            installer(templates_dir, project_dir)
 
     # Agent instructions
     _setup_agent_instructions(templates_dir, project_dir)

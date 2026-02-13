@@ -17,13 +17,15 @@ jobs:
   trigger-reviews:
     if: |
       github.event.issue.pull_request &&
-      contains(github.event.comment.body, '/review-all') &&
+      github.event.comment.body == '/review-all' &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     permissions:
+      issues: write
       pull-requests: write
     steps:
       - name: Trigger CodeRabbit
+        continue-on-error: true
         run: |
           gh pr comment "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
@@ -33,6 +35,7 @@ jobs:
           PR_NUMBER: ${{ github.event.issue.number }}
 
       - name: Trigger Gemini
+        continue-on-error: true
         run: |
           gh pr comment "$PR_NUMBER" \
             --repo "$GITHUB_REPOSITORY" \
