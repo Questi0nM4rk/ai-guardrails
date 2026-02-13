@@ -11,7 +11,7 @@
 - **Formatter**: ruff format (88 char line length)
 - **Type checker**: pyright in strict mode
 
-## Shell (Bash)
+## Shell (POSIX)
 
 - `set -euo pipefail` at script start
 - Quote all variables: `"$var"` not `$var`
