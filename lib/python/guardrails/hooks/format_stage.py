@@ -86,6 +86,22 @@ def _git_add(filepath: str) -> None:
     )
 
 
+def _detect_shell_by_shebang(filepath: str) -> bool:
+    """Return True if the file starts with a shell shebang (``#!/bin/sh``, etc.)."""
+    try:
+        with Path(filepath).open("rb") as f:
+            first_line = f.readline(128)
+    except OSError:
+        return False
+    if not first_line.startswith(b"#!"):
+        return False
+    shells = (b"/sh", b"/bash", b"/zsh", b"/ash", b"/dash")
+    # Match both "/bin/bash" and "/usr/bin/env bash" patterns
+    return any(s in first_line for s in shells) or any(
+        b" " + s.lstrip(b"/") in first_line for s in shells
+    )
+
+
 def _file_hash(filepath: str) -> str | None:
     """Return SHA-256 hex digest of file contents, or None if unreadable."""
     try:
@@ -112,6 +128,8 @@ def main() -> int:
 
         ext = Path(filepath).suffix
         formatters = _FORMATTERS.get(ext)
+        if not formatters and _detect_shell_by_shebang(filepath):
+            formatters = _FORMATTERS[".sh"]
         if not formatters:
             continue
 
