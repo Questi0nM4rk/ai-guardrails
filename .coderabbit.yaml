@@ -17,10 +17,11 @@ reviews:
   review_status: true
   collapse_walkthrough: false
 
-  # Auto-review on PR open and push
+  # Auto-review disabled — trigger on-demand via /review-all
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
+    # Takes effect when auto_review is re-enabled
     auto_incremental_review: true
 
   # Stop review if PR is closed/merged
@@ -43,17 +44,40 @@ reviews:
         - Focus on test coverage and edge cases
         - Verify meaningful assertions
 
-  # Static analysis tools
+  # Static analysis tools — all enabled for maximum coverage
   tools:
+    # Python
     ruff:
       enabled: true
+    # Shell
     shellcheck:
       enabled: true
+    # Markdown
     markdownlint:
       enabled: true
+    # YAML
     yamllint:
       enabled: true
+    # Security — secret detection
     gitleaks:
+      enabled: true
+    # Security — SAST
+    semgrep:
+      enabled: true
+    # Security — dependency vulnerabilities
+    osvScanner:
+      enabled: true
+    # Security — IaC scanning
+    checkov:
+      enabled: true
+    # Spell/grammar checking
+    languagetool:
+      enabled: true
+    # GitHub Actions workflow validation
+    actionlint:
+      enabled: true
+    # Dockerfile best practices
+    hadolint:
       enabled: true
 
   # AI-generated additions

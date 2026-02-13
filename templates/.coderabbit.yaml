@@ -32,9 +32,9 @@ reviews:
   # Auto Review
   # ============================================
   auto_review:
-    enabled: true
+    enabled: false  # Reviews triggered on-demand via /review-all
     drafts: false
-    # Only review changed code on subsequent pushes (faster reviews)
+    # Only review changed code on subsequent pushes (takes effect when auto_review is re-enabled)
     auto_incremental_review: true
     # Ignore PRs from these users (e.g., bots)
     # ignore_usernames:
@@ -99,11 +99,26 @@ reviews:
     # YAML
     yamllint:
       enabled: true
-    # Security scanning
+    # Security — secret detection
     gitleaks:
       enabled: true
-    # Spell checking
+    # Security — SAST
+    semgrep:
+      enabled: true
+    # Security — dependency vulnerabilities
+    osvScanner:
+      enabled: true
+    # Security — IaC scanning
+    checkov:
+      enabled: true
+    # Spell/grammar checking
     languagetool:
+      enabled: true
+    # GitHub Actions workflow validation
+    actionlint:
+      enabled: true
+    # Dockerfile best practices
+    hadolint:
       enabled: true
 
   # ============================================

@@ -18,6 +18,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import typing
 from pathlib import Path
 
 from guardrails._paths import find_configs_dir, find_lib_dir, find_templates_dir
@@ -483,6 +484,51 @@ def _install_coderabbit(templates_dir: Path, project_dir: Path, *, force: bool) 
         _print_warn("CodeRabbit config template not found")
 
 
+def _install_gemini(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+    """Install Gemini Code Assist config (.gemini/ directory)."""
+    print()
+    print(f"{GREEN}Setting up Gemini Code Assist...{NC}")
+    src_dir = templates_dir / ".gemini"
+    if not src_dir.is_dir():
+        _print_warn("Gemini config template not found")
+        return
+
+    dst_dir = project_dir / ".gemini"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+
+    for src_file in src_dir.iterdir():
+        if src_file.is_file():
+            _copy_config(src_file, dst_dir / src_file.name, force=force)
+
+    print(f"  {BLUE}\u2192 Install the Gemini Code Assist GitHub App to activate{NC}")
+
+
+def _install_deepsource(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+    """Install DeepSource config (.deepsource.toml)."""
+    print()
+    print(f"{GREEN}Setting up DeepSource...{NC}")
+    src = templates_dir / ".deepsource.toml"
+    if src.exists():
+        _copy_config(src, project_dir / ".deepsource.toml", force=force)
+        print(f"  {BLUE}\u2192 Activate DeepSource in GitHub Marketplace to enable analysis{NC}")
+    else:
+        _print_warn("DeepSource config template not found")
+
+
+def _install_review_all_workflow(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+    """Install the review-all workflow that triggers all bots on-demand."""
+    print()
+    print(f"{GREEN}Setting up on-demand review workflow...{NC}")
+    workflows = project_dir / ".github" / "workflows"
+    workflows.mkdir(parents=True, exist_ok=True)
+    src = templates_dir / "workflows" / "review-all.yml"
+    if src.exists():
+        _copy_config(src, workflows / "review-all.yml", force=force)
+        print(f"  {BLUE}\u2192 Comment /review-all on any PR to trigger all review bots{NC}")
+    else:
+        _print_warn("review-all workflow template not found")
+
+
 def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
     """Append guardrails rules to CLAUDE.md or AGENTS.md."""
     marker = "## AI Guardrails - Code Standards"
@@ -536,6 +582,9 @@ def run_init(
     install_ci: str = "auto",
     install_claude_review: str = "auto",
     install_coderabbit: str = "auto",
+    install_gemini: str = "auto",
+    install_deepsource: str = "auto",
+    install_review_all: str = "auto",
 ) -> int:
     """Run the full init workflow.
 
@@ -547,6 +596,9 @@ def run_init(
         install_ci: ``"auto"``, ``"yes"``, or ``"no"``.
         install_claude_review: ``"auto"``, ``"yes"``, or ``"no"``.
         install_coderabbit: ``"auto"``, ``"yes"``, or ``"no"``.
+        install_gemini: ``"auto"``, ``"yes"``, or ``"no"``.
+        install_deepsource: ``"auto"``, ``"yes"``, or ``"no"``.
+        install_review_all: ``"auto"``, ``"yes"``, or ``"no"``.
 
     Returns:
         Exit code (0 for success).
@@ -602,17 +654,20 @@ def run_init(
     if registry_existed or force:
         _generate_from_registry(project_dir)
 
-    # CI / Claude Review / CodeRabbit (auto-detect GitHub)
+    # CI / Claude Review / CodeRabbit / Gemini / DeepSource / review-all
     is_github = _is_github_project(project_dir)
 
-    if install_ci == "yes" or (install_ci == "auto" and is_github):
-        _install_ci_workflow(templates_dir, project_dir, force=force)
-
-    if install_claude_review == "yes" or (install_claude_review == "auto" and is_github):
-        _install_claude_review(templates_dir, project_dir, force=force)
-
-    if install_coderabbit == "yes" or (install_coderabbit == "auto" and is_github):
-        _install_coderabbit(templates_dir, project_dir, force=force)
+    _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
+        (install_ci, lambda t, p: _install_ci_workflow(t, p, force=force)),
+        (install_claude_review, lambda t, p: _install_claude_review(t, p, force=force)),
+        (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
+        (install_gemini, lambda t, p: _install_gemini(t, p, force=force)),
+        (install_deepsource, lambda t, p: _install_deepsource(t, p, force=force)),
+        (install_review_all, lambda t, p: _install_review_all_workflow(t, p, force=force)),
+    ]
+    for flag, installer in _github_integrations:
+        if flag == "yes" or (flag == "auto" and is_github):
+            installer(templates_dir, project_dir)
 
     # Agent instructions
     _setup_agent_instructions(templates_dir, project_dir)
