@@ -34,7 +34,7 @@ reviews:
   auto_review:
     enabled: false  # Reviews triggered on-demand via /review-all
     drafts: false
-    # Only review changed code on subsequent pushes (faster reviews)
+    # Only review changed code on subsequent pushes (takes effect when auto_review is re-enabled)
     auto_incremental_review: true
     # Ignore PRs from these users (e.g., bots)
     # ignore_usernames:
@@ -106,7 +106,7 @@ reviews:
     semgrep:
       enabled: true
     # Security — dependency vulnerabilities
-    osv-scanner:
+    osvScanner:
       enabled: true
     # Security — IaC scanning
     checkov:

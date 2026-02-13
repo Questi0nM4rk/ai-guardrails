@@ -36,12 +36,14 @@ if ! command -v python3 >/dev/null 2>&1; then
 fi
 
 # Run a GraphQL query and pretty-print the result.
+# Uses python3 json.dumps to safely escape the query string.
 graphql() {
+  payload=$(python3 -c "import json,sys; print(json.dumps({'query': sys.argv[1]}))" "$1")
   curl -s "$API_URL" -X POST \
     -H "Authorization: Bearer $DEEPSOURCE_PAT" \
     -H "accept: application/json" \
     -H "content-type: application/json" \
-    --data "{\"query\": \"$1\"}" \
+    --data "$payload" \
     | python3 -m json.tool
 }
 
@@ -54,14 +56,14 @@ query_repos() {
 query_issues() {
   repo="${1:-}"
   if [ -n "$repo" ]; then
-    # Filter to just the named repo's issues via jq-like python
     graphql "{ viewer { accounts { edges { node { login repositories(first:50) { edges { node { name isActivated issueOccurrences(first:50) { edges { node { issue { shortcode title category } path beginLine endLine } } } } } } } } } } }" \
       | python3 -c "
 import json, sys
+repo = sys.argv[1]
 data = json.load(sys.stdin)
 repos = data['data']['viewer']['accounts']['edges'][0]['node']['repositories']['edges']
 for r in repos:
-    if r['node']['name'] == '$repo':
+    if r['node']['name'] == repo:
         issues = r['node']['issueOccurrences']['edges']
         for i in issues:
             n = i['node']
@@ -70,9 +72,9 @@ for r in repos:
             print('No issues found.')
         break
 else:
-    print(f'Repository \"$repo\" not found.', file=sys.stderr)
+    print(f'Repository \"{repo}\" not found.', file=sys.stderr)
     sys.exit(1)
-"
+" "$repo"
   else
     graphql "{ viewer { accounts { edges { node { login repositories(first:50) { edges { node { name isActivated issueOccurrences(first:50) { edges { node { issue { shortcode title category } path beginLine endLine } } } } } } } } } } }"
   fi
@@ -86,10 +88,11 @@ query_runs() {
     graphql "$query" \
       | python3 -c "
 import json, sys
+repo = sys.argv[1]
 data = json.load(sys.stdin)
 repos = data['data']['viewer']['accounts']['edges'][0]['node']['repositories']['edges']
 for r in repos:
-    if r['node']['name'] == '$repo':
+    if r['node']['name'] == repo:
         runs = r['node']['analysisRuns']['edges']
         for run in runs:
             n = run['node']
@@ -107,9 +110,9 @@ for r in repos:
             print('No analysis runs found.')
         break
 else:
-    print(f'Repository \"$repo\" not found.', file=sys.stderr)
+    print(f'Repository \"{repo}\" not found.', file=sys.stderr)
     sys.exit(1)
-"
+" "$repo"
   else
     graphql "$query"
   fi

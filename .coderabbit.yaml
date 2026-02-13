@@ -21,6 +21,7 @@ reviews:
   auto_review:
     enabled: false
     drafts: false
+    # Takes effect when auto_review is re-enabled
     auto_incremental_review: true
 
   # Stop review if PR is closed/merged
@@ -64,7 +65,7 @@ reviews:
     semgrep:
       enabled: true
     # Security — dependency vulnerabilities
-    osv-scanner:
+    osvScanner:
       enabled: true
     # Security — IaC scanning
     checkov:
