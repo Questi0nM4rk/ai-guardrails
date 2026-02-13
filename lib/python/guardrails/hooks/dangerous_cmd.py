@@ -78,11 +78,17 @@ def _check_warned(command: str) -> list[str]:
 
 
 def _read_command_from_stdin() -> str:
-    """Read command from Claude Code PreToolUse JSON on stdin."""
+    """Read command from Claude Code PreToolUse JSON on stdin.
+
+    Returns empty string when stdin is a TTY (interactive session) or on
+    any I/O or parse error.
+    """
+    if sys.stdin.isatty():
+        return ""
     try:
         data = json.load(sys.stdin)
         return str(data.get("tool_input", {}).get("command", ""))
-    except (json.JSONDecodeError, AttributeError):
+    except (json.JSONDecodeError, AttributeError, OSError):
         return ""
 
 

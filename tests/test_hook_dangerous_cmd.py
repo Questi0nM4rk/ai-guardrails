@@ -161,6 +161,19 @@ class TestReadCommandFromStdin:
         with patch("sys.stdin", io.StringIO(payload)):
             assert _read_command_from_stdin() == ""
 
+    def test_returns_empty_on_non_dict_tool_input(self) -> None:
+        """tool_input as a string triggers AttributeError on .get()."""
+        payload = json.dumps({"tool_name": "Bash", "tool_input": "not-a-dict"})
+        with patch("sys.stdin", io.StringIO(payload)):
+            assert _read_command_from_stdin() == ""
+
+    def test_returns_empty_on_tty(self) -> None:
+        """Interactive TTY stdin should return empty immediately."""
+        mock_stdin = io.StringIO("")
+        mock_stdin.isatty = lambda: True  # type: ignore[assignment]
+        with patch("sys.stdin", mock_stdin):
+            assert _read_command_from_stdin() == ""
+
 
 class TestMain:
     """Test the main() entry point."""
@@ -205,5 +218,9 @@ class TestMain:
             assert main([]) == 2
 
     def test_argv_takes_precedence_over_stdin(self) -> None:
-        """When argv is provided, stdin is not read."""
-        assert main(["git status"]) == 0
+        """When argv is provided, stdin is not read even if it has a blocked command."""
+        blocked_payload = json.dumps(
+            {"tool_name": "Bash", "tool_input": {"command": "rm -rf /"}},
+        )
+        with patch("sys.stdin", io.StringIO(blocked_payload)):
+            assert main(["git status"]) == 0
