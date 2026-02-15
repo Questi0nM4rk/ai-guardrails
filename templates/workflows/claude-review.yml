@@ -62,7 +62,7 @@ jobs:
 
             ## NOT YOUR JOB (other bots handle these)
             - Style/formatting (pre-commit hooks)
-            - Linting (CodeRabbit + ruff/shellcheck/biome)
+            - Linting (CodeRabbit + ruff/shellcheck)
             - Security scanning (CodeRabbit + gitleaks/semgrep)
             - Dependency vulnerabilities (CodeRabbit + osv-scanner)
 
