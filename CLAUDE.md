@@ -125,6 +125,8 @@ and create noise. Only push when you are confident the code is complete.
 5. **Wait for all bots** — After pushing, wait for all reviews to complete
    (~5 min) before acting on feedback
 
+See [docs/specs/review-checklist.md](docs/specs/review-checklist.md) for detailed review criteria.
+
 ## Key Constraints
 
 - **Local auto-fix**: Fix everything possible, don't waste context on syntax

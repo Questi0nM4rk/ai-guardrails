@@ -707,5 +707,46 @@ class TestIntegrationThreadFormat:
             assert task["severity"] in ["major", "minor", "suggestion"]
 
 
+class TestEdgeCases:
+    """Edge case tests for coderabbit parser."""
+
+    def test_empty_threads_response(self) -> None:
+        """Test handling empty GraphQL response (no threads)."""
+        data = {"threads": [], "review_bodies": []}
+        input_file = io.StringIO(json.dumps(data))
+        result = parse_input(input_file)
+        assert result["summary"]["total"] == 0
+        assert result["tasks"] == []
+
+    def test_thread_missing_comments_key(self) -> None:
+        """Test thread with missing optional keys is handled gracefully."""
+        thread = {"path": "test.py", "line": 10, "body": "**Title**"}
+        task = parse_thread(thread)
+        assert task is not None
+        assert task.title == "Title"
+
+    def test_empty_review_body(self) -> None:
+        """Test empty review body produces no tasks."""
+        tasks = parse_review_body("")
+        assert tasks == []
+
+    def test_review_body_no_sections(self) -> None:
+        """Test review body without nitpick/outside-diff sections."""
+        tasks = parse_review_body("This is just a plain review body with no structured sections.")
+        assert tasks == []
+
+    def test_all_threads_invalid(self) -> None:
+        """Test input where all threads are invalid."""
+        data = {
+            "threads": [
+                {"path": "", "line": 10, "body": "**No path**"},
+                {"path": "test.py", "line": None, "body": "**No line**"},
+                {"path": "test.py", "line": 5, "body": ""},
+            ]
+        }
+        tasks = parse_threads(data)
+        assert tasks == []
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -13,6 +13,7 @@ dependencies = ["pyinfra>=3.2", "pyyaml>=6.0", "tomli-w>=1.0", "tomlkit>=0.12"]
 dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4"]
 
 [project.scripts]
+ai-guardrails = "guardrails.cli:main"
 ai-guardrails-install = "install:main"
 
 [build-system]
@@ -20,7 +21,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["lib"]
+sources = ["lib/python"]
+packages = ["lib/python/guardrails"]
 include = ["install.py", "lib/**/*.py", "bin/**", "templates/**", "configs/**"]
 
 [tool.hatch.build.targets.sdist]
