@@ -37,9 +37,14 @@ lib/python/       # Python package (guardrails)
 tests/            # pytest test suite
 ```
 
-## Review Focus
+## Review Focus (auto-review on every push)
 
-- Security: No hardcoded secrets, no command injection, proper input validation
-- Type safety: No `Any`, no unvalidated casts, strict generics
-- Error handling: Specific exception types, proper cleanup, no silent failures
-- Performance: No N+1 patterns, minimize subprocess calls, cache expensive operations
+Your specialization — focus on these and leave other concerns to CodeRabbit/Claude:
+
+- **Bugs**: code that will fail, produce wrong results, or crash
+- **Logic errors**: incorrect conditions, off-by-one, missing edge cases
+- **Security**: injection, secrets exposure, unsafe operations
+- **Performance**: N+1 patterns, unnecessary allocations, missing caching
+
+Do NOT flag: style/formatting, linting issues, minor nitpicks (CodeRabbit handles these).
+Do NOT flag: code duplication, clean code, architecture (Claude handles these).

@@ -42,4 +42,5 @@ Review checklist (for reviewers):
 - [ ] Architecture compliance (correct layering, no circular deps)
 - [ ] Spec alignment (matches .claude/specs/ if applicable)
 - [ ] Documentation updated (README, API docs if needed)
+- [ ] Review workflow followed (batch fixes, don't spam pushes)
 -->
