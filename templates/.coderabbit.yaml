@@ -50,16 +50,25 @@ reviews:
   # Custom review focus per file pattern
   # Uncomment and customize for your project
   path_instructions:
+    # Global rules — applied to ALL files
+    - path: "**/*"
+      instructions: |
+        - Flag code duplication: repeated logic should be extracted into shared functions or utilities
+        - Enforce clean code: clear naming, single-responsibility functions, no dead code
+        - Check for improper method usage: prefer standard library/framework methods over reimplementation
+        - Enforce modern language usage: flag deprecated APIs, outdated idioms, or legacy patterns
     - path: "**/*.py"
       instructions: |
         - Enforce type hints on all function signatures
         - Check for proper exception handling (no bare except)
         - Verify docstrings on public functions/classes
+        - Enforce modern Python: f-strings over .format(), pathlib over os.path, walrus operator where cleaner
     - path: "**/*.ts"
       instructions: |
         - Ensure strict TypeScript (no any, no type assertions without reason)
         - Check for proper error handling
         - Verify JSDoc on exported functions
+        - Enforce modern TS: satisfies over as, template literals, optional chaining, nullish coalescing
     - path: "**/*.sh"
       instructions: |
         - Verify scripts use set -euo pipefail

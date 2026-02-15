@@ -1,11 +1,21 @@
 # Trigger all review bots on-demand via "/review-all" PR comment.
 #
-# Usage: Comment "/review-all" on any PR to trigger CodeRabbit and Gemini reviews.
+# Usage: Comment "/review-all" on any PR to trigger CodeRabbit, Claude, and Gemini reviews.
 # DeepSource runs automatically on push (status check) and is not comment-triggered.
 #
 # Why on-demand: Auto-review on every push causes cascading issues with
 # dismiss_stale_reviews + required approvals. This workflow gives developers
 # control over when reviews happen — push freely, trigger once when ready.
+#
+# Architecture:
+#   gate        — authorization check + PR metadata (shared via outputs)
+#   coderabbit  — "@coderabbitai full review" comment trigger
+#   claude      — anthropics/claude-code-action (direct, bypasses comment trigger)
+#   gemini      — google-github-actions/run-gemini-cli (direct, bypasses comment trigger)
+#
+# Why direct actions for Claude/Gemini: Slash-command bots ignore comments
+# posted by github-actions[bot]. Running their official actions directly
+# bypasses this limitation entirely.
 
 name: Trigger All Reviews
 
@@ -14,32 +24,179 @@ on:
     types: [created]
 
 jobs:
-  trigger-reviews:
+  # ── Gate ──────────────────────────────────────────────────────────────
+  # Single authorization + PR metadata fetch. Downstream jobs inherit via
+  # `needs: gate` — no duplicated conditions or `gh pr view` calls.
+  gate:
     if: |
       github.event.issue.pull_request &&
       github.event.comment.body == '/review-all' &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
     runs-on: ubuntu-latest
     permissions:
-      issues: write
+      pull-requests: read
+    outputs:
+      pr-number: ${{ steps.pr.outputs.number }}
+      head-sha: ${{ steps.pr.outputs.head_sha }}
+      head-repo: ${{ steps.pr.outputs.head_repo }}
+      head-ref: ${{ steps.pr.outputs.head_ref }}
+      title: ${{ steps.pr.outputs.title }}
+      author: ${{ steps.pr.outputs.author }}
+    steps:
+      - name: Get PR details
+        id: pr
+        run: |
+          PR_DATA=$(gh pr view "${{ github.event.issue.number }}" \
+            --repo "${{ github.repository }}" \
+            --json headRefOid,headRefName,headRepository,headRepositoryOwner,number,title,author)
+          echo "number=$(echo "$PR_DATA" | jq -r '.number')" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$(echo "$PR_DATA" | jq -r '.headRefOid')" >> "$GITHUB_OUTPUT"
+          echo "head_repo=$(echo "$PR_DATA" | jq -r '.headRepositoryOwner.login + "/" + .headRepository.name')" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$(echo "$PR_DATA" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
+          echo "title=$(echo "$PR_DATA" | jq -r '.title')" >> "$GITHUB_OUTPUT"
+          echo "author=$(echo "$PR_DATA" | jq -r '.author.login')" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── CodeRabbit ────────────────────────────────────────────────────────
+  # Comment-triggered (only review bot that responds to bot-authored comments).
+  # Uses "full review" to force re-review even on first-time PRs.
+  trigger-coderabbit:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
       pull-requests: write
     steps:
-      - name: Trigger CodeRabbit
+      - name: Trigger CodeRabbit full review
         continue-on-error: true
         run: |
-          gh pr comment "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            --body "@coderabbitai review"
+          gh pr comment "${{ needs.gate.outputs.pr-number }}" \
+            --repo "${{ github.repository }}" \
+            --body "@coderabbitai full review"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.issue.number }}
 
-      - name: Trigger Gemini
-        continue-on-error: true
-        run: |
-          gh pr comment "$PR_NUMBER" \
-            --repo "$GITHUB_REPOSITORY" \
-            --body "/gemini review"
+  # ── Claude ────────────────────────────────────────────────────────────
+  # Runs claude-code-action directly — bypasses comment trigger that
+  # requires human author_association.
+  claude-review:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+    concurrency:
+      group: claude-review-${{ github.event.issue.number }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          repository: ${{ needs.gate.outputs.head-repo }}
+          ref: ${{ needs.gate.outputs.head-sha }}
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true
+          prompt: |
+            # CODE REVIEW
+            Repository: ${{ github.repository }}
+            PR: #${{ needs.gate.outputs.pr-number }}
+            Title: ${{ needs.gate.outputs.title }}
+            Author: ${{ needs.gate.outputs.author }}
+
+            ## YOUR ROLE
+            You are a strict code reviewer. Flag these categories:
+            - Bugs: code that will fail, produce wrong results, or crash
+            - Security: injection, secrets exposure, unsafe operations
+            - Logic errors: incorrect conditions, off-by-one, missing edge cases
+            - Code duplication: repeated logic that should be extracted into shared functions or utilities
+            - Clean code: poor naming, functions doing too much, unclear intent, dead code
+            - Improper method usage: reimplementing what the standard library or framework already provides
+            - Outdated patterns: deprecated APIs, old idioms — enforce modern language usage for the detected language
+            - Project violations: check CLAUDE.md for project-specific rules
+
+            Do NOT flag: style/formatting, nitpicks, missing docs on unchanged code.
+
+            ## PROCESS
+            1. Get the diff: `gh pr diff ${{ needs.gate.outputs.pr-number }}`
+            2. Read CLAUDE.md for project conventions
+            3. For each issue, post an INLINE comment on the specific line
+            4. Post a summary comment with overall assessment
+
+            ## OUTPUT
+            - Inline comments for specific issues (severity: critical/major/minor)
+            - Summary via `gh pr comment` with: overview, issues, recommendation (APPROVE/REQUEST CHANGES)
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(git diff:*),Bash(git log:*),Read,Glob,Grep"
+            --max-turns 15
+
+  # ── Gemini ────────────────────────────────────────────────────────────
+  # Runs gemini-cli directly — Gemini ignores bot-authored slash commands,
+  # so we invoke the action instead of posting a "/gemini review" comment.
+  # Uses GitHub MCP server for inline PR comments.
+  gemini-review:
+    needs: gate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.gate.outputs.head-ref }}
+
+      - name: Gemini Code Review
+        uses: google-github-actions/run-gemini-cli@v0
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST_NUMBER: ${{ needs.gate.outputs.pr-number }}
+          REPOSITORY: ${{ github.repository }}
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          prompt: |
+            Review pull request #${{ needs.gate.outputs.pr-number }} in ${{ github.repository }}.
+            Use pull_request_read tools to fetch the diff and metadata.
+
+            ## REVIEW CRITERIA (strict)
+            - Bugs: code that will fail, produce wrong results, or crash
+            - Security: injection, secrets exposure, unsafe operations
+            - Logic errors: incorrect conditions, off-by-one, missing edge cases
+            - Code duplication: repeated logic that should be extracted into shared functions or utilities
+            - Clean code: poor naming, functions doing too much, unclear intent, dead code
+            - Improper method usage: reimplementing what the standard library or framework already provides
+            - Outdated patterns: deprecated APIs, old idioms — enforce modern language usage
+
+            Do NOT flag style/formatting or minor nitpicks.
+            Post findings as inline review comments using the GitHub MCP tools,
+            then submit the review with a summary.
+          settings: |-
+            {
+              "mcpServers": {
+                "github": {
+                  "command": "docker",
+                  "args": [
+                    "run", "-i", "--rm",
+                    "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+                    "ghcr.io/github/github-mcp-server:v0.27.0"
+                  ],
+                  "includeTools": [
+                    "add_comment_to_pending_review",
+                    "create_pending_pull_request_review",
+                    "pull_request_read",
+                    "pull_request_review_write",
+                    "submit_pending_pull_request_review"
+                  ],
+                  "env": {
+                    "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+                  }
+                }
+              }
+            }
