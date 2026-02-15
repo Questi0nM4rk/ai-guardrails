@@ -97,6 +97,23 @@ uv run pyright
 uv run pytest tests/ --cov=lib/python/guardrails --cov-report=term-missing
 ```
 
+## Review Bots
+
+All bots auto-review every push. No manual triggers needed.
+
+| Bot | Focus | Trigger |
+|-----|-------|---------|
+| CodeRabbit | Static analysis, security, language conventions | Auto on push |
+| Claude | Code duplication, clean code, modern patterns, architecture | Auto on PR |
+| Gemini | Bugs, logic errors, security, performance | Auto on push |
+| DeepSource | Anti-patterns, OWASP, code metrics | Auto on push |
+
+### Rules for AI Agents
+
+1. **Never auto-push** — Ask human before `git push`
+2. **Batch fixes locally** — All changes in one commit, push once
+3. **Wait for all bots** — Don't address feedback until all reviews complete (~5 min)
+
 ## Key Constraints
 
 - **Local auto-fix**: Fix everything possible, don't waste context on syntax
