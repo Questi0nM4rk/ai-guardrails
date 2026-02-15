@@ -67,9 +67,15 @@ All bots auto-review every push. No manual triggers needed.
 | DeepSource | Anti-patterns, OWASP, code metrics | Auto on push |
 
 **Rules for AI Agents:**
-1. **Never auto-push** — Ask human before `git push`
-2. **Batch fixes locally** — All changes in one commit, push once
-3. **Wait for all bots** — Don't address feedback until all reviews complete (~5 min)
+
+Every push triggers all 4 review bots. Unnecessary pushes waste review cycles
+and create noise. Only push when you are confident the code is complete.
+
+1. **Complete all changes before pushing** — Finish the entire task locally (all files, all fixes, all tests passing). Do not push work-in-progress
+2. **Never auto-push** — Always ask the human before running `git push`. Explain what changed and confirm they want a review
+3. **Batch into minimal commits** — Group related changes into logical commits. Push them all at once
+4. **Address ALL review feedback before pushing again** — When bots request changes, fix every comment locally, then push once. Do not push after each individual fix
+5. **Wait for all bots** — After pushing, wait for all reviews to complete (~5 min) before acting on feedback
 
 ### When Pre-commit Fails
 
