@@ -120,7 +120,8 @@ and create noise. Only push when you are confident the code is complete.
 3. **Batch into minimal commits** — Group related changes into logical
    commits. Push them all at once
 4. **Address ALL review feedback before pushing again** — When bots request
-   changes, fix every comment locally, then push once
+   changes, fix every comment locally, then push once. Do not push after
+   each individual fix
 5. **Wait for all bots** — After pushing, wait for all reviews to complete
    (~5 min) before acting on feedback
 
