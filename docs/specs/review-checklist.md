@@ -1,6 +1,15 @@
 # PR Review Checklist - Architecture & Specs
 
-Claude Code reviews against this checklist. CodeRabbit handles code quality.
+All review bots give their best effort — the PR author decides which findings to act on.
+
+## Bot Responsibilities
+
+| Bot | Focus |
+|-----|-------|
+| CodeRabbit | Static analysis, security scanning, language conventions |
+| Claude | Code duplication, clean code, modern patterns, architecture |
+| Gemini | Bugs, logic errors, security, performance |
+| DeepSource | Anti-patterns, OWASP, code metrics |
 
 ## Required PR Structure
 

@@ -55,6 +55,22 @@ auto-fix → re-stage → checks → commit
 - Meaningful assertions (not just "no errors")
 - No shared state between tests
 
+### Review Bots
+
+All bots auto-review every push. No manual triggers needed.
+
+| Bot | Focus | Trigger |
+|-----|-------|---------|
+| CodeRabbit | Static analysis, security, language conventions | Auto on push |
+| Claude | Code duplication, clean code, modern patterns, architecture | Auto on PR |
+| Gemini | Bugs, logic errors, performance | Auto on push |
+| DeepSource | Anti-patterns, OWASP | Auto on push |
+
+**Rules for AI Agents:**
+1. **Never auto-push** — Ask human before `git push`
+2. **Batch fixes locally** — All changes in one commit, push once
+3. **Wait for all bots** — Don't address feedback until all reviews complete (~5 min)
+
 ### When Pre-commit Fails
 
 Most syntax/formatting issues are auto-fixed. If pre-commit still fails:

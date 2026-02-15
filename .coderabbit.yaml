@@ -31,12 +31,17 @@ reviews:
   # Path-specific review instructions
   path_instructions:
     # Global rules — applied to ALL files
+    # CodeRabbit's specialization: static analysis, security, language conventions.
+    # Claude handles: code duplication, architecture, design patterns.
+    # Gemini handles: bugs, logic errors, performance.
     - path: "**/*"
       instructions: |
-        - Flag code duplication: repeated logic should be extracted into shared functions or utilities
-        - Enforce clean code: clear naming, single-responsibility functions, no dead code
-        - Check for improper method usage: prefer standard library/framework methods over reimplementation
-        - Enforce modern language usage: flag deprecated APIs, outdated idioms, or legacy patterns
+        Your specialization — focus on these:
+        - Static analysis: flag issues caught by linters (ruff, shellcheck, biome, etc.)
+        - Security: secrets, injection, unsafe operations (via gitleaks, semgrep)
+        - Dependency vulnerabilities (via osv-scanner)
+        - Language conventions: enforce per-language best practices
+        - Flag code that bypasses pre-commit hooks
     - path: "**/*.py"
       instructions: |
         - Enforce type hints on all function signatures
