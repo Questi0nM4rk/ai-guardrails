@@ -17,11 +17,12 @@ reviews:
   review_status: true
   collapse_walkthrough: false
 
-  # Auto-review disabled — trigger on-demand via /review-all
+  # Auto-review on push — CodeRabbit reviews every push automatically.
+  # Subsequent pushes get incremental reviews (only changed code).
+  # To force a full re-review, comment "@coderabbitai full review".
   auto_review:
-    enabled: false
+    enabled: true
     drafts: false
-    # Takes effect when auto_review is re-enabled
     auto_incremental_review: true
 
   # Stop review if PR is closed/merged
@@ -29,11 +30,19 @@ reviews:
 
   # Path-specific review instructions
   path_instructions:
+    # Global rules — applied to ALL files
+    - path: "**/*"
+      instructions: |
+        - Flag code duplication: repeated logic should be extracted into shared functions or utilities
+        - Enforce clean code: clear naming, single-responsibility functions, no dead code
+        - Check for improper method usage: prefer standard library/framework methods over reimplementation
+        - Enforce modern language usage: flag deprecated APIs, outdated idioms, or legacy patterns
     - path: "**/*.py"
       instructions: |
         - Enforce type hints on all function signatures
         - Check for proper exception handling (no bare except)
         - Verify docstrings on public functions/classes
+        - Enforce modern Python: f-strings over .format(), pathlib over os.path, walrus operator where cleaner
     - path: "**/*.sh"
       instructions: |
         - Verify scripts use set -euo pipefail
