@@ -21,7 +21,6 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
-      id-token: write
     concurrency:
       group: claude-review-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -31,6 +30,7 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Prompt duplicated from templates/workflows/claude-review.yml — keep in sync.
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:

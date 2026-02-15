@@ -37,9 +37,9 @@ jobs:
       - name: Run Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
-          # Auth: uncomment ONE of the following:
+          # Auth: uncomment exactly ONE (mutually exclusive, using both is undefined):
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          # use_oauth: true
+          # use_oauth: true  # OIDC — requires id-token: write permission
 
           track_progress: true
 

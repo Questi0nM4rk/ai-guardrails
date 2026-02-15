@@ -37,7 +37,7 @@ reviews:
     - path: "**/*"
       instructions: |
         Your specialization — focus on these:
-        - Static analysis: flag issues caught by linters (ruff, shellcheck, biome, etc.)
+        - Static analysis: flag issues caught by linters (ruff, shellcheck, etc.)
         - Security: secrets, injection, unsafe operations (via gitleaks, semgrep)
         - Dependency vulnerabilities (via osv-scanner)
         - Language conventions: enforce per-language best practices

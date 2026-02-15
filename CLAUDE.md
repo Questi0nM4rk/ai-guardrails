@@ -105,8 +105,8 @@ All bots auto-review every push. No manual triggers needed.
 |-----|-------|---------|
 | CodeRabbit | Static analysis, security, language conventions | Auto on push |
 | Claude | Code duplication, clean code, modern patterns, architecture | Auto on PR |
-| Gemini | Bugs, logic errors, performance | Auto on push |
-| DeepSource | Anti-patterns, OWASP | Auto on push |
+| Gemini | Bugs, logic errors, security, performance | Auto on push |
+| DeepSource | Anti-patterns, OWASP, code metrics | Auto on push |
 
 ### Rules for AI Agents
 
