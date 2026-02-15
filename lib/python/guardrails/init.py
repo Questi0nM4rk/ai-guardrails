@@ -301,84 +301,73 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
             f.write(block)
 
 
-def _install_claude_hook() -> None:
-    """Install the Claude Code PreToolUse hook in ~/.claude/settings.json."""
-    settings_path = Path.home() / ".claude" / "settings.json"
-    hook_cmd = "~/.ai-guardrails/hooks/protect-generated-configs.sh 2>/dev/null"
+def _install_pretooluse_hook(
+    *,
+    hook_cmd: str,
+    matcher: str,
+    check_substring: str,
+    label: str,
+) -> None:
+    """Install a PreToolUse hook in ``~/.claude/settings.json``.
 
-    # Check if already installed
+    Args:
+        hook_cmd: Shell command to run as the hook.
+        matcher: Tool matcher pattern (e.g. ``"Bash"``).
+        check_substring: Substring to detect duplicates.
+        label: Human-readable label for status messages.
+
+    """
+    settings_path = Path.home() / ".claude" / "settings.json"
+
     if settings_path.exists():
         try:
             settings = json.loads(settings_path.read_text())
         except (json.JSONDecodeError, OSError):
             settings = {}
-
-        # Check if hook already present
         existing_hooks = settings.get("hooks", {}).get("PreToolUse", [])
         for entry in existing_hooks:
-            hooks_list = entry.get("hooks", [])
-            for h in hooks_list:
-                if "protect-generated-configs" in h.get("command", ""):
-                    _print_skip("Claude Code PreToolUse hook already installed")
+            for h in entry.get("hooks", []):
+                if check_substring in h.get("command", ""):
+                    _print_skip(f"{label} already installed")
                     return
     else:
         settings = {}
 
-    # Build hook entry
     hook_entry = {
-        "matcher": "Write|Edit",
+        "matcher": matcher,
         "hooks": [{"type": "command", "command": hook_cmd}],
     }
 
-    # Merge into settings
     hooks = settings.setdefault("hooks", {})
     pre_tool_use = hooks.setdefault("PreToolUse", [])
     pre_tool_use.append(hook_entry)
 
-    # Write settings (backup first if file exists)
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     if settings_path.exists():
         backup_path = settings_path.with_suffix(".json.bak")
         shutil.copy2(settings_path, backup_path)
     settings_path.write_text(json.dumps(settings, indent=2) + "\n")
-    _print_ok("Claude Code PreToolUse hook installed")
+    _print_ok(f"{label} installed")
+
+
+def _install_claude_hook() -> None:
+    """Install the protect-generated-configs PreToolUse hook."""
+    _install_pretooluse_hook(
+        hook_cmd="~/.ai-guardrails/hooks/protect-generated-configs.sh",
+        matcher="Write|Edit",
+        check_substring="protect-generated-configs",
+        label="Claude Code PreToolUse hook",
+    )
 
 
 def _install_dangerous_cmd_hook() -> None:
-    """Install the dangerous-command-check PreToolUse hook in ~/.claude/settings.json."""
-    settings_path = Path.home() / ".claude" / "settings.json"
-    hook_cmd = "~/.ai-guardrails/hooks/dangerous-command-check.sh 2>/dev/null"
-
-    if settings_path.exists():
-        try:
-            settings = json.loads(settings_path.read_text())
-        except (json.JSONDecodeError, OSError):
-            settings = {}
-        existing_hooks = settings.get("hooks", {}).get("PreToolUse", [])
-        for entry in existing_hooks:
-            hooks_list = entry.get("hooks", [])
-            for h in hooks_list:
-                if "dangerous-command-check" in h.get("command", ""):
-                    _print_skip("Dangerous command check hook already installed")
-                    return
-    else:
-        settings = {}
-
-    hook_entry = {
-        "matcher": "Bash",
-        "hooks": [{"type": "command", "command": hook_cmd}],
-    }
-
-    hooks = settings.setdefault("hooks", {})
-    pre_tool_use = hooks.setdefault("PreToolUse", [])
-    pre_tool_use.append(hook_entry)
-
-    settings_path.parent.mkdir(parents=True, exist_ok=True)
-    if settings_path.exists():
-        backup_path = settings_path.with_suffix(".json.bak")
-        shutil.copy2(settings_path, backup_path)
-    settings_path.write_text(json.dumps(settings, indent=2) + "\n")
-    _print_ok("Dangerous command check hook installed")
+    """Install the dangerous-command-check PreToolUse hook."""
+    _install_pretooluse_hook(
+        hook_cmd="~/.ai-guardrails/hooks/dangerous-command-check.sh",
+        matcher="Bash",
+        check_substring="dangerous-command-check",
+        label="Dangerous command check hook",
+    )
 
 
 def _install_precommit_hooks(project_dir: Path) -> None:

@@ -10,11 +10,24 @@ import yaml
 ROOT = Path(__file__).parent.parent
 
 
+def _extract_prompt(wf: dict) -> str | None:
+    """Extract the prompt field from a workflow's steps."""
+    jobs = wf.get("jobs", {})
+    if not jobs:
+        return None
+    steps = next(iter(jobs.values())).get("steps", [])
+    for step in steps:
+        prompt = step.get("with", {}).get("prompt")
+        if prompt is not None:
+            return prompt
+    return None
+
+
 class TestClaudeReviewSync:
     """Ensure .github/ and templates/ Claude review prompts stay in sync."""
 
     def test_claude_review_prompt_sync(self) -> None:
-        """Ensure .github/ and templates/ Claude review prompts are identical."""
+        """Verify .github/ and templates/ Claude review prompts match."""
         github_wf_path = ROOT / ".github" / "workflows" / "claude-code-review.yml"
         template_wf_path = ROOT / "templates" / "workflows" / "claude-review.yml"
 
@@ -24,20 +37,8 @@ class TestClaudeReviewSync:
         github_wf = yaml.safe_load(github_wf_path.read_text())
         template_wf = yaml.safe_load(template_wf_path.read_text())
 
-        # Extract prompt from the last step's 'with.prompt'
-        github_steps = next(iter(github_wf["jobs"].values()))["steps"]
-        template_steps = next(iter(template_wf["jobs"].values()))["steps"]
-
-        github_prompt = None
-        template_prompt = None
-
-        for step in github_steps:
-            if "with" in step and "prompt" in step.get("with", {}):
-                github_prompt = step["with"]["prompt"]
-
-        for step in template_steps:
-            if "with" in step and "prompt" in step.get("with", {}):
-                template_prompt = step["with"]["prompt"]
+        github_prompt = _extract_prompt(github_wf)
+        template_prompt = _extract_prompt(template_wf)
 
         if github_prompt is None or template_prompt is None:
             pytest.skip("Could not find prompt in workflow files")

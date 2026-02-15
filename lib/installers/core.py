@@ -58,19 +58,19 @@ def get_source_dir() -> Path:
 
 @deploy("Install pyyaml")
 def install_pyyaml() -> None:
-    """Install pyyaml Python package via uv or pipx."""
+    """Install pyyaml Python package via uv or pip."""
     uv_available = host.get_fact(Which, command="uv")
     if uv_available:
-        server.shell(name="Install pyyaml via uv", commands=["uv pip install --user pyyaml"])
+        server.shell(
+            name="Install pyyaml via uv",
+            commands=["uv pip install --user pyyaml"],
+        )
     else:
-        pipx_available = host.get_fact(Which, command="pipx")
-        if pipx_available:
-            server.shell(
-                name="Install pyyaml via pip",
-                commands=["python3 -m pip install --user pyyaml"],
-            )
-        else:
-            _fail_no_uv_or_pipx()
+        # pyyaml is a library, not a CLI tool — pip is correct here
+        server.shell(
+            name="Install pyyaml via pip",
+            commands=["python3 -m pip install --user pyyaml"],
+        )
 
 
 @deploy("Install pre-commit")
@@ -78,7 +78,10 @@ def install_precommit() -> None:
     """Install pre-commit via uv (preferred) or pipx."""
     uv_available = host.get_fact(Which, command="uv")
     if uv_available:
-        server.shell(name="Install pre-commit via uv", commands=["uv tool install pre-commit"])
+        server.shell(
+            name="Install pre-commit via uv",
+            commands=["uv tool install pre-commit"],
+        )
     else:
         pipx_available = host.get_fact(Which, command="pipx")
         if pipx_available:
