@@ -31,6 +31,9 @@ jobs:
   # ── Gate ──────────────────────────────────────────────────────────────
   # Single authorization + PR metadata fetch. Downstream jobs inherit via
   # `needs: gate` — no duplicated conditions or `gh pr view` calls.
+  # Only checkout-related metadata is shared (repo, sha, ref, number).
+  # PR title/author are NOT passed — each bot fetches them via its own
+  # tools to avoid prompt injection from crafted fork PR titles.
   gate:
     if: |
       github.event.issue.pull_request &&
@@ -44,21 +47,17 @@ jobs:
       head-sha: ${{ steps.pr.outputs.head_sha }}
       head-repo: ${{ steps.pr.outputs.head_repo }}
       head-ref: ${{ steps.pr.outputs.head_ref }}
-      title: ${{ steps.pr.outputs.title }}
-      author: ${{ steps.pr.outputs.author }}
     steps:
       - name: Get PR details
         id: pr
         run: |
           PR_DATA=$(gh pr view "${{ github.event.issue.number }}" \
             --repo "${{ github.repository }}" \
-            --json headRefOid,headRefName,headRepository,headRepositoryOwner,number,title,author)
+            --json headRefOid,headRefName,headRepository,headRepositoryOwner,number)
           echo "number=$(echo "$PR_DATA" | jq -r '.number')" >> "$GITHUB_OUTPUT"
           echo "head_sha=$(echo "$PR_DATA" | jq -r '.headRefOid')" >> "$GITHUB_OUTPUT"
           echo "head_repo=$(echo "$PR_DATA" | jq -r '.headRepositoryOwner.login + "/" + .headRepository.name')" >> "$GITHUB_OUTPUT"
           echo "head_ref=$(echo "$PR_DATA" | jq -r '.headRefName')" >> "$GITHUB_OUTPUT"
-          echo "title=$(echo "$PR_DATA" | jq -r '.title')" >> "$GITHUB_OUTPUT"
-          echo "author=$(echo "$PR_DATA" | jq -r '.author.login')" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -111,8 +110,6 @@ jobs:
             # CODE REVIEW
             Repository: ${{ github.repository }}
             PR: #${{ needs.gate.outputs.pr-number }}
-            Title: ${{ needs.gate.outputs.title }}
-            Author: ${{ needs.gate.outputs.author }}
 
             ## YOUR ROLE
             You are a strict code reviewer. Flag these categories:
@@ -155,7 +152,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.gate.outputs.head-ref }}
+          repository: ${{ needs.gate.outputs.head-repo }}
+          ref: ${{ needs.gate.outputs.head-sha }}
 
       - name: Gemini Code Review
         uses: google-github-actions/run-gemini-cli@v0
@@ -189,7 +187,8 @@ jobs:
                   "args": [
                     "run", "-i", "--rm",
                     "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
-                    "ghcr.io/github/github-mcp-server:v0.27.0"
+                    "-e", "GITHUB_TOOLSETS=pull_requests",
+                    "ghcr.io/github/github-mcp-server:v0.30.3"
                   ],
                   "includeTools": [
                     "add_comment_to_pending_review",
