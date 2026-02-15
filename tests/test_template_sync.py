@@ -23,26 +23,23 @@ def _extract_prompt(wf: dict) -> str | None:
     return None
 
 
-class TestClaudeReviewSync:
-    """Ensure .github/ and templates/ Claude review prompts stay in sync."""
+def test_claude_review_prompt_sync() -> None:
+    """Verify .github/ and templates/ Claude review prompts match."""
+    github_wf_path = ROOT / ".github" / "workflows" / "claude-code-review.yml"
+    template_wf_path = ROOT / "templates" / "workflows" / "claude-review.yml"
 
-    def test_claude_review_prompt_sync(self) -> None:
-        """Verify .github/ and templates/ Claude review prompts match."""
-        github_wf_path = ROOT / ".github" / "workflows" / "claude-code-review.yml"
-        template_wf_path = ROOT / "templates" / "workflows" / "claude-review.yml"
+    if not github_wf_path.exists() or not template_wf_path.exists():
+        pytest.skip("Workflow files not found")
 
-        if not github_wf_path.exists() or not template_wf_path.exists():
-            pytest.skip("Workflow files not found")
+    github_wf = yaml.safe_load(github_wf_path.read_text())
+    template_wf = yaml.safe_load(template_wf_path.read_text())
 
-        github_wf = yaml.safe_load(github_wf_path.read_text())
-        template_wf = yaml.safe_load(template_wf_path.read_text())
+    github_prompt = _extract_prompt(github_wf)
+    template_prompt = _extract_prompt(template_wf)
 
-        github_prompt = _extract_prompt(github_wf)
-        template_prompt = _extract_prompt(template_wf)
+    if github_prompt is None or template_prompt is None:
+        pytest.skip("Could not find prompt in workflow files")
 
-        if github_prompt is None or template_prompt is None:
-            pytest.skip("Could not find prompt in workflow files")
-
-        assert github_prompt == template_prompt, (
-            "Claude review prompts have drifted between .github/ and templates/"
-        )
+    assert github_prompt == template_prompt, (
+        "Claude review prompts have drifted between .github/ and templates/"
+    )
