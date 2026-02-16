@@ -171,6 +171,11 @@ BLOCKED_COMMANDS: tuple[tuple[str, str], ...] = (
     ("core.hooksPath=", "Overriding core.hooksPath bypasses all git hooks."),
     ("SKIP=", "Bypassing pre-commit via environment variables."),
     ("PRE_COMMIT_ALLOW_NO_CONFIG", "Bypassing pre-commit via environment variables."),
+    (
+        "--admin",
+        "--admin bypasses branch protection rules.\n"
+        "  This is never allowed without explicit user approval.",
+    ),
 )
 
 #: Patterns that trigger a WARNING (allow but warn).
@@ -178,4 +183,5 @@ WARNED_COMMANDS: tuple[tuple[str, str], ...] = (
     ("rm -rf", "Recursive force delete - verify target"),
     ("chmod -R 777", "Insecure permissions"),
     ("| bash", "Piping to bash - verify source"),
+    ("--force-with-lease", "Force push (even with lease) can overwrite remote work"),
 )

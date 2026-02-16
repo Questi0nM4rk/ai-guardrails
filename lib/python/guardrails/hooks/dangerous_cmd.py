@@ -35,6 +35,15 @@ _SPECIAL_BLOCKS: tuple[tuple[str, str], ...] = (
 # Force flags only warn on specific destructive commands
 _FORCE_FLAG_COMMANDS = ("git push", "git reset", "docker rm")
 
+# Regex-based warning patterns for destructive git operations
+_SPECIAL_WARNS: tuple[tuple[str, str], ...] = (
+    (r"git\s+reset\s+--hard\b", "git reset --hard discards uncommitted changes"),
+    (r"git\s+checkout\s+\.\s*(?:$|&&|;|\|)", "git checkout . discards all unstaged changes"),
+    (r"git\s+restore\s+\.\s*(?:$|&&|;|\|)", "git restore . discards all unstaged changes"),
+    (r"git\s+clean\s+-[a-zA-Z]*f", "git clean -f removes untracked files permanently"),
+    (r"git\s+branch\s+-D\b", "git branch -D force-deletes branch without merge check"),
+)
+
 
 def _check_blocked(command: str) -> str | None:
     for pattern, message in BLOCKED_COMMANDS:
@@ -53,6 +62,11 @@ def _check_warned(command: str) -> list[str]:
 
     for pattern, message in WARNED_COMMANDS:
         if pattern in command:
+            warnings.append(message)
+
+    # Regex-based destructive git operation warnings
+    for regex, message in _SPECIAL_WARNS:
+        if re.search(regex, command):
             warnings.append(message)
 
     # --force / -f only on specific destructive commands
