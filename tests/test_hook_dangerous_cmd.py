@@ -130,6 +130,11 @@ class TestDestructiveGitOperations:
         warnings = _check_warned("git checkout .")
         assert any("discard" in w.lower() for w in warnings)
 
+    def test_warns_git_checkout_doubledash_dot(self) -> None:
+        """Git checkout -- . syntax should also warn."""
+        warnings = _check_warned("git checkout -- .")
+        assert any("discard" in w.lower() for w in warnings)
+
     def test_warns_git_restore_dot(self) -> None:
         warnings = _check_warned("git restore .")
         assert any("discard" in w.lower() for w in warnings)
@@ -142,13 +147,28 @@ class TestDestructiveGitOperations:
         warnings = _check_warned("git clean -fd")
         assert any("clean" in w.lower() for w in warnings)
 
+    def test_warns_git_clean_force_long(self) -> None:
+        """Git clean --force (long form) should also warn."""
+        warnings = _check_warned("git clean --force -d")
+        assert any("clean" in w.lower() for w in warnings)
+
     def test_warns_git_branch_force_delete(self) -> None:
         warnings = _check_warned("git branch -D feature/old")
+        assert any("branch" in w.lower() for w in warnings)
+
+    def test_warns_git_branch_delete_force_long(self) -> None:
+        """Git branch --delete --force should also warn."""
+        warnings = _check_warned("git branch --delete --force feature/old")
         assert any("branch" in w.lower() for w in warnings)
 
     def test_warns_git_push_force_with_lease(self) -> None:
         warnings = _check_warned("git push --force-with-lease origin main")
         assert any("force" in w.lower() for w in warnings)
+
+    def test_force_with_lease_no_duplicate(self) -> None:
+        """Force-with-lease should not also trigger generic force flag warning."""
+        warnings = _check_warned("git push --force-with-lease origin main")
+        assert not any("Force flag" in w for w in warnings)
 
     def test_no_warn_git_checkout_branch(self) -> None:
         """Git checkout <branch> is safe, should not warn."""

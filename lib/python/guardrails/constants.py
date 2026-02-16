@@ -183,5 +183,5 @@ WARNED_COMMANDS: tuple[tuple[str, str], ...] = (
     ("rm -rf", "Recursive force delete - verify target"),
     ("chmod -R 777", "Insecure permissions"),
     ("| bash", "Piping to bash - verify source"),
-    ("--force-with-lease", "Force push (even with lease) can overwrite remote work"),
+    ("--force-with-lease", "Force push with lease - safer than --force but still rewrites history"),
 )
