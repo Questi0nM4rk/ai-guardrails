@@ -1,25 +1,27 @@
 # Enterprise Readiness Assessment
 
 **Date:** 2026-02-16
-**Version:** 0.2.0
-**Overall Score:** 70% production-ready
+**Version:** 0.3.0
+**Overall Score:** 78% production-ready
 
 ## Executive Summary
 
 AI Guardrails is feature-complete for single-language Python/TS/Rust projects
-with excellent code quality (429 tests, 85%+ coverage, pedantic configs). But it
-has critical gaps in distribution, observability, and enterprise workflows that
-block real-world team adoption.
+with excellent code quality (457+ tests, 85%+ coverage, pedantic configs).
+Recent PRs (#35-#38) addressed critical observability and security gaps.
+Remaining gaps are in distribution, init verification, and enterprise workflows.
 
 ## What Works Well
 
 - 7 language configs (Python, TS/JS, Rust, C/C++, C#, Go, Lua, Shell)
 - 40+ pre-commit hooks with auto-fix-then-check workflow
 - Universal PR comment tool (`ai-guardrails comments`) for 4 review bots
-- Exception registry (`.guardrails-exceptions.toml`) with config generation
+- Exception registry with config generation and **time-limited exceptions** (PR #38)
+- **Project health check** via `ai-guardrails status` (PR #36)
+- **Hardened dangerous command checker** with 56 test cases (PR #37)
 - Claude Code PreToolUse hooks (protect-generated-configs, dangerous-command-check)
 - Modular pre-commit assembly from language templates
-- 429 tests across 24 test files
+- 457+ tests across 26+ test files
 
 ## Critical Gaps
 
@@ -65,21 +67,11 @@ missing.
 
 **Fix:** Add `--verify` flag to `init` or automatic post-init validation.
 
-### P1: Dangerous Command Checker Gaps
+### ~~P1: Dangerous Command Checker Gaps~~ — FIXED (PR #37)
 
-**Problem:** Only 14 blocked patterns, all string-matching. Easily bypassed:
-
-```bash
-# Blocked:
-git push --force
-
-# NOT blocked (variations):
-git push -f
-command git push --force
-env git push --force
-```
-
-**Fix:** Parse git commands properly, not just substring match.
+Now blocks `--admin`, warns on destructive git operations (`reset --hard`,
+`checkout .`, `restore .`, `clean -f`, `branch -D`, `--force-with-lease`).
+Handles `git checkout -- .` and `git clean --force` long forms. 56 tests.
 
 ### P2: Missing Language Support
 
@@ -92,11 +84,14 @@ env git push --force
 
 ### P2: Exception Registry Limitations
 
-**Current:** Per-file-glob exceptions only.
+**Current:** Per-file-glob exceptions with time-limited support.
 
-**Missing:**
+**Fixed in PR #38:**
 
-- Time-limited exceptions (`expires = "2026-06-01"`)
+- ~~Time-limited exceptions~~ — `expires = 2026-06-01` field added
+
+**Still Missing:**
+
 - Approval workflow (who approved, when)
 - Usage tracking (is this exception still needed?)
 - Per-function/per-class scoping
@@ -128,12 +123,10 @@ false positive rates.
 
 ### Phase 1: Foundation (This Sprint)
 
-1. **`ai-guardrails status` command** — Quick health check showing:
-   - Installed hooks, detected languages, config freshness
-   - Missing dependencies, stale configs
-   - Pre-commit hook status
-2. **Improve dangerous-command-check** — Parse git flags properly
-3. **PyPI distribution** — Build wheel, test install, publish
+1. ~~**`ai-guardrails status` command**~~ — **DONE** (PR #36)
+2. ~~**Improve dangerous-command-check**~~ — **DONE** (PR #37)
+3. ~~**Exception registry `expires` field**~~ — **DONE** (PR #38)
+4. **PyPI distribution** — Build wheel, test install, publish (PR #35 adds entry point)
 
 ### Phase 2: Reliability (Next Sprint)
 
