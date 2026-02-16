@@ -5,7 +5,7 @@ ai-review-tasks) with a single ``ai-guardrails`` command using subcommands.
 
 Usage::
 
-    ai-guardrails init [--type X] [--force] [--ci] [--gemini] [--deepsource] [--review-all]
+    ai-guardrails init [--type X] [--force] [--ci] [--gemini] [--deepsource] [--dry-run]
     ai-guardrails generate [--check] [--dry-run]
     ai-guardrails review [--pr N] [--severity X]
 
@@ -51,12 +51,10 @@ def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     p.add_argument("--no-deepsource", action="store_true", help="Skip DeepSource config")
     p.add_argument(
-        "--review-all",
+        "--dry-run",
         action="store_true",
-        default=None,
-        help="Install /review-all workflow",
+        help="Show what would be done without making changes",
     )
-    p.add_argument("--no-review-all", action="store_true", help="Skip /review-all workflow")
 
 
 def _add_generate_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -109,7 +107,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
         install_coderabbit=_resolve_flag(args, "coderabbit"),
         install_gemini=_resolve_flag(args, "gemini"),
         install_deepsource=_resolve_flag(args, "deepsource"),
-        install_review_all=_resolve_flag(args, "review_all"),
+        dry_run=args.dry_run,
     )
 
 

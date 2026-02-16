@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ============================================
 # AI Guardrails Pre-Commit Hook
 # Runs pre-commit framework checks before any git commit.

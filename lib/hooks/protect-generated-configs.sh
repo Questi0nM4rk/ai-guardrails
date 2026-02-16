@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Thin shim — delegates to Python module.
 # Claude Code PreToolUse hook: reads JSON from stdin, emits JSON to stdout.
 set -euo pipefail
