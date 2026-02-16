@@ -41,7 +41,8 @@ Every push triggers all review bots. Each bot catches different things.
 
 - **Never batch-resolve threads you haven't read.**
   Each thread exists because a reviewer flagged something. Read it, decide if it's real
-  or false positive, then act. Bulk-closing threads defeats the purpose of review.
+  or false positive, then act. `--resolve-all` is for documented false positives you've
+  already triaged (e.g. a bot that always flags pytest `self`), not for blindly closing.
 
 - **Never push after each individual fix.**
   Every push triggers all bots. Fixing 5 comments in 5 pushes creates 5 full review
