@@ -9,24 +9,22 @@ Review bots (CodeRabbit, Claude, Gemini, DeepSource) auto-review every push.
 ### Tools
 
 ```bash
-ai-guardrails comments --pr <N>                          # List unresolved review threads
-ai-guardrails comments --pr <N> --bot claude              # Filter by bot
-ai-guardrails comments --pr <N> --resolve PRRT_id "Fixed" # Resolve a thread with reply
-ai-guardrails comments --pr <N> --resolve-all --bot X     # Batch resolve by bot
+ai-guardrails comments --pr <N>                                    # List unresolved review threads
+ai-guardrails comments --pr <N> --bot claude                       # Filter by bot
+ai-guardrails comments --pr <N> --resolve <THREAD_ID> "Fixed."     # Resolve a thread with reply
+ai-guardrails comments --pr <N> --resolve-all --bot <BOT>          # Batch resolve by bot
 ```
 
-Use `ai-guardrails comments` to check PR status. Do not use raw `gh api` calls with
-manual jq piping to read review threads — the tool handles pagination, filtering, and
-formatting for you.
+Use `ai-guardrails comments` to check PR status instead of raw `gh api` calls — the tool
+handles pagination, filtering, and formatting.
 
-### Review Bot Rules
+### Review Bot Rules for AI Agents
 
 Every push triggers all review bots. Each bot catches different things.
 
-**Musts:**
+**Fix every review comment that is not a false positive. Even nitpicks. Even style.**
 
-- Fix every review comment that is not a false positive. Even nitpicks. Even style.
-- Use `ai-guardrails comments` to check threads, not raw `gh api` calls.
+- Use `ai-guardrails comments` to check and resolve threads.
 - Fix ALL findings locally, then push once. One push per review round.
 - Ask the human before pushing. Explain what changed.
 - Wait for all bots (~5 min) before acting on feedback.
@@ -46,13 +44,13 @@ Every push triggers all review bots. Each bot catches different things.
   or false positive, then act. Bulk-closing threads defeats the purpose of review.
 
 - **Never push after each individual fix.**
-  Every push triggers 4 bots. If you push 5 times to fix 5 comments, that's 20 review
+  Every push triggers all bots. Fixing 5 comments in 5 pushes creates 5 full review
   cycles of noise. Fix everything locally, push once.
 
 - **Never skip a false positive without documenting it.**
-  If a bot flags something that's wrong (e.g. DeepSource complaining about pytest `self`),
-  that's useful information for tuning the bot's config. Log it so it can be fixed
-  upstream. Resolve with a reference to where it's documented.
+  If a bot repeatedly flags something that's wrong, that's useful information for tuning
+  the bot's config. Log it so it can be fixed upstream. Resolve with a reference to
+  where it's documented.
 
 ### Pre-commit Workflow
 
@@ -61,7 +59,7 @@ auto-fix → re-stage → checks → commit
 ```
 
 1. `format-and-stage` auto-fixes formatting and re-stages (local only, skipped in CI)
-2. Security scans (gitleaks, detect-secrets, semgrep)
+2. Security scans (gitleaks, detect-secrets, semgrep, bandit)
 3. Linting (check-only — already fixed above)
 4. Type checking (strict mode)
 5. Git hygiene (no commits to main, no large files)
