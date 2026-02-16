@@ -316,6 +316,17 @@ class TestRunCommentsResolve:
         assert mock_run.call_count == 4
 
     @patch(_PATCH_SUBPROCESS_RUN)
+    def test_resolve_reply_failure_returns_error(self, mock_run: MagicMock) -> None:
+        """Single-thread resolve should fail if reply fails."""
+        mock_run.side_effect = [
+            _repo_info_result(),  # repo info
+            _graphql_result(),  # fetch threads
+            _make_subprocess_result(returncode=1),  # reply POST fails
+        ]
+        result = run_comments(pr=31, resolve=("PRRT_abc", "Fixed."))
+        assert result == 1
+
+    @patch(_PATCH_SUBPROCESS_RUN)
     def test_resolve_thread_not_found(
         self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:

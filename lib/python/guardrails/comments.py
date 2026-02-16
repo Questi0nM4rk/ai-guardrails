@@ -150,7 +150,7 @@ def parse_thread(node: dict) -> dict | None:
     return {
         "thread_id": node.get("id", ""),
         "comment_id": first.get("databaseId"),
-        "bot": author.removesuffix("[bot]"),
+        "bot": author.removesuffix("[bot]").lower(),
         "path": first.get("path", ""),
         "line": first.get("line"),
         "start_line": first.get("startLine"),
@@ -512,7 +512,8 @@ def run_comments(
             return 1
         if body:
             if target["comment_id"]:
-                reply_to_thread(owner, repo, pr, target["comment_id"], body)
+                if not reply_to_thread(owner, repo, pr, target["comment_id"], body):
+                    return 1
             else:
                 print(
                     "Warning: Thread has no comment ID, reply skipped",

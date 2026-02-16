@@ -145,9 +145,9 @@ class TestHelpers:
     def test_strips_self_closing_tags(self) -> None:
         assert _clean_body("image <img src='x'/> here") == "image here"
 
-    def test_preserves_angle_brackets_in_code(self) -> None:
-        """Non-HTML angle brackets like List<String> should be preserved."""
-        assert "List" in _clean_body("use `List<String>`")
+    def test_preserves_non_html_angle_brackets(self) -> None:
+        """Comparison operators like a < b > c should not be stripped."""
+        assert _clean_body("if a < b > c then") == "if a < b > c then"
 
     def test_collapses_whitespace(self) -> None:
         assert _clean_body("line1\n\nline2\n  extra") == "line1 line2 extra"
