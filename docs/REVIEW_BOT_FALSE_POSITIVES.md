@@ -13,6 +13,7 @@ Each entry documents the bot, the finding, and why it's a false positive.
   uses PEP8's default 88-char limit. Ruff is our source of truth for line length.
 - **Fix:** Configure DeepSource to use 100-char limit, or exclude line-length checks
   since ruff already handles this.
+- **Status:** FIXED in PR #34 — `max_line_length = 100` in `.deepsource.toml`.
 
 ### Starting a process with partial executable
 
@@ -32,6 +33,7 @@ Each entry documents the bot, the finding, and why it's a false positive.
   is a CLI dispatch that handles multiple action types — complexity is inherent.
 - **Fix:** Align DeepSource complexity thresholds with ruff config, or exclude files
   that have per-file exceptions.
+- **Status:** FIXED in PR #34 — `cyclomatic_complexity_threshold = "high"` in `.deepsource.toml`.
 
 ### Method doesn't use class instance (self)
 
@@ -50,6 +52,7 @@ Each entry documents the bot, the finding, and why it's a false positive.
   (e.g. `test_resolve_all_with_body`). Adding docstrings to every test method adds
   noise without value.
 - **Fix:** Exclude test files from docstring requirements in DeepSource config.
+- **Status:** FIXED in PR #34 — `skip_doc_coverage` includes `"nonpublic"` in `.deepsource.toml`.
 
 ## CodeRabbit
 
@@ -66,6 +69,39 @@ No systematic false positives identified. CodeRabbit findings have been accurate
   individually closed.
 - **Fix:** Consider configuring Claude to not post positive-only comments, or to
   auto-resolve them.
+
+### "Content duplication with main CLAUDE.md" on template files
+
+- **Finding:** Claude flags the `CLAUDE.md.guardrails` template as duplicating content
+  from the repo's own `CLAUDE.md`, complaining about DRY violations.
+- **Frequency:** 3 occurrences per push on PR #34 (repeated across 3 review rounds)
+- **Why false positive:** The template gets appended to *consumer* project CLAUDE.md
+  files via `ai-guardrails init`. Consumer projects don't have the ai-guardrails repo's
+  own CLAUDE.md. There is no duplication in practice.
+- **Fix:** Claude's review prompt needs context that template files are installed into
+  other projects, not used within the same repo.
+
+### "Philosophical inconsistency" between template rules and repo philosophy
+
+- **Finding:** Claude flags the review bot rules ("fix every comment") as conflicting
+  with the "hard stops only" philosophy, arguing that review comments are "suggestions"
+  not "hard stops."
+- **Frequency:** 1 occurrence per push on PR #34 (repeated 3 times)
+- **Why false positive:** Review bots ARE the hard stops. They enforce standards
+  automatically, and agents must comply with their findings. This is the philosophy
+  working as intended, not a contradiction.
+- **Fix:** Claude's review prompt needs to understand that review bots are enforcement
+  tools, not advisory suggestions.
+
+### "Tool may not apply to consumer projects"
+
+- **Finding:** Claude flags `ai-guardrails comments` tool documentation as potentially
+  inapplicable to consumer projects.
+- **Frequency:** 1 occurrence per push on PR #34 (repeated 3 times)
+- **Why false positive:** If the template is installed, the project has ai-guardrails
+  installed. The tool is available by definition.
+- **Fix:** Claude needs context that templates are only installed by the `ai-guardrails
+  init` command, which also installs the CLI tools.
 
 ## Gemini
 
