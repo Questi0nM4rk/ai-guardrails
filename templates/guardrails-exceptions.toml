@@ -32,5 +32,19 @@ schema_version = 1
 skip = [".git", "*.lock", "*.baseline", "node_modules", "venv", ".venv"]
 ignore_words = []
 
-# Add file_exceptions, inline_suppressions, and skip sections as needed.
-# See: https://github.com/Questi0nM4rk/ai-guardrails for documentation.
+# --- Examples ---
+#
+# [[file_exceptions]]
+# glob = "tests/**/*.py"
+# tool = "ruff"
+# rules = ["S101", "ARG001"]
+# reason = "Test files need asserts and fixtures"
+# expires = 2026-06-01  # optional: auto-flagged when expired
+#
+# [[inline_suppressions]]
+# pattern = "noqa: BLE001"
+# glob = "**/tools/*.py"
+# reason = "MCP tool boundaries"
+#
+# [skip]
+# semgrep = ["tests/"]

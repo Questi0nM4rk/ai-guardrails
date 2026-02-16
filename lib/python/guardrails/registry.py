@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import tomllib
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
@@ -10,11 +11,27 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+def _today() -> datetime.date:
+    """Return today's date. Mockable for testing."""
+    return datetime.datetime.now(tz=datetime.UTC).date()
+
+
 def _ensure_list(val: str | list[str]) -> list[str]:
     """Normalize a string-or-list value to always be a list."""
     if isinstance(val, str):
         return [val]
     return list(val)
+
+
+def _parse_date(val: object) -> datetime.date | None:
+    """Parse a TOML date value to a Python date, or return None."""
+    if val is None:
+        return None
+    if isinstance(val, datetime.date):
+        return val
+    if isinstance(val, str):
+        return datetime.date.fromisoformat(val)
+    return None
 
 
 @dataclass
@@ -25,6 +42,7 @@ class FileException:
     tool: str
     rules: list[str]
     reason: str
+    expires: datetime.date | None = None
 
 
 @dataclass
@@ -34,6 +52,7 @@ class InlineSuppression:
     pattern: str
     glob: list[str]
     reason: str
+    expires: datetime.date | None = None
 
 
 @dataclass
@@ -99,6 +118,7 @@ class ExceptionRegistry:
                 tool=fe_data.get("tool", ""),
                 rules=fe_data.get("rules", []),
                 reason=fe_data.get("reason", ""),
+                expires=_parse_date(fe_data.get("expires")),
             )
             for fe_data in data.get("file_exceptions", [])
         ]
@@ -109,6 +129,7 @@ class ExceptionRegistry:
                 pattern=sup_data.get("pattern", ""),
                 glob=_ensure_list(sup_data.get("glob", [])),
                 reason=sup_data.get("reason", ""),
+                expires=_parse_date(sup_data.get("expires")),
             )
             for sup_data in data.get("inline_suppressions", [])
         ]
@@ -161,6 +182,20 @@ class ExceptionRegistry:
                     f"inline_suppressions[{i}]: missing reason",
                 )
 
+        # Check for expired exceptions
+        today = _today()
+        for i, fe in enumerate(self.file_exceptions):
+            if fe.expires is not None and fe.expires < today:
+                errors.append(
+                    f"file_exceptions[{i}]: expired on {fe.expires}"
+                    f" (glob={fe.glob}, tool={fe.tool})",
+                )
+        for i, sup in enumerate(self.inline_suppressions):
+            if sup.expires is not None and sup.expires < today:
+                errors.append(
+                    f"inline_suppressions[{i}]: expired on {sup.expires} (pattern={sup.pattern})",
+                )
+
         return errors
 
     def get_global_ignores(self, tool: str) -> list[str]:
@@ -187,3 +222,21 @@ class ExceptionRegistry:
 
         """
         return [fe for fe in self.file_exceptions if fe.tool == tool]
+
+    def get_expired(self) -> list[FileException | InlineSuppression]:
+        """Return all exceptions that have passed their expiration date.
+
+        Returns:
+            List of expired FileException and InlineSuppression entries.
+
+        """
+        today = _today()
+        expired: list[FileException | InlineSuppression] = [
+            fe for fe in self.file_exceptions if fe.expires is not None and fe.expires < today
+        ]
+        expired.extend(
+            sup
+            for sup in self.inline_suppressions
+            if sup.expires is not None and sup.expires < today
+        )
+        return expired

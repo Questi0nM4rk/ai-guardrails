@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import datetime
 from pathlib import Path
 from textwrap import dedent
+from unittest.mock import patch
 
 import pytest
 from guardrails.registry import ExceptionRegistry
@@ -219,3 +221,138 @@ class TestRegistryHelpers:
     def test_get_file_exceptions_empty(self, full_toml: Path) -> None:
         reg = ExceptionRegistry.load(full_toml)
         assert reg.get_file_exceptions("shellcheck") == []
+
+
+class TestExpiresField:
+    """Test the optional ``expires`` field on exceptions."""
+
+    def test_file_exception_parses_expires(self, tmp_path: Path) -> None:
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[file_exceptions]]
+            glob = "tests/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "Temporary exception"
+            expires = 2026-06-01
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        fe = reg.file_exceptions[0]
+        assert fe.expires == datetime.date(2026, 6, 1)
+
+    def test_file_exception_no_expires(self, full_toml: Path) -> None:
+        """Exceptions without expires should have None."""
+        reg = ExceptionRegistry.load(full_toml)
+        assert reg.file_exceptions[0].expires is None
+
+    def test_inline_suppression_parses_expires(self, tmp_path: Path) -> None:
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[inline_suppressions]]
+            pattern = "noqa: BLE001"
+            glob = "**/*.py"
+            reason = "Temporary"
+            expires = 2026-03-15
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        sup = reg.inline_suppressions[0]
+        assert sup.expires == datetime.date(2026, 3, 15)
+
+    def test_validate_warns_expired_file_exception(self, tmp_path: Path) -> None:
+        """Expired exceptions should produce a validation error."""
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[file_exceptions]]
+            glob = "tests/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "Was temporary"
+            expires = 2025-01-01
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        with patch("guardrails.registry._today", return_value=datetime.date(2025, 2, 1)):
+            errors = reg.validate()
+        assert any("expired" in e.lower() for e in errors)
+
+    def test_validate_warns_expired_inline_suppression(self, tmp_path: Path) -> None:
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[inline_suppressions]]
+            pattern = "noqa: BLE001"
+            glob = "**/*.py"
+            reason = "Temporary"
+            expires = 2025-06-01
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        with patch("guardrails.registry._today", return_value=datetime.date(2025, 7, 1)):
+            errors = reg.validate()
+        assert any("expired" in e.lower() for e in errors)
+
+    def test_validate_ok_for_future_expires(self, tmp_path: Path) -> None:
+        """Non-expired exceptions should not produce errors."""
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[file_exceptions]]
+            glob = "tests/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "Still valid"
+            expires = 2099-12-31
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        errors = reg.validate()
+        assert not any("expired" in e.lower() for e in errors)
+
+    def test_get_expired_returns_expired_only(self, tmp_path: Path) -> None:
+        """get_expired() should return only expired exceptions."""
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[file_exceptions]]
+            glob = "old/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "Expired one"
+            expires = 2025-01-01
+
+            [[file_exceptions]]
+            glob = "new/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "Still valid"
+            expires = 2099-12-31
+
+            [[file_exceptions]]
+            glob = "permanent/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "No expiry"
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        with patch("guardrails.registry._today", return_value=datetime.date(2025, 6, 1)):
+            expired = reg.get_expired()
+        assert len(expired) == 1
+        assert expired[0].glob == ["old/**"]
