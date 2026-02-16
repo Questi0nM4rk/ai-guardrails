@@ -9,13 +9,15 @@ Usage::
     ai-guardrails comments --pr 31 --bot claude
     ai-guardrails comments --pr 31 --reply PRRT_abc "Fixed."
     ai-guardrails comments --pr 31 --resolve PRRT_abc "Fixed."
-    ai-guardrails comments --pr 31 --resolve-all --bot deepsource "Config updated."
+    ai-guardrails comments --pr 31 --resolve-all --bot deepsource
     ai-guardrails comments --pr 31 --json
 """
 
 from __future__ import annotations
 
 import json
+import re
+import subprocess
 import sys
 
 # ---------------------------------------------------------------------------
@@ -24,6 +26,9 @@ import sys
 
 COMPACT_PREVIEW_LENGTH = 80
 JSON_PREVIEW_LENGTH = 120
+_SUBPROCESS_TIMEOUT = 30
+_MIN_BOT_COL = 8
+_MIN_LOC_COL = 10
 
 BOT_ALIASES: dict[str, str] = {
     "coderabbit": "coderabbitai",
@@ -36,10 +41,14 @@ BOT_ALIASES: dict[str, str] = {
 _LOGIN_TO_ALIAS: dict[str, str] = {v: k for k, v in BOT_ALIASES.items()}
 
 GRAPHQL_THREADS_QUERY = """
-query($owner: String!, $repo: String!, $pr: Int!) {
+query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
   repository(owner: $owner, name: $repo) {
     pullRequest(number: $pr) {
-      reviewThreads(first: 100) {
+      reviewThreads(first: 100, after: $cursor) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         nodes {
           id
           isResolved
@@ -63,6 +72,43 @@ query($owner: String!, $repo: String!, $pr: Int!) {
 }
 """
 
+GRAPHQL_JQ_FILTER = ".data.repository.pullRequest.reviewThreads"
+
+RESOLVE_MUTATION = """
+mutation($threadId: ID!) {
+  resolveReviewThread(input: {threadId: $threadId}) {
+    thread { isResolved }
+  }
+}
+"""
+
+
+# ---------------------------------------------------------------------------
+# Subprocess helper
+# ---------------------------------------------------------------------------
+
+
+def _run_gh(*args: str) -> subprocess.CompletedProcess[str]:
+    """Run a ``gh`` CLI command with timeout.
+
+    Returns a CompletedProcess with returncode=1 on timeout.
+    """
+    try:
+        return subprocess.run(
+            ["gh", *args],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=_SUBPROCESS_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args=["gh", *args],
+            returncode=1,
+            stdout="",
+            stderr=f"Timeout after {_SUBPROCESS_TIMEOUT}s",
+        )
+
 
 # ---------------------------------------------------------------------------
 # Thread parsing
@@ -71,9 +117,7 @@ query($owner: String!, $repo: String!, $pr: Int!) {
 
 def _clean_body(body: str) -> str:
     """Strip HTML tags and collapse whitespace for preview."""
-    import re
-
-    text = re.sub(r"<[^>]*>", "", body)
+    text = re.sub(r"</?[a-zA-Z][^>]*>", "", body)
     text = re.sub(r"\n+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
@@ -100,7 +144,7 @@ def parse_thread(node: dict) -> dict | None:
         return None
 
     first = comments[0]
-    author = first.get("author", {}).get("login", "unknown")
+    author = (first.get("author") or {}).get("login", "unknown")
     raw_body = first.get("body", "")
 
     return {
@@ -174,6 +218,14 @@ def _build_summary(threads: list[dict]) -> dict:
     }
 
 
+def _thread_location(thread: dict) -> str:
+    """Build ``file:line`` location string for a thread."""
+    path = thread["path"].rsplit("/", 1)[-1] if thread["path"] else "?"
+    if thread["line"]:
+        return f"{path}:{thread['line']}"
+    return path
+
+
 def format_compact(threads: list[dict]) -> str:
     """Format threads as compact one-line-per-thread output.
 
@@ -191,15 +243,24 @@ def format_compact(threads: list[dict]) -> str:
 
     lines = [f"# {summary['unresolved']} unresolved | {bot_counts}", ""]
 
+    # Compute column widths from data
+    bot_width = (
+        max(_MIN_BOT_COL, *(len(_short_bot_name(t["bot"])) for t in threads))
+        if threads
+        else _MIN_BOT_COL
+    )
+    loc_width = (
+        max(_MIN_LOC_COL, *(len(_thread_location(t)) for t in threads)) if threads else _MIN_LOC_COL
+    )
+
     for t in threads:
         tid = t["thread_id"]
         bot = _short_bot_name(t["bot"])
-        path = t["path"].rsplit("/", 1)[-1] if t["path"] else "?"
-        loc = f"{path}:{t['line']}" if t["line"] else path
+        loc = _thread_location(t)
         preview = _truncate(t["body_preview"], COMPACT_PREVIEW_LENGTH)
         resolved = " [resolved]" if t["resolved"] else ""
 
-        lines.append(f"{tid}  {bot:<12s} {loc:<20s} {preview}{resolved}")
+        lines.append(f"{tid}  {bot:<{bot_width}s} {loc:<{loc_width}s} {preview}{resolved}")
 
     return "\n".join(lines)
 
@@ -227,14 +288,7 @@ def format_json(threads: list[dict], *, pretty: bool = False) -> str:
 
 def _get_pr_number() -> int | None:
     """Get PR number from current branch via gh CLI."""
-    import subprocess
-
-    result = subprocess.run(
-        ["gh", "pr", "view", "--json", "number", "--jq", ".number"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_gh("pr", "view", "--json", "number", "--jq", ".number")
     if result.returncode != 0 or not result.stdout.strip():
         return None
     try:
@@ -245,13 +299,13 @@ def _get_pr_number() -> int | None:
 
 def _get_repo_info() -> tuple[str, str] | None:
     """Get (owner, repo) from current git context via gh CLI."""
-    import subprocess
-
-    result = subprocess.run(
-        ["gh", "repo", "view", "--json", "owner,name", "--jq", r'"\(.owner.login) \(.name)"'],
-        capture_output=True,
-        text=True,
-        check=False,
+    result = _run_gh(
+        "repo",
+        "view",
+        "--json",
+        "owner,name",
+        "--jq",
+        r'"\(.owner.login) \(.name)"',
     )
     if result.returncode != 0:
         return None
@@ -263,16 +317,15 @@ def _get_repo_info() -> tuple[str, str] | None:
 
 
 def fetch_threads(owner: str, repo: str, pr: int) -> list[dict]:
-    """Fetch all review threads via GraphQL.
+    """Fetch all review threads via GraphQL with cursor-based pagination.
 
     Returns parsed thread dicts (not filtered by bot or resolution status).
     """
-    import subprocess
+    all_threads: list[dict] = []
+    cursor: str | None = None
 
-    jq_filter = ".data.repository.pullRequest.reviewThreads.nodes"
-    result = subprocess.run(
-        [
-            "gh",
+    while True:
+        cmd: list[str] = [
             "api",
             "graphql",
             "-f",
@@ -284,28 +337,34 @@ def fetch_threads(owner: str, repo: str, pr: int) -> list[dict]:
             "-F",
             f"pr={pr}",
             "--jq",
-            jq_filter,
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        print("Warning: Failed to fetch review threads via GraphQL", file=sys.stderr)
-        return []
+            GRAPHQL_JQ_FILTER,
+        ]
+        if cursor:
+            cmd.extend(["-f", f"cursor={cursor}"])
 
-    try:
-        raw_nodes = json.loads(result.stdout.strip())
-    except json.JSONDecodeError:
-        print("Warning: Invalid JSON from GraphQL response", file=sys.stderr)
-        return []
+        result = _run_gh(*cmd)
+        if result.returncode != 0:
+            print("Warning: Failed to fetch review threads via GraphQL", file=sys.stderr)
+            break
 
-    threads = []
-    for node in raw_nodes:
-        parsed = parse_thread(node)
-        if parsed:
-            threads.append(parsed)
-    return threads
+        try:
+            data = json.loads(result.stdout.strip())
+        except json.JSONDecodeError:
+            print("Warning: Invalid JSON from GraphQL response", file=sys.stderr)
+            break
+
+        nodes = data.get("nodes", [])
+        for node in nodes:
+            parsed = parse_thread(node)
+            if parsed:
+                all_threads.append(parsed)
+
+        page_info = data.get("pageInfo", {})
+        if not page_info.get("hasNextPage"):
+            break
+        cursor = page_info.get("endCursor")
+
+    return all_threads
 
 
 def reply_to_thread(owner: str, repo: str, pr: int, comment_id: int, body: str) -> bool:
@@ -313,19 +372,11 @@ def reply_to_thread(owner: str, repo: str, pr: int, comment_id: int, body: str) 
 
     Returns True on success, False on failure.
     """
-    import subprocess
-
-    result = subprocess.run(
-        [
-            "gh",
-            "api",
-            f"repos/{owner}/{repo}/pulls/{pr}/comments/{comment_id}/replies",
-            "-f",
-            f"body={body}",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
+    result = _run_gh(
+        "api",
+        f"repos/{owner}/{repo}/pulls/{pr}/comments/{comment_id}/replies",
+        "-f",
+        f"body={body}",
     )
     if result.returncode != 0:
         print(f"Error: Failed to reply to comment {comment_id}", file=sys.stderr)
@@ -338,28 +389,13 @@ def resolve_thread(thread_id: str) -> bool:
 
     Returns True on success, False on failure.
     """
-    import subprocess
-
-    mutation = """
-    mutation($threadId: ID!) {
-      resolveReviewThread(input: {threadId: $threadId}) {
-        thread { isResolved }
-      }
-    }
-    """
-    result = subprocess.run(
-        [
-            "gh",
-            "api",
-            "graphql",
-            "-f",
-            f"query={mutation}",
-            "-f",
-            f"threadId={thread_id}",
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
+    result = _run_gh(
+        "api",
+        "graphql",
+        "-f",
+        f"query={RESOLVE_MUTATION}",
+        "-f",
+        f"threadId={thread_id}",
     )
     if result.returncode != 0:
         print(f"Error: Failed to resolve thread {thread_id}", file=sys.stderr)
@@ -377,16 +413,22 @@ def resolve_threads(
 ) -> tuple[int, int]:
     """Resolve multiple threads, optionally replying first.
 
+    Expects pre-filtered unresolved threads (see :func:`filter_threads`).
     Returns (resolved_count, failed_count).
     """
     resolved = 0
     failed = 0
     for thread in threads:
-        if thread["resolved"]:
-            continue
-
-        if reply_body and thread["comment_id"]:
-            reply_to_thread(owner, repo, pr, thread["comment_id"], reply_body)
+        if reply_body:
+            if thread["comment_id"]:
+                if not reply_to_thread(owner, repo, pr, thread["comment_id"], reply_body):
+                    failed += 1
+                    continue
+            else:
+                print(
+                    f"Warning: Thread {thread['thread_id']} has no comment ID, reply skipped",
+                    file=sys.stderr,
+                )
 
         if resolve_thread(thread["thread_id"]):
             resolved += 1
@@ -408,6 +450,7 @@ def run_comments(
     reply: tuple[str, str] | None = None,
     resolve: tuple[str, str | None] | None = None,
     resolve_all: bool = False,
+    resolve_all_body: str | None = None,
     show_all: bool = False,
     output_json: bool = False,
 ) -> int:
@@ -419,6 +462,7 @@ def run_comments(
         reply: (thread_id, body) tuple for replying to a thread.
         resolve: (thread_id, optional_body) tuple for resolving a thread.
         resolve_all: Resolve all unresolved threads (filtered by --bot).
+        resolve_all_body: Optional reply body when batch-resolving.
         show_all: Show resolved threads too.
         output_json: Output full JSON instead of compact format.
 
@@ -440,8 +484,8 @@ def run_comments(
         return 1
     owner, repo = repo_info
 
-    # Parse bot filter
-    bot_list = [b.strip() for b in bot.split(",")] if bot else None
+    # Parse bot filter (strip empty entries from e.g. "claude,,deepsource")
+    bot_list = [b.strip() for b in bot.split(",") if b.strip()] if bot else None
 
     # Fetch all threads
     all_threads = fetch_threads(owner, repo, pr)
@@ -466,8 +510,14 @@ def run_comments(
         if target is None:
             print(f"Error: Thread {thread_id} not found", file=sys.stderr)
             return 1
-        if body and target["comment_id"]:
-            reply_to_thread(owner, repo, pr, target["comment_id"], body)
+        if body:
+            if target["comment_id"]:
+                reply_to_thread(owner, repo, pr, target["comment_id"], body)
+            else:
+                print(
+                    "Warning: Thread has no comment ID, reply skipped",
+                    file=sys.stderr,
+                )
         ok = resolve_thread(thread_id)
         return 0 if ok else 1
 
@@ -477,7 +527,13 @@ def run_comments(
         if not filtered:
             print("No unresolved threads to resolve", file=sys.stderr)
             return 0
-        resolved, failed = resolve_threads(owner, repo, pr, filtered)
+        resolved, failed = resolve_threads(
+            owner,
+            repo,
+            pr,
+            filtered,
+            reply_body=resolve_all_body,
+        )
         print(f"Resolved {resolved} thread(s), {failed} failed", file=sys.stderr)
         return 0 if failed == 0 else 1
 

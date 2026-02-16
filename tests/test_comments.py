@@ -114,6 +114,22 @@ class TestParseThread:
         assert result is not None
         assert result["reply_count"] == 2
 
+    def test_handles_null_author(self) -> None:
+        """author: null (deleted accounts) should produce 'unknown'."""
+        node = _make_graphql_node()
+        node["comments"]["nodes"][0]["author"] = None
+        result = parse_thread(node)
+        assert result is not None
+        assert result["bot"] == "unknown"
+
+    def test_handles_missing_author_key(self) -> None:
+        """Missing author key entirely should produce 'unknown'."""
+        node = _make_graphql_node()
+        del node["comments"]["nodes"][0]["author"]
+        result = parse_thread(node)
+        assert result is not None
+        assert result["bot"] == "unknown"
+
 
 # ---------------------------------------------------------------------------
 # _clean_body / _truncate / _short_bot_name
@@ -125,6 +141,13 @@ class TestHelpers:
 
     def test_strips_html_tags(self) -> None:
         assert _clean_body("<b>bold</b> text") == "bold text"
+
+    def test_strips_self_closing_tags(self) -> None:
+        assert _clean_body("image <img src='x'/> here") == "image here"
+
+    def test_preserves_angle_brackets_in_code(self) -> None:
+        """Non-HTML angle brackets like List<String> should be preserved."""
+        assert "List" in _clean_body("use `List<String>`")
 
     def test_collapses_whitespace(self) -> None:
         assert _clean_body("line1\n\nline2\n  extra") == "line1 line2 extra"
@@ -280,6 +303,14 @@ class TestFormatCompact:
     def test_empty_threads(self) -> None:
         output = format_compact([])
         assert "# 0 unresolved" in output
+
+    def test_dynamic_column_widths(self) -> None:
+        """Columns should expand for long bot names or file paths."""
+        threads = [_make_thread(bot="some-long-bot-name", path="deeply/nested/long-filename.py")]
+        output = format_compact(threads)
+        # Bot and location should not be truncated
+        assert "some-long-bot-name" in output
+        assert "long-filename.py:42" in output
 
 
 # ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import sys
 import typing
 
 
@@ -97,6 +98,10 @@ def _add_comments_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="Resolve all unresolved threads (filtered by --bot)",
     )
+    p.add_argument(
+        "--body",
+        help="Reply body to include when batch-resolving threads (used with --resolve-all)",
+    )
 
 
 def _resolve_flag(args: argparse.Namespace, name: str) -> str:
@@ -149,6 +154,13 @@ def _cmd_comments(args: argparse.Namespace) -> int:
     reply = tuple(args.reply) if args.reply else None
     resolve = None
     if args.resolve:
+        max_resolve_args = 2
+        if len(args.resolve) > max_resolve_args:
+            print(
+                "Error: --resolve accepts at most 2 arguments: THREAD_ID [BODY]",
+                file=sys.stderr,
+            )
+            return 1
         thread_id = args.resolve[0]
         body = args.resolve[1] if len(args.resolve) > 1 else None
         resolve = (thread_id, body)
@@ -159,6 +171,7 @@ def _cmd_comments(args: argparse.Namespace) -> int:
         reply=reply,
         resolve=resolve,
         resolve_all=args.resolve_all,
+        resolve_all_body=args.body if args.resolve_all else None,
         show_all=args.all,
         output_json=args.json,
     )
