@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from guardrails.status import (
+    _EXPECTED_HOOKS,
     Check,
     CheckResult,
     StatusReport,
@@ -69,16 +70,7 @@ class TestCheckHooks:
     def test_ok_when_all_deployed(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in [
-            "format-and-stage.sh",
-            "detect-suppression-comments.sh",
-            "validate-generated-configs.sh",
-            "protect-generated-configs.sh",
-            "detect-config-ignore-edits.sh",
-            "dangerous-command-check.sh",
-            "pre-commit.sh",
-            "pre-push.sh",
-        ]:
+        for name in _EXPECTED_HOOKS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         result = check_hooks(project_dir)
         assert result.status == "ok"
@@ -119,6 +111,12 @@ class TestCheckRegistry:
         (project_dir / ".guardrails-exceptions.toml").write_text("schema_version = 1\n")
         result = check_registry(project_dir)
         assert result.status == "ok"
+
+    def test_error_when_invalid_toml(self, project_dir: Path) -> None:
+        (project_dir / ".guardrails-exceptions.toml").write_text("this is not [ valid toml")
+        result = check_registry(project_dir)
+        assert result.status == "error"
+        assert "invalid" in result.message.lower() or "toml" in result.message.lower()
 
     def test_skip_when_missing(self, project_dir: Path) -> None:
         result = check_registry(project_dir)
@@ -231,16 +229,7 @@ class TestRunStatus:
     def test_returns_zero_on_healthy(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in [
-            "format-and-stage.sh",
-            "detect-suppression-comments.sh",
-            "validate-generated-configs.sh",
-            "protect-generated-configs.sh",
-            "detect-config-ignore-edits.sh",
-            "dangerous-command-check.sh",
-            "pre-commit.sh",
-            "pre-push.sh",
-        ]:
+        for name in _EXPECTED_HOOKS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         (project_dir / ".editorconfig").write_text("root = true\n")
         (project_dir / "CLAUDE.md").write_text("## AI Guardrails - Code Standards\n")
@@ -258,16 +247,7 @@ class TestRunStatus:
         # Deploy hooks so no "error" status — only "warn" from missing pre-commit
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in [
-            "format-and-stage.sh",
-            "detect-suppression-comments.sh",
-            "validate-generated-configs.sh",
-            "protect-generated-configs.sh",
-            "detect-config-ignore-edits.sh",
-            "dangerous-command-check.sh",
-            "pre-commit.sh",
-            "pre-push.sh",
-        ]:
+        for name in _EXPECTED_HOOKS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         with patch("shutil.which", return_value=None):
             rc = run_status(project_dir=project_dir)

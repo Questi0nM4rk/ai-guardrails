@@ -180,17 +180,23 @@ def check_configs(project_dir: Path, *, languages: list[str]) -> CheckResult:
 
 
 def check_registry(project_dir: Path) -> CheckResult:
-    """Check if the exception registry exists and is valid."""
+    """Check if the exception registry exists and is valid TOML."""
+    import tomllib
+
     registry_path = project_dir / ".guardrails-exceptions.toml"
     if not registry_path.exists():
         return CheckResult(Check.REGISTRY, "skip", "No exception registry")
 
     try:
-        content = registry_path.read_text()
-        if "schema_version" not in content:
-            return CheckResult(Check.REGISTRY, "warn", "Registry missing schema_version")
+        with registry_path.open("rb") as f:
+            data = tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        return CheckResult(Check.REGISTRY, "error", f"Invalid TOML: {e}")
     except OSError as e:
         return CheckResult(Check.REGISTRY, "error", f"Cannot read registry: {e}")
+
+    if "schema_version" not in data:
+        return CheckResult(Check.REGISTRY, "warn", "Registry missing schema_version")
 
     return CheckResult(Check.REGISTRY, "ok", "Exception registry valid")
 
