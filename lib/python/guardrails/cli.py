@@ -1,13 +1,12 @@
 """Unified CLI for ai-guardrails.
 
-Replaces the separate bin scripts (ai-guardrails-init, ai-guardrails-generate,
-ai-review-tasks) with a single ``ai-guardrails`` command using subcommands.
+Replaces separate bin scripts with a single ``ai-guardrails`` command using subcommands.
 
 Usage::
 
     ai-guardrails init [--type X] [--force] [--ci] [--gemini] [--deepsource] [--review-all]
     ai-guardrails generate [--check] [--dry-run]
-    ai-guardrails review [--pr N] [--severity X]
+    ai-guardrails comments [--pr N] [--bot X] [--reply ID BODY] [--resolve ID [BODY]]
 
 """
 
@@ -71,15 +70,33 @@ def _add_generate_parser(subparsers: argparse._SubParsersAction) -> None:
     mode.add_argument("--check", action="store_true", help="Check if configs are up to date")
 
 
-def _add_review_parser(subparsers: argparse._SubParsersAction) -> None:
+def _add_comments_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser(
-        "review",
-        help="Extract CodeRabbit review comments as tasks",
-        description="Parse unresolved CodeRabbit review comments into actionable tasks.",
+        "comments",
+        help="List, reply to, and resolve PR review threads from all bots",
+        description="Universal PR review comments — list, reply, and resolve threads.",
     )
     p.add_argument("--pr", type=int, help="PR number (default: current branch)")
-    p.add_argument("--pretty", "-p", action="store_true", help="Pretty-print JSON output")
-    p.add_argument("--severity", "-s", help="Filter by severity (major, minor, suggestion)")
+    p.add_argument("--bot", "-b", help="Filter by bot (comma-separated: coderabbit,claude,...)")
+    p.add_argument("--all", "-a", action="store_true", help="Include resolved threads")
+    p.add_argument("--json", action="store_true", help="Output full JSON instead of compact")
+    p.add_argument(
+        "--reply",
+        nargs=2,
+        metavar=("THREAD_ID", "BODY"),
+        help="Reply to a review thread",
+    )
+    p.add_argument(
+        "--resolve",
+        nargs="+",
+        metavar="ARG",
+        help="Resolve a thread: THREAD_ID [BODY]",
+    )
+    p.add_argument(
+        "--resolve-all",
+        action="store_true",
+        help="Resolve all unresolved threads (filtered by --bot)",
+    )
 
 
 def _resolve_flag(args: argparse.Namespace, name: str) -> str:
@@ -125,11 +142,26 @@ def _cmd_generate(args: argparse.Namespace) -> int:
     return 0 if ok else 1
 
 
-def _cmd_review(args: argparse.Namespace) -> int:
-    """Run the ``review`` subcommand to extract CodeRabbit comments as tasks."""
-    from guardrails.coderabbit import run_review
+def _cmd_comments(args: argparse.Namespace) -> int:
+    """Run the ``comments`` subcommand to list/reply/resolve review threads."""
+    from guardrails.comments import run_comments
 
-    return run_review(pr=args.pr, pretty=args.pretty, severity=args.severity)
+    reply = tuple(args.reply) if args.reply else None
+    resolve = None
+    if args.resolve:
+        thread_id = args.resolve[0]
+        body = args.resolve[1] if len(args.resolve) > 1 else None
+        resolve = (thread_id, body)
+
+    return run_comments(
+        pr=args.pr,
+        bot=args.bot,
+        reply=reply,
+        resolve=resolve,
+        resolve_all=args.resolve_all,
+        show_all=args.all,
+        output_json=args.json,
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -143,14 +175,14 @@ def main(argv: list[str] | None = None) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_init_parser(subparsers)
     _add_generate_parser(subparsers)
-    _add_review_parser(subparsers)
+    _add_comments_parser(subparsers)
 
     args = parser.parse_args(argv)
 
     dispatch: dict[str, typing.Callable[[argparse.Namespace], int]] = {
         "init": _cmd_init,
         "generate": _cmd_generate,
-        "review": _cmd_review,
+        "comments": _cmd_comments,
     }
 
     return dispatch[args.command](args)

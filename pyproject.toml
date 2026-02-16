@@ -119,11 +119,14 @@ ignore = [
   "S603", # subprocess calls with fixed git args are safe
   "S607", # partial paths (git) are intentional
 ]
-"lib/python/guardrails/coderabbit.py" = [
-  "PLR0911", # main() needs many returns for error handling
-  "PLW2901", # loop var reassignment ok
+"lib/python/guardrails/comments.py" = [
+  "PLR0911", # run_comments() needs many returns for each action
+  "PLR0913", # run_comments() has many keyword-only args by design
   "S603",    # subprocess calls with fixed gh args are safe
   "S607",    # partial paths (gh) are intentional
+]
+"tests/test_comments.py" = [
+  "PLR0913", # test helpers have many keyword-only args for flexibility
 ]
 
 [tool.pyright]

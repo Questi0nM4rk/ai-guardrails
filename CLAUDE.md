@@ -30,7 +30,7 @@ All commands use `ai-guardrails <subcommand>`:
 |------------|---------|
 | `ai-guardrails init` | Initialize project with configs, hooks, and CI |
 | `ai-guardrails generate` | Regenerate tool configs from exception registry |
-| `ai-guardrails review` | Extract actionable tasks from CodeRabbit PR reviews |
+| `ai-guardrails comments` | List, reply to, and resolve PR review threads from all bots |
 
 ## Supported Languages
 
@@ -62,23 +62,37 @@ Hook execution order:
 6. Type checking (strict mode)
 7. Git hygiene (no main commits, no large files)
 
-## Working with CodeRabbit Reviews
+## Working with Review Comments
 
 ```bash
-# Pull ALL unresolved comments as structured JSON tasks
-ai-guardrails review --pr <NUMBER> --pretty
+# List all unresolved review threads (compact output)
+ai-guardrails comments --pr <NUMBER>
 
-# Filter by severity
-ai-guardrails review --pr <NUMBER> --severity major
+# Filter by bot
+ai-guardrails comments --pr <NUMBER> --bot claude
+ai-guardrails comments --pr <NUMBER> --bot coderabbit,gemini
+
+# Reply to a thread
+ai-guardrails comments --pr <NUMBER> --reply PRRT_abc123 "Fixed in commit xyz."
+
+# Resolve a thread (with optional reply)
+ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "Fixed."
+ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123
+
+# Batch resolve all threads from a bot
+ai-guardrails comments --pr <NUMBER> --resolve-all --bot deepsource
+
+# Full JSON output
+ai-guardrails comments --pr <NUMBER> --json
 ```
+
+**Supported bots:** CodeRabbit, Claude, Gemini, DeepSource
 
 **Data flow:**
 
-1. Fetches review threads via GitHub GraphQL (inline comments)
-2. Fetches review bodies via `gh pr view` (nitpicks, issue sections)
-3. Filters: author=coderabbit AND isResolved=false
-4. Parses with `guardrails.coderabbit` module
-5. Outputs structured JSON with actionable tasks
+1. Fetches all review threads via GitHub GraphQL
+2. Filters by bot name and resolution status
+3. Reply via REST API, resolve via GraphQL mutation
 
 ## Development
 
