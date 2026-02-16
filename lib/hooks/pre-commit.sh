@@ -8,6 +8,6 @@ set -euo pipefail
 if command -v pre-commit &>/dev/null; then
   exec pre-commit run --hook-stage pre-commit
 else
-  echo "Error: pre-commit not installed. Install it: pip install pre-commit" >&2
+  echo "Error: pre-commit not installed. Install it: uv tool install pre-commit" >&2
   exit 1
 fi

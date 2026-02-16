@@ -599,7 +599,9 @@ def _dry_run_report(
     *,
     languages: list[str],
     project_type: str,
+    force: bool,
     skip_precommit: bool,
+    pip_audit_mode: str,
     install_ci: str,
     install_claude_review: str,
     install_coderabbit: str,
@@ -610,6 +612,11 @@ def _dry_run_report(
 
     def _would(action: str) -> None:
         print(f"  {YELLOW}would{NC} {action}")
+
+    # Flags
+    print(f"\n{GREEN}Options:{NC}")
+    _would(f"force overwrite: {'yes (with .bak backup)' if force else 'no'}")
+    _would(f"pip-audit mode: {pip_audit_mode}")
 
     # Base configs
     print(f"\n{GREEN}Configs:{NC}")
@@ -722,7 +729,9 @@ def run_init(
             project_dir,
             languages=languages,
             project_type=project_type,
+            force=force,
             skip_precommit=skip_precommit,
+            pip_audit_mode=pip_audit_mode,
             install_ci=install_ci,
             install_claude_review=install_claude_review,
             install_coderabbit=install_coderabbit,

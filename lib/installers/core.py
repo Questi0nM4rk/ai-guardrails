@@ -19,6 +19,8 @@ from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
 from pyinfra.operations import files, server
 
+from lib.installers._utils import fail_no_uv_or_pipx
+
 # Installation paths
 INSTALL_DIR = Path.home() / ".ai-guardrails"
 BIN_DIR = Path.home() / ".local" / "bin"
@@ -40,14 +42,6 @@ HOOK_SCRIPTS = [
     "protect-generated-configs.sh",
     "validate-generated-configs.sh",
 ]
-
-
-def _fail_no_uv_or_pipx() -> None:
-    """Emit an error when neither uv nor pipx is found."""
-    msg = (
-        "echo 'Error: Neither uv nor pipx found. Install uv: https://docs.astral.sh/uv/' && exit 1"
-    )
-    server.shell(name="Error: uv or pipx required", commands=[msg])
 
 
 def get_source_dir() -> Path:
@@ -74,7 +68,11 @@ def install_pyyaml() -> None:
                 commands=["python3 -m pip install --user pyyaml"],
             )
         else:
-            _fail_no_uv_or_pipx()
+            msg = (
+                "echo 'Error: Neither uv nor python3 found."
+                " Install uv: https://docs.astral.sh/uv/' && exit 1"
+            )
+            server.shell(name="Error: uv or python3 required", commands=[msg])
 
 
 @deploy("Install pre-commit")
@@ -94,7 +92,7 @@ def install_precommit() -> None:
                 commands=["pipx install pre-commit"],
             )
         else:
-            _fail_no_uv_or_pipx()
+            fail_no_uv_or_pipx()
 
 
 @deploy("Create installation directories")

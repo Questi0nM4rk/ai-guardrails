@@ -11,15 +11,16 @@ ROOT = Path(__file__).parent.parent
 
 
 def _extract_prompt(wf: dict) -> str | None:
-    """Extract the prompt field from a workflow's steps."""
+    """Extract the prompt field from a workflow's steps.
+
+    Iterates all jobs to handle ordering changes.
+    """
     jobs = wf.get("jobs", {})
-    if not jobs:
-        return None
-    steps = next(iter(jobs.values())).get("steps", [])
-    for step in steps:
-        prompt = step.get("with", {}).get("prompt")
-        if prompt is not None:
-            return prompt
+    for job in jobs.values():
+        for step in job.get("steps", []):
+            prompt = step.get("with", {}).get("prompt")
+            if prompt is not None:
+                return prompt
     return None
 
 

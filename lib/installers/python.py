@@ -10,15 +10,9 @@ from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
 from pyinfra.operations import server
 
+from lib.installers._utils import fail_no_uv_or_pipx
+
 TOOLS = ["ruff", "mypy", "bandit", "vulture", "pip-audit"]
-
-
-def _fail_no_uv_or_pipx() -> None:
-    """Emit an error when neither uv nor pipx is found."""
-    msg = (
-        "echo 'Error: Neither uv nor pipx found. Install uv: https://docs.astral.sh/uv/' && exit 1"
-    )
-    server.shell(name="Error: uv or pipx required", commands=[msg])
 
 
 @deploy("Install Python linting tools")
@@ -40,8 +34,8 @@ def install_python_tools() -> None:
                     commands=[f"pipx install {tool}"],
                 )
         else:
-            _fail_no_uv_or_pipx()
-            return
+            fail_no_uv_or_pipx()
+
     for tool in TOOLS:
         server.shell(
             name=f"Verify {tool} installation",
