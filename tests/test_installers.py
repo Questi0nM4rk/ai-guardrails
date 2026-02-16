@@ -40,7 +40,6 @@ class TestCoreModule:
     def test_bin_scripts_list(self) -> None:
         """Verify BIN_SCRIPTS contains expected CLI tools."""
         assert "ai-guardrails" in BIN_SCRIPTS
-        assert "ai-review-tasks" in BIN_SCRIPTS
         assert "ai-guardrails-init" in BIN_SCRIPTS
         assert "ai-guardrails-generate" in BIN_SCRIPTS
 

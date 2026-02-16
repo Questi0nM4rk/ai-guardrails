@@ -106,35 +106,3 @@ class TestGenerateSubcommand:
     def test_generate_dry_run_and_check_mutually_exclusive(self) -> None:
         with pytest.raises(SystemExit, match="2"):
             main(["generate", "--dry-run", "--check"])
-
-
-class TestReviewSubcommand:
-    """Test review subcommand dispatches to run_review."""
-
-    @patch("guardrails.cli._cmd_review")
-    def test_dispatches_to_review(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        result = main(["review"])
-        mock_cmd.assert_called_once()
-        assert result == 0
-
-    @patch("guardrails.cli._cmd_review")
-    def test_review_with_pr_number(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["review", "--pr", "42"])
-        args = mock_cmd.call_args[0][0]
-        assert args.pr == 42
-
-    @patch("guardrails.cli._cmd_review")
-    def test_review_with_pretty(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["review", "--pretty"])
-        args = mock_cmd.call_args[0][0]
-        assert args.pretty is True
-
-    @patch("guardrails.cli._cmd_review")
-    def test_review_with_severity(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["review", "--severity", "major"])
-        args = mock_cmd.call_args[0][0]
-        assert args.severity == "major"

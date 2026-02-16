@@ -96,15 +96,17 @@ ai-guardrails generate --dry-run    # Preview without writing
 ai-guardrails generate --check      # Check if configs are up to date
 ```
 
-### ai-guardrails review
+### ai-guardrails comments
 
-Extract actionable tasks from CodeRabbit PR reviews.
+List, reply to, and resolve PR review threads from all bots (CodeRabbit, Claude, Gemini, DeepSource).
 
 ```bash
-ai-guardrails review                # Current PR
-ai-guardrails review --pr 42        # Specific PR
-ai-guardrails review --pretty       # Pretty-printed JSON
-ai-guardrails review --severity major  # Filter by severity
+ai-guardrails comments --pr 42                          # List unresolved threads
+ai-guardrails comments --pr 42 --bot claude             # Filter by bot
+ai-guardrails comments --pr 42 --reply PRRT_abc "Fixed." # Reply to a thread
+ai-guardrails comments --pr 42 --resolve PRRT_abc       # Resolve a thread
+ai-guardrails comments --pr 42 --resolve-all --bot deepsource  # Batch resolve
+ai-guardrails comments --pr 42 --json                   # Full JSON output
 ```
 
 ## Configs
@@ -346,8 +348,7 @@ ai-guardrails/
 ├── bin/
 │   ├── ai-guardrails         # Unified CLI entry point
 │   ├── ai-guardrails-init    # Legacy wrapper → ai-guardrails init
-│   ├── ai-guardrails-generate # Legacy wrapper → ai-guardrails generate
-│   └── ai-review-tasks       # Legacy wrapper → ai-guardrails review
+│   └── ai-guardrails-generate # Legacy wrapper → ai-guardrails generate
 ├── configs/
 │   ├── .editorconfig         # Universal formatting
 │   ├── ruff.toml             # Python (pedantic)
