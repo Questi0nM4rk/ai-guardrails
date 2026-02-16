@@ -1,14 +1,58 @@
 
+
 ## AI Guardrails - Code Standards
 
 This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails) for pedantic code enforcement.
+Pre-commit hooks auto-fix formatting, then run security scans, linting, and type checks.
+Review bots (CodeRabbit, Claude, Gemini, DeepSource) auto-review every push.
 
-### Philosophy
+### Tools
 
-**Hard stops only.** No warnings, no suggestions. Everything is an error or it's ignored.
+```bash
+ai-guardrails comments --pr <N>                          # List unresolved review threads
+ai-guardrails comments --pr <N> --bot claude              # Filter by bot
+ai-guardrails comments --pr <N> --resolve PRRT_id "Fixed" # Resolve a thread with reply
+ai-guardrails comments --pr <N> --resolve-all --bot X     # Batch resolve by bot
+```
 
-**Local:** Auto-fix everything possible. Don't waste context on syntax/formatting.
-**CI/CD:** Check only, never modify code.
+Use `ai-guardrails comments` to check PR status. Do not use raw `gh api` calls with
+manual jq piping to read review threads — the tool handles pagination, filtering, and
+formatting for you.
+
+### Review Bot Rules
+
+Every push triggers all review bots. Each bot catches different things.
+
+**Musts:**
+
+- Fix every review comment that is not a false positive. Even nitpicks. Even style.
+- Use `ai-guardrails comments` to check threads, not raw `gh api` calls.
+- Fix ALL findings locally, then push once. One push per review round.
+- Ask the human before pushing. Explain what changed.
+- Wait for all bots (~5 min) before acting on feedback.
+
+**Do not:**
+
+- **Never dismiss a review comment because it's "just a nitpick."**
+  Nitpicks are how code quality compounds. A style fix takes 30 seconds. Ignoring
+  it means the next reviewer wastes time on the same thing. Fix it and move on.
+
+- **Never resolve a thread without fixing it or explaining why it's a false positive.**
+  Resolving a thread means "this is handled." If it's not handled, it's lying to the
+  reviewer. If you disagree with a finding, reply with a reason — don't silently resolve.
+
+- **Never batch-resolve threads you haven't read.**
+  Each thread exists because a reviewer flagged something. Read it, decide if it's real
+  or false positive, then act. Bulk-closing threads defeats the purpose of review.
+
+- **Never push after each individual fix.**
+  Every push triggers 4 bots. If you push 5 times to fix 5 comments, that's 20 review
+  cycles of noise. Fix everything locally, push once.
+
+- **Never skip a false positive without documenting it.**
+  If a bot flags something that's wrong (e.g. DeepSource complaining about pytest `self`),
+  that's useful information for tuning the bot's config. Log it so it can be fixed
+  upstream. Resolve with a reference to where it's documented.
 
 ### Pre-commit Workflow
 
@@ -16,83 +60,13 @@ This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails)
 auto-fix → re-stage → checks → commit
 ```
 
-1. `format-and-stage` auto-fixes ALL fixable issues and re-stages (local only, skipped in CI)
-   - Python: `ruff format` + `ruff check --fix`
-   - Shell: `shfmt`
-   - Markdown: `markdownlint --fix`
-   - TypeScript/JS: `biome check --write`
-   - TOML: `taplo format`
+1. `format-and-stage` auto-fixes formatting and re-stages (local only, skipped in CI)
 2. Security scans (gitleaks, detect-secrets, semgrep)
-3. Linting - checks only, already fixed above
+3. Linting (check-only — already fixed above)
 4. Type checking (strict mode)
 5. Git hygiene (no commits to main, no large files)
 
-### Language-Specific Rules
-
-**Python:**
-- `from __future__ import annotations` required in ALL files (auto-added by ruff)
-- Type hints required on all function signatures
-- Docstrings required on public functions/classes
-- No bare `except:` - always specify exception type
-- Use `X | None` not `Optional[X]`
-
-**TypeScript/JavaScript:**
-- Strict mode (`"strict": true` in tsconfig)
-- No `any` type - use `unknown` and narrow
-- No `console.log` in production code
-- JSDoc on exported functions
-
-**Shell (Bash):**
-- `set -euo pipefail` at script start
-- Quote all variables: `"$var"` not `$var`
-- Use `[[` not `[` for conditionals
-- Prefer portable POSIX syntax where possible
-
-### Test Requirements
-
-- Tests required for new functionality
-- Test files must be named `test_*.py` or `*_test.py`
-- Meaningful assertions (not just "no errors")
-- No shared state between tests
-
-### Review Bots
-
-All bots auto-review every push. No manual triggers needed.
-
-| Bot | Focus | Trigger |
-|-----|-------|---------|
-| CodeRabbit | Static analysis, security, language conventions | Auto on push |
-| Claude | Code duplication, clean code, modern patterns, architecture | Auto on PR |
-| Gemini | Bugs, logic errors, security, performance | Auto on push |
-| DeepSource | Anti-patterns, OWASP, code metrics | Auto on push |
-
-**Rules for AI Agents:**
-
-Every push triggers all 4 review bots. Unnecessary pushes waste review cycles
-and create noise. Only push when you are confident the code is complete.
-
-1. **Complete all changes before pushing** — Finish the entire task locally
-   (all files, all fixes, all tests passing). Do not push work-in-progress
-2. **Never auto-push** — Always ask the human before running `git push`.
-   Explain what changed and confirm they want a review
-3. **Batch into minimal commits** — Group related changes into logical
-   commits. Push them all at once
-4. **Address ALL review feedback before pushing again** — When bots request
-   changes, fix every comment locally, then push once. Do not push after
-   each individual fix
-5. **Wait for all bots** — After pushing, wait for all reviews to complete
-   (~5 min) before acting on feedback
-
 ### When Pre-commit Fails
 
-Most syntax/formatting issues are auto-fixed. If pre-commit still fails:
-
-1. Read the error message - it's a non-auto-fixable issue
-2. Fix the actual problem (missing docstring, type error, security issue)
-3. Stage and commit again
-
-Common non-auto-fixable issues:
-- Missing docstrings → Write them
-- Type errors → Fix the types
-- Security issues → Fix the vulnerability
-- Missing `from __future__ import annotations` → Add it (or let ruff add it)
+Most formatting is auto-fixed. If it still fails, read the error — it's a real issue
+(missing docstring, type error, security problem). Fix it, stage, commit again.
