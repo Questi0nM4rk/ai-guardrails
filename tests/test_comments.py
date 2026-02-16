@@ -165,6 +165,12 @@ class TestHelpers:
         assert len(result) == 120
         assert result.endswith("...")
 
+    def test_truncate_small_length_no_ellipsis(self) -> None:
+        """When length <= 3, truncate without adding '...' to avoid exceeding limit."""
+        assert _truncate("abcdef", 3) == "abc"
+        assert _truncate("abcdef", 2) == "ab"
+        assert _truncate("abcdef", 1) == "a"
+
     def test_short_bot_name_known(self) -> None:
         assert _short_bot_name("coderabbitai") == "coderabbit"
         assert _short_bot_name("deepsource-io") == "deepsource"

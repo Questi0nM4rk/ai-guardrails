@@ -163,6 +163,16 @@ class TestCommentsCliDispatch:
         captured = capsys.readouterr()
         assert "at most 2" in captured.err
 
+    @patch(_PATCH_SUBPROCESS_RUN)
+    def test_body_without_resolve_all_errors(
+        self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """--body without --resolve-all should print error and return 1."""
+        result = main(["comments", "--pr", "31", "--body", "Done."])
+        assert result == 1
+        captured = capsys.readouterr()
+        assert "--resolve-all" in captured.err
+
     def test_reply_resolve_mutually_exclusive(self) -> None:
         with pytest.raises(SystemExit, match="2"):
             main(["comments", "--pr", "31", "--reply", "T", "B", "--resolve", "T"])
