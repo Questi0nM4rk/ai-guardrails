@@ -158,7 +158,6 @@ class TestCommentsCliDispatch:
     def test_resolve_too_many_args(
         self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        mock_run.side_effect = [_repo_info_result(), _graphql_result()]
         result = main(["comments", "--pr", "31", "--resolve", "PRRT_abc", "body", "extra"])
         assert result == 1
         captured = capsys.readouterr()

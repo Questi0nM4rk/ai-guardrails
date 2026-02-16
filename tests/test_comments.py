@@ -155,6 +155,10 @@ class TestHelpers:
     def test_truncate_short(self) -> None:
         assert _truncate("short", 120) == "short"
 
+    def test_truncate_exact_length(self) -> None:
+        text = "x" * 80
+        assert _truncate(text, 80) == text
+
     def test_truncate_long(self) -> None:
         long_text = "x" * 200
         result = _truncate(long_text, 120)
@@ -355,3 +359,10 @@ class TestFormatJson:
         threads = [_make_thread()]
         result = format_json(threads, pretty=False)
         assert "\n" not in result
+
+    def test_empty_threads(self) -> None:
+        output = json.loads(format_json([]))
+        assert output["threads"] == []
+        assert output["summary"]["total"] == 0
+        assert output["summary"]["unresolved"] == 0
+        assert output["summary"]["by_bot"] == {}

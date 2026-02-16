@@ -19,6 +19,7 @@ import json
 import re
 import subprocess
 import sys
+from collections import Counter
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -27,6 +28,7 @@ import sys
 COMPACT_PREVIEW_LENGTH = 80
 JSON_PREVIEW_LENGTH = 120
 _SUBPROCESS_TIMEOUT = 30
+_MAX_PAGES = 20
 _MIN_BOT_COL = 8
 _MIN_LOC_COL = 10
 
@@ -126,7 +128,10 @@ def _truncate(text: str, length: int) -> str:
     """Truncate text to length with ellipsis."""
     if len(text) <= length:
         return text
-    return text[: length - 3] + "..."
+    ellipsis_room = 3
+    if length <= ellipsis_room:
+        return text[:length]
+    return text[: length - ellipsis_room] + "..."
 
 
 def _short_bot_name(login: str) -> str:
@@ -212,8 +217,6 @@ def _find_thread(threads: list[dict], thread_id: str) -> dict | None:
 
 def _build_summary(threads: list[dict]) -> dict:
     """Build summary statistics from thread list."""
-    from collections import Counter
-
     by_bot = Counter(t["bot"] for t in threads)
     unresolved = sum(1 for t in threads if not t["resolved"])
     return {
@@ -329,7 +332,7 @@ def fetch_threads(owner: str, repo: str, pr: int) -> list[dict]:
     all_threads: list[dict] = []
     cursor: str | None = None
 
-    while True:
+    for _page in range(_MAX_PAGES):
         cmd: list[str] = [
             "api",
             "graphql",

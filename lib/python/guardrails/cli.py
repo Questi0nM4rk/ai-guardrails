@@ -152,6 +152,10 @@ def _cmd_comments(args: argparse.Namespace) -> int:
     """Run the ``comments`` subcommand to list/reply/resolve review threads."""
     from guardrails.comments import run_comments
 
+    if args.body and not args.resolve_all:
+        print("Error: --body can only be used with --resolve-all", file=sys.stderr)
+        return 1
+
     reply = tuple(args.reply) if args.reply else None
     resolve = None
     if args.resolve:
