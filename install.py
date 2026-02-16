@@ -85,11 +85,11 @@ def parse_args() -> argparse.Namespace:
         epilog="""
 Installation locations:
   ~/.ai-guardrails/     Main installation directory
-  ~/.local/bin/         CLI symlinks (ai-review-tasks, ai-hooks-init, etc.)
+  ~/.local/bin/         CLI symlinks (ai-guardrails, ai-guardrails-init, etc.)
 
 Prerequisites:
   - Python 3.10+
-  - gh (GitHub CLI) with gh-pr-review extension
+  - gh (GitHub CLI)
 
 Notes:
   - pyyaml and pre-commit are always installed (required)
@@ -300,7 +300,7 @@ def main() -> int:
         print()
         print("Installation summary:")
         print(f"  Main directory: {install_dir}")
-        print("  CLI commands: ai-review-tasks, ai-hooks-init, ai-guardrails-init")
+        print("  CLI commands: ai-guardrails, ai-guardrails-init, ai-guardrails-generate")
         print(f"  Hooks: {install_dir}/hooks/")
         print()
         print("Quick start:")
