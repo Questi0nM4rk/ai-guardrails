@@ -246,6 +246,11 @@ class TestFilterThreads:
         result = filter_threads(threads, bots=["unknown-bot"], unresolved_only=False)
         assert result == []
 
+    def test_filters_case_insensitive_unknown_bot(self) -> None:
+        threads = [_make_thread(bot="custombot")]
+        result = filter_threads(threads, bots=["CustomBot"], unresolved_only=False)
+        assert len(result) == 1
+
     def test_no_filter_returns_all_unresolved(self) -> None:
         threads = [
             _make_thread(bot="coderabbitai"),

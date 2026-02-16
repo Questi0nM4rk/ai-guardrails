@@ -81,19 +81,20 @@ def _add_comments_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--bot", "-b", help="Filter by bot (comma-separated: coderabbit,claude,...)")
     p.add_argument("--all", "-a", action="store_true", help="Include resolved threads")
     p.add_argument("--json", action="store_true", help="Output full JSON instead of compact")
-    p.add_argument(
+    action = p.add_mutually_exclusive_group()
+    action.add_argument(
         "--reply",
         nargs=2,
         metavar=("THREAD_ID", "BODY"),
         help="Reply to a review thread",
     )
-    p.add_argument(
+    action.add_argument(
         "--resolve",
         nargs="+",
         metavar="ARG",
         help="Resolve a thread: THREAD_ID [BODY]",
     )
-    p.add_argument(
+    action.add_argument(
         "--resolve-all",
         action="store_true",
         help="Resolve all unresolved threads (filtered by --bot)",

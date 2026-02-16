@@ -197,6 +197,14 @@ def filter_threads(
     return result
 
 
+def _find_thread(threads: list[dict], thread_id: str) -> dict | None:
+    """Find a thread by ID, printing an error if not found."""
+    target = next((t for t in threads if t["thread_id"] == thread_id), None)
+    if target is None:
+        print(f"Error: Thread {thread_id} not found", file=sys.stderr)
+    return target
+
+
 # ---------------------------------------------------------------------------
 # Output formatting
 # ---------------------------------------------------------------------------
@@ -204,13 +212,10 @@ def filter_threads(
 
 def _build_summary(threads: list[dict]) -> dict:
     """Build summary statistics from thread list."""
-    by_bot: dict[str, int] = {}
-    unresolved = 0
-    for t in threads:
-        bot = t["bot"]
-        by_bot[bot] = by_bot.get(bot, 0) + 1
-        if not t["resolved"]:
-            unresolved += 1
+    from collections import Counter
+
+    by_bot = Counter(t["bot"] for t in threads)
+    unresolved = sum(1 for t in threads if not t["resolved"])
     return {
         "total": len(threads),
         "unresolved": unresolved,
@@ -493,9 +498,8 @@ def run_comments(
     # Handle reply action
     if reply is not None:
         thread_id, body = reply
-        target = next((t for t in all_threads if t["thread_id"] == thread_id), None)
+        target = _find_thread(all_threads, thread_id)
         if target is None:
-            print(f"Error: Thread {thread_id} not found", file=sys.stderr)
             return 1
         if target["comment_id"] is None:
             print("Error: Thread has no comment ID for reply", file=sys.stderr)
@@ -506,9 +510,8 @@ def run_comments(
     # Handle resolve action
     if resolve is not None:
         thread_id, body = resolve
-        target = next((t for t in all_threads if t["thread_id"] == thread_id), None)
+        target = _find_thread(all_threads, thread_id)
         if target is None:
-            print(f"Error: Thread {thread_id} not found", file=sys.stderr)
             return 1
         if body:
             if target["comment_id"]:

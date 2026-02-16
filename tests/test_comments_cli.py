@@ -4,14 +4,11 @@ from __future__ import annotations
 
 import json
 import subprocess
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
+import pytest
 from guardrails.cli import main
 from guardrails.comments import run_comments
-
-if TYPE_CHECKING:
-    import pytest
 
 
 def _make_subprocess_result(returncode: int = 0, stdout: str = "", stderr: str = "") -> MagicMock:
@@ -167,6 +164,14 @@ class TestCommentsCliDispatch:
         captured = capsys.readouterr()
         assert "at most 2" in captured.err
 
+    def test_reply_resolve_mutually_exclusive(self) -> None:
+        with pytest.raises(SystemExit, match="2"):
+            main(["comments", "--pr", "31", "--reply", "T", "B", "--resolve", "T"])
+
+    def test_reply_resolve_all_mutually_exclusive(self) -> None:
+        with pytest.raises(SystemExit, match="2"):
+            main(["comments", "--pr", "31", "--reply", "T", "B", "--resolve-all"])
+
 
 # ---------------------------------------------------------------------------
 # run_comments — compact output (default)
@@ -282,6 +287,16 @@ class TestRunCommentsReply:
         assert result == 1
         captured = capsys.readouterr()
         assert "not found" in captured.err
+
+    @patch(_PATCH_SUBPROCESS_RUN)
+    def test_reply_subprocess_failure(self, mock_run: MagicMock) -> None:
+        mock_run.side_effect = [
+            _repo_info_result(),  # repo info
+            _graphql_result(),  # fetch threads
+            _make_subprocess_result(returncode=1),  # reply POST fails
+        ]
+        result = run_comments(pr=31, reply=("PRRT_abc", "Fixed."))
+        assert result == 1
 
 
 # ---------------------------------------------------------------------------
