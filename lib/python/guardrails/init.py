@@ -590,6 +590,79 @@ def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Dry-run report
+# ---------------------------------------------------------------------------
+
+
+def _dry_run_report(
+    project_dir: Path,
+    *,
+    languages: list[str],
+    project_type: str,
+    skip_precommit: bool,
+    install_ci: str,
+    install_claude_review: str,
+    install_coderabbit: str,
+    install_gemini: str,
+    install_deepsource: str,
+) -> None:
+    """Print what ``run_init`` would do without making changes."""
+
+    def _would(action: str) -> None:
+        print(f"  {YELLOW}would{NC} {action}")
+
+    # Base configs
+    print(f"\n{GREEN}Configs:{NC}")
+    _would("copy .editorconfig")
+    _would("copy .markdownlint.jsonc")
+    if project_type == "all":
+        for name in _ALL_LANG_CONFIGS:
+            _would(f"copy {name}")
+    else:
+        for lang in languages:
+            for name in _LANG_CONFIGS.get(lang, []):
+                _would(f"copy {name}")
+
+    # Pre-commit
+    if not skip_precommit:
+        print(f"\n{GREEN}Pre-commit:{NC}")
+        _would("assemble .pre-commit-config.yaml")
+        _would("copy hook scripts to .ai-guardrails/hooks/")
+        _would("run pre-commit install")
+        _would("install Claude Code PreToolUse hook")
+        _would("install dangerous-command-check hook")
+
+    # Gitignore
+    print(f"\n{GREEN}Git:{NC}")
+    _would("add .ai-guardrails/ to .gitignore")
+
+    # Exception registry
+    print(f"\n{GREEN}Exception registry:{NC}")
+    _would("scaffold .guardrails-exceptions.toml")
+
+    # GitHub integrations
+    is_github = _is_github_project(project_dir)
+    _integration_names = [
+        (install_ci, "CI workflow (.github/workflows/check.yml)"),
+        (install_claude_review, "Claude Code Review workflow"),
+        (install_coderabbit, "CodeRabbit config (.coderabbit.yaml)"),
+        (install_gemini, "Gemini Code Assist config"),
+        (install_deepsource, "DeepSource config (.deepsource.toml)"),
+    ]
+    active = [
+        name for flag, name in _integration_names if flag == "yes" or (flag == "auto" and is_github)
+    ]
+    if active:
+        print(f"\n{GREEN}GitHub integrations:{NC}")
+        for name in active:
+            _would(f"install {name}")
+
+    # Agent instructions
+    print(f"\n{GREEN}Agent instructions:{NC}")
+    _would("append guardrails rules to CLAUDE.md")
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -645,6 +718,17 @@ def run_init(
     if dry_run:
         print(f"{YELLOW}Dry run mode: no changes will be made{NC}")
         print(f"  Languages: {languages or ['(base only)']}")
+        _dry_run_report(
+            project_dir,
+            languages=languages,
+            project_type=project_type,
+            skip_precommit=skip_precommit,
+            install_ci=install_ci,
+            install_claude_review=install_claude_review,
+            install_coderabbit=install_coderabbit,
+            install_gemini=install_gemini,
+            install_deepsource=install_deepsource,
+        )
         return 0
 
     print()

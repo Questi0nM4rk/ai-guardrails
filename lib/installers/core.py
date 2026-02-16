@@ -67,10 +67,14 @@ def install_pyyaml() -> None:
         )
     else:
         # pyyaml is a library, not a CLI tool — pip is correct here
-        server.shell(
-            name="Install pyyaml via pip",
-            commands=["python3 -m pip install --user pyyaml"],
-        )
+        python_available = host.get_fact(Which, command="python3")
+        if python_available:
+            server.shell(
+                name="Install pyyaml via pip",
+                commands=["python3 -m pip install --user pyyaml"],
+            )
+        else:
+            _fail_no_uv_or_pipx()
 
 
 @deploy("Install pre-commit")
