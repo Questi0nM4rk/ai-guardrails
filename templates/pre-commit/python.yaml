@@ -9,7 +9,7 @@
 repos:
   # Bandit - Security linter (runs first per policy)
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.8.0
+    rev: 1.9.3
     hooks:
       - id: bandit
         name: "python - bandit security scan"
@@ -18,7 +18,7 @@ repos:
 
   # Ruff - Lint with ALL rules enabled
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
+    rev: v0.15.1
     hooks:
       - id: ruff
         name: "python - ruff lint (pedantic)"
@@ -37,7 +37,7 @@ repos:
 
   # Mypy - Static type checking (strict mode)
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.14.1
+    rev: v1.19.1
     hooks:
       - id: mypy
         name: "python - mypy type check (strict)"
