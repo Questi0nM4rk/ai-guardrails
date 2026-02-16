@@ -304,6 +304,26 @@ class TestExpiresField:
             errors = reg.validate()
         assert any("expired" in e.lower() for e in errors)
 
+    def test_validate_not_expired_on_exact_date(self, tmp_path: Path) -> None:
+        """Entry expiring today (expires == today) should NOT be flagged."""
+        p = tmp_path / "test.toml"
+        p.write_text(
+            dedent("""\
+            schema_version = 1
+
+            [[file_exceptions]]
+            glob = "tests/**"
+            tool = "ruff"
+            rules = ["S101"]
+            reason = "Expires today"
+            expires = 2025-06-01
+        """)
+        )
+        reg = ExceptionRegistry.load(p)
+        with patch("guardrails.registry._today", return_value=datetime.date(2025, 6, 1)):
+            errors = reg.validate()
+        assert not any("expired" in e.lower() for e in errors)
+
     def test_validate_ok_for_future_expires(self, tmp_path: Path) -> None:
         """Non-expired exceptions should not produce errors."""
         p = tmp_path / "test.toml"
@@ -320,11 +340,12 @@ class TestExpiresField:
         """)
         )
         reg = ExceptionRegistry.load(p)
-        errors = reg.validate()
+        with patch("guardrails.registry._today", return_value=datetime.date(2025, 1, 1)):
+            errors = reg.validate()
         assert not any("expired" in e.lower() for e in errors)
 
     def test_get_expired_returns_expired_only(self, tmp_path: Path) -> None:
-        """get_expired() should return only expired exceptions."""
+        """get_expired() should return only expired exceptions (both types)."""
         p = tmp_path / "test.toml"
         p.write_text(
             dedent("""\
@@ -349,10 +370,67 @@ class TestExpiresField:
             tool = "ruff"
             rules = ["S101"]
             reason = "No expiry"
+
+            [[inline_suppressions]]
+            pattern = "noqa: BLE001"
+            glob = "**/*.py"
+            reason = "Expired inline"
+            expires = 2025-03-01
+
+            [[inline_suppressions]]
+            pattern = "noqa: S110"
+            glob = "**/*.py"
+            reason = "Still valid inline"
+            expires = 2099-12-31
         """)
         )
         reg = ExceptionRegistry.load(p)
         with patch("guardrails.registry._today", return_value=datetime.date(2025, 6, 1)):
             expired = reg.get_expired()
-        assert len(expired) == 1
-        assert expired[0].glob == ["old/**"]
+        assert len(expired) == 2
+        # One FileException and one InlineSuppression
+        from guardrails.registry import FileException, InlineSuppression
+
+        assert any(isinstance(e, FileException) for e in expired)
+        assert any(isinstance(e, InlineSuppression) for e in expired)
+
+
+class TestParseDate:
+    """Test _parse_date edge cases."""
+
+    def test_none_returns_none(self) -> None:
+        from guardrails.registry import _parse_date
+
+        assert _parse_date(None) is None
+
+    def test_date_passes_through(self) -> None:
+        from guardrails.registry import _parse_date
+
+        d = datetime.date(2025, 6, 1)
+        assert _parse_date(d) == d
+
+    def test_datetime_converts_to_date(self) -> None:
+        """datetime.datetime should be normalized to date."""
+        from guardrails.registry import _parse_date
+
+        dt = datetime.datetime(2025, 6, 1, 12, 0, 0, tzinfo=datetime.UTC)
+        result = _parse_date(dt)
+        assert result == datetime.date(2025, 6, 1)
+        assert type(result) is datetime.date
+
+    def test_string_parses_iso(self) -> None:
+        from guardrails.registry import _parse_date
+
+        assert _parse_date("2025-06-01") == datetime.date(2025, 6, 1)
+
+    def test_invalid_string_raises_value_error(self) -> None:
+        from guardrails.registry import _parse_date
+
+        with pytest.raises(ValueError, match="Invalid"):
+            _parse_date("not-a-date")
+
+    def test_int_raises_type_error(self) -> None:
+        from guardrails.registry import _parse_date
+
+        with pytest.raises(TypeError, match="int"):
+            _parse_date(42)
