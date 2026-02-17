@@ -4,6 +4,15 @@ from __future__ import annotations
 
 from pyinfra import host
 from pyinfra.facts.server import Which
+from pyinfra.operations import server
+
+
+def fail_no_uv_or_pipx() -> None:
+    """Emit an error when neither uv nor pipx is found."""
+    msg = (
+        "echo 'Error: Neither uv nor pipx found. Install uv: https://docs.astral.sh/uv/' && exit 1"
+    )
+    server.shell(name="Error: uv or pipx required", commands=[msg])
 
 
 def get_package_manager() -> str | None:
