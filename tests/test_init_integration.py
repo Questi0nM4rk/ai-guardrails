@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from collections.abc import Iterator
 from contextlib import chdir
 from pathlib import Path
 from unittest.mock import patch
@@ -18,7 +18,7 @@ _PATCHES = (
 
 
 @pytest.fixture
-def _mock_hooks() -> Generator[None]:
+def _mock_hooks() -> Iterator[None]:
     """Patch out hook installation side effects."""
     with patch(_PATCHES[0]), patch(_PATCHES[1]), patch(_PATCHES[2]):
         yield

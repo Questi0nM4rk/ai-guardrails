@@ -35,6 +35,7 @@ def install_python_tools() -> None:
                 )
         else:
             fail_no_uv_or_pipx()
+            return
 
     for tool in TOOLS:
         server.shell(

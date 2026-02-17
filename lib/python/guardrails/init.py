@@ -76,16 +76,16 @@ def _print_fail(msg: str) -> None:
 
 def _copy_config(src: Path, dst: Path, *, force: bool) -> None:
     """Copy a single config file, respecting --force."""
-    if dst.exists():
-        if not force:
-            _print_skip(f"{dst.name} exists (use --force to overwrite)")
-            return
-        # Backup before overwriting
-        backup = dst.with_suffix(dst.suffix + ".bak")
-        shutil.copy2(dst, backup)
+    if dst.exists() and not force:
+        _print_skip(f"{dst.name} exists (use --force to overwrite)")
+        return
 
     if src.exists():
         dst.parent.mkdir(parents=True, exist_ok=True)
+        # Backup before overwriting (only when destination already exists)
+        if dst.exists():
+            backup = dst.with_suffix(dst.suffix + ".bak")
+            shutil.copy2(dst, backup)
         shutil.copy2(src, dst)
         _print_ok(dst.name)
     else:
