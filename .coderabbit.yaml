@@ -17,11 +17,17 @@ reviews:
   review_status: true
   collapse_walkthrough: false
 
-  # Auto-review on push — CodeRabbit reviews every push automatically.
-  # Subsequent pushes get incremental reviews (only changed code).
-  # To force a full re-review, comment "@coderabbitai full review".
+  # Manual review only — do NOT auto-review every push.
+  # Free tier allows only 3 reviews/hour. Auto-reviewing wastes them on
+  # WIP pushes that aren't ready for review.
+  #
+  # Workflow:
+  #   1. Push changes, let CI + Claude + DeepSource + Gemini run
+  #   2. Resolve ALL their comments first
+  #   3. Only then trigger: @coderabbitai review
+  #   4. For a full re-review: @coderabbitai full review
   auto_review:
-    enabled: true
+    enabled: false
     drafts: false
     auto_incremental_review: true
 
