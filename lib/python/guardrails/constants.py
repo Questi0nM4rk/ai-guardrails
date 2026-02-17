@@ -168,7 +168,7 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     # ── Filesystem destruction ───────────────────────────────────────────
     ("substring", "rm -rf ~", "Refusing to delete home directory"),
     ("substring", "rm -rf $HOME", "Refusing to delete home directory"),
-    ("substring", "rm -rf /home", "Refusing to delete home directory"),
+    ("regex", r"rm\s+-rf\s+/home/?(?:\s|$|[;&|])", "Refusing to delete home directory"),
     ("regex", r"rm\s+-rf\s+/\s*$|rm\s+-rf\s+/\s*[;&|]", "Refusing to delete root filesystem"),
     ("substring", "> /dev/sda", "Refusing to write directly to block device"),
     ("substring", "mkfs.", "Refusing to format disk"),
@@ -220,7 +220,8 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     ),
     (
         "regex",
-        r"git\s+restore\s+(?!.*--staged\b(?!.*--worktree))(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
+        r"git\s+restore\s+(?!.*--staged\b(?!.*--worktree))"
+        r"(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
         "git restore . discards all unstaged changes",
     ),
     (

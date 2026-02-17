@@ -36,6 +36,11 @@ class TestFilesystemDestruction:
     def test_rm_rf_home_dir(self) -> None:
         assert check_command("rm -rf /home")
 
+    def test_rm_rf_home_subdir_is_safe(self) -> None:
+        """Deleting a subdirectory under /home should NOT match home deletion."""
+        msgs = check_command("rm -rf /home/user/project")
+        assert not any("home directory" in m for m in msgs)
+
     def test_rm_rf_root(self) -> None:
         assert check_command("rm -rf /")
 
