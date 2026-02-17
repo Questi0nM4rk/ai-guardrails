@@ -33,6 +33,9 @@ class TestFilesystemDestruction:
     def test_rm_rf_home_var(self) -> None:
         assert check_command("rm -rf $HOME")
 
+    def test_rm_rf_home_dir(self) -> None:
+        assert check_command("rm -rf /home")
+
     def test_rm_rf_root(self) -> None:
         assert check_command("rm -rf /")
 
@@ -213,6 +216,10 @@ class TestForceFlags:
 
     def test_docker_rm_f(self) -> None:
         msgs = check_command("docker rm -f container")
+        assert any("Force flag" in m for m in msgs)
+
+    def test_git_push_dash_f(self) -> None:
+        msgs = check_command("git push -f origin main")
         assert any("Force flag" in m for m in msgs)
 
     def test_npm_install_force_is_safe(self) -> None:

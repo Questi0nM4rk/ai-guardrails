@@ -161,7 +161,7 @@ DOTFILE_MAP: dict[str, str] = {
 # Every match triggers a CC ``"ask"`` prompt — the user always decides.
 # Rules are checked in order; all matches are collected.
 
-MatchType = Literal["substring", "regex"]
+MatchType: TypeAlias = Literal["substring", "regex"]
 DangerousRule: TypeAlias = tuple[MatchType, str, str]  # (match_type, pattern, message)
 
 DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
