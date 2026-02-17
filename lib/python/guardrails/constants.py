@@ -153,98 +153,87 @@ DOTFILE_MAP: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # Dangerous command patterns (used by dangerous_cmd hook)
 # ---------------------------------------------------------------------------
-# Each rule is (match_type, pattern, message, severity).
-#   match_type: "substring" = plain `in` check, "regex" = re.search
-#   severity: "block" = escalate with BLOCKED, "warn" = escalate with WARNING
+# Each rule is (match_type, pattern, message).
+#   match_type: "substring" = plain ``in`` check, "regex" = ``re.search``
 #
-# All rules are checked in order. First block match wins; all warn matches
-# are collected and reported together.
+# Every match triggers a CC ``"ask"`` prompt — the user always decides.
+# Rules are checked in order; all matches are collected.
 
-DangerousRule = tuple[str, str, str, str]  # (match_type, pattern, message, severity)
+DangerousRule = tuple[str, str, str]  # (match_type, pattern, message)
 
 DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
-    # ── Blocked: filesystem destruction ──────────────────────────────────
-    ("substring", "rm -rf ~", "Refusing to delete home directory", "block"),
-    ("substring", "rm -rf $HOME", "Refusing to delete home directory", "block"),
-    ("substring", "rm -rf /home", "Refusing to delete home directory", "block"),
-    ("substring", "rm -rf /", "Refusing to delete root filesystem", "block"),
-    ("substring", "> /dev/sda", "Refusing to write directly to block device", "block"),
-    ("substring", "mkfs.", "Refusing to format disk", "block"),
-    ("substring", ":(){:|:&};:", "Fork bomb detected", "block"),
-    ("regex", r"dd\s+if=.*of=/dev/", "Refusing to write directly to block device", "block"),
-    # ── Blocked: hook/guardrail bypass ───────────────────────────────────
+    # ── Filesystem destruction ───────────────────────────────────────────
+    ("substring", "rm -rf ~", "Refusing to delete home directory"),
+    ("substring", "rm -rf $HOME", "Refusing to delete home directory"),
+    ("substring", "rm -rf /home", "Refusing to delete home directory"),
+    ("substring", "rm -rf /", "Refusing to delete root filesystem"),
+    ("substring", "> /dev/sda", "Refusing to write directly to block device"),
+    ("substring", "mkfs.", "Refusing to format disk"),
+    ("substring", ":(){:|:&};:", "Fork bomb detected"),
+    ("regex", r"dd\s+if=.*of=/dev/", "Refusing to write directly to block device"),
+    # ── Hook/guardrail bypass ────────────────────────────────────────────
     (
         "substring",
         "--no-verify",
         "--no-verify bypasses all pre-commit hooks and guardrails.\n"
         "  This is never allowed. Fix the issue that's causing hooks to fail.",
-        "block",
     ),
     (
         "regex",
         r"git\s+commit\b.*\s-n\b",
         "git commit -n is short for --no-verify.\n"
         "  This is never allowed. Fix the issue that's causing hooks to fail.",
-        "block",
     ),
-    ("substring", "--no-gpg-sign", "--no-gpg-sign bypasses commit signing.", "block"),
-    ("substring", "core.hooksPath=", "Overriding core.hooksPath bypasses all git hooks.", "block"),
-    ("substring", "SKIP=", "Bypassing pre-commit via environment variables.", "block"),
+    ("substring", "--no-gpg-sign", "--no-gpg-sign bypasses commit signing."),
+    ("substring", "core.hooksPath=", "Overriding core.hooksPath bypasses all git hooks."),
+    ("substring", "SKIP=", "Bypassing pre-commit via environment variables."),
     (
         "substring",
         "PRE_COMMIT_ALLOW_NO_CONFIG",
         "Bypassing pre-commit via environment variables.",
-        "block",
     ),
-    # ── Blocked: branch protection bypass ────────────────────────────────
+    # ── Branch protection bypass ─────────────────────────────────────────
     (
         "regex",
         r"(?<!\w)--admin(?=\s|=|$)",
         "--admin bypasses branch protection rules.\n"
         "  This is never allowed without explicit user approval.",
-        "block",
     ),
-    # ── Warned: destructive but sometimes intentional ────────────────────
-    ("substring", "rm -rf", "Recursive force delete - verify target", "warn"),
-    ("substring", "chmod -R 777", "Insecure permissions", "warn"),
-    ("substring", "| bash", "Piping to bash - verify source", "warn"),
+    # ── Destructive operations ───────────────────────────────────────────
+    ("substring", "rm -rf", "Recursive force delete - verify target"),
+    ("substring", "chmod -R 777", "Insecure permissions"),
+    ("substring", "| bash", "Piping to bash - verify source"),
     (
         "substring",
         "--force-with-lease",
         "Force push with lease - safer than --force but still rewrites history",
-        "warn",
     ),
-    # ── Warned: destructive git operations ───────────────────────────────
-    ("regex", r"git\s+reset\s+--hard\b", "git reset --hard discards uncommitted changes", "warn"),
+    # ── Destructive git operations ───────────────────────────────────────
+    ("regex", r"git\s+reset\s+--hard\b", "git reset --hard discards uncommitted changes"),
     (
         "regex",
         r"git\s+checkout\s+(?:--\s+)?\.(?:\s*$|\s*&&|\s*;|\s*\|)",
         "git checkout . discards all unstaged changes",
-        "warn",
     ),
     (
         "regex",
         r"git\s+restore\s+(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
         "git restore . discards all unstaged changes",
-        "warn",
     ),
     (
         "regex",
         r"git\s+clean\s+(?:-[a-zA-Z]*f|--force)",
         "git clean -f removes untracked files permanently",
-        "warn",
     ),
     (
         "regex",
         r"git\s+branch\s+(?:-D\b|.*--delete\s+--force|.*--force\s+--delete)",
         "git branch -D force-deletes branch without merge check",
-        "warn",
     ),
-    # ── Warned: --force / -f on destructive commands ─────────────────────
+    # ── Force flags on destructive commands ──────────────────────────────
     (
         "regex",
         r"(?:git push|git reset|docker rm).*(?:--force(?!-with-lease)\b|\s-f\b)",
         "Force flag on destructive operation",
-        "warn",
     ),
 )
