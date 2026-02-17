@@ -237,6 +237,30 @@ class TestMain:
         assert "ERROR" in captured.out
         assert "noqa" in captured.out.lower()
 
+    def test_truncation_notice_when_many_violations(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """When violations exceed the display limit, a truncation notice should appear."""
+        # Create file with 15 noqa lines (limit is 10)
+        lines = [f"x{i} = 1  # noqa: E501\n" for i in range(15)]
+        f = tmp_path / "many.py"
+        f.write_text("".join(lines))
+        main([str(f)])
+        captured = capsys.readouterr()
+        assert "and 5 more" in captured.out
+        assert "showing first 10" in captured.out
+
+    def test_no_truncation_notice_under_limit(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """When violations are under the limit, no truncation notice should appear."""
+        lines = [f"x{i} = 1  # noqa: E501\n" for i in range(3)]
+        f = tmp_path / "few.py"
+        f.write_text("".join(lines))
+        main([str(f)])
+        captured = capsys.readouterr()
+        assert "more" not in captured.out
+
 
 class TestMainTestFileSkipping:
     """Test that test files are correctly skipped by main()."""

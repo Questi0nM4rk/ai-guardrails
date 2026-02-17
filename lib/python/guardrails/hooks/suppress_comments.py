@@ -119,13 +119,14 @@ def main(argv: list[str] | None = None) -> int:
                 continue
 
             violation_lines: list[str] = []
+            total_violations = 0
             for lineno, line in enumerate(lines, 1):
                 if re.search(regex, line, re.IGNORECASE):
                     match_text = f"{filepath}:{lineno}:{line}"
                     if not _is_allowlisted(match_text, allowlist):
-                        violation_lines.append(f"{lineno}:{line}")
-                    if len(violation_lines) >= _MAX_VIOLATIONS_PER_PATTERN:
-                        break
+                        total_violations += 1
+                        if len(violation_lines) < _MAX_VIOLATIONS_PER_PATTERN:
+                            violation_lines.append(f"{lineno}:{line}")
 
             if violation_lines:
                 found_suppressions = True
@@ -133,6 +134,12 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"{RED}ERROR: {desc} found in {filepath}{NC}")
                 for vline in violation_lines:
                     print(f"  {YELLOW}{vline}{NC}")
+                if total_violations > _MAX_VIOLATIONS_PER_PATTERN:
+                    hidden = total_violations - _MAX_VIOLATIONS_PER_PATTERN
+                    print(
+                        f"  {YELLOW}... and {hidden} more "
+                        f"(showing first {_MAX_VIOLATIONS_PER_PATTERN}){NC}"
+                    )
                 print()
 
     if found_suppressions:
