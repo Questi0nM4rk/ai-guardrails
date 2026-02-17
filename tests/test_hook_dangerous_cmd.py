@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 from typing import TYPE_CHECKING
 
@@ -9,6 +10,13 @@ from guardrails.hooks.dangerous_cmd import _check_blocked, _check_warned, main
 
 if TYPE_CHECKING:
     import pytest
+
+
+class _TtyStringIO(io.StringIO):
+    """StringIO that reports as a TTY (for testing stdin fallback)."""
+
+    def isatty(self) -> bool:
+        return True
 
 
 class TestCheckBlocked:
@@ -57,6 +65,18 @@ class TestCheckBlocked:
 
     def test_blocks_admin_on_gh_issue(self) -> None:
         assert _check_blocked("gh issue close --admin 10") is not None
+
+    def test_blocks_admin_with_equals(self) -> None:
+        """--admin=true should also be blocked."""
+        assert _check_blocked("gh pr merge --admin=true 35") is not None
+
+    def test_allows_admin_email_flag(self) -> None:
+        """--admin-email is a different flag, should not be blocked."""
+        assert _check_blocked("some-tool --admin-email user@example.com") is None
+
+    def test_allows_administrator_flag(self) -> None:
+        """--administrator is a different flag, should not be blocked."""
+        assert _check_blocked("some-tool --administrator") is None
 
     def test_allows_safe_command(self) -> None:
         assert _check_blocked("git status") is None
@@ -140,6 +160,11 @@ class TestDestructiveGitOperations:
         warnings = _check_warned("git restore .")
         assert any("discard" in w.lower() for w in warnings)
 
+    def test_warns_git_restore_staged(self) -> None:
+        """Git restore --staged . should also warn (exercises flags-before-dot regex)."""
+        warnings = _check_warned("git restore --staged .")
+        assert any("discard" in w.lower() for w in warnings)
+
     def test_warns_git_clean_f(self) -> None:
         warnings = _check_warned("git clean -f")
         assert any("clean" in w.lower() for w in warnings)
@@ -170,6 +195,12 @@ class TestDestructiveGitOperations:
         """Force-with-lease should not also trigger generic force flag warning."""
         warnings = _check_warned("git push --force-with-lease origin main")
         assert not any("Force flag" in w for w in warnings)
+
+    def test_force_and_force_with_lease_both_warn(self) -> None:
+        """--force + --force-with-lease should trigger both warnings."""
+        warnings = _check_warned("git push --force --force-with-lease origin main")
+        assert any("Force flag" in w for w in warnings)
+        assert any("lease" in w.lower() for w in warnings)
 
     def test_no_warn_git_checkout_branch(self) -> None:
         """Git checkout <branch> is safe, should not warn."""
@@ -225,7 +256,7 @@ class TestCheckWarned:
         assert _check_warned("git status") == []
 
 
-def _parse_hook_json(stdout: str) -> dict:
+def _parse_hook_json(stdout: str) -> dict[str, object]:
     """Parse hook JSON output and return the hookSpecificOutput."""
     data = json.loads(stdout)
     return data["hookSpecificOutput"]
@@ -236,11 +267,7 @@ class TestMain:
 
     def test_returns_0_for_no_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """No args + tty stdin = no command, allow."""
-        import io
-
-        tty_stdin = io.StringIO()
-        tty_stdin.isatty = lambda: True  # type: ignore[assignment]
-        monkeypatch.setattr("sys.stdin", tty_stdin)
+        monkeypatch.setattr("sys.stdin", _TtyStringIO())
         assert main([]) == 0
 
     def test_returns_0_for_safe_command(self) -> None:
@@ -258,15 +285,15 @@ class TestMain:
         main(["rm -rf /"])
         output = _parse_hook_json(capsys.readouterr().out)
         assert output["permissionDecision"] == "ask"
-        assert "BLOCKED" in output["permissionDecisionReason"]
-        assert "Do NOT retry" in output["additionalContext"]
+        assert "BLOCKED" in str(output["permissionDecisionReason"])
+        assert "Do NOT retry" in str(output["additionalContext"])
 
     def test_warned_emits_ask_json(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Warned commands emit JSON with permissionDecision 'ask'."""
         main(["chmod -R 777 /tmp"])
         output = _parse_hook_json(capsys.readouterr().out)
         assert output["permissionDecision"] == "ask"
-        assert "WARNING" in output["permissionDecisionReason"]
+        assert "WARNING" in str(output["permissionDecisionReason"])
 
     def test_safe_command_no_json(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Safe commands produce no output (allowed implicitly)."""
@@ -278,19 +305,19 @@ class TestMain:
         main(["bash -c 'git commit --no-verify'"])
         output = _parse_hook_json(capsys.readouterr().out)
         assert output["permissionDecision"] == "ask"
-        assert "BLOCKED" in output["permissionDecisionReason"]
+        assert "BLOCKED" in str(output["permissionDecisionReason"])
 
     def test_multiple_warnings_joined(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Multiple warnings are joined with semicolons in the reason."""
         main(["rm -rf ./build && git push --force origin main"])
         output = _parse_hook_json(capsys.readouterr().out)
-        assert ";" in output["permissionDecisionReason"]
+        assert ";" in str(output["permissionDecisionReason"])
 
     def test_no_verify_reason_contains_detail(self, capsys: pytest.CaptureFixture[str]) -> None:
         """Blocked reason should contain the specific violation detail."""
         main(["git commit --no-verify"])
         output = _parse_hook_json(capsys.readouterr().out)
-        assert "--no-verify" in output["permissionDecisionReason"]
+        assert "--no-verify" in str(output["permissionDecisionReason"])
 
 
 class TestStdinJsonProtocol:
@@ -300,8 +327,6 @@ class TestStdinJsonProtocol:
         self, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
     ) -> None:
         """Hook reads tool_input.command from stdin JSON."""
-        import io
-
         stdin_data = json.dumps(
             {
                 "tool_name": "Bash",
@@ -313,12 +338,10 @@ class TestStdinJsonProtocol:
         assert result == 0
         output = _parse_hook_json(capsys.readouterr().out)
         assert output["permissionDecision"] == "ask"
-        assert "BLOCKED" in output["permissionDecisionReason"]
+        assert "BLOCKED" in str(output["permissionDecisionReason"])
 
     def test_stdin_safe_command(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Safe command from stdin produces no output."""
-        import io
-
         stdin_data = json.dumps(
             {
                 "tool_name": "Bash",
@@ -328,17 +351,13 @@ class TestStdinJsonProtocol:
         monkeypatch.setattr("sys.stdin", io.StringIO(stdin_data))
         assert main([]) == 0
 
-    def test_stdin_malformed_json_falls_back_to_argv(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Malformed stdin JSON falls back to argv."""
-        import io
-
+    def test_stdin_malformed_json_falls_back(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Malformed stdin JSON falls back — no argv means no command, allow."""
         monkeypatch.setattr("sys.stdin", io.StringIO("not json"))
-        assert main(["git status"]) == 0
+        assert main([]) == 0
 
     def test_stdin_missing_command_falls_back(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Stdin JSON without tool_input.command falls back to argv."""
-        import io
-
+        """Stdin JSON without tool_input.command falls back — allow."""
         stdin_data = json.dumps({"tool_name": "Bash"})
         monkeypatch.setattr("sys.stdin", io.StringIO(stdin_data))
-        assert main(["git status"]) == 0
+        assert main([]) == 0

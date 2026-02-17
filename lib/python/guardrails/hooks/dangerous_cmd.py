@@ -5,7 +5,7 @@ Uses the Claude Code hook JSON protocol:
 - Outputs structured JSON on stdout with ``permissionDecision``
 - Always exits 0 (JSON protocol); uses ``"ask"`` to escalate to user
 
-Replaces lib/hooks/dangerous-command-check.sh.
+All rules are defined in :data:`guardrails.constants.DANGEROUS_COMMANDS`.
 """
 
 from __future__ import annotations
@@ -14,82 +14,33 @@ import json
 import re
 import sys
 
-from guardrails.constants import BLOCKED_COMMANDS, WARNED_COMMANDS
+from guardrails.constants import DANGEROUS_COMMANDS
 
-# Special-case block patterns not covered by simple substring matching
-_SPECIAL_BLOCKS: tuple[tuple[str, str], ...] = (
-    # git commit -n (short for --no-verify)
-    (
-        r"git\s+commit\b.*\s-n\b",
-        "git commit -n is short for --no-verify.\n"
-        "  This is never allowed. Fix the issue that's "
-        "causing hooks to fail.",
-    ),
-    # dd writing to block device
-    (r"dd\s+if=.*of=/dev/", "Refusing to write directly to block device"),
-)
 
-# Force flags only warn on specific destructive commands
-_FORCE_FLAG_COMMANDS = ("git push", "git reset", "docker rm")
-
-# Regex-based warning patterns for destructive git operations
-_SPECIAL_WARNS: tuple[tuple[str, str], ...] = (
-    (r"git\s+reset\s+--hard\b", "git reset --hard discards uncommitted changes"),
-    (
-        r"git\s+checkout\s+(?:--\s+)?\.(?:\s*$|\s*&&|\s*;|\s*\|)",
-        "git checkout . discards all unstaged changes",
-    ),
-    (
-        r"git\s+restore\s+(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
-        "git restore . discards all unstaged changes",
-    ),
-    (
-        r"git\s+clean\s+(?:-[a-zA-Z]*f|--force)",
-        "git clean -f removes untracked files permanently",
-    ),
-    (
-        r"git\s+branch\s+(?:-D\b|.*--delete\s+--force|.*--force\s+--delete)",
-        "git branch -D force-deletes branch without merge check",
-    ),
-)
+def _match_rule(match_type: str, pattern: str, command: str) -> bool:
+    """Check if a single rule matches the command."""
+    if match_type == "substring":
+        return pattern in command
+    if match_type == "regex":
+        return bool(re.search(pattern, command))
+    return False
 
 
 def _check_blocked(command: str) -> str | None:
-    for pattern, message in BLOCKED_COMMANDS:
-        if pattern in command:
+    """Return the first block-severity message, or ``None``."""
+    for match_type, pattern, message, severity in DANGEROUS_COMMANDS:
+        if severity == "block" and _match_rule(match_type, pattern, command):
             return message
-
-    for regex, message in _SPECIAL_BLOCKS:
-        if re.search(regex, command):
-            return message
-
     return None
 
 
 def _check_warned(command: str) -> list[str]:
-    warnings: list[str] = []
-
-    for pattern, message in WARNED_COMMANDS:
-        if pattern in command:
-            warnings.append(message)
-
-    # Regex-based destructive git operation warnings
-    for regex, message in _SPECIAL_WARNS:
-        if re.search(regex, command):
-            warnings.append(message)
-
-    # --force / -f only on specific destructive commands
-    # Exclude --force-with-lease (has its own warning in WARNED_COMMANDS)
-    has_force = ("--force" in command and "--force-with-lease" not in command) or bool(
-        re.search(r"\s-f\b", command)
-    )
-    if has_force:
-        for cmd_prefix in _FORCE_FLAG_COMMANDS:
-            if cmd_prefix in command:
-                warnings.append("Force flag on destructive operation")
-                break
-
-    return warnings
+    """Return all warn-severity messages that match."""
+    return [
+        message
+        for match_type, pattern, message, severity in DANGEROUS_COMMANDS
+        if severity == "warn" and _match_rule(match_type, pattern, command)
+    ]
 
 
 def _read_command_from_stdin() -> str | None:
@@ -97,7 +48,7 @@ def _read_command_from_stdin() -> str | None:
     try:
         data = json.load(sys.stdin)
         return data.get("tool_input", {}).get("command")
-    except (json.JSONDecodeError, AttributeError):
+    except (json.JSONDecodeError, AttributeError, UnicodeDecodeError, OSError):
         return None
 
 

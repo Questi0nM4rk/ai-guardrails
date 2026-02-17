@@ -153,35 +153,98 @@ DOTFILE_MAP: dict[str, str] = {
 # ---------------------------------------------------------------------------
 # Dangerous command patterns (used by dangerous_cmd hook)
 # ---------------------------------------------------------------------------
-#: Patterns that should be BLOCKED (exit 2). Tuples of (pattern, message).
-BLOCKED_COMMANDS: tuple[tuple[str, str], ...] = (
-    ("rm -rf ~", "Refusing to delete home directory"),
-    ("rm -rf $HOME", "Refusing to delete home directory"),
-    ("rm -rf /home", "Refusing to delete home directory"),
-    ("rm -rf /", "Refusing to delete root filesystem"),
-    ("> /dev/sda", "Refusing to write directly to block device"),
-    ("mkfs.", "Refusing to format disk"),
-    (":(){:|:&};:", "Fork bomb detected"),
+# Each rule is (match_type, pattern, message, severity).
+#   match_type: "substring" = plain `in` check, "regex" = re.search
+#   severity: "block" = escalate with BLOCKED, "warn" = escalate with WARNING
+#
+# All rules are checked in order. First block match wins; all warn matches
+# are collected and reported together.
+
+DangerousRule = tuple[str, str, str, str]  # (match_type, pattern, message, severity)
+
+DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
+    # ── Blocked: filesystem destruction ──────────────────────────────────
+    ("substring", "rm -rf ~", "Refusing to delete home directory", "block"),
+    ("substring", "rm -rf $HOME", "Refusing to delete home directory", "block"),
+    ("substring", "rm -rf /home", "Refusing to delete home directory", "block"),
+    ("substring", "rm -rf /", "Refusing to delete root filesystem", "block"),
+    ("substring", "> /dev/sda", "Refusing to write directly to block device", "block"),
+    ("substring", "mkfs.", "Refusing to format disk", "block"),
+    ("substring", ":(){:|:&};:", "Fork bomb detected", "block"),
+    ("regex", r"dd\s+if=.*of=/dev/", "Refusing to write directly to block device", "block"),
+    # ── Blocked: hook/guardrail bypass ───────────────────────────────────
     (
+        "substring",
         "--no-verify",
         "--no-verify bypasses all pre-commit hooks and guardrails.\n"
         "  This is never allowed. Fix the issue that's causing hooks to fail.",
+        "block",
     ),
-    ("--no-gpg-sign", "--no-gpg-sign bypasses commit signing."),
-    ("core.hooksPath=", "Overriding core.hooksPath bypasses all git hooks."),
-    ("SKIP=", "Bypassing pre-commit via environment variables."),
-    ("PRE_COMMIT_ALLOW_NO_CONFIG", "Bypassing pre-commit via environment variables."),
     (
-        "--admin",
+        "regex",
+        r"git\s+commit\b.*\s-n\b",
+        "git commit -n is short for --no-verify.\n"
+        "  This is never allowed. Fix the issue that's causing hooks to fail.",
+        "block",
+    ),
+    ("substring", "--no-gpg-sign", "--no-gpg-sign bypasses commit signing.", "block"),
+    ("substring", "core.hooksPath=", "Overriding core.hooksPath bypasses all git hooks.", "block"),
+    ("substring", "SKIP=", "Bypassing pre-commit via environment variables.", "block"),
+    (
+        "substring",
+        "PRE_COMMIT_ALLOW_NO_CONFIG",
+        "Bypassing pre-commit via environment variables.",
+        "block",
+    ),
+    # ── Blocked: branch protection bypass ────────────────────────────────
+    (
+        "regex",
+        r"(?<!\w)--admin(?=\s|=|$)",
         "--admin bypasses branch protection rules.\n"
         "  This is never allowed without explicit user approval.",
+        "block",
     ),
-)
-
-#: Patterns that trigger a WARNING (allow but warn).
-WARNED_COMMANDS: tuple[tuple[str, str], ...] = (
-    ("rm -rf", "Recursive force delete - verify target"),
-    ("chmod -R 777", "Insecure permissions"),
-    ("| bash", "Piping to bash - verify source"),
-    ("--force-with-lease", "Force push with lease - safer than --force but still rewrites history"),
+    # ── Warned: destructive but sometimes intentional ────────────────────
+    ("substring", "rm -rf", "Recursive force delete - verify target", "warn"),
+    ("substring", "chmod -R 777", "Insecure permissions", "warn"),
+    ("substring", "| bash", "Piping to bash - verify source", "warn"),
+    (
+        "substring",
+        "--force-with-lease",
+        "Force push with lease - safer than --force but still rewrites history",
+        "warn",
+    ),
+    # ── Warned: destructive git operations ───────────────────────────────
+    ("regex", r"git\s+reset\s+--hard\b", "git reset --hard discards uncommitted changes", "warn"),
+    (
+        "regex",
+        r"git\s+checkout\s+(?:--\s+)?\.(?:\s*$|\s*&&|\s*;|\s*\|)",
+        "git checkout . discards all unstaged changes",
+        "warn",
+    ),
+    (
+        "regex",
+        r"git\s+restore\s+(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
+        "git restore . discards all unstaged changes",
+        "warn",
+    ),
+    (
+        "regex",
+        r"git\s+clean\s+(?:-[a-zA-Z]*f|--force)",
+        "git clean -f removes untracked files permanently",
+        "warn",
+    ),
+    (
+        "regex",
+        r"git\s+branch\s+(?:-D\b|.*--delete\s+--force|.*--force\s+--delete)",
+        "git branch -D force-deletes branch without merge check",
+        "warn",
+    ),
+    # ── Warned: --force / -f on destructive commands ─────────────────────
+    (
+        "regex",
+        r"(?:git push|git reset|docker rm).*(?:--force(?!-with-lease)\b|\s-f\b)",
+        "Force flag on destructive operation",
+        "warn",
+    ),
 )
