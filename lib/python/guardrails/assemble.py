@@ -199,8 +199,8 @@ def find_installation_paths() -> tuple[Path, Path]:
     """Find configs and templates directories.
 
     Checks:
-    1. Global installation at ~/.ai-guardrails/
-    2. Local development paths relative to this script
+    1. Local development paths relative to this script
+    2. Global installation at ~/.ai-guardrails/
 
     Returns:
         Tuple of (configs_dir, templates_dir)
@@ -209,21 +209,19 @@ def find_installation_paths() -> tuple[Path, Path]:
         FileNotFoundError: If installation directories not found
 
     """
-    # Check global installation first
-    global_install = Path.home() / ".ai-guardrails"
-    if (global_install / "configs" / "languages.yaml").exists():
-        return global_install / "configs", global_install / "templates" / "pre-commit"
-
-    # Check local development paths
+    # Local development paths first (matches _paths.py)
     # guardrails/assemble.py -> guardrails -> python -> lib -> repo root
     script_dir = Path(__file__).resolve().parent
     repo_root = script_dir.parent.parent.parent
-
     configs_dir = repo_root / "configs"
     templates_dir = repo_root / "templates" / "pre-commit"
-
     if (configs_dir / "languages.yaml").exists():
         return configs_dir, templates_dir
+
+    # Fall back to global installation
+    global_install = Path.home() / ".ai-guardrails"
+    if (global_install / "configs" / "languages.yaml").exists():
+        return global_install / "configs", global_install / "templates" / "pre-commit"
 
     msg = "Could not find AI Guardrails installation"
     raise FileNotFoundError(msg)

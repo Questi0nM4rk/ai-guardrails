@@ -444,8 +444,9 @@ class TestFindInstallationPaths:
             assert (configs_dir / "languages.yaml").exists()
             assert templates_dir.exists()
 
-    def test_global_install_preferred(self, temp_dir: Path) -> None:
-        """Test that global install is preferred when it exists."""
+    def test_local_preferred_over_global(self, temp_dir: Path) -> None:
+        """Test that local dev paths are preferred when they exist (even with global)."""
+        # Create global install
         global_dir = temp_dir / ".ai-guardrails"
         configs = global_dir / "configs"
         templates = global_dir / "templates" / "pre-commit"
@@ -454,6 +455,29 @@ class TestFindInstallationPaths:
         (configs / "languages.yaml").write_text("python: {}")
 
         with patch.object(Path, "home", return_value=temp_dir):
+            result_configs, _result_templates = find_installation_paths()
+            # Local dev paths should win over global
+            assert result_configs != configs
+
+    def test_global_fallback_when_no_local(self, temp_dir: Path) -> None:
+        """Test global install is used when local dev paths don't exist."""
+        global_dir = temp_dir / ".ai-guardrails"
+        configs = global_dir / "configs"
+        templates = global_dir / "templates" / "pre-commit"
+        configs.mkdir(parents=True)
+        templates.mkdir(parents=True)
+        (configs / "languages.yaml").write_text("python: {}")
+
+        # Patch __file__ to a location where local dev paths won't resolve
+        fake_script = temp_dir / "fake" / "lib" / "python" / "guardrails" / "assemble.py"
+        fake_script.parent.mkdir(parents=True)
+        fake_script.touch()
+
+        with (
+            patch.object(Path, "home", return_value=temp_dir),
+            patch("guardrails.assemble.Path.__file__", fake_script, create=True),
+            patch("guardrails.assemble.__file__", str(fake_script)),
+        ):
             result_configs, result_templates = find_installation_paths()
             assert result_configs == configs
             assert result_templates == templates
@@ -547,7 +571,12 @@ class TestMainCLI:
         # Create Python project
         (temp_dir / "pyproject.toml").write_text("")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch __file__ so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "guardrails" / "assemble.py")
+        with (
+            patch.object(Path, "home", return_value=temp_dir),
+            patch("guardrails.assemble.__file__", fake_script),
+        ):
             result = main(["--project-dir", str(temp_dir), "--languages", "python", "--dry-run"])
             assert result == 0
             captured = capsys.readouterr()
@@ -596,7 +625,12 @@ class TestMainCLI:
         # Create languages.yaml but no base.yaml
         (configs / "languages.yaml").write_text("python: {}")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch __file__ so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "guardrails" / "assemble.py")
+        with (
+            patch.object(Path, "home", return_value=temp_dir),
+            patch("guardrails.assemble.__file__", fake_script),
+        ):
             result = main(["--project-dir", str(temp_dir), "--dry-run"])
             assert result == 1
             captured = capsys.readouterr()
@@ -618,7 +652,12 @@ class TestMainCLI:
         # Create base.yaml with invalid YAML
         (templates / "base.yaml").write_text("invalid: yaml: [[[")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch __file__ so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "guardrails" / "assemble.py")
+        with (
+            patch.object(Path, "home", return_value=temp_dir),
+            patch("guardrails.assemble.__file__", fake_script),
+        ):
             result = main(["--project-dir", str(temp_dir), "--dry-run"])
             assert result == 1
             captured = capsys.readouterr()
@@ -640,7 +679,12 @@ class TestMainCLI:
         # Create base.yaml with list instead of dict
         (templates / "base.yaml").write_text("- item1\n- item2")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch __file__ so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "guardrails" / "assemble.py")
+        with (
+            patch.object(Path, "home", return_value=temp_dir),
+            patch("guardrails.assemble.__file__", fake_script),
+        ):
             result = main(["--project-dir", str(temp_dir), "--dry-run"])
             assert result == 1
             captured = capsys.readouterr()
