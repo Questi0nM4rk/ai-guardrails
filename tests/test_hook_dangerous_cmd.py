@@ -52,6 +52,11 @@ class TestFilesystemDestruction:
     def test_dd_to_file_is_safe(self) -> None:
         assert not check_command("dd if=/dev/zero of=output.img bs=1M")
 
+    def test_rm_rf_absolute_path_is_not_root(self) -> None:
+        """Absolute path rm should NOT match root deletion rule."""
+        msgs = check_command("rm -rf /tmp/build")
+        assert not any("root filesystem" in m for m in msgs)
+
     def test_safe_rm(self) -> None:
         assert not check_command("rm file.txt")
 
@@ -156,9 +161,9 @@ class TestDestructiveGitOperations:
         msgs = check_command("git restore .")
         assert any("discard" in m.lower() for m in msgs)
 
-    def test_git_restore_staged(self) -> None:
+    def test_git_restore_staged_is_safe(self) -> None:
         msgs = check_command("git restore --staged .")
-        assert any("discard" in m.lower() for m in msgs)
+        assert not any("discard" in m.lower() for m in msgs)
 
     def test_git_clean_f(self) -> None:
         msgs = check_command("git clean -f")
@@ -182,8 +187,7 @@ class TestDestructiveGitOperations:
         assert not any("discard" in m.lower() for m in msgs)
 
     def test_git_branch_d_lowercase_is_safe(self) -> None:
-        msgs = check_command("git branch -d feature/merged")
-        assert not any("branch" in m.lower() for m in msgs)
+        assert not check_command("git branch -d feature/merged")
 
 
 class TestForceFlags:

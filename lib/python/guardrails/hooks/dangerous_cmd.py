@@ -14,16 +14,17 @@ import json
 import re
 import sys
 
-from guardrails.constants import DANGEROUS_COMMANDS
+from guardrails.constants import DANGEROUS_COMMANDS, MatchType
 
 
-def _match_rule(match_type: str, pattern: str, command: str) -> bool:
+def _match_rule(match_type: MatchType, pattern: str, command: str) -> bool:
     """Check if a single rule matches the command."""
     if match_type == "substring":
         return pattern in command
     if match_type == "regex":
         return bool(re.search(pattern, command))
-    return False
+    msg = f"Unknown match_type: {match_type!r}"
+    raise ValueError(msg)
 
 
 def check_command(command: str) -> list[str]:

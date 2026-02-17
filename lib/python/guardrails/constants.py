@@ -6,6 +6,8 @@ Replaces guardrails-patterns.sh and scattered ANSI definitions.
 
 from __future__ import annotations
 
+from typing import Literal, TypeAlias
+
 # ---------------------------------------------------------------------------
 # ANSI colors (used by CLI output and hooks)
 # ---------------------------------------------------------------------------
@@ -159,14 +161,15 @@ DOTFILE_MAP: dict[str, str] = {
 # Every match triggers a CC ``"ask"`` prompt — the user always decides.
 # Rules are checked in order; all matches are collected.
 
-DangerousRule = tuple[str, str, str]  # (match_type, pattern, message)
+MatchType = Literal["substring", "regex"]
+DangerousRule: TypeAlias = tuple[MatchType, str, str]  # (match_type, pattern, message)
 
 DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     # ── Filesystem destruction ───────────────────────────────────────────
     ("substring", "rm -rf ~", "Refusing to delete home directory"),
     ("substring", "rm -rf $HOME", "Refusing to delete home directory"),
     ("substring", "rm -rf /home", "Refusing to delete home directory"),
-    ("substring", "rm -rf /", "Refusing to delete root filesystem"),
+    ("regex", r"rm\s+-rf\s+/\s*$|rm\s+-rf\s+/\s*[;&|]", "Refusing to delete root filesystem"),
     ("substring", "> /dev/sda", "Refusing to write directly to block device"),
     ("substring", "mkfs.", "Refusing to format disk"),
     ("substring", ":(){:|:&};:", "Fork bomb detected"),
@@ -217,7 +220,7 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     ),
     (
         "regex",
-        r"git\s+restore\s+(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
+        r"git\s+restore\s+(?!.*--staged\b)(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
         "git restore . discards all unstaged changes",
     ),
     (
@@ -227,7 +230,7 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     ),
     (
         "regex",
-        r"git\s+branch\s+(?:-D\b|.*--delete\s+--force|.*--force\s+--delete)",
+        r"git\s+branch\s+(?:-D\b|(?:\S+\s+)*--delete\s+--force|(?:\S+\s+)*--force\s+--delete)",
         "git branch -D force-deletes branch without merge check",
     ),
     # ── Force flags on destructive commands ──────────────────────────────
