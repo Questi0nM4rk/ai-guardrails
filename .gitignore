@@ -28,3 +28,4 @@ Thumbs.db
 .test/
 .claude/
 .coverage
+configs/.ruff_cache/
