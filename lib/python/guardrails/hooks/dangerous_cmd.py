@@ -62,6 +62,7 @@ def _emit_ask(reasons: list[str]) -> int:
         },
         sys.stdout,
     )
+    sys.stdout.write("\n")
     return 0
 
 
