@@ -26,6 +26,8 @@ from guardrails.constants import BLUE, GREEN, NC, RED, YELLOW
 
 _log = logging.getLogger(__name__)
 
+_PIP_AUDIT_REV = "v2.10.0"
+
 # ---------------------------------------------------------------------------
 # Language → config file mapping
 # ---------------------------------------------------------------------------
@@ -270,10 +272,10 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
             _print_warn("Could not export uv.lock - pip-audit disabled")
             return
 
-        block = """
+        block = f"""
   # pip-audit - CVE scanning for Python dependencies
   - repo: https://github.com/pypa/pip-audit
-    rev: v2.10.0
+    rev: {_PIP_AUDIT_REV}
     hooks:
       - id: pip-audit
         name: "python - pip-audit CVE scan"
@@ -285,7 +287,7 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
         block = f"""
   # pip-audit - CVE scanning for Python dependencies
   - repo: https://github.com/pypa/pip-audit
-    rev: v2.10.0
+    rev: {_PIP_AUDIT_REV}
     hooks:
       - id: pip-audit
         name: "python - pip-audit CVE scan"
