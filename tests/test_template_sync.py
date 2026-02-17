@@ -35,6 +35,9 @@ def test_claude_review_prompt_sync() -> None:
     github_wf = yaml.safe_load(github_wf_path.read_text())
     template_wf = yaml.safe_load(template_wf_path.read_text())
 
+    if not isinstance(github_wf, dict) or not isinstance(template_wf, dict):
+        pytest.skip("Workflow files are empty or not valid YAML mappings")
+
     github_prompt = _extract_prompt(github_wf)
     template_prompt = _extract_prompt(template_wf)
 

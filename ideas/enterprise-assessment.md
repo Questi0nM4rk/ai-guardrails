@@ -13,7 +13,7 @@ Remaining gaps are in distribution, init verification, and enterprise workflows.
 
 ## What Works Well
 
-- 7 language configs (Python, TS/JS, Rust, C/C++, C#, Go, Lua, Shell)
+- 8 language configs (Python, TS/JS, Rust, C/C++, C#, Go, Lua, Shell)
 - 40+ pre-commit hooks with auto-fix-then-check workflow
 - Universal PR comment tool (`ai-guardrails comments`) for 4 review bots
 - Exception registry with config generation and **time-limited exceptions** (PR #38)
