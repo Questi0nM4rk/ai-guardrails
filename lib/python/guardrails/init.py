@@ -377,7 +377,7 @@ def _install_precommit_hooks(project_dir: Path) -> None:
 
     if not shutil.which("pre-commit"):
         print(f"  {YELLOW}Note: Install pre-commit to activate hooks:{NC}")
-        print("    pip install pre-commit && pre-commit install")
+        print("    uv tool install pre-commit && pre-commit install")
         return
 
     # Fix potential empty hooksPath
