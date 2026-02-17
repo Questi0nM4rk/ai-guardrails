@@ -1,91 +1,93 @@
-"""Dangerous command checker for Claude Code ExecTool hook.
+"""Dangerous command checker for Claude Code PreToolUse hook.
 
-Blocks (exit 2) or warns (exit 0 with message) on dangerous bash commands.
-Exit 0 = allow, Exit 2 = block.
+Uses the Claude Code hook JSON protocol:
+- Reads tool input from stdin JSON (``tool_input.command``)
+- Outputs structured JSON on stdout with ``permissionDecision: "ask"``
+- Always exits 0; every match escalates to the user permission prompt
 
-Replaces lib/hooks/dangerous-command-check.sh.
+All rules are defined in :data:`guardrails.constants.DANGEROUS_COMMANDS`.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 
-from guardrails.constants import (
-    BLOCKED_COMMANDS,
-    NC,
-    RED,
-    WARNED_COMMANDS,
-    YELLOW,
-)
-
-# Special-case block patterns not covered by simple substring matching
-_SPECIAL_BLOCKS: tuple[tuple[str, str], ...] = (
-    # git commit -n (short for --no-verify)
-    (
-        r"git\s+commit\b.*\s-n\b",
-        "git commit -n is short for --no-verify.\n"
-        "  This is never allowed. Fix the issue that's "
-        "causing hooks to fail.",
-    ),
-    # dd writing to block device
-    (r"dd\s+if=.*of=/dev/", "Refusing to write directly to block device"),
-)
-
-# Force flags only warn on specific destructive commands
-_FORCE_FLAG_COMMANDS = ("git push", "git reset", "docker rm")
+from guardrails.constants import DANGEROUS_COMMANDS, MatchType
 
 
-def _check_blocked(command: str) -> str | None:
-    for pattern, message in BLOCKED_COMMANDS:
-        if pattern in command:
-            return message
-
-    for regex, message in _SPECIAL_BLOCKS:
-        if re.search(regex, command):
-            return message
-
-    return None
+def _match_rule(match_type: MatchType, pattern: str, command: str) -> bool:
+    """Check if a single rule matches the command."""
+    if match_type == "substring":
+        return pattern in command
+    if match_type == "regex":
+        return bool(re.search(pattern, command))
+    msg = f"Unknown match_type: {match_type!r}"
+    raise ValueError(msg)
 
 
-def _check_warned(command: str) -> list[str]:
-    warnings: list[str] = []
+def check_command(command: str) -> list[str]:
+    """Return all matching rule messages for a command."""
+    return [
+        message
+        for match_type, pattern, message in DANGEROUS_COMMANDS
+        if _match_rule(match_type, pattern, command)
+    ]
 
-    for pattern, message in WARNED_COMMANDS:
-        if pattern in command:
-            warnings.append(message)
 
-    # --force / -f only on specific destructive commands
-    if "--force" in command or re.search(r"\s-f\b", command):
-        for cmd_prefix in _FORCE_FLAG_COMMANDS:
-            if cmd_prefix in command:
-                warnings.append("Force flag on destructive operation")
-                break
+def _read_command_from_stdin() -> str | None:
+    """Read command from Claude Code hook JSON protocol on stdin."""
+    try:
+        data = json.load(sys.stdin)
+        return data.get("tool_input", {}).get("command")
+    except (json.JSONDecodeError, AttributeError, UnicodeDecodeError, OSError):
+        return None
 
-    return warnings
+
+def _emit_ask(reasons: list[str]) -> int:
+    """Emit JSON asking the user to approve or deny the command."""
+    json.dump(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "ask",
+                "permissionDecisionReason": "; ".join(reasons),
+                "additionalContext": (
+                    "This command matched a dangerous pattern. "
+                    "Do NOT retry with variations. "
+                    "Ask the user if this operation is needed."
+                ),
+            },
+        },
+        sys.stdout,
+    )
+    sys.stdout.write("\n")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Entry point. Takes command string as first arg.
+    """Entry point.
 
-    Returns 0 (allow) or 2 (block).
+    Reads command from stdin JSON (Claude Code protocol) or falls back
+    to argv for backwards compatibility and testing.
+
+    Always returns 0 (JSON protocol). Uses ``"ask"`` to escalate.
     """
     args = argv if argv is not None else sys.argv[1:]
-    if not args:
+
+    command: str | None = None
+    if args:
+        command = args[0]
+    elif not sys.stdin.isatty():
+        command = _read_command_from_stdin()
+
+    if command is None:
         return 0
 
-    command = args[0]
-
-    # Check blocked patterns first
-    blocked_msg = _check_blocked(command)
-    if blocked_msg is not None:
-        print(f"{RED}BLOCKED:{NC} {blocked_msg}")
-        return 2
-
-    # Check warning patterns
-    warnings = _check_warned(command)
-    for msg in warnings:
-        print(f"{YELLOW}WARNING:{NC} {msg}")
+    matches = check_command(command)
+    if matches:
+        return _emit_ask(matches)
 
     return 0
 
