@@ -220,7 +220,7 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     ),
     (
         "regex",
-        r"git\s+restore\s+(?!.*--staged\b(?!.*--worktree))"
+        r"git\s+restore\s+(?!(?=.*--staged\b)(?!.*--worktree\b))"
         r"(?:--?\S+\s+)*\.(?:\s*$|\s*&&|\s*;|\s*\|)",
         "git restore . discards all unstaged changes",
     ),

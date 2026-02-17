@@ -177,6 +177,10 @@ class TestDestructiveGitOperations:
         msgs = check_command("git restore --staged --worktree .")
         assert any("discard" in m.lower() for m in msgs)
 
+    def test_git_restore_worktree_staged_reversed_is_dangerous(self) -> None:
+        msgs = check_command("git restore --worktree --staged .")
+        assert any("discard" in m.lower() for m in msgs)
+
     def test_git_clean_d_f_separated(self) -> None:
         assert check_command("git clean -d -f")
 
