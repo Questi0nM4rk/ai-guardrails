@@ -113,19 +113,28 @@ uv run pytest tests/ --cov=lib/python/guardrails --cov-report=term-missing
 
 ## Review Bots
 
-All bots auto-review every push. No manual triggers needed.
-
 | Bot | Focus | Trigger |
 |-----|-------|---------|
-| CodeRabbit | Static analysis, security, language conventions | Auto on push |
-| Claude | Code duplication, clean code, modern patterns, architecture | Auto on PR |
+| CodeRabbit | Static analysis, security, language conventions | **Manual only** (`@coderabbitai review`) |
+| Claude | Code duplication, clean code, modern patterns, architecture | Auto on push |
 | Gemini | Bugs, logic errors, security, performance | Auto on push |
 | DeepSource | Anti-patterns, OWASP, code metrics | Auto on push |
 
+### CodeRabbit Review Workflow
+
+CodeRabbit is rate-limited (3 reviews/hour on free tier). Auto-review is
+disabled to avoid wasting reviews on WIP pushes.
+
+1. Push changes — CI, Claude, Gemini, and DeepSource run automatically
+2. Resolve ALL their comments first
+3. Only then trigger CodeRabbit: comment `@coderabbitai review` on the PR
+4. For a full re-review: `@coderabbitai full review`
+
 ### Rules for AI Agents
 
-Every push triggers all 4 review bots. Unnecessary pushes waste review cycles
-and create noise. Only push when you are confident the code is complete.
+Every push triggers 3 auto-review bots (Claude, Gemini, DeepSource).
+CodeRabbit must be triggered manually. Unnecessary pushes waste review
+cycles and create noise.
 
 1. **Complete all changes before pushing** — Finish the entire task locally
    (all files, all fixes, all tests passing). Do not push work-in-progress
@@ -136,8 +145,11 @@ and create noise. Only push when you are confident the code is complete.
 4. **Address ALL review feedback before pushing again** — When bots request
    changes, fix every comment locally, then push once. Do not push after
    each individual fix
-5. **Wait for all bots** — After pushing, wait for all reviews to complete
-   (~5 min) before acting on feedback
+5. **Wait for auto-review bots** — After pushing, wait for Claude, Gemini,
+   and DeepSource reviews to complete (~5 min) before acting on feedback
+6. **Trigger CodeRabbit last** — Only after all other bot comments are
+   resolved, trigger `@coderabbitai review`. This is the final gate before
+   merge
 
 ## Key Constraints
 
