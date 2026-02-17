@@ -48,6 +48,9 @@ _HOOK_SCRIPTS: list[str] = [
     "validate-generated-configs.sh",
     "protect-generated-configs.sh",
     "detect-config-ignore-edits.sh",
+    "dangerous-command-check.sh",
+    "pre-commit.sh",
+    "pre-push.sh",
 ]
 
 # ---------------------------------------------------------------------------
@@ -78,6 +81,11 @@ def _copy_config(src: Path, dst: Path, *, force: bool) -> None:
         return
 
     if src.exists():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        # Backup before overwriting (only when destination already exists)
+        if dst.exists():
+            backup = dst.with_suffix(dst.suffix + ".bak")
+            shutil.copy2(dst, backup)
         shutil.copy2(src, dst)
         _print_ok(dst.name)
     else:
@@ -208,8 +216,9 @@ def _setup_precommit(
         shutil.copytree(src_python, dst_python)
         _print_ok("lib/python/guardrails (hook runtime)")
 
-    # Install Claude Code PreToolUse hook
+    # Install Claude Code PreToolUse hooks
     _install_claude_hook()
+    _install_dangerous_cmd_hook()
 
     # Fix pre-commit config paths for local hooks
     precommit_cfg = project_dir / ".pre-commit-config.yaml"
@@ -292,47 +301,73 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
             f.write(block)
 
 
-def _install_claude_hook() -> None:
-    """Install the Claude Code PreToolUse hook in ~/.claude/settings.json."""
-    settings_path = Path.home() / ".claude" / "settings.json"
-    hook_cmd = "~/.ai-guardrails/hooks/protect-generated-configs.sh 2>/dev/null"
+def _install_pretooluse_hook(
+    *,
+    hook_cmd: str,
+    matcher: str,
+    check_substring: str,
+    label: str,
+) -> None:
+    """Install a PreToolUse hook in ``~/.claude/settings.json``.
 
-    # Check if already installed
+    Args:
+        hook_cmd: Shell command to run as the hook.
+        matcher: Tool matcher pattern (e.g. ``"Bash"``).
+        check_substring: Substring to detect duplicates.
+        label: Human-readable label for status messages.
+
+    """
+    settings_path = Path.home() / ".claude" / "settings.json"
+
     if settings_path.exists():
         try:
             settings = json.loads(settings_path.read_text())
         except (json.JSONDecodeError, OSError):
             settings = {}
-
-        # Check if hook already present
         existing_hooks = settings.get("hooks", {}).get("PreToolUse", [])
         for entry in existing_hooks:
-            hooks_list = entry.get("hooks", [])
-            for h in hooks_list:
-                if "protect-generated-configs" in h.get("command", ""):
-                    _print_skip("Claude Code PreToolUse hook already installed")
+            for h in entry.get("hooks", []):
+                if check_substring in h.get("command", ""):
+                    _print_skip(f"{label} already installed")
                     return
     else:
         settings = {}
 
-    # Build hook entry
     hook_entry = {
-        "matcher": "Write|Edit",
+        "matcher": matcher,
         "hooks": [{"type": "command", "command": hook_cmd}],
     }
 
-    # Merge into settings
     hooks = settings.setdefault("hooks", {})
     pre_tool_use = hooks.setdefault("PreToolUse", [])
     pre_tool_use.append(hook_entry)
 
-    # Write settings (backup first if file exists)
     settings_path.parent.mkdir(parents=True, exist_ok=True)
     if settings_path.exists():
         backup_path = settings_path.with_suffix(".json.bak")
         shutil.copy2(settings_path, backup_path)
     settings_path.write_text(json.dumps(settings, indent=2) + "\n")
-    _print_ok("Claude Code PreToolUse hook installed")
+    _print_ok(f"{label} installed")
+
+
+def _install_claude_hook() -> None:
+    """Install the protect-generated-configs PreToolUse hook."""
+    _install_pretooluse_hook(
+        hook_cmd="~/.ai-guardrails/hooks/protect-generated-configs.sh",
+        matcher="Write|Edit",
+        check_substring="protect-generated-configs",
+        label="Claude Code PreToolUse hook",
+    )
+
+
+def _install_dangerous_cmd_hook() -> None:
+    """Install the dangerous-command-check PreToolUse hook."""
+    _install_pretooluse_hook(
+        hook_cmd="~/.ai-guardrails/hooks/dangerous-command-check.sh",
+        matcher="Bash",
+        check_substring="dangerous-command-check",
+        label="Dangerous command check hook",
+    )
 
 
 def _install_precommit_hooks(project_dir: Path) -> None:
@@ -342,7 +377,7 @@ def _install_precommit_hooks(project_dir: Path) -> None:
 
     if not shutil.which("pre-commit"):
         print(f"  {YELLOW}Note: Install pre-commit to activate hooks:{NC}")
-        print("    pip install pre-commit && pre-commit install")
+        print("    uv tool install pre-commit && pre-commit install")
         return
 
     # Fix potential empty hooksPath
@@ -515,20 +550,6 @@ def _install_deepsource(templates_dir: Path, project_dir: Path, *, force: bool) 
         _print_warn("DeepSource config template not found")
 
 
-def _install_review_all_workflow(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
-    """Install the review-all workflow that triggers all bots on-demand."""
-    print()
-    print(f"{GREEN}Setting up on-demand review workflow...{NC}")
-    workflows = project_dir / ".github" / "workflows"
-    workflows.mkdir(parents=True, exist_ok=True)
-    src = templates_dir / "workflows" / "review-all.yml"
-    if src.exists():
-        _copy_config(src, workflows / "review-all.yml", force=force)
-        print(f"  {BLUE}\u2192 Comment /review-all on any PR to trigger all review bots{NC}")
-    else:
-        _print_warn("review-all workflow template not found")
-
-
 def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
     """Append guardrails rules to CLAUDE.md or AGENTS.md."""
     marker = "## AI Guardrails - Code Standards"
@@ -569,6 +590,86 @@ def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Dry-run report
+# ---------------------------------------------------------------------------
+
+
+def _dry_run_report(
+    project_dir: Path,
+    *,
+    languages: list[str],
+    project_type: str,
+    force: bool,
+    skip_precommit: bool,
+    pip_audit_mode: str,
+    install_ci: str,
+    install_claude_review: str,
+    install_coderabbit: str,
+    install_gemini: str,
+    install_deepsource: str,
+) -> None:
+    """Print what ``run_init`` would do without making changes."""
+
+    def _would(action: str) -> None:
+        print(f"  {YELLOW}would{NC} {action}")
+
+    # Flags
+    print(f"\n{GREEN}Options:{NC}")
+    _would(f"force overwrite: {'yes (with .bak backup)' if force else 'no'}")
+    _would(f"pip-audit mode: {pip_audit_mode}")
+
+    # Base configs
+    print(f"\n{GREEN}Configs:{NC}")
+    _would("copy .editorconfig")
+    _would("copy .markdownlint.jsonc")
+    if project_type == "all":
+        for name in _ALL_LANG_CONFIGS:
+            _would(f"copy {name}")
+    else:
+        for lang in languages:
+            for name in _LANG_CONFIGS.get(lang, []):
+                _would(f"copy {name}")
+
+    # Pre-commit
+    if not skip_precommit:
+        print(f"\n{GREEN}Pre-commit:{NC}")
+        _would("assemble .pre-commit-config.yaml")
+        _would("copy hook scripts to .ai-guardrails/hooks/")
+        _would("run pre-commit install")
+        _would("install Claude Code PreToolUse hook")
+        _would("install dangerous-command-check hook")
+
+    # Gitignore
+    print(f"\n{GREEN}Git:{NC}")
+    _would("add .ai-guardrails/ to .gitignore")
+
+    # Exception registry
+    print(f"\n{GREEN}Exception registry:{NC}")
+    _would("scaffold .guardrails-exceptions.toml")
+
+    # GitHub integrations
+    is_github = _is_github_project(project_dir)
+    _integration_names = [
+        (install_ci, "CI workflow (.github/workflows/check.yml)"),
+        (install_claude_review, "Claude Code Review workflow"),
+        (install_coderabbit, "CodeRabbit config (.coderabbit.yaml)"),
+        (install_gemini, "Gemini Code Assist config"),
+        (install_deepsource, "DeepSource config (.deepsource.toml)"),
+    ]
+    active = [
+        name for flag, name in _integration_names if flag == "yes" or (flag == "auto" and is_github)
+    ]
+    if active:
+        print(f"\n{GREEN}GitHub integrations:{NC}")
+        for name in active:
+            _would(f"install {name}")
+
+    # Agent instructions
+    print(f"\n{GREEN}Agent instructions:{NC}")
+    _would("append guardrails rules to CLAUDE.md")
+
+
+# ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
 
@@ -584,7 +685,7 @@ def run_init(
     install_coderabbit: str = "auto",
     install_gemini: str = "auto",
     install_deepsource: str = "auto",
-    install_review_all: str = "auto",
+    dry_run: bool = False,
 ) -> int:
     """Run the full init workflow.
 
@@ -598,7 +699,7 @@ def run_init(
         install_coderabbit: ``"auto"``, ``"yes"``, or ``"no"``.
         install_gemini: ``"auto"``, ``"yes"``, or ``"no"``.
         install_deepsource: ``"auto"``, ``"yes"``, or ``"no"``.
-        install_review_all: ``"auto"``, ``"yes"``, or ``"no"``.
+        dry_run: Show what would be done without making changes.
 
     Returns:
         Exit code (0 for success).
@@ -620,6 +721,24 @@ def run_init(
 
     # Determine languages
     languages = _resolve_languages(project_type, configs_dir, project_dir)
+
+    if dry_run:
+        print(f"{YELLOW}Dry run mode: no changes will be made{NC}")
+        print(f"  Languages: {languages or ['(base only)']}")
+        _dry_run_report(
+            project_dir,
+            languages=languages,
+            project_type=project_type,
+            force=force,
+            skip_precommit=skip_precommit,
+            pip_audit_mode=pip_audit_mode,
+            install_ci=install_ci,
+            install_claude_review=install_claude_review,
+            install_coderabbit=install_coderabbit,
+            install_gemini=install_gemini,
+            install_deepsource=install_deepsource,
+        )
+        return 0
 
     print()
 
@@ -654,7 +773,7 @@ def run_init(
     if registry_existed or force:
         _generate_from_registry(project_dir)
 
-    # CI / Claude Review / CodeRabbit / Gemini / DeepSource / review-all
+    # CI / Claude Review / CodeRabbit / Gemini / DeepSource
     is_github = _is_github_project(project_dir)
 
     _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
@@ -663,7 +782,6 @@ def run_init(
         (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
         (install_gemini, lambda t, p: _install_gemini(t, p, force=force)),
         (install_deepsource, lambda t, p: _install_deepsource(t, p, force=force)),
-        (install_review_all, lambda t, p: _install_review_all_workflow(t, p, force=force)),
     ]
     for flag, installer in _github_integrations:
         if flag == "yes" or (flag == "auto" and is_github):

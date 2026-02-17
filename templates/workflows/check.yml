@@ -35,7 +35,7 @@ jobs:
         uses: astral-sh/setup-uv@v4
 
       - name: Install pre-commit
-        run: pip install pre-commit
+        run: uv tool install pre-commit
 
       # Skip format-and-stage (local-only) and semgrep (run separately for parallelism)
       - name: Run pre-commit checks
@@ -43,7 +43,7 @@ jobs:
 
       - name: Run semgrep (parallel)
         run: |
-          pip install semgrep
+          uv tool install semgrep
           semgrep --config auto --error --exclude tests/
 
   test:
@@ -65,11 +65,11 @@ jobs:
       - name: Run tests with coverage
         run: |
           uv run pytest tests/ \
-            --cov=src \
+            --cov \
             --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=85
 
       - name: Run type checker
-        run: uv run pyright src/
+        run: uv run pyright

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ============================================
 # AI Guardrails Pre-Push Hook
 # Runs security scan and full test suite before push.

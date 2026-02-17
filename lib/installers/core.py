@@ -19,6 +19,8 @@ from pyinfra.api.deploy import deploy
 from pyinfra.facts.server import Which
 from pyinfra.operations import files, server
 
+from lib.installers._utils import fail_no_uv_or_pipx
+
 # Installation paths
 INSTALL_DIR = Path.home() / ".ai-guardrails"
 BIN_DIR = Path.home() / ".local" / "bin"
@@ -49,31 +51,47 @@ def get_source_dir() -> Path:
 
 @deploy("Install pyyaml")
 def install_pyyaml() -> None:
-    """Install pyyaml Python package via pip --user."""
-    server.shell(
-        name="Install pyyaml via pip",
-        commands=["python3 -m pip install --user pyyaml"],
-    )
+    """Install pyyaml Python package via uv or pip."""
+    uv_available = host.get_fact(Which, command="uv")
+    if uv_available:
+        server.shell(
+            name="Install pyyaml via uv",
+            commands=["uv pip install --user pyyaml"],
+        )
+    else:
+        # pyyaml is a library, not a CLI tool — pip is correct here
+        python_available = host.get_fact(Which, command="python3")
+        if python_available:
+            server.shell(
+                name="Install pyyaml via pip",
+                commands=["python3 -m pip install --user pyyaml"],
+            )
+        else:
+            msg = (
+                "echo 'Error: Neither uv nor python3 found."
+                " Install uv: https://docs.astral.sh/uv/' && exit 1"
+            )
+            server.shell(name="Error: uv or python3 required", commands=[msg])
 
 
 @deploy("Install pre-commit")
 def install_precommit() -> None:
-    """Install pre-commit via pipx (preferred) or pip."""
-    pipx_available = host.get_fact(Which, command="pipx")
-
-    if pipx_available:
-        # Use pipx for isolated installation
-        # pipx install is idempotent - reinstalls if already present
+    """Install pre-commit via uv (preferred) or pipx."""
+    uv_available = host.get_fact(Which, command="uv")
+    if uv_available:
         server.shell(
-            name="Install pre-commit via pipx",
-            commands=["pipx install pre-commit"],
+            name="Install pre-commit via uv",
+            commands=["uv tool install pre-commit"],
         )
     else:
-        # Fallback to pip --user
-        server.shell(
-            name="Install pre-commit via pip",
-            commands=["python3 -m pip install --user pre-commit"],
-        )
+        pipx_available = host.get_fact(Which, command="pipx")
+        if pipx_available:
+            server.shell(
+                name="Install pre-commit via pipx",
+                commands=["pipx install pre-commit"],
+            )
+        else:
+            fail_no_uv_or_pipx()
 
 
 @deploy("Create installation directories")
