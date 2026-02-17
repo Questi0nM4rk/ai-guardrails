@@ -7,6 +7,7 @@ Usage::
     ai-guardrails init [--type X] [--force] [--ci] [--gemini] [--deepsource] [--dry-run]
     ai-guardrails generate [--check] [--dry-run]
     ai-guardrails comments [--pr N] [--bot X] [--reply ID BODY] [--resolve ID [BODY]]
+    ai-guardrails status [--json]
 
 """
 
@@ -103,6 +104,15 @@ def _add_comments_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_status_parser(subparsers: argparse._SubParsersAction) -> None:
+    p = subparsers.add_parser(
+        "status",
+        help="Check project health and configuration status",
+        description="Report the status of hooks, configs, dependencies, and integrations.",
+    )
+    p.add_argument("--json", action="store_true", help="Output JSON instead of human-readable")
+
+
 def _resolve_flag(args: argparse.Namespace, name: str) -> str:
     """Resolve a --flag/--no-flag pair to ``"yes"``, ``"no"``, or ``"auto"``."""
     no_attr = f"no_{name}"
@@ -192,6 +202,7 @@ def main(argv: list[str] | None = None) -> int:
     _add_init_parser(subparsers)
     _add_generate_parser(subparsers)
     _add_comments_parser(subparsers)
+    _add_status_parser(subparsers)
 
     args = parser.parse_args(argv)
 
@@ -199,9 +210,17 @@ def main(argv: list[str] | None = None) -> int:
         "init": _cmd_init,
         "generate": _cmd_generate,
         "comments": _cmd_comments,
+        "status": _cmd_status,
     }
 
     return dispatch[args.command](args)
+
+
+def _cmd_status(args: argparse.Namespace) -> int:
+    """Run the ``status`` subcommand to check project health."""
+    from guardrails.status import run_status
+
+    return run_status(output_json=args.json)
 
 
 def _get_version() -> str:
