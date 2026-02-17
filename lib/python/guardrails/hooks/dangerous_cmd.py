@@ -1,23 +1,20 @@
-"""Dangerous command checker for Claude Code ExecTool hook.
+"""Dangerous command checker for Claude Code PreToolUse hook.
 
-Blocks (exit 2) or warns (exit 0 with message) on dangerous bash commands.
-Exit 0 = allow, Exit 2 = block.
+Uses the Claude Code hook JSON protocol:
+- Reads tool input from stdin JSON (``tool_input.command``)
+- Outputs structured JSON on stdout with ``permissionDecision``
+- Always exits 0 (JSON protocol); uses ``"ask"`` to escalate to user
 
 Replaces lib/hooks/dangerous-command-check.sh.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 
-from guardrails.constants import (
-    BLOCKED_COMMANDS,
-    NC,
-    RED,
-    WARNED_COMMANDS,
-    YELLOW,
-)
+from guardrails.constants import BLOCKED_COMMANDS, WARNED_COMMANDS
 
 # Special-case block patterns not covered by simple substring matching
 _SPECIAL_BLOCKS: tuple[tuple[str, str], ...] = (
@@ -95,27 +92,74 @@ def _check_warned(command: str) -> list[str]:
     return warnings
 
 
-def main(argv: list[str] | None = None) -> int:
-    """Entry point. Takes command string as first arg.
+def _read_command_from_stdin() -> str | None:
+    """Read command from Claude Code hook JSON protocol on stdin."""
+    try:
+        data = json.load(sys.stdin)
+        return data.get("tool_input", {}).get("command")
+    except (json.JSONDecodeError, AttributeError):
+        return None
 
-    Returns 0 (allow) or 2 (block).
+
+def _emit_ask(reason: str, *, blocked: bool) -> int:
+    """Emit JSON asking the user to approve or deny the command.
+
+    Both blocked and warned commands use ``"ask"`` so the user always
+    sees the command in the permission prompt and decides themselves.
     """
-    args = argv if argv is not None else sys.argv[1:]
-    if not args:
-        return 0
+    severity = "BLOCKED" if blocked else "WARNING"
+    context = (
+        "This command is blocked by security policy. "
+        "Do NOT retry with variations. "
+        "Ask the user if this operation is needed."
+        if blocked
+        else "This command may be destructive. The user should review it."
+    )
 
-    command = args[0]
+    json.dump(
+        {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "ask",
+                "permissionDecisionReason": f"{severity}: {reason}",
+                "additionalContext": context,
+            },
+        },
+        sys.stdout,
+    )
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point.
+
+    Reads command from stdin JSON (Claude Code protocol) or falls back
+    to argv for backwards compatibility and testing.
+
+    Always returns 0 (JSON protocol). Uses ``"ask"`` to escalate.
+    """
+    # Prefer argv for backwards compat, direct invocation, and testing
+    args = argv if argv is not None else sys.argv[1:]
+
+    command: str | None = None
+    if args:
+        command = args[0]
+    elif not sys.stdin.isatty():
+        # No argv — read from Claude Code hook JSON protocol on stdin
+        command = _read_command_from_stdin()
+
+    if command is None:
+        return 0
 
     # Check blocked patterns first
     blocked_msg = _check_blocked(command)
     if blocked_msg is not None:
-        print(f"{RED}BLOCKED:{NC} {blocked_msg}")
-        return 2
+        return _emit_ask(blocked_msg, blocked=True)
 
     # Check warning patterns
     warnings = _check_warned(command)
-    for msg in warnings:
-        print(f"{YELLOW}WARNING:{NC} {msg}")
+    if warnings:
+        return _emit_ask("; ".join(warnings), blocked=False)
 
     return 0
 
