@@ -86,7 +86,7 @@ ai-guardrails comments --pr <NUMBER> --resolve-all --bot coderabbit
 ai-guardrails comments --pr <NUMBER> --json
 ```
 
-**Supported bots:** CodeRabbit, Claude
+**Supported bots:** CodeRabbit, Claude, PR-Agent
 
 **Data flow:**
 
@@ -115,8 +115,21 @@ uv run pytest tests/ --cov=lib/python/guardrails --cov-report=term-missing
 
 | Bot | Focus | Trigger |
 |-----|-------|---------|
+| PR-Agent | Semantic code review, inline suggestions | **Auto** on PR open; manual `/review`, `/improve` |
 | CodeRabbit | Static analysis, security, language conventions | **Manual only** (`@coderabbitai review`) |
 | Claude | Code quality, architecture, modern patterns | **Manual** (`@claude` in PR comment) |
+
+### PR-Agent Setup
+
+PR-Agent (Qodo Merge OSS) uses OpenRouter for LLM access. Setup:
+
+1. Add `OPENROUTER_KEY` to your GitHub repo/org secrets
+2. PR-Agent auto-reviews on PR open (`opened`, `reopened`, `ready_for_review`)
+3. Manual commands (comment on PR): `/review`, `/improve`, `/describe`, `/ask "question"`
+
+PR-Agent is **LLM-only** -- it does not run static analysis. Pre-commit hooks handle linting.
+
+Config: `.pr_agent.toml` | Workflow: `.github/workflows/pr-agent.yml`
 
 ### CodeRabbit Review Workflow
 
@@ -129,8 +142,8 @@ disabled to avoid wasting reviews on WIP pushes.
 
 ### Rules for AI Agents
 
-CodeRabbit and Claude are triggered manually. Unnecessary pushes waste
-CI cycles and create noise.
+Review bots are triggered on PR open (PR-Agent) or manually (CodeRabbit, Claude).
+Unnecessary pushes waste CI cycles and create noise.
 
 1. **Complete all changes before pushing** -- Finish the entire task locally
    (all files, all fixes, all tests passing). Do not push work-in-progress

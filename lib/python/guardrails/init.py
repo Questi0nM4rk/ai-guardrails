@@ -507,6 +507,31 @@ def _install_coderabbit(templates_dir: Path, project_dir: Path, *, force: bool) 
         _print_warn("CodeRabbit config template not found")
 
 
+def _install_pr_agent(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+    """Install PR-Agent config and workflow."""
+    print()
+    print(f"{GREEN}Setting up PR-Agent...{NC}")
+    # Copy .pr_agent.toml config
+    src_config = templates_dir / ".pr_agent.toml"
+    if src_config.exists():
+        _copy_config(src_config, project_dir / ".pr_agent.toml", force=force)
+    else:
+        _print_warn("PR-Agent config template not found")
+        return
+
+    # Copy pr-agent.yml workflow
+    src_workflow = templates_dir / "workflows" / "pr-agent.yml"
+    if src_workflow.exists():
+        workflows_dir = project_dir / ".github" / "workflows"
+        workflows_dir.mkdir(parents=True, exist_ok=True)
+        _copy_config(src_workflow, workflows_dir / "pr-agent.yml", force=force)
+    else:
+        _print_warn("PR-Agent workflow template not found")
+
+    print(f"  {BLUE}\u2192 Customize extra_instructions in .pr_agent.toml for your project{NC}")
+    print(f"  {BLUE}\u2192 Add OPENROUTER_KEY to your GitHub repo/org secrets{NC}")
+
+
 def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
     """Append guardrails rules to CLAUDE.md or AGENTS.md."""
     marker = "## AI Guardrails - Code Standards"
@@ -561,6 +586,7 @@ def _dry_run_report(
     pip_audit_mode: str,
     install_ci: str,
     install_coderabbit: str,
+    install_pr_agent: str,
 ) -> None:
     """Print what ``run_init`` would do without making changes."""
 
@@ -606,6 +632,7 @@ def _dry_run_report(
     _integration_names = [
         (install_ci, "CI workflow (.github/workflows/check.yml)"),
         (install_coderabbit, "CodeRabbit config (.coderabbit.yaml)"),
+        (install_pr_agent, "PR-Agent config (.pr_agent.toml + pr-agent.yml)"),
     ]
     active = [
         name for flag, name in _integration_names if flag == "yes" or (flag == "auto" and is_github)
@@ -633,6 +660,7 @@ def run_init(
     pip_audit_mode: str = "auto",
     install_ci: str = "auto",
     install_coderabbit: str = "auto",
+    install_pr_agent: str = "auto",
     dry_run: bool = False,
 ) -> int:
     """Run the full init workflow.
@@ -644,6 +672,7 @@ def run_init(
         pip_audit_mode: ``"auto"``, ``"pip"``, ``"uv"``, or ``"none"``.
         install_ci: ``"auto"``, ``"yes"``, or ``"no"``.
         install_coderabbit: ``"auto"``, ``"yes"``, or ``"no"``.
+        install_pr_agent: ``"auto"``, ``"yes"``, or ``"no"``.
         dry_run: Show what would be done without making changes.
 
     Returns:
@@ -679,6 +708,7 @@ def run_init(
             pip_audit_mode=pip_audit_mode,
             install_ci=install_ci,
             install_coderabbit=install_coderabbit,
+            install_pr_agent=install_pr_agent,
         )
         return 0
 
@@ -721,6 +751,7 @@ def run_init(
     _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
         (install_ci, lambda t, p: _install_ci_workflow(t, p, force=force)),
         (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
+        (install_pr_agent, lambda t, p: _install_pr_agent(t, p, force=force)),
     ]
     for flag, installer in _github_integrations:
         if flag == "yes" or (flag == "auto" and is_github):

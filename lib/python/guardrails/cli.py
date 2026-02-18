@@ -4,7 +4,7 @@ Replaces separate bin scripts with a single ``ai-guardrails`` command using subc
 
 Usage::
 
-    ai-guardrails init [--type X] [--force] [--ci] [--coderabbit] [--dry-run]
+    ai-guardrails init [--type X] [--force] [--ci] [--coderabbit] [--pr-agent] [--dry-run]
     ai-guardrails generate [--check] [--dry-run]
     ai-guardrails comments [--pr N] [--bot X] [--reply ID BODY] [--resolve ID [BODY]]
     ai-guardrails status [--json]
@@ -35,6 +35,8 @@ def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--no-ci", action="store_true", help="Skip CI workflow")
     p.add_argument("--coderabbit", action="store_true", default=None)
     p.add_argument("--no-coderabbit", action="store_true")
+    p.add_argument("--pr-agent", action="store_true", default=None, dest="pr_agent")
+    p.add_argument("--no-pr-agent", action="store_true", dest="no_pr_agent")
     p.add_argument(
         "--dry-run",
         action="store_true",
@@ -121,6 +123,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
         pip_audit_mode=args.pip_audit or "auto",
         install_ci=_resolve_flag(args, "ci"),
         install_coderabbit=_resolve_flag(args, "coderabbit"),
+        install_pr_agent=_resolve_flag(args, "pr_agent"),
         dry_run=args.dry_run,
     )
 
