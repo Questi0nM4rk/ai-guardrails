@@ -455,7 +455,7 @@ def test_local_preferred_over_global(temp_dir: Path) -> None:
     templates.mkdir(parents=True)
     (configs / "languages.yaml").write_text("python: {}")
 
-    with patch.object(Path, "home", return_value=temp_dir):
+    with patch("guardrails._paths._GLOBAL_INSTALL", global_dir):
         result_configs, _result_templates = find_installation_paths()
         # Local dev paths should win over global
         assert result_configs != configs
