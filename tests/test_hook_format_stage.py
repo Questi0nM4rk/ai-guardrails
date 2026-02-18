@@ -44,6 +44,34 @@ class TestFormattersDict:
         assert _FORMATTERS[".toml"][0][0] == "taplo"
 
 
+def test_rust_formatter() -> None:
+    """Rust files should be formatted with rustfmt."""
+    assert ".rs" in _FORMATTERS
+    assert _FORMATTERS[".rs"][0][0] == "rustfmt"
+
+
+def test_lua_formatter() -> None:
+    """Lua files should be formatted with stylua."""
+    assert ".lua" in _FORMATTERS
+    assert _FORMATTERS[".lua"][0][0] == "stylua"
+
+
+def test_go_formatter() -> None:
+    """Go files should be formatted with gofmt -w."""
+    assert ".go" in _FORMATTERS
+    cmds = _FORMATTERS[".go"][0]
+    assert cmds[0] == "gofmt"
+    assert "-w" in cmds
+
+
+def test_c_cpp_formatters() -> None:
+    """C/C++ files should be formatted with clang-format -i."""
+    for ext in (".c", ".cpp", ".cc", ".cxx", ".h", ".hpp"):
+        assert ext in _FORMATTERS, f"Missing formatter for {ext}"
+        assert _FORMATTERS[ext][0][0] == "clang-format"
+        assert "-i" in _FORMATTERS[ext][0]
+
+
 class TestGitStagedFiles:
     """Test git staged file listing."""
 

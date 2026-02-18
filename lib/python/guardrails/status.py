@@ -240,7 +240,7 @@ def check_review_bots(project_dir: Path) -> CheckResult:
             f"Partial: {', '.join(present)} (missing: {', '.join(missing)})",
         )
 
-    return CheckResult(Check.REVIEW_BOTS, "warn", "No review bot configs found")
+    return CheckResult(Check.REVIEW_BOTS, "skip", "No review bot configs found")
 
 
 def check_ci_workflow(project_dir: Path) -> CheckResult:

@@ -149,6 +149,13 @@ class TestCheckReviewBots:
         assert result.status == "warn"
 
 
+def test_review_bots_skip_when_no_bots(project_dir: Path) -> None:
+    """Return skip status when no review bot configs are present."""
+    result = check_review_bots(project_dir)
+    assert result.status == "skip"
+    assert "no review bot" in result.message.lower()
+
+
 class TestCheckCiWorkflow:
     def test_ok_when_present(self, project_dir: Path) -> None:
         wf = project_dir / ".github" / "workflows"

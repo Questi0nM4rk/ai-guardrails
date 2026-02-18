@@ -46,6 +46,33 @@ _FORMATTERS: dict[str, list[list[str]]] = {
     ".toml": [
         ["taplo", "format"],
     ],
+    ".rs": [
+        ["rustfmt"],
+    ],
+    ".lua": [
+        ["stylua"],
+    ],
+    ".go": [
+        ["gofmt", "-w"],
+    ],
+    ".c": [
+        ["clang-format", "-i"],
+    ],
+    ".cpp": [
+        ["clang-format", "-i"],
+    ],
+    ".cc": [
+        ["clang-format", "-i"],
+    ],
+    ".cxx": [
+        ["clang-format", "-i"],
+    ],
+    ".h": [
+        ["clang-format", "-i"],
+    ],
+    ".hpp": [
+        ["clang-format", "-i"],
+    ],
 }
 
 

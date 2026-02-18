@@ -16,9 +16,12 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# Add lib to path for imports
+# Bootstrap sys.path so that "guardrails" (lib/python/) and "lib.installers"
+# (repo root) are importable before any project packages are installed.
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path(__file__).parent / "lib" / "python"))
 
+from guardrails.constants import BLUE, GREEN, NC, RED, YELLOW
 from pyinfra.api import Config, Inventory, State
 from pyinfra.api.connect import connect_all
 from pyinfra.api.operations import run_ops
@@ -43,13 +46,6 @@ if TYPE_CHECKING:
 
 # Queue of pending deploy functions to execute within pyinfra state context
 _pending_deploys: list[tuple[Callable[..., object], tuple[object, ...], dict[str, object]]] = []
-
-# ANSI colors
-RED = "\033[0;31m"
-GREEN = "\033[0;32m"
-YELLOW = "\033[1;33m"
-BLUE = "\033[0;34m"
-NC = "\033[0m"
 
 
 def print_color(color: str, message: str) -> None:
