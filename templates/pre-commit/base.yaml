@@ -8,7 +8,7 @@
 fail_fast: true
 default_language_version:
   python: python3.12
-  node: "20.11.0"
+  node: "22.16.0"
   rust: stable
 
 repos:
@@ -44,13 +44,13 @@ repos:
         exclude: package-lock\.json|\.secrets\.baseline
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: detect-private-key
         name: "security - detect private keys"
 
   - repo: https://github.com/semgrep/semgrep
-    rev: v1.151.0
+    rev: v1.149.0
     hooks:
       - id: semgrep
         name: "security - semgrep SAST scan"
@@ -126,7 +126,7 @@ repos:
   # ===========================================================================
 
   - repo: https://github.com/DavidAnson/markdownlint-cli2
-    rev: v0.17.2
+    rev: v0.20.0
     hooks:
       - id: markdownlint-cli2
         name: "markdown - markdownlint"
@@ -136,7 +136,7 @@ repos:
   # ===========================================================================
 
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.30.0
+    rev: 0.36.0
     hooks:
       - id: check-github-workflows
         name: "github - validate workflow files"
@@ -155,7 +155,7 @@ repos:
   # ===========================================================================
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       # Whitespace & formatting
       - id: trailing-whitespace

@@ -18,7 +18,7 @@ repos:
 
   # Ruff - Lint with ALL rules enabled
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.1
+    rev: v0.14.14
     hooks:
       - id: ruff
         name: "python - ruff lint (pedantic)"
@@ -52,7 +52,7 @@ repos:
 
   # Python-specific pre-commit-hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-ast
         name: "python - check ast syntax"

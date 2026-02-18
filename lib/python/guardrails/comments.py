@@ -206,7 +206,7 @@ def parse_thread(node: dict) -> dict | None:
         "line": first.get("line"),
         "start_line": first.get("startLine"),
         "resolved": node.get("isResolved", False),
-        "body_preview": _clean_body(raw_body),
+        "body_preview": _truncate(_clean_body(raw_body), JSON_PREVIEW_LENGTH),
         "created_at": first.get("createdAt", ""),
         "reply_count": node.get("comments", {}).get("totalCount", 1) - 1,
     }
@@ -323,14 +323,7 @@ def format_json(threads: list[dict], *, pretty: bool = False) -> str:
     """Format threads as JSON with summary statistics."""
     summary = _build_summary(threads)
 
-    # Truncate body previews for JSON output
-    json_threads = []
-    for t in threads:
-        t_copy = dict(t)
-        t_copy["body_preview"] = _truncate(t["body_preview"], JSON_PREVIEW_LENGTH)
-        json_threads.append(t_copy)
-
-    output = {"threads": json_threads, "summary": summary}
+    output = {"threads": threads, "summary": summary}
     indent = 2 if pretty else None
     return json.dumps(output, indent=indent)
 
