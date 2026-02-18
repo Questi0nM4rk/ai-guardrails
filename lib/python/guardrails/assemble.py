@@ -214,9 +214,9 @@ def find_installation_paths() -> tuple[Path, Path]:
     try:
         configs_dir = find_configs_dir()
         templates_dir = find_templates_dir() / "pre-commit"
-    except FileNotFoundError:
+    except FileNotFoundError as err:
         msg = "Could not find AI Guardrails installation"
-        raise FileNotFoundError(msg) from None
+        raise FileNotFoundError(msg) from err
     return configs_dir, templates_dir
 
 

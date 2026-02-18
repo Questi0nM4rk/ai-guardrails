@@ -250,7 +250,8 @@ def test_truncation_notice_when_many_violations(
     with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
         main([str(f)])
     captured = capsys.readouterr()
-    assert "and 5 more" in captured.out
+    expected_hidden = overflow - _MAX_VIOLATIONS_PER_PATTERN
+    assert f"and {expected_hidden} more" in captured.out
     assert f"showing first {_MAX_VIOLATIONS_PER_PATTERN}" in captured.out
 
 

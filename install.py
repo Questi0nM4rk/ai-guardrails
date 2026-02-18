@@ -16,7 +16,8 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-# Add lib to path for imports
+# Bootstrap sys.path so that "guardrails" (lib/python/) and "lib.installers"
+# (repo root) are importable before any project packages are installed.
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).parent / "lib" / "python"))
 
