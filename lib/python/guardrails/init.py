@@ -493,20 +493,6 @@ def _install_ci_workflow(templates_dir: Path, project_dir: Path, *, force: bool)
         _print_warn("CI workflow template not found")
 
 
-def _install_claude_review(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
-    """Install Claude Code review workflow."""
-    print()
-    print(f"{GREEN}Setting up Claude Code review...{NC}")
-    workflows = project_dir / ".github" / "workflows"
-    workflows.mkdir(parents=True, exist_ok=True)
-    src = templates_dir / "workflows" / "claude-review.yml"
-    if src.exists():
-        _copy_config(src, workflows / "claude-review.yml", force=force)
-        print(f"  {BLUE}\u2192 Note: Requires OIDC auth (must be on default branch first){NC}")
-    else:
-        _print_warn("Claude review workflow template not found")
-
-
 def _install_coderabbit(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
     """Install CodeRabbit config."""
     print()
@@ -519,37 +505,6 @@ def _install_coderabbit(templates_dir: Path, project_dir: Path, *, force: bool) 
         )
     else:
         _print_warn("CodeRabbit config template not found")
-
-
-def _install_gemini(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
-    """Install Gemini Code Assist config (.gemini/ directory)."""
-    print()
-    print(f"{GREEN}Setting up Gemini Code Assist...{NC}")
-    src_dir = templates_dir / ".gemini"
-    if not src_dir.is_dir():
-        _print_warn("Gemini config template not found")
-        return
-
-    dst_dir = project_dir / ".gemini"
-    dst_dir.mkdir(parents=True, exist_ok=True)
-
-    for src_file in src_dir.iterdir():
-        if src_file.is_file():
-            _copy_config(src_file, dst_dir / src_file.name, force=force)
-
-    print(f"  {BLUE}\u2192 Install the Gemini Code Assist GitHub App to activate{NC}")
-
-
-def _install_deepsource(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
-    """Install DeepSource config (.deepsource.toml)."""
-    print()
-    print(f"{GREEN}Setting up DeepSource...{NC}")
-    src = templates_dir / ".deepsource.toml"
-    if src.exists():
-        _copy_config(src, project_dir / ".deepsource.toml", force=force)
-        print(f"  {BLUE}\u2192 Activate DeepSource in GitHub Marketplace to enable analysis{NC}")
-    else:
-        _print_warn("DeepSource config template not found")
 
 
 def _setup_agent_instructions(templates_dir: Path, project_dir: Path) -> None:
@@ -605,10 +560,7 @@ def _dry_run_report(
     skip_precommit: bool,
     pip_audit_mode: str,
     install_ci: str,
-    install_claude_review: str,
     install_coderabbit: str,
-    install_gemini: str,
-    install_deepsource: str,
 ) -> None:
     """Print what ``run_init`` would do without making changes."""
 
@@ -653,10 +605,7 @@ def _dry_run_report(
     is_github = _is_github_project(project_dir)
     _integration_names = [
         (install_ci, "CI workflow (.github/workflows/check.yml)"),
-        (install_claude_review, "Claude Code Review workflow"),
         (install_coderabbit, "CodeRabbit config (.coderabbit.yaml)"),
-        (install_gemini, "Gemini Code Assist config"),
-        (install_deepsource, "DeepSource config (.deepsource.toml)"),
     ]
     active = [
         name for flag, name in _integration_names if flag == "yes" or (flag == "auto" and is_github)
@@ -683,10 +632,7 @@ def run_init(
     skip_precommit: bool = False,
     pip_audit_mode: str = "auto",
     install_ci: str = "auto",
-    install_claude_review: str = "auto",
     install_coderabbit: str = "auto",
-    install_gemini: str = "auto",
-    install_deepsource: str = "auto",
     dry_run: bool = False,
 ) -> int:
     """Run the full init workflow.
@@ -697,10 +643,7 @@ def run_init(
         skip_precommit: Skip pre-commit config setup.
         pip_audit_mode: ``"auto"``, ``"pip"``, ``"uv"``, or ``"none"``.
         install_ci: ``"auto"``, ``"yes"``, or ``"no"``.
-        install_claude_review: ``"auto"``, ``"yes"``, or ``"no"``.
         install_coderabbit: ``"auto"``, ``"yes"``, or ``"no"``.
-        install_gemini: ``"auto"``, ``"yes"``, or ``"no"``.
-        install_deepsource: ``"auto"``, ``"yes"``, or ``"no"``.
         dry_run: Show what would be done without making changes.
 
     Returns:
@@ -735,10 +678,7 @@ def run_init(
             skip_precommit=skip_precommit,
             pip_audit_mode=pip_audit_mode,
             install_ci=install_ci,
-            install_claude_review=install_claude_review,
             install_coderabbit=install_coderabbit,
-            install_gemini=install_gemini,
-            install_deepsource=install_deepsource,
         )
         return 0
 
@@ -775,15 +715,12 @@ def run_init(
     if registry_existed or force:
         _generate_from_registry(project_dir)
 
-    # CI / Claude Review / CodeRabbit / Gemini / DeepSource
+    # CI / CodeRabbit
     is_github = _is_github_project(project_dir)
 
     _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
         (install_ci, lambda t, p: _install_ci_workflow(t, p, force=force)),
-        (install_claude_review, lambda t, p: _install_claude_review(t, p, force=force)),
         (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
-        (install_gemini, lambda t, p: _install_gemini(t, p, force=force)),
-        (install_deepsource, lambda t, p: _install_deepsource(t, p, force=force)),
     ]
     for flag, installer in _github_integrations:
         if flag == "yes" or (flag == "auto" and is_github):

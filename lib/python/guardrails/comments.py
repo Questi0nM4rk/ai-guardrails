@@ -1,6 +1,6 @@
 """Universal PR review comments — list, reply, and resolve threads from all bots.
 
-Supports CodeRabbit, Claude, Gemini, and DeepSource review threads.
+Supports CodeRabbit and Claude review threads.
 Uses GitHub GraphQL API for fetching/resolving threads and REST API for replies.
 
 Usage::
@@ -9,7 +9,7 @@ Usage::
     ai-guardrails comments --pr 31 --bot claude
     ai-guardrails comments --pr 31 --reply PRRT_abc "Fixed."
     ai-guardrails comments --pr 31 --resolve PRRT_abc "Fixed."
-    ai-guardrails comments --pr 31 --resolve-all --bot deepsource
+    ai-guardrails comments --pr 31 --resolve-all --bot coderabbit
     ai-guardrails comments --pr 31 --json
 """
 
@@ -34,8 +34,6 @@ _MIN_LOC_COL = 10
 
 BOT_ALIASES: dict[str, str] = {
     "coderabbit": "coderabbitai",
-    "deepsource": "deepsource-io",
-    "gemini": "gemini-code-assist",
     "claude": "claude",
 }
 
