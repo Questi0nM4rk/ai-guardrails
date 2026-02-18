@@ -75,9 +75,10 @@ ai-guardrails comments --pr <NUMBER> --bot coderabbit,gemini
 # Reply to a thread
 ai-guardrails comments --pr <NUMBER> --reply PRRT_abc123 "Fixed in commit xyz."
 
-# Resolve a thread (with optional reply)
-ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "Fixed."
-ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123
+# Resolve a thread (requires category prefix in message)
+ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "Fixed in abc1234"
+ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "False positive: not applicable to tests"
+ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "Won't fix: intentional design"
 
 # Batch resolve all threads from a bot
 ai-guardrails comments --pr <NUMBER> --resolve-all --bot deepsource
@@ -150,6 +151,29 @@ cycles and create noise.
 6. **Trigger CodeRabbit last** — Only after all other bot comments are
    resolved, trigger `@coderabbitai review`. This is the final gate before
    merge
+
+### Review Thread Resolution Protocol
+
+Every review comment must be categorized and resolved properly:
+
+| Category | Action | Comment Format |
+|----------|--------|----------------|
+| Actionable | Fix the code | `Fixed in <commit-hash>` |
+| False positive | Explain why it's wrong | `False positive: <reason>` |
+| Won't fix | Justify the decision | `Won't fix: <reason>` |
+| Nitpick/style | Fix it anyway | `Fixed in <commit-hash>` |
+
+**Never:**
+
+- Resolve with just "Acknowledged" or "Noted"
+- Batch-resolve without reading each comment
+- Dismiss actionable feedback as "out of scope"
+
+**Rule:** If a review bot flags it and it's not a false positive, fix it.
+
+The `ai-guardrails comments --resolve` command enforces this: messages
+must start with a valid category prefix (`Fixed in`, `False positive:`,
+or `Won't fix:`). Messages without a proper category are rejected.
 
 ## Key Constraints
 
