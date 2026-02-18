@@ -444,19 +444,44 @@ class TestFindInstallationPaths:
             assert (configs_dir / "languages.yaml").exists()
             assert templates_dir.exists()
 
-    def test_global_install_preferred(self, temp_dir: Path) -> None:
-        """Test that global install is preferred when it exists."""
-        global_dir = temp_dir / ".ai-guardrails"
-        configs = global_dir / "configs"
-        templates = global_dir / "templates" / "pre-commit"
-        configs.mkdir(parents=True)
-        templates.mkdir(parents=True)
-        (configs / "languages.yaml").write_text("python: {}")
 
-        with patch.object(Path, "home", return_value=temp_dir):
-            result_configs, result_templates = find_installation_paths()
-            assert result_configs == configs
-            assert result_templates == templates
+def test_local_preferred_over_global(temp_dir: Path) -> None:
+    """Test that local dev paths are preferred when they exist (even with global)."""
+    # Create global install
+    global_dir = temp_dir / ".ai-guardrails"
+    configs = global_dir / "configs"
+    templates = global_dir / "templates" / "pre-commit"
+    configs.mkdir(parents=True)
+    templates.mkdir(parents=True)
+    (configs / "languages.yaml").write_text("python: {}")
+
+    with patch("guardrails._paths._GLOBAL_INSTALL", global_dir):
+        result_configs, _result_templates = find_installation_paths()
+        # Local dev paths should win over global
+        assert result_configs != configs
+
+
+def test_global_fallback_when_no_local(temp_dir: Path) -> None:
+    """Test global install is used when local dev paths don't exist."""
+    global_dir = temp_dir / ".ai-guardrails"
+    configs = global_dir / "configs"
+    templates = global_dir / "templates"
+    pre_commit = templates / "pre-commit"
+    configs.mkdir(parents=True)
+    pre_commit.mkdir(parents=True)
+    (configs / "languages.yaml").write_text("python: {}")
+
+    # Patch _paths.__file__ so _repo_root() resolves to a non-existent local tree,
+    # and _GLOBAL_INSTALL so the global fallback points to our temp dir.
+    fake_script = str(temp_dir / "fake" / "lib" / "python" / "guardrails" / "_paths.py")
+
+    with (
+        patch("guardrails._paths.__file__", fake_script),
+        patch("guardrails._paths._GLOBAL_INSTALL", global_dir),
+    ):
+        result_configs, result_templates = find_installation_paths()
+        assert result_configs == configs
+        assert result_templates == pre_commit
 
 
 # =============================================================================
@@ -511,9 +536,10 @@ class TestMainCLI:
         # Create a project that will generate config with multiline strings
         global_dir = temp_dir / ".ai-guardrails"
         configs = global_dir / "configs"
-        templates = global_dir / "templates" / "pre-commit"
+        templates = global_dir / "templates"
+        pre_commit = templates / "pre-commit"
         configs.mkdir(parents=True)
-        templates.mkdir(parents=True)
+        pre_commit.mkdir(parents=True)
 
         # Create registry
         registry_data = {
@@ -526,7 +552,7 @@ class TestMainCLI:
 
         # Base template
         base_config = {"repos": [{"repo": "base"}]}
-        (templates / "base.yaml").write_text(yaml.dump(base_config))
+        (pre_commit / "base.yaml").write_text(yaml.dump(base_config))
 
         # Python template with multiline description
         python_config = {
@@ -542,12 +568,17 @@ class TestMainCLI:
                 }
             ]
         }
-        (templates / "python.yaml").write_text(yaml.dump(python_config))
+        (pre_commit / "python.yaml").write_text(yaml.dump(python_config))
 
         # Create Python project
         (temp_dir / "pyproject.toml").write_text("")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch _paths so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "lib" / "python" / "guardrails" / "_paths.py")
+        with (
+            patch("guardrails._paths.__file__", fake_script),
+            patch("guardrails._paths._GLOBAL_INSTALL", global_dir),
+        ):
             result = main(["--project-dir", str(temp_dir), "--languages", "python", "--dry-run"])
             assert result == 0
             captured = capsys.readouterr()
@@ -589,14 +620,20 @@ class TestMainCLI:
         # Create fake installation directory without base.yaml
         global_dir = temp_dir / ".ai-guardrails"
         configs = global_dir / "configs"
-        templates = global_dir / "templates" / "pre-commit"
+        templates = global_dir / "templates"
+        pre_commit = templates / "pre-commit"
         configs.mkdir(parents=True)
-        templates.mkdir(parents=True)
+        pre_commit.mkdir(parents=True)
 
         # Create languages.yaml but no base.yaml
         (configs / "languages.yaml").write_text("python: {}")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch _paths so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "lib" / "python" / "guardrails" / "_paths.py")
+        with (
+            patch("guardrails._paths.__file__", fake_script),
+            patch("guardrails._paths._GLOBAL_INSTALL", global_dir),
+        ):
             result = main(["--project-dir", str(temp_dir), "--dry-run"])
             assert result == 1
             captured = capsys.readouterr()
@@ -608,17 +645,23 @@ class TestMainCLI:
         """Test error handling when template contains invalid YAML."""
         global_dir = temp_dir / ".ai-guardrails"
         configs = global_dir / "configs"
-        templates = global_dir / "templates" / "pre-commit"
+        templates = global_dir / "templates"
+        pre_commit = templates / "pre-commit"
         configs.mkdir(parents=True)
-        templates.mkdir(parents=True)
+        pre_commit.mkdir(parents=True)
 
         # Create languages.yaml
         (configs / "languages.yaml").write_text("python: {}")
 
         # Create base.yaml with invalid YAML
-        (templates / "base.yaml").write_text("invalid: yaml: [[[")
+        (pre_commit / "base.yaml").write_text("invalid: yaml: [[[")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch _paths so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "lib" / "python" / "guardrails" / "_paths.py")
+        with (
+            patch("guardrails._paths.__file__", fake_script),
+            patch("guardrails._paths._GLOBAL_INSTALL", global_dir),
+        ):
             result = main(["--project-dir", str(temp_dir), "--dry-run"])
             assert result == 1
             captured = capsys.readouterr()
@@ -630,17 +673,23 @@ class TestMainCLI:
         """Test error handling when template is not a dict (TypeError)."""
         global_dir = temp_dir / ".ai-guardrails"
         configs = global_dir / "configs"
-        templates = global_dir / "templates" / "pre-commit"
+        templates = global_dir / "templates"
+        pre_commit = templates / "pre-commit"
         configs.mkdir(parents=True)
-        templates.mkdir(parents=True)
+        pre_commit.mkdir(parents=True)
 
         # Create languages.yaml
         (configs / "languages.yaml").write_text("python: {}")
 
         # Create base.yaml with list instead of dict
-        (templates / "base.yaml").write_text("- item1\n- item2")
+        (pre_commit / "base.yaml").write_text("- item1\n- item2")
 
-        with patch.object(Path, "home", return_value=temp_dir):
+        # Patch _paths so local-first resolution falls through to global
+        fake_script = str(temp_dir / "fake" / "lib" / "python" / "guardrails" / "_paths.py")
+        with (
+            patch("guardrails._paths.__file__", fake_script),
+            patch("guardrails._paths._GLOBAL_INSTALL", global_dir),
+        ):
             result = main(["--project-dir", str(temp_dir), "--dry-run"])
             assert result == 1
             captured = capsys.readouterr()

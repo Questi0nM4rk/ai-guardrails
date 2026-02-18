@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from guardrails.hooks.suppress_comments import (
+    _MAX_VIOLATIONS_PER_PATTERN,
     _infer_extension,
     _is_allowlisted,
     _is_test_file,
@@ -236,6 +237,35 @@ class TestMain:
         captured = capsys.readouterr()
         assert "ERROR" in captured.out
         assert "noqa" in captured.out.lower()
+
+
+def test_truncation_notice_when_many_violations(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When violations exceed the display limit, a truncation notice should appear."""
+    overflow = _MAX_VIOLATIONS_PER_PATTERN + 5
+    lines = [f"x{i} = 1  # noqa: E501\n" for i in range(overflow)]
+    f = tmp_path / "many.py"
+    f.write_text("".join(lines))
+    with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
+        main([str(f)])
+    captured = capsys.readouterr()
+    expected_hidden = overflow - _MAX_VIOLATIONS_PER_PATTERN
+    assert f"and {expected_hidden} more" in captured.out
+    assert f"showing first {_MAX_VIOLATIONS_PER_PATTERN}" in captured.out
+
+
+def test_no_truncation_notice_under_limit(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When violations are under the limit, no truncation notice should appear."""
+    lines = [f"x{i} = 1  # noqa: E501\n" for i in range(3)]
+    f = tmp_path / "few.py"
+    f.write_text("".join(lines))
+    with patch("guardrails.hooks.suppress_comments._is_test_file", return_value=False):
+        main([str(f)])
+    captured = capsys.readouterr()
+    assert "more" not in captured.out
 
 
 class TestMainTestFileSkipping:
