@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from guardrails.status import (
+    _BOT_CONFIGS,
     _EXPECTED_HOOKS,
     Check,
     CheckResult,
@@ -22,6 +23,14 @@ from guardrails.status import (
     check_review_bots,
     run_status,
 )
+
+
+def test_bot_configs_only_contains_coderabbit() -> None:
+    """DeepSource and Gemini were removed; only CodeRabbit remains in _BOT_CONFIGS."""
+    bot_names = [name for _, name in _BOT_CONFIGS]
+    assert bot_names == ["CodeRabbit"]
+    assert not any("DeepSource" in name for _, name in _BOT_CONFIGS)
+    assert not any("Gemini" in name for _, name in _BOT_CONFIGS)
 
 
 @pytest.fixture
@@ -135,18 +144,11 @@ class TestCheckAgentInstructions:
 
 
 class TestCheckReviewBots:
-    def test_ok_when_all_present(self, project_dir: Path) -> None:
+    def test_ok_when_coderabbit_present(self, project_dir: Path) -> None:
+        """Only CodeRabbit is checked -- DeepSource and Gemini were removed."""
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        (project_dir / ".deepsource.toml").write_text("version = 1\n")
-        (project_dir / ".gemini").mkdir()
-        (project_dir / ".gemini" / "config.yaml").write_text("platform: github\n")
         result = check_review_bots(project_dir)
         assert result.status == "ok"
-
-    def test_warn_when_partial(self, project_dir: Path) -> None:
-        (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        result = check_review_bots(project_dir)
-        assert result.status == "warn"
 
 
 def test_review_bots_skip_when_no_bots(project_dir: Path) -> None:
@@ -240,11 +242,8 @@ class TestRunStatus:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         (project_dir / ".editorconfig").write_text("root = true\n")
         (project_dir / "CLAUDE.md").write_text("## AI Guardrails - Code Standards\n")
-        # Review bot configs needed for healthy status
+        # Review bot config needed for healthy status (only CodeRabbit remains)
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        (project_dir / ".deepsource.toml").write_text("version = 1\n")
-        (project_dir / ".gemini").mkdir()
-        (project_dir / ".gemini" / "config.yaml").write_text("platform: github\n")
 
         with patch("shutil.which", return_value="/usr/bin/pre-commit"):
             rc = run_status(project_dir=project_dir)

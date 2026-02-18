@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from guardrails.comments import (
+    BOT_ALIASES,
     _clean_body,
     _resolve_bot_name,
     _short_bot_name,
@@ -14,6 +15,18 @@ from guardrails.comments import (
     format_json,
     parse_thread,
 )
+
+# ---------------------------------------------------------------------------
+# BOT_ALIASES sanity check
+# ---------------------------------------------------------------------------
+
+
+def test_bot_aliases_only_contains_coderabbit_and_claude() -> None:
+    """DeepSource and Gemini bots were removed; only coderabbit and claude remain."""
+    assert "deepsource" not in BOT_ALIASES
+    assert "gemini" not in BOT_ALIASES
+    assert set(BOT_ALIASES.keys()) == {"coderabbit", "claude"}
+
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
@@ -102,10 +115,11 @@ class TestParseThread:
         assert parse_thread(node) is None
 
     def test_strips_bot_suffix(self) -> None:
-        node = _make_graphql_node(author="deepsource-io[bot]")
+        """Bot suffix [bot] is stripped from author login."""
+        node = _make_graphql_node(author="coderabbitai[bot]")
         result = parse_thread(node)
         assert result is not None
-        assert result["bot"] == "deepsource-io"
+        assert result["bot"] == "coderabbitai"
 
     def test_reply_count_with_multiple_comments(self) -> None:
         node = _make_graphql_node()
@@ -172,9 +186,8 @@ class TestHelpers:
         assert _truncate("abcdef", 1) == "a"
 
     def test_short_bot_name_known(self) -> None:
+        """Only coderabbit and claude are registered bot aliases."""
         assert _short_bot_name("coderabbitai") == "coderabbit"
-        assert _short_bot_name("deepsource-io") == "deepsource"
-        assert _short_bot_name("gemini-code-assist") == "gemini"
         assert _short_bot_name("claude") == "claude"
 
     def test_short_bot_name_unknown_passthrough(self) -> None:
@@ -190,18 +203,18 @@ class TestResolveBotName:
     """Test bot alias resolution."""
 
     def test_short_alias_to_login(self) -> None:
+        """Only coderabbit and claude aliases are registered."""
         assert _resolve_bot_name("coderabbit") == "coderabbitai"
-        assert _resolve_bot_name("deepsource") == "deepsource-io"
-        assert _resolve_bot_name("gemini") == "gemini-code-assist"
         assert _resolve_bot_name("claude") == "claude"
 
     def test_case_insensitive(self) -> None:
+        """Alias resolution is case-insensitive."""
         assert _resolve_bot_name("CodeRabbit") == "coderabbitai"
-        assert _resolve_bot_name("DEEPSOURCE") == "deepsource-io"
+        assert _resolve_bot_name("CLAUDE") == "claude"
 
     def test_full_login_passthrough(self) -> None:
+        """Full GitHub login names pass through unchanged."""
         assert _resolve_bot_name("coderabbitai") == "coderabbitai"
-        assert _resolve_bot_name("deepsource-io") == "deepsource-io"
 
     def test_unknown_name_passthrough(self) -> None:
         assert _resolve_bot_name("some-bot") == "some-bot"
@@ -216,9 +229,10 @@ class TestFilterThreads:
     """Test thread filtering by bot and resolution status."""
 
     def test_filters_by_single_bot(self) -> None:
+        """Filter by a single registered bot alias."""
         threads = [
             _make_thread(bot="coderabbitai"),
-            _make_thread(bot="deepsource-io", thread_id="PRRT_2"),
+            _make_thread(bot="some-other-bot", thread_id="PRRT_2"),
             _make_thread(bot="claude", thread_id="PRRT_3"),
         ]
         result = filter_threads(threads, bots=["coderabbit"], unresolved_only=False)
@@ -226,9 +240,10 @@ class TestFilterThreads:
         assert result[0]["bot"] == "coderabbitai"
 
     def test_filters_by_multiple_bots(self) -> None:
+        """Filter by multiple bot aliases at once."""
         threads = [
             _make_thread(bot="coderabbitai"),
-            _make_thread(bot="deepsource-io", thread_id="PRRT_2"),
+            _make_thread(bot="some-other-bot", thread_id="PRRT_2"),
             _make_thread(bot="claude", thread_id="PRRT_3"),
         ]
         result = filter_threads(threads, bots=["coderabbit", "claude"], unresolved_only=False)
@@ -262,10 +277,11 @@ class TestFilterThreads:
         assert len(result) == 1
 
     def test_no_filter_returns_all_unresolved(self) -> None:
+        """Without bot filter, all unresolved threads are returned."""
         threads = [
             _make_thread(bot="coderabbitai"),
             _make_thread(bot="claude", thread_id="PRRT_2"),
-            _make_thread(bot="deepsource-io", thread_id="PRRT_3", resolved=True),
+            _make_thread(bot="some-bot", thread_id="PRRT_3", resolved=True),
         ]
         result = filter_threads(threads)
         assert len(result) == 2
