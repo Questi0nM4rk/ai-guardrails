@@ -17,6 +17,8 @@ from typing import Any
 
 import yaml
 
+from guardrails._paths import find_configs_dir, find_templates_dir
+
 
 def load_registry(registry_path: Path) -> dict[str, Any]:
     """Load language registry from YAML file.
@@ -198,33 +200,24 @@ def write_config(config: dict[str, Any], output_path: Path) -> None:
 def find_installation_paths() -> tuple[Path, Path]:
     """Find configs and templates directories.
 
-    Checks:
-    1. Local development paths relative to this script
-    2. Global installation at ~/.ai-guardrails/
+    Delegates to :mod:`guardrails._paths` which handles both local development
+    and global (~/.ai-guardrails/) installations.
 
     Returns:
-        Tuple of (configs_dir, templates_dir)
+        Tuple of (configs_dir, templates_dir) where templates_dir points to
+        the ``templates/pre-commit`` subdirectory.
 
     Raises:
         FileNotFoundError: If installation directories not found
 
     """
-    # Local development paths first (matches _paths.py)
-    # guardrails/assemble.py -> guardrails -> python -> lib -> repo root
-    script_dir = Path(__file__).resolve().parent
-    repo_root = script_dir.parent.parent.parent
-    configs_dir = repo_root / "configs"
-    templates_dir = repo_root / "templates" / "pre-commit"
-    if (configs_dir / "languages.yaml").exists():
-        return configs_dir, templates_dir
-
-    # Fall back to global installation
-    global_install = Path.home() / ".ai-guardrails"
-    if (global_install / "configs" / "languages.yaml").exists():
-        return global_install / "configs", global_install / "templates" / "pre-commit"
-
-    msg = "Could not find AI Guardrails installation"
-    raise FileNotFoundError(msg)
+    try:
+        configs_dir = find_configs_dir()
+        templates_dir = find_templates_dir() / "pre-commit"
+    except FileNotFoundError:
+        msg = "Could not find AI Guardrails installation"
+        raise FileNotFoundError(msg) from None
+    return configs_dir, templates_dir
 
 
 def main(args: list[str] | None = None) -> int:

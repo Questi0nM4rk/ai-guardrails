@@ -43,25 +43,29 @@ class TestFormattersDict:
         assert ".toml" in _FORMATTERS
         assert _FORMATTERS[".toml"][0][0] == "taplo"
 
-    def test_rust_formatter(self) -> None:
-        assert ".rs" in _FORMATTERS
-        assert _FORMATTERS[".rs"][0][0] == "rustfmt"
 
-    def test_lua_formatter(self) -> None:
-        assert ".lua" in _FORMATTERS
-        assert _FORMATTERS[".lua"][0][0] == "stylua"
+def test_rust_formatter() -> None:
+    assert ".rs" in _FORMATTERS
+    assert _FORMATTERS[".rs"][0][0] == "rustfmt"
 
-    def test_go_formatter(self) -> None:
-        assert ".go" in _FORMATTERS
-        cmds = _FORMATTERS[".go"][0]
-        assert cmds[0] == "gofmt"
-        assert "-w" in cmds
 
-    def test_c_cpp_formatters(self) -> None:
-        for ext in (".c", ".cpp", ".h", ".hpp"):
-            assert ext in _FORMATTERS, f"Missing formatter for {ext}"
-            assert _FORMATTERS[ext][0][0] == "clang-format"
-            assert "-i" in _FORMATTERS[ext][0]
+def test_lua_formatter() -> None:
+    assert ".lua" in _FORMATTERS
+    assert _FORMATTERS[".lua"][0][0] == "stylua"
+
+
+def test_go_formatter() -> None:
+    assert ".go" in _FORMATTERS
+    cmds = _FORMATTERS[".go"][0]
+    assert cmds[0] == "gofmt"
+    assert "-w" in cmds
+
+
+def test_c_cpp_formatters() -> None:
+    for ext in (".c", ".cpp", ".cc", ".cxx", ".h", ".hpp"):
+        assert ext in _FORMATTERS, f"Missing formatter for {ext}"
+        assert _FORMATTERS[ext][0][0] == "clang-format"
+        assert "-i" in _FORMATTERS[ext][0]
 
 
 class TestGitStagedFiles:

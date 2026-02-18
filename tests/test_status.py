@@ -148,10 +148,11 @@ class TestCheckReviewBots:
         result = check_review_bots(project_dir)
         assert result.status == "warn"
 
-    def test_skip_when_no_bots(self, project_dir: Path) -> None:
-        result = check_review_bots(project_dir)
-        assert result.status == "skip"
-        assert "no review bot" in result.message.lower()
+
+def test_review_bots_skip_when_no_bots(project_dir: Path) -> None:
+    result = check_review_bots(project_dir)
+    assert result.status == "skip"
+    assert "no review bot" in result.message.lower()
 
 
 class TestCheckCiWorkflow:

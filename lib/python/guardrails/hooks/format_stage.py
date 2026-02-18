@@ -61,6 +61,12 @@ _FORMATTERS: dict[str, list[list[str]]] = {
     ".cpp": [
         ["clang-format", "-i"],
     ],
+    ".cc": [
+        ["clang-format", "-i"],
+    ],
+    ".cxx": [
+        ["clang-format", "-i"],
+    ],
     ".h": [
         ["clang-format", "-i"],
     ],

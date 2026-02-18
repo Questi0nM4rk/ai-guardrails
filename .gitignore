@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .pytest_cache/
+.ruff_cache/
 *.egg-info/
 dist/
 build/
@@ -28,4 +29,3 @@ Thumbs.db
 .test/
 .claude/
 .coverage
-configs/.ruff_cache/
