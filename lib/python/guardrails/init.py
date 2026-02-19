@@ -355,7 +355,7 @@ def _install_pretooluse_hook(
 def _install_claude_hook() -> None:
     """Install the protect-generated-configs PreToolUse hook."""
     _install_pretooluse_hook(
-        hook_cmd="~/.ai-guardrails/hooks/protect-generated-configs.sh",
+        hook_cmd=f"{Path.home()}/.ai-guardrails/hooks/protect-generated-configs.sh",
         matcher="Write|Edit",
         check_substring="protect-generated-configs",
         label="Claude Code PreToolUse hook",
@@ -365,7 +365,7 @@ def _install_claude_hook() -> None:
 def _install_dangerous_cmd_hook() -> None:
     """Install the dangerous-command-check PreToolUse hook."""
     _install_pretooluse_hook(
-        hook_cmd="~/.ai-guardrails/hooks/dangerous-command-check.sh",
+        hook_cmd=f"{Path.home()}/.ai-guardrails/hooks/dangerous-command-check.sh",
         matcher="Bash",
         check_substring="dangerous-command-check",
         label="Dangerous command check hook",
