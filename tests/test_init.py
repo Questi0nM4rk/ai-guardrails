@@ -24,11 +24,8 @@ from guardrails.init import (
     _generate_from_registry,
     _has_python,
     _install_ci_workflow,
-    _install_claude_review,
     _install_coderabbit,
     _install_dangerous_cmd_hook,
-    _install_deepsource,
-    _install_gemini,
     _install_precommit_hooks,
     _install_pretooluse_hook,
     _is_github_project,
@@ -80,12 +77,9 @@ def templates(tmp_path: Path) -> Path:
     wf = d / "workflows"
     wf.mkdir()
     (wf / "check.yml").write_text("name: check\n")
-    (wf / "claude-review.yml").write_text("name: claude\n")
+    (wf / "pr-agent.yml").write_text("name: pr-agent\n")
     (d / ".coderabbit.yaml").write_text("reviews:\n")
-    gem = d / ".gemini"
-    gem.mkdir()
-    (gem / "settings.yaml").write_text("model: gemini\n")
-    (d / ".deepsource.toml").write_text("[analyzers]\n")
+    (d / ".pr_agent.toml").write_text("[pr_reviewer]\n")
     (d / "CLAUDE.md.guardrails").write_text("## AI Guardrails - Code Standards\nRules here.\n")
     return d
 
@@ -663,30 +657,6 @@ def test_install_ci_workflow_no_template(
 
 
 # ---------------------------------------------------------------------------
-# _install_claude_review
-# ---------------------------------------------------------------------------
-
-
-def test_install_claude_review_copies(templates: Path, project: Path) -> None:
-    """_install_claude_review creates claude-review.yml."""
-    _install_claude_review(templates, project, force=True)
-    assert (project / ".github" / "workflows" / "claude-review.yml").exists()
-
-
-def test_install_claude_review_no_template(
-    project: Path,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """_install_claude_review warns when template is missing."""
-    empty = tmp_path / "empty"
-    empty.mkdir()
-    (empty / "workflows").mkdir()
-    _install_claude_review(empty, project, force=True)
-    assert "not found" in capsys.readouterr().out
-
-
-# ---------------------------------------------------------------------------
 # _install_coderabbit
 # ---------------------------------------------------------------------------
 
@@ -706,52 +676,6 @@ def test_install_coderabbit_no_template(
     empty = tmp_path / "empty"
     empty.mkdir()
     _install_coderabbit(empty, project, force=True)
-    assert "not found" in capsys.readouterr().out
-
-
-# ---------------------------------------------------------------------------
-# _install_gemini
-# ---------------------------------------------------------------------------
-
-
-def test_install_gemini_copies(templates: Path, project: Path) -> None:
-    """_install_gemini creates .gemini/ directory with config files."""
-    _install_gemini(templates, project, force=True)
-    assert (project / ".gemini" / "settings.yaml").exists()
-
-
-def test_install_gemini_no_template(
-    project: Path,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """_install_gemini warns when .gemini template dir is missing."""
-    empty = tmp_path / "empty"
-    empty.mkdir()
-    _install_gemini(empty, project, force=True)
-    assert "not found" in capsys.readouterr().out
-
-
-# ---------------------------------------------------------------------------
-# _install_deepsource
-# ---------------------------------------------------------------------------
-
-
-def test_install_deepsource_copies(templates: Path, project: Path) -> None:
-    """_install_deepsource creates .deepsource.toml."""
-    _install_deepsource(templates, project, force=True)
-    assert (project / ".deepsource.toml").exists()
-
-
-def test_install_deepsource_no_template(
-    project: Path,
-    tmp_path: Path,
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    """_install_deepsource warns when template is missing."""
-    empty = tmp_path / "empty"
-    empty.mkdir()
-    _install_deepsource(empty, project, force=True)
     assert "not found" in capsys.readouterr().out
 
 
@@ -912,10 +836,8 @@ def test_dry_run_report_outputs_would_actions(
             skip_precommit=False,
             pip_audit_mode="auto",
             install_ci="no",
-            install_claude_review="no",
             install_coderabbit="no",
-            install_gemini="no",
-            install_deepsource="no",
+            install_pr_agent="no",
         )
     out = capsys.readouterr().out
     assert "would" in out
@@ -937,10 +859,8 @@ def test_dry_run_report_all_type(
             skip_precommit=True,
             pip_audit_mode="auto",
             install_ci="no",
-            install_claude_review="no",
             install_coderabbit="no",
-            install_gemini="no",
-            install_deepsource="no",
+            install_pr_agent="no",
         )
     out = capsys.readouterr().out
     assert "would" in out
@@ -961,10 +881,8 @@ def test_dry_run_report_github_integrations(
             skip_precommit=False,
             pip_audit_mode="auto",
             install_ci="auto",
-            install_claude_review="auto",
             install_coderabbit="auto",
-            install_gemini="auto",
-            install_deepsource="auto",
+            install_pr_agent="auto",
         )
     out = capsys.readouterr().out
     assert "CI workflow" in out
@@ -985,10 +903,8 @@ def test_dry_run_report_skip_precommit(
             skip_precommit=True,
             pip_audit_mode="auto",
             install_ci="no",
-            install_claude_review="no",
             install_coderabbit="no",
-            install_gemini="no",
-            install_deepsource="no",
+            install_pr_agent="no",
         )
     out = capsys.readouterr().out
     assert "pre-commit install" not in out
@@ -1119,10 +1035,8 @@ def test_run_init_ci_yes(
             project_type="python",
             force=True,
             install_ci="yes",
-            install_claude_review="no",
             install_coderabbit="no",
-            install_gemini="no",
-            install_deepsource="no",
+            install_pr_agent="no",
         )
     assert rc == 0
     assert (project / ".github" / "workflows" / "check.yml").exists()
