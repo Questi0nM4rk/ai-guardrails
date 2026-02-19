@@ -321,9 +321,10 @@ class TestRunCommentsResolve:
         mock_run.side_effect = [
             _repo_info_result(),  # repo info
             _graphql_result(),  # fetch threads
+            _make_subprocess_result(),  # reply POST
             _make_subprocess_result(),  # resolve mutation
         ]
-        result = run_comments(pr=31, resolve=("PRRT_abc", None))
+        result = run_comments(pr=31, resolve=("PRRT_abc", "Fixed in abc1234"))
         assert result == 0
 
     @patch(_PATCH_SUBPROCESS_RUN)
@@ -334,7 +335,7 @@ class TestRunCommentsResolve:
             _make_subprocess_result(),  # reply POST
             _make_subprocess_result(),  # resolve mutation
         ]
-        result = run_comments(pr=31, resolve=("PRRT_abc", "Fixed in abc1234."))
+        result = run_comments(pr=31, resolve=("PRRT_abc", "Fixed in abc1234"))
         assert result == 0
         # 4 subprocess calls: repo info, graphql, reply, resolve
         assert mock_run.call_count == 4
@@ -347,7 +348,7 @@ class TestRunCommentsResolve:
             _graphql_result(),  # fetch threads
             _make_subprocess_result(returncode=1),  # reply POST fails
         ]
-        result = run_comments(pr=31, resolve=("PRRT_abc", "Fixed."))
+        result = run_comments(pr=31, resolve=("PRRT_abc", "Fixed in abc1234"))
         assert result == 1
 
     @patch(_PATCH_SUBPROCESS_RUN)
@@ -355,7 +356,7 @@ class TestRunCommentsResolve:
         self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
         mock_run.side_effect = [_repo_info_result(), _graphql_result()]
-        result = run_comments(pr=31, resolve=("PRRT_nonexistent", None))
+        result = run_comments(pr=31, resolve=("PRRT_nonexistent", "Fixed in abc1234"))
         assert result == 1
         captured = capsys.readouterr()
         assert "not found" in captured.err
@@ -397,7 +398,7 @@ class TestRunCommentsResolve:
             _make_subprocess_result(stdout=thread_data),
             _make_subprocess_result(),  # resolve mutation
         ]
-        result = run_comments(pr=31, resolve=("PRRT_noid", "Fixed."))
+        result = run_comments(pr=31, resolve=("PRRT_noid", "Fixed in abc1234"))
         assert result == 0
         captured = capsys.readouterr()
         assert "reply skipped" in captured.err
@@ -468,7 +469,7 @@ class TestRunCommentsResolveAll:
             _make_subprocess_result(),  # reply PRRT_def
             _make_subprocess_result(),  # resolve PRRT_def
         ]
-        result = run_comments(pr=31, resolve_all=True, resolve_all_body="Acknowledged.")
+        result = run_comments(pr=31, resolve_all=True, resolve_all_body="Fixed in abc1234")
         assert result == 0
         captured = capsys.readouterr()
         assert "Resolved 2" in captured.err
@@ -485,7 +486,7 @@ class TestRunCommentsResolveAll:
             _make_subprocess_result(),  # reply PRRT_def
             _make_subprocess_result(),  # resolve PRRT_def
         ]
-        result = run_comments(pr=31, resolve_all=True, resolve_all_body="Done.")
+        result = run_comments(pr=31, resolve_all=True, resolve_all_body="Fixed in abc1234")
         assert result == 1  # has failures
         captured = capsys.readouterr()
         assert "1 failed" in captured.err
