@@ -46,7 +46,7 @@ addopts = "-v --tb=short"
 [tool.coverage.run]
 source = ["lib/installers", "lib/python/guardrails"]
 branch = true
-omit = ["lib/python/guardrails/init.py", "lib/python/guardrails/__main__.py"]
+omit = ["lib/python/guardrails/__main__.py"]
 
 [tool.coverage.report]
 exclude_lines = [

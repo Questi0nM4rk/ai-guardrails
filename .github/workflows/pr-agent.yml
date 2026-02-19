@@ -1,0 +1,27 @@
+# PR-Agent (Qodo Merge) -- AI Code Review
+# https://github.com/qodo-ai/pr-agent
+#
+# SETUP: Add OPENROUTER_KEY to GitHub repo/org secrets
+# Uses OpenRouter API (OpenAI-compatible) for model access
+#
+# Auto-reviews on PR open. Manual commands via PR comments:
+#   /review    /improve    /describe    /ask "question"
+name: PR-Agent
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+  issue_comment:
+
+jobs:
+  pr-agent:
+    if: ${{ github.event.sender.type != 'Bot' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: qodo-ai/pr-agent@main
+        env:
+          OPENAI_KEY: ${{ secrets.OPENROUTER_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -70,7 +70,7 @@ ai-guardrails comments --pr <NUMBER>
 
 # Filter by bot
 ai-guardrails comments --pr <NUMBER> --bot claude
-ai-guardrails comments --pr <NUMBER> --bot coderabbit,gemini
+ai-guardrails comments --pr <NUMBER> --bot coderabbit
 
 # Reply to a thread
 ai-guardrails comments --pr <NUMBER> --reply PRRT_abc123 "Fixed in commit xyz."
@@ -81,13 +81,13 @@ ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "False positive: not 
 ai-guardrails comments --pr <NUMBER> --resolve PRRT_abc123 "Won't fix: intentional design"
 
 # Batch resolve all threads from a bot
-ai-guardrails comments --pr <NUMBER> --resolve-all --bot deepsource
+ai-guardrails comments --pr <NUMBER> --resolve-all --bot coderabbit
 
 # Full JSON output
 ai-guardrails comments --pr <NUMBER> --json
 ```
 
-**Supported bots:** CodeRabbit, Claude, Gemini, DeepSource
+**Supported bots:** CodeRabbit, Claude, PR-Agent
 
 **Data flow:**
 
@@ -116,41 +116,47 @@ uv run pytest tests/ --cov=lib/python/guardrails --cov-report=term-missing
 
 | Bot | Focus | Trigger |
 |-----|-------|---------|
+| PR-Agent | Semantic code review, inline suggestions | **Auto** on PR open; manual `/review`, `/improve` |
 | CodeRabbit | Static analysis, security, language conventions | **Manual only** (`@coderabbitai review`) |
-| Claude | Code duplication, clean code, modern patterns, architecture | Auto on push |
-| Gemini | Bugs, logic errors, security, performance | Auto on push |
-| DeepSource | Anti-patterns, OWASP, code metrics | Auto on push |
+| Claude | Code quality, architecture, modern patterns | **Manual** (`@claude` in PR comment) |
+
+### PR-Agent Setup
+
+PR-Agent (Qodo Merge OSS) uses OpenRouter for LLM access. Setup:
+
+1. Add `OPENROUTER_KEY` to your GitHub repo/org secrets
+2. PR-Agent auto-reviews on PR open (`opened`, `reopened`, `ready_for_review`)
+3. Manual commands (comment on PR): `/review`, `/improve`, `/describe`, `/ask "question"`
+
+PR-Agent is **LLM-only** -- it does not run static analysis. Pre-commit hooks handle linting.
+
+Config: `.pr_agent.toml` | Workflow: `.github/workflows/pr-agent.yml`
 
 ### CodeRabbit Review Workflow
 
 CodeRabbit is rate-limited (3 reviews/hour on free tier). Auto-review is
 disabled to avoid wasting reviews on WIP pushes.
 
-1. Push changes — CI, Claude, Gemini, and DeepSource run automatically
-2. Resolve ALL their comments first
-3. Only then trigger CodeRabbit: comment `@coderabbitai review` on the PR
-4. For a full re-review: `@coderabbitai full review`
+1. Push changes -- CI runs automatically
+2. When ready for review, trigger CodeRabbit: comment `@coderabbitai review` on the PR
+3. For a full re-review: `@coderabbitai full review`
 
 ### Rules for AI Agents
 
-Every push triggers 3 auto-review bots (Claude, Gemini, DeepSource).
-CodeRabbit must be triggered manually. Unnecessary pushes waste review
-cycles and create noise.
+Review bots are triggered on PR open (PR-Agent) or manually (CodeRabbit, Claude).
+Unnecessary pushes waste CI cycles and create noise.
 
-1. **Complete all changes before pushing** — Finish the entire task locally
+1. **Complete all changes before pushing** -- Finish the entire task locally
    (all files, all fixes, all tests passing). Do not push work-in-progress
-2. **Never auto-push** — Always ask the human before running `git push`.
+2. **Never auto-push** -- Always ask the human before running `git push`.
    Explain what changed and confirm they want a review
-3. **Batch into minimal commits** — Group related changes into logical
+3. **Batch into minimal commits** -- Group related changes into logical
    commits. Push them all at once
-4. **Address ALL review feedback before pushing again** — When bots request
+4. **Address ALL review feedback before pushing again** -- When bots request
    changes, fix every comment locally, then push once. Do not push after
    each individual fix
-5. **Wait for auto-review bots** — After pushing, wait for Claude, Gemini,
-   and DeepSource reviews to complete (~5 min) before acting on feedback
-6. **Trigger CodeRabbit last** — Only after all other bot comments are
-   resolved, trigger `@coderabbitai review`. This is the final gate before
-   merge
+5. **Trigger CodeRabbit when ready** -- Comment `@coderabbitai review` as
+   the final gate before merge
 
 ### Review Thread Resolution Protocol
 

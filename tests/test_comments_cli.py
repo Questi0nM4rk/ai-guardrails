@@ -73,7 +73,7 @@ _GRAPHQL_THREADS = json.dumps(
                         {
                             "id": "PRRC_3",
                             "databaseId": 1003,
-                            "author": {"login": "deepsource-io[bot]"},
+                            "author": {"login": "some-reviewer[bot]"},
                             "body": "Unused variable.",
                             "path": "lib/baz.py",
                             "line": 5,
@@ -614,7 +614,7 @@ class TestRunCommentsErrors:
     def test_empty_bot_filter_ignored(
         self, mock_run: MagicMock, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        """Bot filter with empty segments like 'claude,,deepsource' should work."""
+        """Bot filter with empty segments like 'claude,,' should work."""
         mock_run.side_effect = [_repo_info_result(), _graphql_result()]
         result = run_comments(pr=31, bot="claude,,")
         assert result == 0
