@@ -8,7 +8,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from guardrails.init import run_init
+from guardrails.init import (
+    _install_claude_hook,
+    _install_dangerous_cmd_hook,
+    run_init,
+)
 
 _PATCHES = (
     "guardrails.init._install_precommit_hooks",
@@ -121,3 +125,48 @@ def test_dry_run_reports_actions(project_dir: Path, capsys: pytest.CaptureFixtur
     assert "would" in captured.out
     assert ".editorconfig" in captured.out
     assert "ruff.toml" in captured.out
+
+
+def test_claude_hook_uses_expanded_path(tmp_path: Path) -> None:
+    """_install_claude_hook must use expanded home path, not tilde (~).
+
+    Tilde is not expanded by all shells/contexts, so hook_cmd should
+    use the full absolute path via Path.home().
+    """
+    import json
+
+    settings_path = tmp_path / ".claude" / "settings.json"
+
+    with patch("guardrails.init.Path.home", return_value=tmp_path):
+        _install_claude_hook()
+
+    assert settings_path.exists()
+    settings = json.loads(settings_path.read_text())
+    hooks = settings["hooks"]["PreToolUse"]
+    assert len(hooks) == 1
+    cmd = hooks[0]["hooks"][0]["command"]
+    # Must NOT contain tilde
+    assert "~" not in cmd, f"Hook command contains tilde: {cmd}"
+    # Must contain the expanded home path
+    assert str(tmp_path) in cmd
+
+
+def test_dangerous_cmd_hook_uses_expanded_path(tmp_path: Path) -> None:
+    """_install_dangerous_cmd_hook must use expanded home path, not tilde (~).
+
+    Same rationale as test_claude_hook_uses_expanded_path.
+    """
+    import json
+
+    settings_path = tmp_path / ".claude" / "settings.json"
+
+    with patch("guardrails.init.Path.home", return_value=tmp_path):
+        _install_dangerous_cmd_hook()
+
+    assert settings_path.exists()
+    settings = json.loads(settings_path.read_text())
+    hooks = settings["hooks"]["PreToolUse"]
+    assert len(hooks) == 1
+    cmd = hooks[0]["hooks"][0]["command"]
+    assert "~" not in cmd, f"Hook command contains tilde: {cmd}"
+    assert str(tmp_path) in cmd
