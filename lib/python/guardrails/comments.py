@@ -32,6 +32,14 @@ _MAX_PAGES = 20
 _MIN_BOT_COL = 8
 _MIN_LOC_COL = 10
 
+# Valid category prefixes for resolve messages.
+# Each resolve reply must start with one of these.
+VALID_RESOLVE_CATEGORIES: tuple[str, ...] = (
+    "Fixed in",
+    "False positive:",
+    "Won't fix:",
+)
+
 BOT_ALIASES: dict[str, str] = {
     "coderabbit": "coderabbitai",
     "claude": "claude",
@@ -92,6 +100,44 @@ mutation($threadId: ID!) {
   }
 }
 """
+
+
+# ---------------------------------------------------------------------------
+# Resolve message validation
+# ---------------------------------------------------------------------------
+
+
+def validate_resolve_message(message: str | None) -> bool:
+    """Check that a resolve message starts with a valid category prefix.
+
+    Valid prefixes (case-insensitive):
+    - ``Fixed in <commit-hash>``
+    - ``False positive: <reason>``
+    - ``Won't fix: <reason>`` (straight or curly apostrophe)
+
+    The message must also contain content after the prefix (e.g. a commit hash
+    or an explanation).
+
+    Returns True if valid, False otherwise.
+    """
+    if message is None:
+        return False
+
+    stripped = message.strip()
+    if not stripped:
+        return False
+
+    lower = stripped.lower()
+    # Normalize curly apostrophe to straight
+    lower = lower.replace("\u2019", "'")
+
+    for category in VALID_RESOLVE_CATEGORIES:
+        cat_lower = category.lower()
+        if lower.startswith(cat_lower):
+            # Must have content after the prefix
+            rest = stripped[len(cat_lower) :].strip()
+            return len(rest) > 0
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -528,6 +574,14 @@ def run_comments(
     # Handle resolve action
     if resolve is not None:
         thread_id, body = resolve
+        if not validate_resolve_message(body):
+            cats = ", ".join(VALID_RESOLVE_CATEGORIES)
+            print(
+                f"Error: Resolve message requires a valid category prefix: {cats}\n"
+                "See 'Review Thread Resolution Protocol' in CLAUDE.md.",
+                file=sys.stderr,
+            )
+            return 1
         target = _find_thread(all_threads, thread_id)
         if target is None:
             return 1
@@ -545,6 +599,14 @@ def run_comments(
 
     # Handle resolve-all action
     if resolve_all:
+        if resolve_all_body is not None and not validate_resolve_message(resolve_all_body):
+            cats = ", ".join(VALID_RESOLVE_CATEGORIES)
+            print(
+                f"Error: Resolve message requires a valid category prefix: {cats}\n"
+                "See 'Review Thread Resolution Protocol' in CLAUDE.md.",
+                file=sys.stderr,
+            )
+            return 1
         filtered = filter_threads(all_threads, bots=bot_list, unresolved_only=True)
         if not filtered:
             print("No unresolved threads to resolve", file=sys.stderr)
