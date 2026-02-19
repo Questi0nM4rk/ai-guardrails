@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 
 from guardrails.comments import (
+    BOT_ALIASES,
     _clean_body,
+    _detect_pr_agent,
     _resolve_bot_name,
     _short_bot_name,
     _truncate,
@@ -14,6 +16,24 @@ from guardrails.comments import (
     format_json,
     parse_thread,
 )
+
+# ---------------------------------------------------------------------------
+# BOT_ALIASES sanity check
+# ---------------------------------------------------------------------------
+
+
+def test_bot_aliases_contains_expected_bots() -> None:
+    """BOT_ALIASES includes coderabbit, claude, and pr-agent."""
+    assert "coderabbit" in BOT_ALIASES
+    assert "claude" in BOT_ALIASES
+    assert "pr-agent" in BOT_ALIASES
+    # PR-Agent maps to "pr-agent" (the detected bot name from parse_thread),
+    # not "github-actions" (the raw GitHub login), because content-based
+    # detection overrides the bot name before filtering.
+    assert BOT_ALIASES["pr-agent"] == "pr-agent"
+    assert "deepsource" not in BOT_ALIASES
+    assert "gemini" not in BOT_ALIASES
+
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
@@ -102,10 +122,11 @@ class TestParseThread:
         assert parse_thread(node) is None
 
     def test_strips_bot_suffix(self) -> None:
-        node = _make_graphql_node(author="deepsource-io[bot]")
+        """Bot suffix [bot] is stripped from author login."""
+        node = _make_graphql_node(author="coderabbitai[bot]")
         result = parse_thread(node)
         assert result is not None
-        assert result["bot"] == "deepsource-io"
+        assert result["bot"] == "coderabbitai"
 
     def test_reply_count_with_multiple_comments(self) -> None:
         node = _make_graphql_node()
@@ -172,10 +193,10 @@ class TestHelpers:
         assert _truncate("abcdef", 1) == "a"
 
     def test_short_bot_name_known(self) -> None:
+        """Registered bot aliases: coderabbit, claude, and pr-agent."""
         assert _short_bot_name("coderabbitai") == "coderabbit"
-        assert _short_bot_name("deepsource-io") == "deepsource"
-        assert _short_bot_name("gemini-code-assist") == "gemini"
         assert _short_bot_name("claude") == "claude"
+        assert _short_bot_name("pr-agent") == "pr-agent"
 
     def test_short_bot_name_unknown_passthrough(self) -> None:
         assert _short_bot_name("some-random-bot") == "some-random-bot"
@@ -190,18 +211,19 @@ class TestResolveBotName:
     """Test bot alias resolution."""
 
     def test_short_alias_to_login(self) -> None:
+        """Registered aliases: coderabbit, claude, and pr-agent."""
         assert _resolve_bot_name("coderabbit") == "coderabbitai"
-        assert _resolve_bot_name("deepsource") == "deepsource-io"
-        assert _resolve_bot_name("gemini") == "gemini-code-assist"
         assert _resolve_bot_name("claude") == "claude"
+        assert _resolve_bot_name("pr-agent") == "pr-agent"
 
     def test_case_insensitive(self) -> None:
+        """Alias resolution is case-insensitive."""
         assert _resolve_bot_name("CodeRabbit") == "coderabbitai"
-        assert _resolve_bot_name("DEEPSOURCE") == "deepsource-io"
+        assert _resolve_bot_name("CLAUDE") == "claude"
 
     def test_full_login_passthrough(self) -> None:
+        """Full GitHub login names pass through unchanged."""
         assert _resolve_bot_name("coderabbitai") == "coderabbitai"
-        assert _resolve_bot_name("deepsource-io") == "deepsource-io"
 
     def test_unknown_name_passthrough(self) -> None:
         assert _resolve_bot_name("some-bot") == "some-bot"
@@ -216,9 +238,10 @@ class TestFilterThreads:
     """Test thread filtering by bot and resolution status."""
 
     def test_filters_by_single_bot(self) -> None:
+        """Filter by a single registered bot alias."""
         threads = [
             _make_thread(bot="coderabbitai"),
-            _make_thread(bot="deepsource-io", thread_id="PRRT_2"),
+            _make_thread(bot="some-other-bot", thread_id="PRRT_2"),
             _make_thread(bot="claude", thread_id="PRRT_3"),
         ]
         result = filter_threads(threads, bots=["coderabbit"], unresolved_only=False)
@@ -226,9 +249,10 @@ class TestFilterThreads:
         assert result[0]["bot"] == "coderabbitai"
 
     def test_filters_by_multiple_bots(self) -> None:
+        """Filter by multiple bot aliases at once."""
         threads = [
             _make_thread(bot="coderabbitai"),
-            _make_thread(bot="deepsource-io", thread_id="PRRT_2"),
+            _make_thread(bot="some-other-bot", thread_id="PRRT_2"),
             _make_thread(bot="claude", thread_id="PRRT_3"),
         ]
         result = filter_threads(threads, bots=["coderabbit", "claude"], unresolved_only=False)
@@ -262,10 +286,11 @@ class TestFilterThreads:
         assert len(result) == 1
 
     def test_no_filter_returns_all_unresolved(self) -> None:
+        """Without bot filter, all unresolved threads are returned."""
         threads = [
             _make_thread(bot="coderabbitai"),
             _make_thread(bot="claude", thread_id="PRRT_2"),
-            _make_thread(bot="deepsource-io", thread_id="PRRT_3", resolved=True),
+            _make_thread(bot="some-bot", thread_id="PRRT_3", resolved=True),
         ]
         result = filter_threads(threads)
         assert len(result) == 2
@@ -373,6 +398,7 @@ class TestFormatJson:
         assert output["summary"]["unresolved"] == 0
         assert output["summary"]["by_bot"] == {}
 
+<<<<<<< fix/template-version-drift
     def test_body_preview_truncated_at_parse_time(self) -> None:
         """Body preview should be truncated once at parse time, not again in format_json.
 
@@ -416,3 +442,81 @@ class TestFormatJson:
         output = json.loads(format_json(threads))
         json_preview = output["threads"][0]["body_preview"]
         assert json_preview == parsed["body_preview"]
+=======
+
+# ---------------------------------------------------------------------------
+# _detect_pr_agent
+# ---------------------------------------------------------------------------
+
+
+class TestDetectPrAgent:
+    """Test content-based PR-Agent comment detection."""
+
+    def test_detects_pr_agent_marker(self) -> None:
+        """Comment body containing 'pr-agent' is detected."""
+        assert _detect_pr_agent("This review was generated by PR-Agent.") is True
+
+    def test_detects_qodo_marker(self) -> None:
+        """Comment body containing 'qodo' is detected."""
+        assert _detect_pr_agent("Powered by Qodo Merge") is True
+
+    def test_detects_review_command(self) -> None:
+        """Comment body containing '/review' is detected."""
+        assert _detect_pr_agent("Run /review to re-trigger analysis.") is True
+
+    def test_detects_improve_command(self) -> None:
+        """Comment body containing '/improve' is detected."""
+        assert _detect_pr_agent("Use /improve to get suggestions.") is True
+
+    def test_case_insensitive(self) -> None:
+        """Detection is case-insensitive."""
+        assert _detect_pr_agent("PR-AGENT review results") is True
+        assert _detect_pr_agent("QODO merge output") is True
+
+    def test_rejects_unrelated_comment(self) -> None:
+        """Unrelated github-actions comments are not detected as PR-Agent."""
+        assert _detect_pr_agent("Deployment successful to staging.") is False
+
+    def test_rejects_empty_body(self) -> None:
+        """Empty body is not detected as PR-Agent."""
+        assert _detect_pr_agent("") is False
+
+
+class TestParseThreadPrAgent:
+    """Test parse_thread with PR-Agent content-based detection."""
+
+    def test_github_actions_with_pr_agent_body_detected(self) -> None:
+        """github-actions[bot] with PR-Agent markers in body sets bot to 'pr-agent'."""
+        node = _make_graphql_node(
+            author="github-actions[bot]",
+            body="## PR-Agent Review\nThis code has issues.",
+        )
+        result = parse_thread(node)
+        assert result is not None
+        assert result["bot"] == "pr-agent"
+
+    def test_github_actions_without_pr_agent_body_unchanged(self) -> None:
+        """github-actions[bot] without PR-Agent markers keeps 'github-actions' bot name."""
+        node = _make_graphql_node(
+            author="github-actions[bot]",
+            body="Deployment completed successfully.",
+        )
+        result = parse_thread(node)
+        assert result is not None
+        assert result["bot"] == "github-actions"
+
+    def test_pr_agent_alias_resolves_for_filtering(self) -> None:
+        """The 'pr-agent' alias resolves to 'pr-agent' (the detected bot name)."""
+        assert _resolve_bot_name("pr-agent") == "pr-agent"
+
+    def test_filter_by_pr_agent_matches_detected_threads(self) -> None:
+        """Filtering by 'pr-agent' matches threads with bot='pr-agent'."""
+        threads = [
+            _make_thread(bot="pr-agent", thread_id="PRRT_1"),
+            _make_thread(bot="github-actions", thread_id="PRRT_2"),
+            _make_thread(bot="coderabbitai", thread_id="PRRT_3"),
+        ]
+        result = filter_threads(threads, bots=["pr-agent"], unresolved_only=False)
+        assert len(result) == 1
+        assert result[0]["bot"] == "pr-agent"
+>>>>>>> main

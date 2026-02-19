@@ -40,11 +40,10 @@ _LANG_CONFIGS: dict[str, list[str]] = {
     "node": ["biome.json"],
 }
 
-# Review bot config files
+# Review bot config files (DeepSource and Gemini removed)
 _BOT_CONFIGS = [
     (".coderabbit.yaml", "CodeRabbit"),
-    (".deepsource.toml", "DeepSource"),
-    (".gemini/config.yaml", "Gemini"),
+    (".pr_agent.toml", "PR-Agent"),
 ]
 
 # Agent instruction marker
