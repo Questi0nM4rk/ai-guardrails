@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 from guardrails.status import (
+    _BOT_CONFIGS,
     _EXPECTED_HOOKS,
     Check,
     CheckResult,
@@ -22,6 +23,15 @@ from guardrails.status import (
     check_review_bots,
     run_status,
 )
+
+
+def test_bot_configs_contains_coderabbit_and_pr_agent() -> None:
+    """_BOT_CONFIGS includes both CodeRabbit and PR-Agent."""
+    bot_names = [name for _, name in _BOT_CONFIGS]
+    assert "CodeRabbit" in bot_names
+    assert "PR-Agent" in bot_names
+    assert not any("DeepSource" in name for _, name in _BOT_CONFIGS)
+    assert not any("Gemini" in name for _, name in _BOT_CONFIGS)
 
 
 @pytest.fixture
@@ -135,18 +145,26 @@ class TestCheckAgentInstructions:
 
 
 class TestCheckReviewBots:
-    def test_ok_when_all_present(self, project_dir: Path) -> None:
+    def test_ok_when_all_bots_present(self, project_dir: Path) -> None:
+        """Both CodeRabbit and PR-Agent configs must be present for 'ok' status."""
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        (project_dir / ".deepsource.toml").write_text("version = 1\n")
-        (project_dir / ".gemini").mkdir()
-        (project_dir / ".gemini" / "config.yaml").write_text("platform: github\n")
+        (project_dir / ".pr_agent.toml").write_text("[config]\n")
         result = check_review_bots(project_dir)
         assert result.status == "ok"
 
-    def test_warn_when_partial(self, project_dir: Path) -> None:
+    def test_warn_when_only_coderabbit_present(self, project_dir: Path) -> None:
+        """Partial status when only CodeRabbit is present but PR-Agent is missing."""
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
         result = check_review_bots(project_dir)
         assert result.status == "warn"
+        assert "PR-Agent" in result.message
+
+    def test_warn_when_only_pr_agent_present(self, project_dir: Path) -> None:
+        """Partial status when only PR-Agent is present but CodeRabbit is missing."""
+        (project_dir / ".pr_agent.toml").write_text("[config]\n")
+        result = check_review_bots(project_dir)
+        assert result.status == "warn"
+        assert "CodeRabbit" in result.message
 
 
 def test_review_bots_skip_when_no_bots(project_dir: Path) -> None:
@@ -242,9 +260,7 @@ class TestRunStatus:
         (project_dir / "CLAUDE.md").write_text("## AI Guardrails - Code Standards\n")
         # Review bot configs needed for healthy status
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        (project_dir / ".deepsource.toml").write_text("version = 1\n")
-        (project_dir / ".gemini").mkdir()
-        (project_dir / ".gemini" / "config.yaml").write_text("platform: github\n")
+        (project_dir / ".pr_agent.toml").write_text("[config]\n")
 
         with patch("shutil.which", return_value="/usr/bin/pre-commit"):
             rc = run_status(project_dir=project_dir)

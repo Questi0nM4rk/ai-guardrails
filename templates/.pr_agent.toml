@@ -1,0 +1,66 @@
+# PR-Agent Configuration (Qodo Merge OSS)
+# https://qodo-merge-docs.qodo.ai/usage-guide/configuration_options/
+#
+# SETUP REQUIRED:
+#   1. Add OPENROUTER_KEY to your GitHub repo/org secrets
+#   2. The pr-agent.yml workflow references this config automatically
+#
+# Manual commands (comment on PR):
+#   /review       -- Re-run code review
+#   /improve      -- Re-run code suggestions
+#   /describe     -- Re-generate PR description
+#   /ask "question" -- Ask about the PR
+#
+# Self-hosting: https://qodo-merge-docs.qodo.ai/installation/
+# No PR-Agent code is included in this repo -- only this config file.
+
+[config]
+model = "openrouter/minimax/minimax-m2.5"
+model_turbo = "openrouter/minimax/minimax-m2.5"
+fallback_models = ["openrouter/moonshotai/kimi-k2.5"]
+
+[pr_reviewer]
+extra_instructions = """
+Focus areas:
+- Static analysis: flag issues caught by linters (ruff, shellcheck, biome)
+- Security: secrets, injection, unsafe operations
+- Language conventions: enforce per-language best practices
+- Flag code that bypasses pre-commit hooks or suppresses linting
+
+Python:
+- Enforce type hints on all function signatures
+- Check for proper exception handling (no bare except)
+- Verify docstrings on public functions/classes
+- Enforce modern Python: f-strings, pathlib, walrus operator
+
+TypeScript:
+- Ensure strict TypeScript (no any, no type assertions without reason)
+- Enforce modern TS: satisfies over as, optional chaining, nullish coalescing
+
+Shell:
+- Verify scripts use set -euo pipefail
+- Check for proper quoting of variables
+
+Tests:
+- Focus on test coverage and edge cases
+- Verify meaningful assertions
+- Check for test isolation
+"""
+
+enable_auto_approval = true
+auto_approve_for_no_suggestions = true
+auto_approve_for_low_review_effort = 3
+
+[pr_code_suggestions]
+commitable_code_suggestions = true
+
+[pr_description]
+publish_labels = true
+enable_semantic_files_types = true
+
+[github_action_config]
+pr_commands = [
+  "/describe",
+  "/review",
+  "/improve --pr_code_suggestions.commitable_code_suggestions=true",
+]
