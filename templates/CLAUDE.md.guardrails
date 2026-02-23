@@ -4,7 +4,7 @@
 
 This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails) for pedantic code enforcement.
 Pre-commit hooks auto-fix formatting, then run security scans, linting, and type checks.
-Review bots (CodeRabbit, Claude, Gemini, DeepSource) auto-review every push.
+Review bots (PR-Agent on PR open, CodeRabbit and Claude manually) review your code.
 
 ### Tools
 
@@ -20,7 +20,7 @@ handles pagination, filtering, and formatting.
 
 ### Review Bot Rules for AI Agents
 
-Every push triggers all review bots. Each bot catches different things.
+PR-Agent auto-reviews on PR open. CodeRabbit and Claude are triggered manually.
 
 **Fix every review comment that is not a false positive. Even nitpicks. Even style.**
 

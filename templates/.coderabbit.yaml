@@ -60,8 +60,7 @@ reviews:
   path_instructions:
     # Global rules — applied to ALL files
     # CodeRabbit's specialization: static analysis, security, language conventions.
-    # Claude handles: code duplication, architecture, design patterns.
-    # Gemini handles: bugs, logic errors, performance.
+    # PR-Agent handles: semantic code review, inline suggestions.
     - path: "**/*"
       instructions: |
         Your specialization — focus on these:

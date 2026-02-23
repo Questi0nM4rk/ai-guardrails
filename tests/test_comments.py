@@ -398,7 +398,6 @@ class TestFormatJson:
         assert output["summary"]["unresolved"] == 0
         assert output["summary"]["by_bot"] == {}
 
-<<<<<<< fix/template-version-drift
     def test_body_preview_truncated_at_parse_time(self) -> None:
         """Body preview should be truncated once at parse time, not again in format_json.
 
@@ -421,28 +420,6 @@ class TestFormatJson:
         json_preview = output["threads"][0]["body_preview"]
         assert json_preview == parsed["body_preview"]
 
-    def test_body_preview_truncated_at_parse_time(self) -> None:
-        """Body preview should be truncated once at parse time, not again in format_json.
-
-        parse_thread should truncate body_preview to JSON_PREVIEW_LENGTH.
-        format_json should pass it through without re-truncating.
-        """
-        from guardrails.comments import JSON_PREVIEW_LENGTH
-
-        long_body = "x" * (JSON_PREVIEW_LENGTH + 50)
-        node = _make_graphql_node(body=long_body)
-        parsed = parse_thread(node)
-        assert parsed is not None
-
-        # parse_thread should truncate body_preview at parse time
-        assert len(parsed["body_preview"]) <= JSON_PREVIEW_LENGTH
-
-        # format_json should not further truncate
-        threads = [parsed]
-        output = json.loads(format_json(threads))
-        json_preview = output["threads"][0]["body_preview"]
-        assert json_preview == parsed["body_preview"]
-=======
 
 # ---------------------------------------------------------------------------
 # _detect_pr_agent
@@ -519,4 +496,3 @@ class TestParseThreadPrAgent:
         result = filter_threads(threads, bots=["pr-agent"], unresolved_only=False)
         assert len(result) == 1
         assert result[0]["bot"] == "pr-agent"
->>>>>>> main
