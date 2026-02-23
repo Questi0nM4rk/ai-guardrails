@@ -27,5 +27,7 @@ Thumbs.db
 # Test output
 *.log
 .test/
-.claude/
+.claude/*
+!.claude/rules/
+!.claude/commands/
 .coverage
