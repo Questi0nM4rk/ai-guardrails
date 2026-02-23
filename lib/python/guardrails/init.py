@@ -22,38 +22,20 @@ import typing
 from pathlib import Path
 
 from guardrails._paths import find_configs_dir, find_lib_dir, find_templates_dir
-from guardrails.constants import BLUE, GREEN, NC, RED, YELLOW
+from guardrails.constants import (
+    ALL_LANG_CONFIGS,
+    BLUE,
+    GREEN,
+    HOOK_SCRIPTS,
+    LANG_CONFIGS,
+    NC,
+    RED,
+    YELLOW,
+)
 
 _log = logging.getLogger(__name__)
 
 _PIP_AUDIT_REV = "v2.10.0"
-
-# ---------------------------------------------------------------------------
-# Language → config file mapping
-# ---------------------------------------------------------------------------
-_LANG_CONFIGS: dict[str, list[str]] = {
-    "python": ["ruff.toml"],
-    "rust": ["rustfmt.toml"],
-    "dotnet": ["Directory.Build.props", ".globalconfig"],
-    "cpp": [".clang-format"],
-    "lua": ["stylua.toml"],
-    "node": ["biome.json"],
-    # go and shell: no config files, just pre-commit hooks
-}
-
-_ALL_LANG_CONFIGS: list[str] = [name for names in _LANG_CONFIGS.values() for name in names]
-
-# Hook scripts to copy into .ai-guardrails/hooks/
-_HOOK_SCRIPTS: list[str] = [
-    "format-and-stage.sh",
-    "detect-suppression-comments.sh",
-    "validate-generated-configs.sh",
-    "protect-generated-configs.sh",
-    "detect-config-ignore-edits.sh",
-    "dangerous-command-check.sh",
-    "pre-commit.sh",
-    "pre-push.sh",
-]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -151,7 +133,7 @@ def _copy_language_configs(
 ) -> None:
     """Copy language-specific config files."""
     for lang in languages:
-        for name in _LANG_CONFIGS.get(lang, []):
+        for name in LANG_CONFIGS.get(lang, []):
             _copy_config(configs_dir / name, project_dir / name, force=force)
 
 
@@ -201,7 +183,7 @@ def _setup_precommit(
     hooks_dir.mkdir(parents=True, exist_ok=True)
 
     src_hooks = lib_dir / "hooks"
-    for script in _HOOK_SCRIPTS:
+    for script in HOOK_SCRIPTS:
         src = src_hooks / script
         if src.exists():
             dst = hooks_dir / script
@@ -603,11 +585,11 @@ def _dry_run_report(
     _would("copy .editorconfig")
     _would("copy .markdownlint.jsonc")
     if project_type == "all":
-        for name in _ALL_LANG_CONFIGS:
+        for name in ALL_LANG_CONFIGS:
             _would(f"copy {name}")
     else:
         for lang in languages:
-            for name in _LANG_CONFIGS.get(lang, []):
+            for name in LANG_CONFIGS.get(lang, []):
                 _would(f"copy {name}")
 
     # Pre-commit
@@ -719,7 +701,7 @@ def run_init(
     _copy_base_configs(configs_dir, project_dir, force=force)
 
     if project_type == "all":
-        for name in _ALL_LANG_CONFIGS:
+        for name in ALL_LANG_CONFIGS:
             _copy_config(configs_dir / name, project_dir / name, force=force)
     else:
         _copy_language_configs(configs_dir, project_dir, languages=languages, force=force)
@@ -779,7 +761,7 @@ def run_init(
 def _resolve_languages(project_type: str, configs_dir: Path, project_dir: Path) -> list[str]:
     """Determine which languages to configure."""
     if project_type == "all":
-        return list(_LANG_CONFIGS.keys())
+        return list(LANG_CONFIGS.keys())
 
     if project_type:
         print(f"{BLUE}Detected project type:{NC} {project_type}")

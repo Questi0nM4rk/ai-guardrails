@@ -7,9 +7,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from guardrails.constants import HOOK_SCRIPTS
 from guardrails.status import (
     _BOT_CONFIGS,
-    _EXPECTED_HOOKS,
     Check,
     CheckResult,
     StatusReport,
@@ -80,7 +80,7 @@ class TestCheckHooks:
     def test_ok_when_all_deployed(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in _EXPECTED_HOOKS:
+        for name in HOOK_SCRIPTS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         result = check_hooks(project_dir)
         assert result.status == "ok"
@@ -254,7 +254,7 @@ class TestRunStatus:
     def test_returns_zero_on_healthy(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in _EXPECTED_HOOKS:
+        for name in HOOK_SCRIPTS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         (project_dir / ".editorconfig").write_text("root = true\n")
         (project_dir / "CLAUDE.md").write_text("## AI Guardrails - Code Standards\n")
@@ -270,7 +270,7 @@ class TestRunStatus:
         # Deploy hooks so no "error" status — only "warn" from missing pre-commit
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in _EXPECTED_HOOKS:
+        for name in HOOK_SCRIPTS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         with patch("shutil.which", return_value=None):
             rc = run_status(project_dir=project_dir)
