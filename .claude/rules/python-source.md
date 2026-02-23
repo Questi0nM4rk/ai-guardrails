@@ -15,11 +15,16 @@ globs: lib/python/**/*.py
 - No bare `except:` — always name the exception type
 - Log failures at warning level before re-raising or returning error
 
-## Infrastructure Boundaries
+## subprocess
 
-- subprocess calls go through `CommandRunner` — never `subprocess.run` directly
-- File I/O goes through injected abstractions in step functions
-- Console output goes through `Console` — never raw `print()`
+- Current pattern: direct `subprocess.run` with explicit error handling
+- Planned: `CommandRunner` abstraction (see ADR-002) — new code should
+  minimize new `subprocess.run` call sites to ease future migration
+
+## Output
+
+- Current pattern: `print()` with ANSI color helpers (`_print_ok`, etc.)
+- Planned: `Console` abstraction (see ADR-002)
 
 ## Type Safety
 

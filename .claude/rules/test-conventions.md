@@ -6,15 +6,16 @@ globs: tests/**/*.py
 
 ## Structure
 
-- Standalone test functions only — no test classes unless shared state requires it
+- Prefer standalone test functions for new tests
+- Test classes are acceptable for grouping related tests (existing pattern)
 - One test file per source module: `lib/.../foo.py` -> `tests/test_foo.py`
 - Fixtures live in `tests/conftest.py`
 
 ## Mocking
 
-- Mock at infrastructure boundaries (CommandRunner, Console, filesystem)
+- Mock at infrastructure boundaries (subprocess, filesystem, network)
 - Never mock private helper functions — test through public API
-- Prefer fakes (FakeCommandRunner, FakeConsole) over `@patch` decorators
+- Use `unittest.mock.patch` and `MagicMock` for subprocess/IO boundaries
 - `tmp_path` for filesystem tests — never write to real paths
 
 ## Coverage

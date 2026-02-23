@@ -13,9 +13,9 @@
 Pipeline + Plugin. See @docs/ADR-002-greenfield-architecture.md
 Source: lib/python/guardrails/ | Tests: tests/
 
-Each subcommand (init, generate, comments, status) is a pipeline of steps.
-Steps are independent modules under lib/python/guardrails/steps/.
-Infrastructure (filesystem, subprocess, output) is injected, never imported directly.
+Each subcommand (init, generate, comments, status) is an entry point.
+Helper functions are in lib/python/guardrails/ (flat module layout).
+Target architecture: Pipeline + Plugin with DI (see ADR-002).
 
 ## Key Constraints
 
@@ -27,9 +27,9 @@ Infrastructure (filesystem, subprocess, output) is injected, never imported dire
 ## DONTs
 
 - NEVER `except Exception: pass` — catch specific exceptions
-- NEVER call subprocess.run directly — use CommandRunner
+- NEVER add new subprocess.run call sites — minimize for future CommandRunner migration
 - NEVER duplicate constants — single source in constants.py or languages.yaml
-- NEVER use test classes without shared state — standalone functions only
+- NEVER use test classes for new tests without shared state — prefer standalone functions
 - NEVER push without asking — complete all changes locally first
 - NEVER use dict[str, Any] across module boundaries — use dataclasses
 
