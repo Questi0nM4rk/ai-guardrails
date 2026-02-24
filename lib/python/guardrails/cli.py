@@ -4,7 +4,7 @@ Replaces separate bin scripts with a single ``ai-guardrails`` command using subc
 
 Usage::
 
-    ai-guardrails init [--type X] [--force] [--ci] [--coderabbit] [--pr-agent] [--dry-run]
+    ai-guardrails init [--type X] [--force] [--ci] [--guardrails-review] [--coderabbit] [--dry-run]
     ai-guardrails generate [--check] [--dry-run]
     ai-guardrails comments [--pr N] [--bot X] [--reply ID BODY] [--resolve ID [BODY]]
     ai-guardrails status [--json]
@@ -33,10 +33,15 @@ def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("--no-pip-audit", action="store_const", const="none", dest="pip_audit")
     p.add_argument("--ci", action="store_true", default=None, help="Install CI workflow")
     p.add_argument("--no-ci", action="store_true", help="Skip CI workflow")
+    p.add_argument(
+        "--guardrails-review",
+        action="store_true",
+        default=None,
+        dest="guardrails_review",
+    )
+    p.add_argument("--no-guardrails-review", action="store_true", dest="no_guardrails_review")
     p.add_argument("--coderabbit", action="store_true", default=None)
     p.add_argument("--no-coderabbit", action="store_true")
-    p.add_argument("--pr-agent", action="store_true", default=None, dest="pr_agent")
-    p.add_argument("--no-pr-agent", action="store_true", dest="no_pr_agent")
     p.add_argument(
         "--dry-run",
         action="store_true",
@@ -116,14 +121,19 @@ def _cmd_init(args: argparse.Namespace) -> int:
     """
     from guardrails.init import run_init
 
+    # CodeRabbit defaults to off (no) unless explicitly --coderabbit
+    coderabbit_flag = _resolve_flag(args, "coderabbit")
+    if coderabbit_flag == "auto":
+        coderabbit_flag = "no"
+
     return run_init(
         project_type=args.project_type or ("all" if args.all else ""),
         force=args.force,
         skip_precommit=args.no_precommit,
         pip_audit_mode=args.pip_audit or "auto",
         install_ci=_resolve_flag(args, "ci"),
-        install_coderabbit=_resolve_flag(args, "coderabbit"),
-        install_pr_agent=_resolve_flag(args, "pr_agent"),
+        install_guardrails_review=_resolve_flag(args, "guardrails_review"),
+        install_coderabbit=coderabbit_flag,
         dry_run=args.dry_run,
     )
 
