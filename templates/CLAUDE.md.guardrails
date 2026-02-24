@@ -4,7 +4,7 @@
 
 This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails) for pedantic code enforcement.
 Pre-commit hooks auto-fix formatting, then run security scans, linting, and type checks.
-Review bots (PR-Agent on PR open, CodeRabbit and Claude manually) review your code.
+guardrails-review auto-reviews every PR push. CodeRabbit is optional (off by default).
 
 ### Tools
 
@@ -13,6 +13,7 @@ ai-guardrails comments --pr <N>                                    # List unreso
 ai-guardrails comments --pr <N> --bot claude                       # Filter by bot
 ai-guardrails comments --pr <N> --resolve <THREAD_ID> "Fixed."     # Resolve a thread with reply
 ai-guardrails comments --pr <N> --resolve-all --bot <BOT>          # Batch resolve by bot
+guardrails-review context --pr <N>                                    # Structured review state for AI agents
 ```
 
 Use `ai-guardrails comments` to check PR status instead of raw `gh api` calls — the tool
@@ -20,7 +21,9 @@ handles pagination, filtering, and formatting.
 
 ### Review Bot Rules for AI Agents
 
-PR-Agent auto-reviews on PR open. CodeRabbit and Claude are triggered manually.
+guardrails-review auto-reviews on every push. It posts REQUEST_CHANGES with inline
+defect comments, auto-resolves stale threads on new pushes, and sets commit status
+for branch protection. CodeRabbit is optional and triggered manually.
 
 **Fix every review comment that is not a false positive. Even nitpicks. Even style.**
 
