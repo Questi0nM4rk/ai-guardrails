@@ -20,8 +20,8 @@ _BASE_CONFIGS = [".editorconfig"]
 
 # Review bot config files (DeepSource and Gemini removed)
 _BOT_CONFIGS = [
+    (".guardrails-review.toml", "guardrails-review"),
     (".coderabbit.yaml", "CodeRabbit"),
-    (".pr_agent.toml", "PR-Agent"),
 ]
 
 # Agent instruction marker
