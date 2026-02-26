@@ -10,13 +10,18 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import filecmp
+import json
 import shutil
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
-from guardrails._paths import find_base_config
+import yaml
+
+from guardrails._paths import find_base_config, find_configs_dir
+from guardrails.assemble import detect_languages as _detect_project_languages
+from guardrails.assemble import load_registry as _load_lang_registry
 from guardrails.constants import BOLD, GREEN, NC, RED, REGISTRY_FILENAME
 from guardrails.generators.allowlist import generate_allowlist
 from guardrails.generators.biome import generate_biome
@@ -27,29 +32,84 @@ from guardrails.generators.ruff import generate_ruff
 from guardrails.registry import ExceptionRegistry
 
 
+def _lang_config_set(languages: list[str] | None) -> set[str] | None:
+    """Return config filenames relevant to detected languages, or None for all.
+
+    Args:
+        languages: Detected language keys, or None to generate everything.
+
+    Returns:
+        Set of config filenames (e.g. {"ruff.toml"}), or None if all should
+        be generated.
+
+    """
+    if languages is None:
+        return None
+    try:
+        configs_dir = find_configs_dir()
+        lang_yaml_path = configs_dir / "languages.yaml"
+        with lang_yaml_path.open() as f:
+            lang_registry: dict[str, dict[str, list[str]]] = yaml.safe_load(f)
+    except (FileNotFoundError, yaml.YAMLError):
+        # If we can't load languages.yaml, fall back to generating everything
+        return None
+    result: set[str] = set()
+    for lang in languages:
+        if lang in lang_registry:
+            for cfg in lang_registry[lang].get("configs", []):
+                result.add(cfg)
+    return result
+
+
+def _detect_languages_for_project(project_path: Path) -> list[str] | None:
+    """Detect languages in a project using assemble.detect_languages.
+
+    Returns:
+        List of detected language keys, or None if detection fails.
+
+    """
+    try:
+        configs_dir = find_configs_dir()
+        lang_registry = _load_lang_registry(configs_dir / "languages.yaml")
+        return _detect_project_languages(project_path, lang_registry)
+    except (FileNotFoundError, yaml.YAMLError, TypeError):
+        return None
+
+
 def _generate_to_dir(
     registry: ExceptionRegistry,
     project_path: Path,
     output_dir: Path,
+    languages: list[str] | None = None,
 ) -> list[str]:
-    """Generate all configs into output_dir.
+    """Generate configs into output_dir, filtered by detected languages.
+
+    Args:
+        registry: Parsed exception registry.
+        project_path: Path to the consumer project.
+        output_dir: Directory to write generated configs into.
+        languages: Detected language keys. If None, all configs are generated
+            (backward-compatible default).
 
     Returns:
         List of generated filenames.
 
     """
     generated: list[str] = []
+    lang_configs = _lang_config_set(languages)
 
+    # Language-specific generators: only run if the language is detected
     base_ruff = find_base_config("ruff.toml", project_path)
-    if base_ruff:
+    if base_ruff and (lang_configs is None or "ruff.toml" in lang_configs):
         generate_ruff(registry, base_ruff, output_dir / "ruff.toml")
         generated.append("ruff.toml")
 
     base_biome = find_base_config("biome.json", project_path)
-    if base_biome:
+    if base_biome and (lang_configs is None or "biome.json" in lang_configs):
         generate_biome(registry, base_biome, output_dir / "biome.json")
         generated.append("biome.json")
 
+    # Language-agnostic generators: always run
     base_mdlint = find_base_config(".markdownlint.jsonc", project_path)
     if base_mdlint:
         generate_markdownlint(registry, base_mdlint, output_dir / ".markdownlint.jsonc")
@@ -66,11 +126,33 @@ def _generate_to_dir(
     return generated
 
 
+def _semantically_equal(actual: Path, expected: Path) -> bool:
+    """Compare two config files semantically, ignoring formatting differences."""
+    suffix = actual.suffix
+    try:
+        if suffix == ".toml":
+            with actual.open("rb") as f:
+                a = tomllib.load(f)
+            with expected.open("rb") as f:
+                e = tomllib.load(f)
+            return a == e
+        if suffix in {".json", ".jsonc"}:
+            a = json.loads(actual.read_text())
+            e = json.loads(expected.read_text())
+            return a == e
+    except (tomllib.TOMLDecodeError, json.JSONDecodeError, OSError):
+        # Parsing failed -- fall through to byte comparison
+        pass
+    # Fallback: byte comparison for unknown formats
+    return actual.read_bytes() == expected.read_bytes()
+
+
 def _check_freshness(registry: ExceptionRegistry, project_path: Path) -> bool:
     """Compare generated configs against existing files on disk."""
+    languages = _detect_languages_for_project(project_path)
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
-        generated = _generate_to_dir(registry, project_path, tmp)
+        generated = _generate_to_dir(registry, project_path, tmp, languages=languages)
 
         stale: list[str] = []
         missing: list[str] = []
@@ -81,7 +163,7 @@ def _check_freshness(registry: ExceptionRegistry, project_path: Path) -> bool:
 
             if not actual.exists():
                 missing.append(name)
-            elif not filecmp.cmp(actual, expected, shallow=False):
+            elif not _semantically_equal(actual, expected):
                 stale.append(name)
 
         if not stale and not missing:
@@ -154,11 +236,14 @@ def run_generate_configs(
     if check:
         return _check_freshness(registry, project_path)
 
+    # Detect languages to filter generation
+    languages = _detect_languages_for_project(project_path)
+
     # Generate atomically: write to tempdir, then move on success
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         try:
-            generated = _generate_to_dir(registry, project_path, tmp)
+            generated = _generate_to_dir(registry, project_path, tmp, languages=languages)
         except Exception as e:  # noqa: BLE001
             print(f"{RED}Error during config generation: {e}{NC}", file=sys.stderr)
             return False

@@ -249,7 +249,7 @@ LANG_CONFIGS: dict[str, list[str]] = {
     "python": ["ruff.toml"],
     "rust": ["rustfmt.toml"],
     "dotnet": ["Directory.Build.props", ".globalconfig"],
-    "cpp": [".clang-format"],
+    "cpp": [".clang-format", ".clang-tidy"],
     "lua": ["stylua.toml"],
     "node": ["biome.json"],
     # go and shell: no config files, just pre-commit hooks

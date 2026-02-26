@@ -111,7 +111,9 @@ class TestRunGenerateConfigsCheck:
         # Write existing config that matches what _generate_to_dir produces
         (tmp_path / "ruff.toml").write_text("# generated\n")
 
-        def write_matching(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+        def write_matching(
+            registry: object, project_path: Path, output_dir: Path, **kwargs: object
+        ) -> list[str]:
             (output_dir / "ruff.toml").write_text("# generated\n")
             return ["ruff.toml"]
 
@@ -134,7 +136,9 @@ class TestRunGenerateConfigsCheck:
         # Write existing config that differs semantically from generated
         (tmp_path / "ruff.toml").write_text('key = "old"\n')
 
-        def write_different(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+        def write_different(
+            registry: object, project_path: Path, output_dir: Path, **kwargs: object
+        ) -> list[str]:
             (output_dir / "ruff.toml").write_text('key = "new"\n')
             return ["ruff.toml"]
 
@@ -162,7 +166,9 @@ class TestRunGenerateConfigsGenerate:
         registry_file = tmp_path / ".guardrails-exceptions.toml"
         registry_file.write_text("schema_version = 1\n")
 
-        def write_fake_config(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+        def write_fake_config(
+            registry: object, project_path: Path, output_dir: Path, **kwargs: object
+        ) -> list[str]:
             (output_dir / "ruff.toml").write_text("# generated\n")
             return ["ruff.toml"]
 
