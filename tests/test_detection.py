@@ -257,3 +257,66 @@ class TestNoDetection:
         (tmp_path / "LICENSE").touch()
         result = detect_languages(tmp_path, registry)
         assert result == []
+
+
+# =============================================================================
+# Skip Non-Source Directories (BUG-006)
+# =============================================================================
+
+
+class TestSkipNonSourceDirs:
+    """Files inside .venv, node_modules, etc. must not trigger detection."""
+
+    def test_js_in_venv_does_not_detect_node(
+        self, tmp_path: Path, registry: dict[str, Any]
+    ) -> None:
+        """JS files inside .venv (e.g. pyright) should not trigger node detection."""
+        venv_dir = tmp_path / ".venv" / "lib" / "python3.14" / "site-packages" / "pyright"
+        venv_dir.mkdir(parents=True)
+        (venv_dir / "index.js").touch()
+        (venv_dir / "package.json").write_text("{}")
+        result = detect_languages(tmp_path, registry)
+        assert "node" not in result
+
+    def test_js_in_node_modules_does_not_detect_node(
+        self, tmp_path: Path, registry: dict[str, Any]
+    ) -> None:
+        """JS files inside node_modules should not trigger node detection."""
+        nm_dir = tmp_path / "node_modules" / "some-pkg"
+        nm_dir.mkdir(parents=True)
+        (nm_dir / "index.js").touch()
+        result = detect_languages(tmp_path, registry)
+        assert "node" not in result
+
+    def test_py_in_venv_does_not_detect_python(
+        self, tmp_path: Path, registry: dict[str, Any]
+    ) -> None:
+        """Python files inside .venv should not trigger python detection."""
+        venv_dir = tmp_path / ".venv" / "lib" / "site-packages"
+        venv_dir.mkdir(parents=True)
+        (venv_dir / "something.py").touch()
+        result = detect_languages(tmp_path, registry)
+        assert "python" not in result
+
+    def test_sh_in_ai_guardrails_does_not_detect_shell(
+        self, tmp_path: Path, registry: dict[str, Any]
+    ) -> None:
+        """Shell scripts in .ai-guardrails/hooks/ should not trigger shell detection."""
+        hooks_dir = tmp_path / ".ai-guardrails" / "hooks"
+        hooks_dir.mkdir(parents=True)
+        (hooks_dir / "format-and-stage.sh").touch()
+        result = detect_languages(tmp_path, registry)
+        assert "shell" not in result
+
+    def test_real_source_still_detected_alongside_venv(
+        self, tmp_path: Path, registry: dict[str, Any]
+    ) -> None:
+        """Real source files are still detected even when venv has similar files."""
+        # Real source file
+        (tmp_path / "app.ts").touch()
+        # Vendored JS in venv
+        venv_dir = tmp_path / ".venv" / "lib"
+        venv_dir.mkdir(parents=True)
+        (venv_dir / "index.js").touch()
+        result = detect_languages(tmp_path, registry)
+        assert "node" in result

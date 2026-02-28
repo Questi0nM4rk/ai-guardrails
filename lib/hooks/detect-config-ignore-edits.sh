@@ -2,7 +2,8 @@
 # Thin shim — delegates to Python module.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_PYTHON="$SCRIPT_DIR/../python"
+LIB_PYTHON="$SCRIPT_DIR/../lib/python"
+[[ -d "$LIB_PYTHON/guardrails" ]] || LIB_PYTHON="$SCRIPT_DIR/../python"
 [[ -d "$LIB_PYTHON/guardrails" ]] || LIB_PYTHON="$HOME/.ai-guardrails/lib/python"
 export PYTHONPATH="$LIB_PYTHON:${PYTHONPATH:-}"
 exec python3 -m guardrails.hooks.config_ignore

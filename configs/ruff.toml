@@ -14,11 +14,12 @@ fix = false
 unsafe-fixes = false
 
 [lint]
-# Enable ALL rules - no exceptions for AI
+# Enable ALL rules, then ignore categories that are redundant or too noisy.
+# Projects can re-enable ignored rules via .guardrails-exceptions.toml.
 select = ["ALL"]
 
 ignore = [
-  # === Formatter conflicts only ===
+  # === Formatter conflicts (ruff format handles these) ===
   "W191",   # tab-indentation
   "E111",   # indentation-with-invalid-multiple
   "E114",   # indentation-with-invalid-multiple-comment
@@ -33,21 +34,40 @@ ignore = [
   "COM819", # prohibited-trailing-comma
   "ISC001", # single-line-implicit-string-concatenation
   "ISC002", # multi-line-implicit-string-concatenation
+
+  # === Redundant with mypy --strict ===
+  # Ruff only checks "is there a type hint?" — mypy validates correctness.
+  # Running both creates duplicate noise with no extra safety.
+  "ANN",
+
+  # === Docstrings — opt-in, not default ===
+  # Requiring docstrings on every function generates the most exceptions.
+  # Projects that want docstrings can re-enable D in their registry.
+  "D",
+
+  # === Development markers ===
+  # Blocking commits over TODO/FIXME is counterproductive during active work.
+  "FIX001", # line contains FIXME
+  "FIX002", # line contains TODO
+  "TD",     # flake8-todos (author, link, formatting requirements)
+
+  # === High false-positive / low value ===
+  "ERA001", # commented-out code (many false positives)
+  "CPY001", # missing copyright notice
+  "INP001", # implicit namespace package (missing __init__.py)
+  "T201",   # print found (legitimate in CLIs, scripts, debugging)
+  "EM101",  # string literal in exception (forces msg = "..."; raise Err(msg))
+  "EM102",  # f-string in exception (same — adds noise, no real benefit)
+  "TRY003", # long exception message (same category as EM)
+  "S101",   # assert usage (legitimate for invariants and preconditions)
 ]
 
-# Enforce docstrings - Google style required
+# Keep pydocstyle convention set even though D is ignored by default,
+# so projects that re-enable D get Google style automatically.
 [lint.pydocstyle]
 convention = "google"
 
-# === TYPE ANNOTATIONS - MANDATORY ===
-[lint.flake8-annotations]
-allow-star-arg-any = false
-ignore-fully-untyped = false
-mypy-init-return = true
-suppress-dummy-args = false
-suppress-none-returning = false
-
-# Strict type checking hints
+# === TYPE CHECKING IMPORTS ===
 [lint.flake8-type-checking]
 strict = true
 runtime-evaluated-base-classes = ["pydantic.BaseModel"]
@@ -143,22 +163,15 @@ raises-require-match-for = [
   "RuntimeError",
 ]
 
-# === PER-FILE IGNORES - MINIMAL ===
+# === PER-FILE IGNORES ===
 [lint.per-file-ignores]
 "tests/**/*.py" = [
-  "S101",    # assert allowed in tests
   "ARG001",  # unused function argument (fixtures)
   "ARG002",  # unused method argument
   "PLR2004", # magic value comparison in tests
-  "D103",    # docstring not required for test functions
 ]
 "__init__.py" = [
-  "D104", # missing docstring in public package
   "F401", # unused import (re-exports)
-]
-"conftest.py" = [
-  "D100", # missing docstring in public module
-  "D103", # missing docstring in public function
 ]
 
 [format]

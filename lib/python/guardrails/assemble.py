@@ -43,12 +43,44 @@ def load_registry(registry_path: Path) -> dict[str, Any]:
     return result
 
 
+# Directories to skip during recursive glob detection.
+# These contain vendored/generated files that should not trigger language detection.
+_SKIP_DIRS = frozenset(
+    {
+        ".git",
+        ".venv",
+        "venv",
+        ".env",
+        "node_modules",
+        ".ai-guardrails",
+        "__pycache__",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".tox",
+        ".nox",
+        "dist",
+        "build",
+        ".eggs",
+    }
+)
+
+
+def _glob_matches_source(project_dir: Path, pattern: str) -> bool:
+    """Check if a glob pattern matches any source file (skipping non-source dirs)."""
+    for match in project_dir.glob(f"**/{pattern}"):
+        # Check if any path component is in the skip set
+        parts = match.relative_to(project_dir).parts
+        if not any(part in _SKIP_DIRS for part in parts):
+            return True
+    return False
+
+
 def detect_languages(project_dir: Path, registry: dict[str, Any]) -> list[str]:
     """Detect languages present in project based on registry rules.
 
     Detection rules are evaluated in order:
-    1. Check for specific files (exact match)
-    2. Check for file patterns (glob match)
+    1. Check for specific files (exact match in project root)
+    2. Check for file patterns (glob match, skipping non-source directories)
     3. Check for directories
 
     Args:
@@ -70,12 +102,10 @@ def detect_languages(project_dir: Path, registry: dict[str, Any]) -> list[str]:
             detected.append(lang)
             continue
 
-        # Check for file patterns (recursive search)
+        # Check for file patterns (recursive search, skip non-source dirs)
         patterns = rules.get("patterns", [])
         for pattern in patterns:
-            # Use ** prefix for recursive search (e.g., src/main.py)
-            recursive_pattern = f"**/{pattern}"
-            if list(project_dir.glob(recursive_pattern)):
+            if _glob_matches_source(project_dir, pattern):
                 detected.append(lang)
                 break
         else:

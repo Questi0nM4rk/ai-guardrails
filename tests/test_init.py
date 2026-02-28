@@ -272,6 +272,30 @@ def test_configure_pip_audit_uv_success(tmp_path: Path) -> None:
     assert "requirements-audit.txt" in content
 
 
+def test_configure_pip_audit_produces_valid_yaml(tmp_path: Path) -> None:
+    """_configure_pip_audit block is a valid top-level repos entry, not nested."""
+    import yaml
+
+    cfg = tmp_path / ".pre-commit-config.yaml"
+    base_yaml = (
+        "repos:\n- repo: local\n  hooks:\n"
+        "  - id: dummy\n    name: dummy\n"
+        "    entry: 'true'\n    language: system\n"
+    )
+    cfg.write_text(base_yaml)
+    with patch("guardrails.init.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock()
+        _configure_pip_audit("uv", tmp_path)
+    content = cfg.read_text()
+    parsed = yaml.safe_load(content)
+    # pip-audit should be a separate top-level repo entry, not nested
+    repos = parsed["repos"]
+    pip_audit_repos = [
+        r for r in repos if isinstance(r, dict) and "pypa/pip-audit" in r.get("repo", "")
+    ]
+    assert len(pip_audit_repos) == 1, f"Expected 1 pip-audit repo entry, got {len(pip_audit_repos)}"
+
+
 def test_configure_pip_audit_uv_export_fails(
     tmp_path: Path,
     capsys: pytest.CaptureFixture[str],

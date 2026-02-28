@@ -178,6 +178,25 @@ def _setup_precommit(
         else:
             _print_fail("Failed to generate .pre-commit-config.yaml")
 
+    # Create .secrets.baseline if detect-secrets is configured
+    baseline_path = project_dir / ".secrets.baseline"
+    if not baseline_path.exists():
+        try:
+            result = subprocess.run(
+                ["detect-secrets", "scan"],
+                capture_output=True,
+                text=True,
+                cwd=project_dir,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                baseline_path.write_text(result.stdout)
+                _print_ok(".secrets.baseline")
+            else:
+                _print_warn("detect-secrets scan failed — create .secrets.baseline manually")
+        except FileNotFoundError:
+            _print_warn("detect-secrets not found — create .secrets.baseline manually")
+
     # Copy hook scripts to .ai-guardrails/hooks/
     hooks_dir = project_dir / ".ai-guardrails" / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
@@ -199,6 +218,18 @@ def _setup_precommit(
             shutil.rmtree(dst_python)
         shutil.copytree(src_python, dst_python)
         _print_ok("lib/python/guardrails (hook runtime)")
+
+    # Copy configs directory for hook runtime (so validate-generated-configs
+    # can find the same base templates used during generation)
+    try:
+        src_configs = find_configs_dir()
+        dst_configs = project_dir / ".ai-guardrails" / "configs"
+        if dst_configs.exists():
+            shutil.rmtree(dst_configs)
+        shutil.copytree(src_configs, dst_configs)
+        _print_ok("configs (base templates)")
+    except FileNotFoundError:
+        _print_warn("configs directory not found — validate-generated-configs hook may fail")
 
     # Install Claude Code PreToolUse hooks
     _install_claude_hook()
@@ -241,7 +272,8 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
                     "uv",
                     "export",
                     "--format",
-                    "requirements.txt",
+                    "requirements-txt",
+                    "--no-emit-project",
                     "--output-file",
                     "requirements-audit.txt",
                     "--quiet",
@@ -255,25 +287,27 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
             return
 
         block = f"""
-  # pip-audit - CVE scanning for Python dependencies
-  - repo: https://github.com/pypa/pip-audit
-    rev: {_PIP_AUDIT_REV}
-    hooks:
-      - id: pip-audit
-        name: "python - pip-audit CVE scan"
-        args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]"""
+# pip-audit - CVE scanning for Python dependencies
+- repo: https://github.com/pypa/pip-audit
+  rev: {_PIP_AUDIT_REV}
+  hooks:
+  - id: pip-audit
+    name: "python - pip-audit CVE scan"
+    args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]
+"""
         _print_ok("Configured pip-audit for uv (-r requirements-audit.txt)")
 
     elif mode == "pip":
         req_flag = "-r requirements.txt" if (project_dir / "requirements.txt").exists() else "."
         block = f"""
-  # pip-audit - CVE scanning for Python dependencies
-  - repo: https://github.com/pypa/pip-audit
-    rev: {_PIP_AUDIT_REV}
-    hooks:
-      - id: pip-audit
-        name: "python - pip-audit CVE scan"
-        args: ["--strict", "--progress-spinner", "off", "{req_flag}"]"""
+# pip-audit - CVE scanning for Python dependencies
+- repo: https://github.com/pypa/pip-audit
+  rev: {_PIP_AUDIT_REV}
+  hooks:
+  - id: pip-audit
+    name: "python - pip-audit CVE scan"
+    args: ["--strict", "--progress-spinner", "off", "{req_flag}"]
+"""
         _print_ok(f"Configured pip-audit for pip ({req_flag})")
 
     elif mode == "none":
