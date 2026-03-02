@@ -46,7 +46,7 @@ def test_generate_output_is_valid_json(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     result = gen.generate(_empty_registry(), [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
 
     # Strip hash comment header
     body = "\n".join(line for line in content.split("\n") if not line.startswith("//"))
@@ -60,7 +60,7 @@ def test_generate_includes_permissions_deny_for_generated_configs(tmp_path: Path
     project_dir.mkdir()
 
     result = gen.generate(_empty_registry(), [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     body = "\n".join(line for line in content.split("\n") if not line.startswith("//"))
     parsed = json.loads(body)
 
@@ -78,7 +78,7 @@ def test_generate_includes_no_verify_deny_rule(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     result = gen.generate(_empty_registry(), [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     body = "\n".join(line for line in content.split("\n") if not line.startswith("//"))
     parsed = json.loads(body)
 
@@ -92,7 +92,7 @@ def test_generate_includes_force_push_deny_rule(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     result = gen.generate(_empty_registry(), [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     body = "\n".join(line for line in content.split("\n") if not line.startswith("//"))
     parsed = json.loads(body)
 
@@ -106,7 +106,7 @@ def test_generate_includes_pretooluse_hook(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     result = gen.generate(_empty_registry(), [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     body = "\n".join(line for line in content.split("\n") if not line.startswith("//"))
     parsed = json.loads(body)
 
@@ -123,7 +123,7 @@ def test_generate_output_has_hash_header(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     result = gen.generate(_empty_registry(), [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     assert content.startswith("// ai-guardrails:hash:sha256:")
 
 

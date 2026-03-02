@@ -74,9 +74,10 @@ class _FakeGenerator:
         languages: list[str],
         project_dir: Path,
     ) -> dict[Path, str]:
-        if self._required_langs is not None:
-            if not any(lang in languages for lang in self._required_langs):
-                return {}
+        if self._required_langs is not None and not any(
+            lang in languages for lang in self._required_langs
+        ):
+            return {}
         return {project_dir / fname: f"# {self.name}\n" for fname in self.output_files}
 
     def check(self, registry: ExceptionRegistry, project_dir: Path) -> list[str]:
@@ -126,7 +127,7 @@ def test_generate_configs_runs_all_generators(tmp_path: Path) -> None:
 
 def test_generate_configs_no_generators_returns_ok(tmp_path: Path) -> None:
     step = GenerateConfigsStep(generators=[])
-    ctx, fm = _make_context(tmp_path)
+    ctx, _fm = _make_context(tmp_path)
     result = step.execute(ctx)
     assert result.status == "ok"
 
@@ -146,7 +147,7 @@ def test_generate_configs_creates_parent_directories(tmp_path: Path) -> None:
     """Generator output in subdirectory — parent must be created."""
     gen = _FakeGenerator("claude_settings", [".claude/settings.json"])
     step = GenerateConfigsStep(generators=[gen])
-    ctx, fm = _make_context(tmp_path)
+    ctx, _fm = _make_context(tmp_path)
 
     # Should not raise even if .claude/ doesn't exist in FakeFileManager
     result = step.execute(ctx)

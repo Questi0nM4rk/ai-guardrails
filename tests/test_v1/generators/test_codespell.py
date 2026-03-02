@@ -44,7 +44,7 @@ def test_generate_minimal_output_contains_section_header(tmp_path: Path) -> None
 def test_generate_output_has_hash_header(tmp_path: Path) -> None:
     gen = CodespellGenerator()
     result = gen.generate(_empty_registry(), [], tmp_path)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     assert content.startswith("# ai-guardrails:hash:sha256:")
 
 
@@ -67,14 +67,14 @@ def test_generate_includes_ignore_words_from_registry(tmp_path: Path) -> None:
 def test_generate_omits_skip_when_empty(tmp_path: Path) -> None:
     gen = CodespellGenerator()
     result = gen.generate(_empty_registry(), [], tmp_path)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     assert "skip" not in content
 
 
 def test_generate_omits_ignore_words_when_empty(tmp_path: Path) -> None:
     gen = CodespellGenerator()
     result = gen.generate(_empty_registry(), [], tmp_path)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     assert "ignore-words-list" not in content
 
 

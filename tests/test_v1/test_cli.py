@@ -15,10 +15,8 @@ def test_cli_is_cyclopts_app() -> None:
 
 
 def test_cli_has_install_command() -> None:
-    # cyclopts registers commands — check they exist
-    command_names = {cmd.name for cmd in app._commands.values() if hasattr(cmd, "name")}
-    # Fall back to checking the app meta
-    assert app is not None  # smoke test
+    # cyclopts registers commands — smoke test app is configured
+    assert app is not None
 
 
 def test_install_command_exists() -> None:

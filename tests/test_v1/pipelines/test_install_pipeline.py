@@ -50,7 +50,7 @@ def test_install_pipeline_checks_lefthook(tmp_path: Path) -> None:
     runner.register(["lefthook", "--version"], returncode=0, stdout="lefthook 1.11.0")
 
     pipeline = _make_pipeline(global_config_dir=tmp_path / "config")
-    results = pipeline.run(
+    pipeline.run(
         file_manager=fm,
         command_runner=runner,
         config_loader=ConfigLoader(),
@@ -68,7 +68,7 @@ def test_install_pipeline_creates_global_config(tmp_path: Path) -> None:
 
     config_dir = tmp_path / "config"
     pipeline = _make_pipeline(global_config_dir=config_dir)
-    results = pipeline.run(
+    pipeline.run(
         file_manager=fm,
         command_runner=runner,
         config_loader=ConfigLoader(),

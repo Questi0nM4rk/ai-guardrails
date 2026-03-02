@@ -121,7 +121,7 @@ def test_copy_skips_config_not_in_configs_dir(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     rust = _make_lang("rust", ["rustfmt.toml"])
-    ctx, fm = _make_context(tmp_path, [rust])
+    ctx, _fm = _make_context(tmp_path, [rust])
     ctx.project_dir = project_dir
 
     step = CopyConfigsStep(configs_dir=configs_dir)
@@ -137,7 +137,7 @@ def test_copy_no_languages_returns_skip(tmp_path: Path) -> None:
     project_dir = tmp_path / "project"
     project_dir.mkdir()
 
-    ctx, fm = _make_context(tmp_path, [])
+    ctx, _fm = _make_context(tmp_path, [])
     ctx.project_dir = project_dir
 
     step = CopyConfigsStep(configs_dir=configs_dir)

@@ -67,7 +67,7 @@ def test_generate_output_includes_hash_header(tmp_path: Path) -> None:
     project_dir.mkdir()
 
     result = gen.generate(registry, [], project_dir)
-    content = list(result.values())[0]
+    content = next(iter(result.values()))
     assert content.startswith("# ai-guardrails:hash:sha256:")
 
 
@@ -85,7 +85,7 @@ def test_generate_languages_arg_ignored(tmp_path: Path) -> None:
     result_empty = gen.generate(registry, [], project_dir)
     result_python = gen.generate(registry, ["python"], project_dir)
 
-    assert list(result_empty.values())[0] == list(result_python.values())[0]
+    assert next(iter(result_empty.values())) == next(iter(result_python.values()))
 
 
 def test_generate_raises_if_base_missing(tmp_path: Path) -> None:

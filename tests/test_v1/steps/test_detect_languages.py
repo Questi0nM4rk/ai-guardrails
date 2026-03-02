@@ -90,7 +90,7 @@ def test_detect_multiple_languages(tmp_path: Path) -> None:
     (tmp_path / "Cargo.toml").write_text("[package]\n")
     step = DetectLanguagesStep(languages_yaml=_LANGUAGES_YAML)
     ctx = _make_context(tmp_path)
-    result = step.execute(ctx)
+    step.execute(ctx)
     keys = [lang.key for lang in ctx.languages]
     assert "python" in keys
     assert "rust" in keys

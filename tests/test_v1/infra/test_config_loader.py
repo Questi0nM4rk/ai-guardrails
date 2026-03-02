@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -32,7 +33,7 @@ def test_load_toml_invalid_syntax_raises(tmp_path: Path) -> None:
     loader = ConfigLoader()
     bad = tmp_path / "bad.toml"
     bad.write_text("not = [valid toml\n")
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(tomllib.TOMLDecodeError):
         loader.load_toml(bad)
 
 

@@ -2,16 +2,10 @@
 
 from __future__ import annotations
 
-import sys
+import tomllib  # type: ignore[no-redef]
 from pathlib import Path
 
 import pytest
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib  # type: ignore[no-redef]
-
 import tomli_w
 
 from ai_guardrails.generators.ruff import RuffGenerator

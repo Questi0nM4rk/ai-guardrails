@@ -27,8 +27,8 @@ def _make_registry(ignore_rules: list[str] | None = None) -> ExceptionRegistry:
     )
 
 
-def _write_base_jsonc(dir: Path, content: str) -> Path:
-    path = dir / ".markdownlint.jsonc"
+def _write_base_jsonc(directory: Path, content: str) -> Path:
+    path = directory / ".markdownlint.jsonc"
     path.write_text(content)
     return path
 
