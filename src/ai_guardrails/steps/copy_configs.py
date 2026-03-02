@@ -34,7 +34,7 @@ class CopyConfigsStep:
         skipped: list[str] = []
 
         for lang in ctx.languages:
-            for config_file in lang.configs:
+            for config_file in lang.copy_files:
                 src = self._configs_dir / config_file
                 dst = ctx.project_dir / config_file
 

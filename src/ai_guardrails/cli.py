@@ -26,15 +26,17 @@ app = cyclopts.App(name="ai-guardrails", help="Pedantic code enforcement for AI-
 # Package data paths
 # ---------------------------------------------------------------------------
 
-_PACKAGE_ROOT = Path(__file__).parents[3]  # repo root when running from src/
+_PACKAGE_ROOT = Path(__file__).parents[2]
 _CONFIGS_DIR = _PACKAGE_ROOT / "configs"
 _TEMPLATES_DIR = _PACKAGE_ROOT / "templates"
-_LANGUAGES_YAML = _CONFIGS_DIR / "languages.yaml"
-_LEFTHOOK_TEMPLATES = _TEMPLATES_DIR / "lefthook"
 _REGISTRY_TEMPLATE = _TEMPLATES_DIR / "guardrails-exceptions.toml"
 _CI_TEMPLATE = _TEMPLATES_DIR / "workflows" / "check.yml"
 _AGENT_TEMPLATE = _TEMPLATES_DIR / "CLAUDE.md.guardrails"
 _GLOBAL_CONFIG_DIR = Path.home() / ".ai-guardrails"
+_CUSTOM_PLUGINS_DIR = _GLOBAL_CONFIG_DIR / "plugins"
+
+# data_dir is the repo root — configs/ and templates/ are found relative to it
+_DATA_DIR = _PACKAGE_ROOT
 
 
 def _make_infra(
@@ -93,14 +95,15 @@ def init(
         no_agent_instructions=no_agent_instructions,
         dry_run=dry_run,
     )
+    custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = InitPipeline(
         options=options,
-        languages_yaml=_LANGUAGES_YAML,
+        data_dir=_DATA_DIR,
         configs_dir=_CONFIGS_DIR,
-        lefthook_templates_dir=_LEFTHOOK_TEMPLATES,
         registry_template=_REGISTRY_TEMPLATE,
         ci_template=_CI_TEMPLATE,
         agent_template=_AGENT_TEMPLATE,
+        custom_plugins_dir=custom_dir,
     )
     fm, runner, loader, console = _make_infra(dry_run=dry_run)
     results = pipeline.run(
@@ -131,11 +134,11 @@ def generate(
     """Regenerate tool configs from exception registry."""
     lang_list = [lang.strip() for lang in languages.split(",")] if languages else None
     options = GenerateOptions(check=check, languages=lang_list, dry_run=dry_run)
+    custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = GeneratePipeline(
         options=options,
-        languages_yaml=_LANGUAGES_YAML,
-        configs_dir=_CONFIGS_DIR,
-        lefthook_templates_dir=_LEFTHOOK_TEMPLATES,
+        data_dir=_DATA_DIR,
+        custom_plugins_dir=custom_dir,
     )
     fm, runner, loader, console = _make_infra(dry_run=dry_run)
     results = pipeline.run(

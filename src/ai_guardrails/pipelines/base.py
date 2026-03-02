@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.config_loader import ConfigLoader
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
-    from ai_guardrails.models.language import LanguageConfig
+    from ai_guardrails.languages._base import LanguagePlugin
     from ai_guardrails.models.registry import ExceptionRegistry
 
 
@@ -37,7 +37,7 @@ class PipelineContext:
     command_runner: CommandRunner
     config_loader: ConfigLoader
     console: Console
-    languages: list[LanguageConfig]
+    languages: list[LanguagePlugin]
     registry: ExceptionRegistry | None
     dry_run: bool
     force: bool

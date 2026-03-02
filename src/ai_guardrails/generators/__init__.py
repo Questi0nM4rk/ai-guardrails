@@ -1,25 +1,19 @@
-"""Generator implementations for ai-guardrails v1.
-
-Each generator produces one or more config files from the exception registry
-and optionally base config templates.
-"""
+"""Hash utilities for ai-guardrails generated configs."""
 
 from __future__ import annotations
 
-from ai_guardrails.generators.base import Generator
-from ai_guardrails.generators.claude_settings import ClaudeSettingsGenerator
-from ai_guardrails.generators.codespell import CodespellGenerator
-from ai_guardrails.generators.editorconfig import EditorconfigGenerator
-from ai_guardrails.generators.lefthook import LefthookGenerator
-from ai_guardrails.generators.markdownlint import MarkdownlintGenerator
-from ai_guardrails.generators.ruff import RuffGenerator
+from ai_guardrails.generators.base import (
+    HASH_HEADER_PREFIX,
+    Generator,
+    compute_hash,
+    make_hash_header,
+    verify_hash,
+)
 
 __all__ = [
-    "ClaudeSettingsGenerator",
-    "CodespellGenerator",
-    "EditorconfigGenerator",
+    "HASH_HEADER_PREFIX",
     "Generator",
-    "LefthookGenerator",
-    "MarkdownlintGenerator",
-    "RuffGenerator",
+    "compute_hash",
+    "make_hash_header",
+    "verify_hash",
 ]

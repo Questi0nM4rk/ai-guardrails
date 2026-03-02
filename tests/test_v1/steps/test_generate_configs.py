@@ -1,11 +1,14 @@
-"""Tests for GenerateConfigsStep — runs generators based on detected languages."""
+"""Tests for GenerateConfigsStep — runs active plugins and assembles lefthook.yml."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
+import yaml
+
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX
 from ai_guardrails.infra.config_loader import ConfigLoader
-from ai_guardrails.models.language import DetectionRules, LanguageConfig
+from ai_guardrails.languages._base import BaseLanguagePlugin
 from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
@@ -25,19 +28,40 @@ def _empty_registry() -> ExceptionRegistry:
     )
 
 
-def _make_lang(key: str) -> LanguageConfig:
-    return LanguageConfig(
-        key=key,
-        name=key.capitalize(),
-        detect=DetectionRules(files=[], patterns=[], directories=[]),
-        configs=[],
-        hook_template="",
-    )
+# ---------------------------------------------------------------------------
+# Fake plugins for testing
+# ---------------------------------------------------------------------------
+
+
+class _FakePlugin(BaseLanguagePlugin):
+    """Minimal plugin: generates one file, no hooks."""
+
+    def __init__(
+        self,
+        key: str,
+        filenames: list[str],
+        hooks: dict | None = None,  # type: ignore[type-arg]
+    ) -> None:
+        self.key = key
+        self.name = key.capitalize()
+        self.copy_files: list[str] = []
+        self.generated_configs = filenames
+        self._filenames = filenames
+        self._hooks = hooks or {}
+
+    def detect(self, project_dir: Path) -> bool:
+        return True
+
+    def generate(self, registry: ExceptionRegistry, project_dir: Path) -> dict[Path, str]:
+        return {project_dir / fname: f"# {self.key}\n" for fname in self._filenames}
+
+    def hook_config(self) -> dict:  # type: ignore[type-arg]
+        return self._hooks
 
 
 def _make_context(
     tmp_path: Path,
-    languages: list[LanguageConfig] | None = None,
+    languages: list[BaseLanguagePlugin] | None = None,
     registry: ExceptionRegistry | None = None,
 ) -> tuple[PipelineContext, FakeFileManager]:
     fm = FakeFileManager()
@@ -56,41 +80,17 @@ def _make_context(
 
 
 # ---------------------------------------------------------------------------
-# Fake generator for testing
+# Tests
 # ---------------------------------------------------------------------------
 
 
-class _FakeGenerator:
-    def __init__(
-        self, name: str, output_files: list[str], languages: list[str] | None = None
-    ) -> None:
-        self.name = name
-        self.output_files = output_files
-        self._required_langs = languages  # None = always run
-
-    def generate(
-        self,
-        registry: ExceptionRegistry,
-        languages: list[str],
-        project_dir: Path,
-    ) -> dict[Path, str]:
-        if self._required_langs is not None and not any(
-            lang in languages for lang in self._required_langs
-        ):
-            return {}
-        return {project_dir / fname: f"# {self.name}\n" for fname in self.output_files}
-
-    def check(self, registry: ExceptionRegistry, project_dir: Path) -> list[str]:
-        return []
-
-
 def test_generate_configs_step_name(tmp_path: Path) -> None:
-    step = GenerateConfigsStep(generators=[])
+    step = GenerateConfigsStep()
     assert step.name == "generate-configs"
 
 
 def test_generate_configs_validate_fails_without_registry(tmp_path: Path) -> None:
-    step = GenerateConfigsStep(generators=[])
+    step = GenerateConfigsStep()
     ctx, _ = _make_context(tmp_path)
     ctx.registry = None
     errors = step.validate(ctx)
@@ -99,25 +99,25 @@ def test_generate_configs_validate_fails_without_registry(tmp_path: Path) -> Non
 
 
 def test_generate_configs_validate_passes_with_registry(tmp_path: Path) -> None:
-    step = GenerateConfigsStep(generators=[])
+    step = GenerateConfigsStep()
     ctx, _ = _make_context(tmp_path)
     assert step.validate(ctx) == []
 
 
 def test_generate_configs_writes_output_files(tmp_path: Path) -> None:
-    gen = _FakeGenerator("ruff", ["ruff.toml"])
-    step = GenerateConfigsStep(generators=[gen])
-    ctx, fm = _make_context(tmp_path, languages=[_make_lang("python")])
+    plugin = _FakePlugin("ruff", ["ruff.toml"])
+    step = GenerateConfigsStep()
+    ctx, fm = _make_context(tmp_path, languages=[plugin])
     result = step.execute(ctx)
     assert result.status == "ok"
     assert any(p == tmp_path / "ruff.toml" for p, _ in fm.written)
 
 
-def test_generate_configs_runs_all_generators(tmp_path: Path) -> None:
-    gen1 = _FakeGenerator("ruff", ["ruff.toml"])
-    gen2 = _FakeGenerator("editorconfig", [".editorconfig"])
-    step = GenerateConfigsStep(generators=[gen1, gen2])
-    ctx, fm = _make_context(tmp_path)
+def test_generate_configs_runs_all_plugins(tmp_path: Path) -> None:
+    p1 = _FakePlugin("python", ["ruff.toml"])
+    p2 = _FakePlugin("universal", [".editorconfig"])
+    step = GenerateConfigsStep()
+    ctx, fm = _make_context(tmp_path, languages=[p1, p2])
     result = step.execute(ctx)
     assert result.status == "ok"
     written_paths = {p for p, _ in fm.written}
@@ -125,30 +125,75 @@ def test_generate_configs_runs_all_generators(tmp_path: Path) -> None:
     assert tmp_path / ".editorconfig" in written_paths
 
 
-def test_generate_configs_no_generators_returns_ok(tmp_path: Path) -> None:
-    step = GenerateConfigsStep(generators=[])
+def test_generate_configs_no_plugins_returns_ok(tmp_path: Path) -> None:
+    step = GenerateConfigsStep()
     ctx, _fm = _make_context(tmp_path)
     result = step.execute(ctx)
     assert result.status == "ok"
 
 
-def test_generate_configs_passes_language_keys_to_generators(tmp_path: Path) -> None:
-    """Generator only runs if its required language is present."""
-    python_only = _FakeGenerator("ruff", ["ruff.toml"], languages=["python"])
-    step = GenerateConfigsStep(generators=[python_only])
+def test_generate_configs_assembles_lefthook_yml(tmp_path: Path) -> None:
+    hooks = {
+        "pre-commit": {
+            "commands": {"codespell": {"run": "codespell {staged_files}", "priority": 2}}
+        }
+    }
+    plugin = _FakePlugin("universal", [], hooks=hooks)
+    step = GenerateConfigsStep()
+    ctx, fm = _make_context(tmp_path, languages=[plugin])
+    result = step.execute(ctx)
+    assert result.status == "ok"
+    written_paths = {p for p, _ in fm.written}
+    assert tmp_path / "lefthook.yml" in written_paths
 
-    # No python detected — generator should produce nothing
-    ctx, fm = _make_context(tmp_path, languages=[_make_lang("rust")])
+
+def test_generate_configs_lefthook_has_hash_header(tmp_path: Path) -> None:
+    hooks = {"pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}}
+    plugin = _FakePlugin("universal", [], hooks=hooks)
+    step = GenerateConfigsStep()
+    ctx, fm = _make_context(tmp_path, languages=[plugin])
     step.execute(ctx)
-    assert not any(p == tmp_path / "ruff.toml" for p, _ in fm.written)
+    lefthook_content = next(content for path, content in fm.written if path.name == "lefthook.yml")
+    assert lefthook_content.startswith(HASH_HEADER_PREFIX)
+
+
+def test_generate_configs_merges_multiple_plugin_hooks(tmp_path: Path) -> None:
+    universal_hooks = {
+        "pre-commit": {
+            "commands": {"codespell": {"run": "codespell {staged_files}", "priority": 2}}
+        }
+    }
+    python_hooks = {
+        "pre-commit": {
+            "commands": {"ruff-check": {"run": "ruff check {staged_files}", "priority": 2}}
+        }
+    }
+    p1 = _FakePlugin("universal", [], hooks=universal_hooks)
+    p2 = _FakePlugin("python", ["ruff.toml"], hooks=python_hooks)
+    step = GenerateConfigsStep()
+    ctx, fm = _make_context(tmp_path, languages=[p1, p2])
+    step.execute(ctx)
+    lefthook_content = next(content for path, content in fm.written if path.name == "lefthook.yml")
+    body = lefthook_content.split("\n", 1)[1]
+    parsed = yaml.safe_load(body)
+    commands = parsed["pre-commit"]["commands"]
+    assert "codespell" in commands
+    assert "ruff-check" in commands
 
 
 def test_generate_configs_creates_parent_directories(tmp_path: Path) -> None:
-    """Generator output in subdirectory — parent must be created."""
-    gen = _FakeGenerator("claude_settings", [".claude/settings.json"])
-    step = GenerateConfigsStep(generators=[gen])
-    ctx, _fm = _make_context(tmp_path)
-
-    # Should not raise even if .claude/ doesn't exist in FakeFileManager
+    plugin = _FakePlugin("settings", [".claude/settings.json"])
+    step = GenerateConfigsStep()
+    ctx, _fm = _make_context(tmp_path, languages=[plugin])
     result = step.execute(ctx)
     assert result.status == "ok"
+
+
+def test_generate_configs_no_hooks_no_lefthook(tmp_path: Path) -> None:
+    """If no plugin returns hook_config, lefthook.yml is not written."""
+    plugin = _FakePlugin("python", ["ruff.toml"], hooks={})
+    step = GenerateConfigsStep()
+    ctx, fm = _make_context(tmp_path, languages=[plugin])
+    step.execute(ctx)
+    written_paths = {p.name for p, _ in fm.written}
+    assert "lefthook.yml" not in written_paths

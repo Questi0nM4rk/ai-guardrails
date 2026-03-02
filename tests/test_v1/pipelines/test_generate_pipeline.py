@@ -9,10 +9,9 @@ from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GeneratePipeline
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_LANGUAGES_YAML = Path(__file__).parents[3] / "configs" / "languages.yaml"
-_REGISTRY_TEMPLATE = Path(__file__).parents[3] / "templates" / "guardrails-exceptions.toml"
-_LEFTHOOK_TEMPLATES = Path(__file__).parents[3] / "templates" / "lefthook"
-_CONFIGS_DIR = Path(__file__).parents[3] / "configs"
+_REPO_ROOT = Path(__file__).parents[3]
+_REGISTRY_TEMPLATE = _REPO_ROOT / "templates" / "guardrails-exceptions.toml"
+_DATA_DIR = _REPO_ROOT
 
 
 def _empty_registry() -> ExceptionRegistry:
@@ -31,9 +30,7 @@ def _empty_registry() -> ExceptionRegistry:
 def _make_pipeline(*, check: bool = False, languages: list[str] | None = None) -> GeneratePipeline:
     return GeneratePipeline(
         options=GenerateOptions(check=check, languages=languages, dry_run=False),
-        languages_yaml=_LANGUAGES_YAML,
-        configs_dir=_CONFIGS_DIR,
-        lefthook_templates_dir=_LEFTHOOK_TEMPLATES,
+        data_dir=_DATA_DIR,
     )
 
 
@@ -52,7 +49,6 @@ def test_generate_pipeline_can_be_constructed() -> None:
 def test_generate_pipeline_run_returns_results(tmp_path: Path) -> None:
     """Smoke test: pipeline runs without crashing on empty dir with registry."""
     fm = FakeFileManager()
-    # Seed a minimal registry
     registry_content = _REGISTRY_TEMPLATE.read_text()
     fm.seed(tmp_path / ".guardrails-exceptions.toml", registry_content)
 
@@ -82,5 +78,4 @@ def test_generate_pipeline_with_explicit_languages(tmp_path: Path) -> None:
         console=FakeConsole(),
     )
     assert isinstance(results, list)
-    # Should not fail even when forcing language override
     assert not any(r.status == "error" for r in results)

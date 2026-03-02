@@ -15,12 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ai_guardrails.generators.claude_settings import ClaudeSettingsGenerator
-from ai_guardrails.generators.codespell import CodespellGenerator
-from ai_guardrails.generators.editorconfig import EditorconfigGenerator
-from ai_guardrails.generators.lefthook import LefthookGenerator
-from ai_guardrails.generators.markdownlint import MarkdownlintGenerator
-from ai_guardrails.generators.ruff import RuffGenerator
+from ai_guardrails.languages._registry import discover_plugins
 from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.copy_configs import CopyConfigsStep
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
@@ -37,6 +32,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.config_loader import ConfigLoader
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
+    from ai_guardrails.languages._base import LanguagePlugin
 
 
 @dataclass
@@ -56,30 +52,23 @@ class InitPipeline:
     def __init__(
         self,
         options: InitOptions,
-        languages_yaml: Path,
+        data_dir: Path,
         configs_dir: Path,
-        lefthook_templates_dir: Path,
         registry_template: Path,
         ci_template: Path,
         agent_template: Path,
+        custom_plugins_dir: Path | None = None,
     ) -> None:
         self._options = options
-        self._languages_yaml = languages_yaml
+        self._data_dir = data_dir
         self._configs_dir = configs_dir
-        self._lefthook_templates_dir = lefthook_templates_dir
         self._registry_template = registry_template
         self._ci_template = ci_template
         self._agent_template = agent_template
+        self._custom_plugins_dir = custom_plugins_dir
 
-    def _make_generators(self) -> list:  # type: ignore[type-arg]
-        return [
-            RuffGenerator(configs_dir=self._configs_dir),
-            MarkdownlintGenerator(configs_dir=self._configs_dir),
-            CodespellGenerator(),
-            EditorconfigGenerator(configs_dir=self._configs_dir),
-            LefthookGenerator(templates_dir=self._lefthook_templates_dir),
-            ClaudeSettingsGenerator(),
-        ]
+    def _get_plugins(self) -> list[LanguagePlugin]:
+        return discover_plugins(self._data_dir, custom_dir=self._custom_plugins_dir)
 
     def run(
         self,
@@ -89,6 +78,7 @@ class InitPipeline:
         config_loader: ConfigLoader,
         console: Console,
     ) -> list[StepResult]:
+        plugins = self._get_plugins()
         ctx = PipelineContext(
             project_dir=project_dir,
             file_manager=file_manager,
@@ -102,11 +92,11 @@ class InitPipeline:
         )
 
         steps: list = [
-            DetectLanguagesStep(languages_yaml=self._languages_yaml),
+            DetectLanguagesStep(plugins=plugins),
             CopyConfigsStep(configs_dir=self._configs_dir),
             ScaffoldRegistryStep(template_path=self._registry_template),
             LoadRegistryStep(),
-            GenerateConfigsStep(generators=self._make_generators()),
+            GenerateConfigsStep(),
         ]
 
         if not self._options.no_ci:

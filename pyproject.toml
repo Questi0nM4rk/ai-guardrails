@@ -160,6 +160,14 @@ ignore = [
   "RUF012", # ClassVar: Protocol class attrs (name, output_files) follow Protocol convention
   "D107",   # __init__ docstrings: self-evident constructors (configs_dir, templates_dir)
 ]
+"src/ai_guardrails/languages/*.py" = [
+  "ARG002", # Plugin base class methods accept args that subclasses use
+  "RUF012", # ClassVar: plugin class attrs (key, name, detect_*) are class-level config
+  "D107",   # __init__ docstrings: self-evident constructors (data_dir)
+  "D102",   # public method docstrings: hook_config/detect are protocol methods
+  "TC003",  # Path used at runtime in __init__ — not TYPE_CHECKING only
+  "E501",   # Hook YAML strings embed long shell commands — can't break mid-string
+]
 "src/ai_guardrails/steps/*.py" = [
   "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
   "D107",   # __init__ docstrings: self-evident constructors

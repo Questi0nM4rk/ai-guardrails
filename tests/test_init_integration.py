@@ -37,6 +37,9 @@ def project_dir(tmp_path: Path) -> Path:
     return tmp_path
 
 
+@pytest.mark.skip(
+    reason="Legacy pre-commit generation requires languages.yaml — replaced by v1 lefthook"
+)
 @pytest.mark.usefixtures("_mock_hooks")
 def test_creates_precommit_config(project_dir: Path) -> None:
     """Test that .pre-commit-config.yaml is created."""

@@ -8,19 +8,18 @@ from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_LANGUAGES_YAML = Path(__file__).parents[3] / "configs" / "languages.yaml"
-_REGISTRY_TEMPLATE = Path(__file__).parents[3] / "templates" / "guardrails-exceptions.toml"
-_CI_TEMPLATE = Path(__file__).parents[3] / "templates" / "workflows" / "check.yml"
-_AGENT_TEMPLATE = Path(__file__).parents[3] / "templates" / "CLAUDE.md.guardrails"
-_LEFTHOOK_TEMPLATES = Path(__file__).parents[3] / "templates" / "lefthook"
-_CONFIGS_DIR = Path(__file__).parents[3] / "configs"
+_REPO_ROOT = Path(__file__).parents[3]
+_REGISTRY_TEMPLATE = _REPO_ROOT / "templates" / "guardrails-exceptions.toml"
+_CI_TEMPLATE = _REPO_ROOT / "templates" / "workflows" / "check.yml"
+_AGENT_TEMPLATE = _REPO_ROOT / "templates" / "CLAUDE.md.guardrails"
+_CONFIGS_DIR = _REPO_ROOT / "configs"
+_DATA_DIR = _REPO_ROOT
 
 
 def _make_pipeline(**kwargs) -> InitPipeline:  # type: ignore[no-untyped-def]
     defaults = {
-        "languages_yaml": _LANGUAGES_YAML,
+        "data_dir": _DATA_DIR,
         "configs_dir": _CONFIGS_DIR,
-        "lefthook_templates_dir": _LEFTHOOK_TEMPLATES,
         "registry_template": _REGISTRY_TEMPLATE,
         "ci_template": _CI_TEMPLATE,
         "agent_template": _AGENT_TEMPLATE,
@@ -107,9 +106,8 @@ def test_init_pipeline_no_ci_skips_workflow(tmp_path: Path) -> None:
     fm = FakeFileManager()
     pipeline = InitPipeline(
         options=InitOptions(no_ci=True),
-        languages_yaml=_LANGUAGES_YAML,
+        data_dir=_DATA_DIR,
         configs_dir=_CONFIGS_DIR,
-        lefthook_templates_dir=_LEFTHOOK_TEMPLATES,
         registry_template=_REGISTRY_TEMPLATE,
         ci_template=_CI_TEMPLATE,
         agent_template=_AGENT_TEMPLATE,
@@ -129,9 +127,8 @@ def test_init_pipeline_no_agent_instructions_skips_claude_md(tmp_path: Path) -> 
     fm = FakeFileManager()
     pipeline = InitPipeline(
         options=InitOptions(no_agent_instructions=True),
-        languages_yaml=_LANGUAGES_YAML,
+        data_dir=_DATA_DIR,
         configs_dir=_CONFIGS_DIR,
-        lefthook_templates_dir=_LEFTHOOK_TEMPLATES,
         registry_template=_REGISTRY_TEMPLATE,
         ci_template=_CI_TEMPLATE,
         agent_template=_AGENT_TEMPLATE,

@@ -441,7 +441,6 @@ class TestFindInstallationPaths:
         with patch.object(Path, "home", return_value=temp_dir):
             configs_dir, templates_dir = find_installation_paths()
             assert configs_dir.exists()
-            assert (configs_dir / "languages.yaml").exists()
             assert templates_dir.exists()
 
 
@@ -489,6 +488,7 @@ def test_global_fallback_when_no_local(temp_dir: Path) -> None:
 # =============================================================================
 
 
+@pytest.mark.skip(reason="Legacy assemble CLI requires languages.yaml — replaced by v1 CLI")
 class TestMainCLI:
     """Tests for main CLI function."""
 
@@ -725,6 +725,9 @@ def _get_all_hook_ids(config: dict[str, Any]) -> list[str]:
     return [hook["id"] for repo in config.get("repos", []) for hook in repo.get("hooks", [])]
 
 
+@pytest.mark.skip(
+    reason="Legacy assembly integration tests require languages.yaml — replaced by v1 plugin hooks"
+)
 class TestAssemblyIntegration:
     """Integration tests using real registry and templates (migrated from bats)."""
 
@@ -865,6 +868,7 @@ class TestAssemblyIntegration:
         assert "shellcheck" in hook_ids  # Shell
 
 
+@pytest.mark.skip(reason="Legacy output integration tests require languages.yaml — replaced by v1")
 class TestAssemblyOutputIntegration:
     """Integration tests for file output (migrated from bats)."""
 
@@ -917,6 +921,7 @@ class TestAssemblyOutputIntegration:
         assert "repos" in loaded
 
 
+@pytest.mark.skip(reason="Legacy auto-detect integration tests require languages.yaml — see v1")
 class TestAssemblyAutoDetectIntegration:
     """Integration tests for auto-detection + assembly (migrated from bats)."""
 

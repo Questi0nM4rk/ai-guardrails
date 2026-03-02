@@ -1,40 +1,49 @@
-"""RuffGenerator — merges base ruff.toml with exception registry.
-
-Algorithm:
-- Load base ruff.toml via tomllib
-- Union global ignores from registry into lint.ignore
-- Union per-file-ignores from registry into lint.per-file-ignores
-- Merge custom.ruff from registry into the config (deep merge)
-- Add hash header: # ai-guardrails:hash:sha256:<hash>
-- Serialize to TOML via tomli_w
-"""
+"""PythonPlugin — detects Python projects, generates ruff.toml."""
 
 from __future__ import annotations
 
 import tomllib  # type: ignore[no-redef]
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tomli_w
+import yaml
 
-from ai_guardrails.generators.base import compute_hash, verify_hash
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash, verify_hash
 from ai_guardrails.infra.config_loader import deep_merge
+from ai_guardrails.languages._base import BaseLanguagePlugin
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from ai_guardrails.models.registry import ExceptionRegistry
 
-_HASH_PREFIX = "# ai-guardrails:hash:sha256:"
 
+class PythonPlugin(BaseLanguagePlugin):
+    """Language plugin for Python projects."""
 
-class RuffGenerator:
-    """Generates ruff.toml by merging base config with exception registry."""
+    key = "python"
+    name = "Python"
+    detect_files = ["pyproject.toml", "setup.py", "requirements.txt"]
+    detect_patterns = ["*.py"]
+    detect_dirs: list[str] = []
+    copy_files: list[str] = []
+    generated_configs = ["ruff.toml"]
 
-    name = "ruff"
-    output_files = ["ruff.toml"]
+    _HOOKS_YAML = """\
+pre-commit:
+  commands:
+    python-format-and-stage:
+      glob: "*.py"
+      run: ruff format {staged_files} && ruff check --fix {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    ruff-check:
+      glob: "*.py"
+      run: ruff check {staged_files}
+      priority: 2
+"""
 
-    def __init__(self, configs_dir: Path) -> None:
-        self._configs_dir = configs_dir
+    def __init__(self, data_dir: Path) -> None:
+        self._configs_dir = data_dir / "configs"
 
     def _load_base(self) -> dict:  # type: ignore[type-arg]
         src = self._configs_dir / "ruff.toml"
@@ -58,7 +67,7 @@ class RuffGenerator:
             existing: set[str] = set(pfi.get(glob_pattern, []))
             pfi[glob_pattern] = sorted(existing | set(rules))
 
-        # Apply custom overrides (raw deep merge)
+        # Apply custom overrides
         if "ruff" in registry.custom:
             config = deep_merge(config, registry.custom["ruff"])
 
@@ -71,14 +80,17 @@ class RuffGenerator:
     def generate(
         self,
         registry: ExceptionRegistry,
-        languages: list[str],
         project_dir: Path,
     ) -> dict[Path, str]:
         """Return {project_dir/ruff.toml: content_with_hash_header}."""
         body = self._build_body(registry)
-        header = f"{_HASH_PREFIX}{compute_hash(body)}"
+        header = f"{HASH_HEADER_PREFIX}{compute_hash(body)}"
         full_content = f"{header}\n{body}"
         return {project_dir / "ruff.toml": full_content}
+
+    def hook_config(self) -> dict:  # type: ignore[type-arg]
+        """Return Python pre-commit hooks config."""
+        return yaml.safe_load(self._HOOKS_YAML) or {}
 
     def check(
         self,
