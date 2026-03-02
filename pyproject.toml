@@ -21,20 +21,24 @@ dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4"]
 [project.scripts]
 ai-guardrails = "guardrails.cli:main"
 ai-guardrails-install = "install:main"
+ai-guardrails-v1 = "ai_guardrails.cli:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["lib/python/guardrails"]
+packages = ["lib/python/guardrails", "src/ai_guardrails"]
 [tool.hatch.build.targets.wheel.sources]
 "lib/python" = ""
+"src" = ""
 
 [tool.hatch.build.targets.sdist]
 include = [
   "install.py",
   "lib/**/*.py",
+  "src/**/*.py",
+  "src/**/*.typed",
   "bin/**",
   "templates/**",
   "configs/**",
@@ -145,6 +149,31 @@ ignore = [
 ]
 "src/ai_guardrails/__init__.py" = ["D104"]
 "src/ai_guardrails/hooks/__init__.py" = ["D104"]
+"src/ai_guardrails/generators/*.py" = [
+  "ARG002", # Protocol conformance: registry/languages unused in some generators by design
+  "RUF012", # ClassVar: Protocol class attrs (name, output_files) follow Protocol convention
+  "D107",   # __init__ docstrings: self-evident constructors (configs_dir, templates_dir)
+]
+"src/ai_guardrails/steps/*.py" = [
+  "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
+  "D107",   # __init__ docstrings: self-evident constructors
+  "D102",   # public method docstrings: validate/execute are Protocol methods
+]
+"src/ai_guardrails/pipelines/*.py" = [
+  "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
+  "D107",   # __init__ docstrings: self-evident constructors
+  "D102",   # public method docstrings: run() signature is self-documenting
+]
+"src/ai_guardrails/infra/*.py" = [
+  "D107", # __init__ docstrings: self-evident constructors
+]
+"src/ai_guardrails/infra/command_runner.py" = [
+  "S603",    # subprocess calls with controlled args are safe
+  "PLW1510", # check=False is intentional: callers inspect returncode themselves
+]
+"src/ai_guardrails/pipelines/init_pipeline.py" = [
+  "PLR0913", # __init__ has many paths by design (all template paths required)
+]
 "tests/test_comments.py" = [
   "PLR0913", # test helpers have many keyword-only args for flexibility
 ]
