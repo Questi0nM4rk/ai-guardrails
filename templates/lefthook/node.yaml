@@ -1,0 +1,14 @@
+# AI Guardrails — Node/TypeScript lefthook hooks
+# Merged when node language is detected.
+
+pre-commit:
+  commands:
+    node-format-and-stage:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
+      run: biome check --apply {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    biome-check:
+      glob: "*.{js,jsx,ts,tsx,mjs,cjs}"
+      run: biome check --error-on-warnings {staged_files}
+      priority: 2

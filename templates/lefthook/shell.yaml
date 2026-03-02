@@ -1,0 +1,14 @@
+# AI Guardrails — Shell lefthook hooks
+# Merged when shell language is detected.
+
+pre-commit:
+  commands:
+    shell-format-and-stage:
+      glob: "*.{sh,bash,zsh}"
+      run: shfmt -i 2 -ci -bn -w {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    shellcheck:
+      glob: "*.{sh,bash,zsh}"
+      run: shellcheck --severity=info -x {staged_files}
+      priority: 2

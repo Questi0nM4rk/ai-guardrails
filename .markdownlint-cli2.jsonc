@@ -7,14 +7,18 @@
     // Tables are readable as-is; strict spacing is too pedantic
     "MD060": false,
 
-    // Line length: allow longer lines for tables and code
-    "MD013": {
-      "line_length": 120,
-      "tables": false,
-      "code_blocks": false
-    }
+    // Line length: disabled — soft wraps are fine, editors handle this
+    // Design docs (ADRs, specs) routinely have long lines
+    "MD013": false,
+
+    // MD040: Fenced code blocks language - useful but not critical for ADRs/specs
+    // Design docs often have plain text blocks (pseudo-code, diagrams, examples)
+    "MD040": false,
+
+    // MD036: Emphasis as heading - false positives in design docs
+    "MD036": false
   },
 
   // Ignore certain paths
-  "ignores": ["node_modules/**", ".venv/**", "venv/**", "dist/**", "build/**"]
+  "ignores": ["node_modules/**", ".venv/**", "venv/**", "dist/**", "build/**", ".ai-guardrails/**"]
 }

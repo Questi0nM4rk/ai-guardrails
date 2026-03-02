@@ -1,0 +1,14 @@
+# AI Guardrails — Lua lefthook hooks
+# Merged when lua language is detected.
+
+pre-commit:
+  commands:
+    lua-format-and-stage:
+      glob: "*.lua"
+      run: stylua {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    luacheck:
+      glob: "*.lua"
+      run: luacheck {staged_files}
+      priority: 2

@@ -1,0 +1,134 @@
+# =============================================================================
+# AI Guardrails Language Registry
+# =============================================================================
+# Defines language detection rules and pre-commit template mapping.
+#
+# Each language specifies:
+#   - name: Human-readable name
+#   - emoji: Display emoji for CLI output
+#   - detect: Rules for auto-detection
+#     - files: Exact filenames to match
+#     - patterns: Glob patterns to match
+#     - directories: Directory names to match
+#   - configs: Config files to copy (from configs/ directory)
+#   - pre_commit_template: Template file name (in templates/pre-commit/)
+# =============================================================================
+
+python:
+  name: "Python"
+  emoji: "\U0001F40D"  # snake
+  detect:
+    files:
+      - pyproject.toml
+      - setup.py
+      - requirements.txt
+    patterns:
+      - "*.py"
+    directories: []
+  configs:
+    - ruff.toml
+  pre_commit_template: python.yaml
+
+rust:
+  name: "Rust"
+  emoji: "\U0001F980"  # crab
+  detect:
+    files:
+      - Cargo.toml
+    patterns:
+      - "*.rs"
+    directories: []
+  configs:
+    - rustfmt.toml
+  pre_commit_template: rust.yaml
+
+dotnet:
+  name: "C#/.NET"
+  emoji: "\U0001F7EA"  # purple square
+  detect:
+    files: []
+    patterns:
+      - "*.csproj"
+      - "*.sln"
+      - "*.slnx"  # .NET 10+ solution format
+    directories: []
+  configs:
+    - Directory.Build.props
+    - .globalconfig
+  pre_commit_template: dotnet.yaml
+
+cpp:
+  name: "C/C++"
+  emoji: "\U0001F537"  # blue diamond
+  detect:
+    files:
+      - CMakeLists.txt
+      # Note: Makefile excluded - too generic (used by Python, Go, Rust, etc.)
+    patterns:
+      - "*.cpp"
+      - "*.c"
+      - "*.h"
+      - "*.hpp"
+    directories: []
+  configs:
+    - .clang-format
+    - .clang-tidy
+  pre_commit_template: cpp.yaml
+
+lua:
+  name: "Lua"
+  emoji: "\U0001F319"  # crescent moon
+  detect:
+    files: []
+    patterns:
+      - "*.rockspec"
+      - "*.lua"
+    directories:
+      - lua
+  configs:
+    - stylua.toml
+  pre_commit_template: lua.yaml
+
+node:
+  name: "TypeScript/JavaScript"
+  emoji: "\U0001F7E6"  # blue square
+  detect:
+    files:
+      - package.json
+      - tsconfig.json
+    patterns:
+      - "*.js"
+      - "*.jsx"
+      - "*.ts"
+      - "*.tsx"
+      - "*.mjs"
+      - "*.cjs"
+    directories: []
+  configs:
+    - biome.json
+  pre_commit_template: node.yaml
+
+go:
+  name: "Go"
+  emoji: "\U0001F439"  # hamster (gopher)
+  detect:
+    files:
+      - go.mod
+      - go.sum
+    patterns:
+      - "*.go"
+    directories: []
+  configs: []  # Go uses go.mod for config
+  pre_commit_template: go.yaml
+
+shell:
+  name: "Shell"
+  emoji: "\U0001F41A"  # shell
+  detect:
+    files: []
+    patterns:
+      - "*.sh"
+      - "*.bash"
+    directories: []
+  configs: []  # Uses shfmt args in pre-commit
+  pre_commit_template: shell.yaml
