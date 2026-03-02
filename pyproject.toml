@@ -7,7 +7,13 @@ license = { text = "MIT" }
 authors = [{ name = "Questi0nM4rk" }]
 readme = "README.md"
 
-dependencies = ["pyinfra>=3.2", "pyyaml>=6.0", "tomli-w>=1.0", "tomlkit>=0.12"]
+dependencies = [
+  "cyclopts>=4.6.0",
+  "pyinfra>=3.2",
+  "pyyaml>=6.0",
+  "tomli-w>=1.0",
+  "tomlkit>=0.12",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4"]
@@ -39,7 +45,7 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "lib/python"]
+pythonpath = [".", "lib/python", "src"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 
@@ -94,7 +100,9 @@ ignore = [
   "D101",    # missing class docstring
   "D102",    # missing method docstring
   "D103",    # missing function docstring
+  "D104",    # missing package docstring (__init__.py)
   "SLF001",  # private member access (needed for testing internal state)
+  "ANN",     # type annotations not required in tests
 ]
 "install.py" = [
   "T201",
@@ -127,6 +135,16 @@ ignore = [
   "S603",    # subprocess calls with fixed gh args are safe
   "S607",    # partial paths (gh) are intentional
 ]
+"src/ai_guardrails/hooks/format_stage.py" = [
+  "S603", # subprocess calls with fixed args are safe
+  "S607", # partial paths (git, formatters) are intentional
+]
+"src/ai_guardrails/hooks/config_ignore.py" = [
+  "S603", # subprocess calls with fixed git args are safe
+  "S607", # partial paths (git) are intentional
+]
+"src/ai_guardrails/__init__.py" = ["D104"]
+"src/ai_guardrails/hooks/__init__.py" = ["D104"]
 "tests/test_comments.py" = [
   "PLR0913", # test helpers have many keyword-only args for flexibility
 ]
