@@ -26,12 +26,21 @@ class CommandRunner:
         timeout: int = 30,
         cwd: Path | None = None,
     ) -> subprocess.CompletedProcess[str]:
-        """Run a command and return the CompletedProcess. Never raises on non-zero exit."""
+        """Run a command and return CompletedProcess. Never raises on non-zero exit."""
         logger.debug("Running: %s", " ".join(args))
-        return subprocess.run(
-            args,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=cwd,
-        )
+        try:
+            return subprocess.run(  # noqa: S603
+                args,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=timeout,
+                cwd=cwd,
+            )
+        except (FileNotFoundError, PermissionError) as exc:
+            return subprocess.CompletedProcess(
+                args=args,
+                returncode=1,
+                stdout="",
+                stderr=str(exc),
+            )
