@@ -26,8 +26,8 @@ jobs:
       - name: Python Lint
         run: |
           pip install ruff
-          ruff check lib/python/
-          ruff format --check lib/python/
+          ruff check --config pyproject.toml lib/python/
+          ruff format --check --config pyproject.toml lib/python/
 
   fixtures-python:
     name: Python Fixtures
