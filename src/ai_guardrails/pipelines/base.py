@@ -1,4 +1,4 @@
-"""Pipeline framework — PipelineContext, StepResult, PipelineStep Protocol, Pipeline runner.
+"""Pipeline framework — PipelineContext, StepResult, PipelineStep, Pipeline runner.
 
 All steps receive PipelineContext for dependency injection.
 Pipeline stops on error; continues on warn and skip.
@@ -41,6 +41,7 @@ class PipelineContext:
     registry: ExceptionRegistry | None
     dry_run: bool
     force: bool
+    check: bool = False
 
 
 @runtime_checkable

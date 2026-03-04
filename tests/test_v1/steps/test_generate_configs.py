@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 
@@ -13,6 +13,9 @@ from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _empty_registry() -> ExceptionRegistry:
@@ -49,10 +52,12 @@ class _FakePlugin(BaseLanguagePlugin):
         self._filenames = filenames
         self._hooks = hooks or {}
 
-    def detect(self, project_dir: Path) -> bool:
+    def detect(self, _project_dir: Path) -> bool:
         return True
 
-    def generate(self, registry: ExceptionRegistry, project_dir: Path) -> dict[Path, str]:
+    def generate(
+        self, registry: ExceptionRegistry, project_dir: Path
+    ) -> dict[Path, str]:
         return {project_dir / fname: f"# {self.key}\n" for fname in self._filenames}
 
     def hook_config(self) -> dict:  # type: ignore[type-arg]
@@ -135,7 +140,9 @@ def test_generate_configs_no_plugins_returns_ok(tmp_path: Path) -> None:
 def test_generate_configs_assembles_lefthook_yml(tmp_path: Path) -> None:
     hooks = {
         "pre-commit": {
-            "commands": {"codespell": {"run": "codespell {staged_files}", "priority": 2}}
+            "commands": {
+                "codespell": {"run": "codespell {staged_files}", "priority": 2}
+            }
         }
     }
     plugin = _FakePlugin("universal", [], hooks=hooks)
@@ -148,24 +155,32 @@ def test_generate_configs_assembles_lefthook_yml(tmp_path: Path) -> None:
 
 
 def test_generate_configs_lefthook_has_hash_header(tmp_path: Path) -> None:
-    hooks = {"pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}}
+    hooks = {
+        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
+    }
     plugin = _FakePlugin("universal", [], hooks=hooks)
     step = GenerateConfigsStep()
     ctx, fm = _make_context(tmp_path, languages=[plugin])
     step.execute(ctx)
-    lefthook_content = next(content for path, content in fm.written if path.name == "lefthook.yml")
+    lefthook_content = next(
+        content for path, content in fm.written if path.name == "lefthook.yml"
+    )
     assert lefthook_content.startswith(HASH_HEADER_PREFIX)
 
 
 def test_generate_configs_merges_multiple_plugin_hooks(tmp_path: Path) -> None:
     universal_hooks = {
         "pre-commit": {
-            "commands": {"codespell": {"run": "codespell {staged_files}", "priority": 2}}
+            "commands": {
+                "codespell": {"run": "codespell {staged_files}", "priority": 2}
+            }
         }
     }
     python_hooks = {
         "pre-commit": {
-            "commands": {"ruff-check": {"run": "ruff check {staged_files}", "priority": 2}}
+            "commands": {
+                "ruff-check": {"run": "ruff check {staged_files}", "priority": 2}
+            }
         }
     }
     p1 = _FakePlugin("universal", [], hooks=universal_hooks)
@@ -173,7 +188,9 @@ def test_generate_configs_merges_multiple_plugin_hooks(tmp_path: Path) -> None:
     step = GenerateConfigsStep()
     ctx, fm = _make_context(tmp_path, languages=[p1, p2])
     step.execute(ctx)
-    lefthook_content = next(content for path, content in fm.written if path.name == "lefthook.yml")
+    lefthook_content = next(
+        content for path, content in fm.written if path.name == "lefthook.yml"
+    )
     body = lefthook_content.split("\n", 1)[1]
     parsed = yaml.safe_load(body)
     commands = parsed["pre-commit"]["commands"]
@@ -197,3 +214,78 @@ def test_generate_configs_no_hooks_no_lefthook(tmp_path: Path) -> None:
     step.execute(ctx)
     written_paths = {p.name for p, _ in fm.written}
     assert "lefthook.yml" not in written_paths
+
+
+# ---------------------------------------------------------------------------
+# check mode
+# ---------------------------------------------------------------------------
+
+
+class _CheckPlugin(_FakePlugin):
+    """Plugin whose check() returns configurable issues."""
+
+    def __init__(self, key: str, issues: list[str]) -> None:
+        super().__init__(key, [])
+        self._issues = issues
+
+    def check(self, registry: ExceptionRegistry, project_dir: Path) -> list[str]:
+        return list(self._issues)
+
+
+def _make_check_context(
+    tmp_path: Path,
+    languages: list[_FakePlugin] | None = None,
+) -> tuple[PipelineContext, FakeFileManager]:
+    fm = FakeFileManager()
+    ctx = PipelineContext(
+        project_dir=tmp_path,
+        file_manager=fm,
+        command_runner=FakeCommandRunner(),
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+        languages=languages or [],
+        registry=_empty_registry(),
+        dry_run=False,
+        force=False,
+        check=True,
+    )
+    return ctx, fm
+
+
+def test_generate_configs_check_mode_returns_ok_when_all_fresh(tmp_path: Path) -> None:
+    """check=True with no issues returns ok and message 'All configs are fresh'."""
+    plugin = _CheckPlugin("python", issues=[])
+    step = GenerateConfigsStep()
+    ctx, _ = _make_check_context(tmp_path, languages=[plugin])
+    result = step.execute(ctx)
+    assert result.status == "ok"
+    assert "fresh" in result.message.lower()
+
+
+def test_generate_configs_check_mode_returns_error_when_stale(tmp_path: Path) -> None:
+    """check=True with issues returns error status."""
+    plugin = _CheckPlugin("python", issues=["ruff.toml is stale"])
+    step = GenerateConfigsStep()
+    ctx, _ = _make_check_context(tmp_path, languages=[plugin])
+    result = step.execute(ctx)
+    assert result.status == "error"
+    assert "stale" in result.message.lower() or "1" in result.message
+
+
+def test_generate_configs_check_mode_does_not_write_files(tmp_path: Path) -> None:
+    """check=True must never write any files, even if plugin.generate() would."""
+
+    class _GeneratingCheckPlugin(_FakePlugin):
+        """Plugin that both generates files AND reports no issues."""
+
+        def __init__(self) -> None:
+            super().__init__("python", ["ruff.toml"])
+
+        def check(self, registry: ExceptionRegistry, project_dir: Path) -> list[str]:
+            return []
+
+    plugin = _GeneratingCheckPlugin()
+    step = GenerateConfigsStep()
+    ctx, fm = _make_check_context(tmp_path, languages=[plugin])
+    step.execute(ctx)
+    assert fm.written == []

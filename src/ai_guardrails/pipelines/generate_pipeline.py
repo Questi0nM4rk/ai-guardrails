@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 from ai_guardrails.languages._base import BaseLanguagePlugin
 from ai_guardrails.languages._registry import discover_plugins
-from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
+from ai_guardrails.pipelines.base import Pipeline, PipelineContext
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from ai_guardrails.steps.load_registry import LoadRegistryStep
@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
     from ai_guardrails.languages._base import LanguagePlugin
+    from ai_guardrails.pipelines.base import StepResult
 
 
 @dataclass
@@ -43,7 +44,7 @@ class _ExplicitLanguagePlugin(BaseLanguagePlugin):
         self.copy_files: list[str] = []
         self.generated_configs: list[str] = []
 
-    def detect(self, project_dir: Path) -> bool:
+    def detect(self, _project_dir: Path) -> bool:
         return True
 
 
@@ -81,6 +82,7 @@ class GeneratePipeline:
             registry=None,
             dry_run=self._options.dry_run,
             force=False,
+            check=self._options.check,
         )
 
         # If languages are specified, inject synthetic plugins matching by key

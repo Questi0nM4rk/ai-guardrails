@@ -7,12 +7,16 @@ Assembles lefthook.yml from all active plugin hook_config() dicts.
 from __future__ import annotations
 
 import contextlib
+from typing import TYPE_CHECKING
 
 import yaml
 
 from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash
 from ai_guardrails.infra.config_loader import deep_merge
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
+
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import PipelineContext
 
 
 class GenerateConfigsStep:
@@ -27,6 +31,20 @@ class GenerateConfigsStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         assert ctx.registry is not None  # guaranteed by validate()
+
+        if ctx.check:
+            all_issues: list[str] = []
+            for plugin in ctx.languages:
+                all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
+            if all_issues:
+                for issue in all_issues:
+                    ctx.console.error(issue)
+                return StepResult(
+                    status="error",
+                    message=f"{len(all_issues)} config(s) stale or tampered",
+                )
+            return StepResult(status="ok", message="All configs are fresh")
+
         generated: list[str] = []
 
         # 1. Generate per-plugin config files
@@ -49,7 +67,9 @@ class GenerateConfigsStep:
             full_content = f"{header}\n{body}"
             lefthook_path = ctx.project_dir / "lefthook.yml"
             with contextlib.suppress(FileExistsError, AttributeError):
-                ctx.file_manager.mkdir(lefthook_path.parent, parents=True, exist_ok=True)
+                ctx.file_manager.mkdir(
+                    lefthook_path.parent, parents=True, exist_ok=True
+                )
             ctx.file_manager.write_text(lefthook_path, full_content)
             generated.append("lefthook.yml")
 
