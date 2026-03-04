@@ -28,6 +28,11 @@ version = "1.0.0"
 default_languages = []
 """
 
+_LEFTHOOK_INSTALL_HINT = (
+    "install with: brew install lefthook"
+    "  OR  go install github.com/evilmartians/lefthook@latest"
+)
+
 
 @dataclass
 class InstallOptions:
@@ -41,7 +46,7 @@ class _CheckPrereqsStep:
 
     name = "check-prereqs"
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
@@ -59,12 +64,18 @@ class _CheckPrereqsStep:
         if missing:
             return StepResult(
                 status="error",
-                message=f"Required tools missing: {', '.join(missing)}",
+                message=(
+                    f"Required tools missing: {', '.join(missing)}"
+                    f" — {_LEFTHOOK_INSTALL_HINT}"
+                ),
             )
         if warned:
             return StepResult(
                 status="warn",
-                message=f"Tools not found (install for full functionality): {', '.join(warned)}",
+                message=(
+                    "Tools not found (install for full functionality):"
+                    f" {', '.join(warned)}"
+                ),
             )
         return StepResult(status="ok", message="All prerequisites found")
 
@@ -77,7 +88,7 @@ class _InstallGlobalConfigStep:
     def __init__(self, global_config_dir: Path) -> None:
         self._config_dir = global_config_dir
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

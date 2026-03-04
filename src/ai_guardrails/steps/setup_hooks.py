@@ -2,7 +2,18 @@
 
 from __future__ import annotations
 
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from typing import TYPE_CHECKING
+
+from ai_guardrails.pipelines.base import StepResult
+
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import PipelineContext
+
+_LEFTHOOK_NOT_FOUND_MSG = (
+    "lefthook install failed: lefthook not found"
+    " — install with: brew install lefthook"
+    "  OR  go install github.com/evilmartians/lefthook@latest"
+)
 
 
 class SetupHooksStep:
@@ -10,7 +21,7 @@ class SetupHooksStep:
 
     name = "setup-hooks"
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         """No preconditions — lefthook may or may not be installed."""
         return []
 
@@ -22,10 +33,7 @@ class SetupHooksStep:
                 cwd=ctx.project_dir,
             )
         except FileNotFoundError:
-            return StepResult(
-                status="warn",
-                message="lefthook install failed: lefthook not found (install from https://github.com/evilmartians/lefthook)",
-            )
+            return StepResult(status="warn", message=_LEFTHOOK_NOT_FOUND_MSG)
         if result.returncode != 0:
             return StepResult(
                 status="warn",
