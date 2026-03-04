@@ -98,3 +98,36 @@ def test_generate_passes_check_flag() -> None:
         call_kwargs = mock_cls.call_args
         options = call_kwargs[1].get("options") or call_kwargs[0][0]
         assert options.check is True
+
+
+def test_generate_check_exits_nonzero_when_stale() -> None:
+    """generate --check must raise SystemExit(1) when any result has status=='error'."""
+    import pytest
+
+    from ai_guardrails.pipelines.base import StepResult
+
+    with patch("ai_guardrails.cli.GeneratePipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = [
+            StepResult(status="error", message="ruff.toml is stale")
+        ]
+        mock_cls.return_value = mock_pipeline
+        from ai_guardrails.cli import generate
+
+        with pytest.raises(SystemExit) as exc_info:
+            generate(check=True)
+        assert exc_info.value.code == 1
+
+
+def test_generate_check_does_not_exit_when_all_ok() -> None:
+    """generate --check must NOT raise SystemExit when all results are ok."""
+    from ai_guardrails.pipelines.base import StepResult
+
+    with patch("ai_guardrails.cli.GeneratePipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = [StepResult(status="ok", message="all good")]
+        mock_cls.return_value = mock_pipeline
+        from ai_guardrails.cli import generate
+
+        # Must not raise
+        generate(check=True)

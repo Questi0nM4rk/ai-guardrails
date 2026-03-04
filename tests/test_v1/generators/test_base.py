@@ -88,6 +88,18 @@ def test_verify_hash_returns_false_if_no_header() -> None:
     assert verify_hash("no header", "no header") is False
 
 
+def test_verify_hash_detects_tampered_body() -> None:
+    """Appending to body must be detected even though header hash matches expected."""
+    expected_content = "ruff.toml content"
+    header = make_hash_header(expected_content)
+    # Write original body, then append tamper string
+    tampered_body = expected_content + "\nTAMPERED"
+    full_text = header + "\n" + tampered_body
+    # The stored hash matches expected_content (not tampered_body),
+    # so verify_hash must detect the mismatch and return False.
+    assert verify_hash(full_text, expected_content) is False
+
+
 def test_generator_protocol_is_structural() -> None:
     """Ensure Generator can be used as a structural Protocol (not just ABC)."""
     from ai_guardrails.generators.base import Generator

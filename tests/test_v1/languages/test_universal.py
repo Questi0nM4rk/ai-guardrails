@@ -19,7 +19,9 @@ def _make_data_dir(tmp_path: Path) -> Path:
     (configs_dir / ".editorconfig").write_text(
         "[*]\nend_of_line = lf\ninsert_final_newline = true\n"
     )
-    (configs_dir / ".markdownlint.jsonc").write_text('{"default": true, "MD013": false}\n')
+    (configs_dir / ".markdownlint.jsonc").write_text(
+        '{"default": true, "MD013": false}\n'
+    )
     return data_dir
 
 
@@ -36,7 +38,9 @@ def _empty_registry() -> ExceptionRegistry:
     )
 
 
-def _registry_with_codespell(skip: list[str], ignore_words: list[str]) -> ExceptionRegistry:
+def _registry_with_codespell(
+    skip: list[str], ignore_words: list[str]
+) -> ExceptionRegistry:
     return ExceptionRegistry.from_toml(
         {
             "schema_version": 1,
@@ -394,4 +398,44 @@ def test_check_reports_tampered_editorconfig(tmp_path: Path) -> None:
     (project_dir / ".editorconfig").write_text("# tampered\n[*]\nindent_size = 2\n")
     issues = plugin.check(registry, project_dir)
     tampered = [i for i in issues if ".editorconfig" in i]
+    assert len(tampered) >= 1
+
+
+def test_check_markdownlint_detects_tampered_body(tmp_path: Path) -> None:
+    """Appending to markdownlint body must be detected even when header hash matches."""
+    data_dir = _make_data_dir(tmp_path)
+    plugin = UniversalPlugin(data_dir)
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    registry = _empty_registry()
+    outputs = plugin.generate(registry, project_dir)
+    for path, content in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    # Append tamper content after the body (header stays intact)
+    target = project_dir / ".markdownlint.jsonc"
+    original = target.read_text()
+    target.write_text(original + "TAMPERED")
+    issues = plugin.check(registry, project_dir)
+    tampered = [i for i in issues if ".markdownlint.jsonc" in i]
+    assert len(tampered) >= 1
+
+
+def test_check_claude_settings_detects_tampered_body(tmp_path: Path) -> None:
+    """Appending to settings body must be detected even when header hash matches."""
+    data_dir = _make_data_dir(tmp_path)
+    plugin = UniversalPlugin(data_dir)
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    registry = _empty_registry()
+    outputs = plugin.generate(registry, project_dir)
+    for path, content in outputs.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    # Append tamper content after the body (header stays intact)
+    target = project_dir / ".claude" / "settings.json"
+    original = target.read_text()
+    target.write_text(original + "TAMPERED")
+    issues = plugin.check(registry, project_dir)
+    tampered = [i for i in issues if ".claude/settings.json" in i]
     assert len(tampered) >= 1

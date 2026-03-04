@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import subprocess
 from pathlib import Path
+import subprocess
 from unittest.mock import patch
 
 from ai_guardrails.infra.command_runner import CommandRunner
@@ -72,3 +72,22 @@ def test_run_captures_stdout_and_stderr() -> None:
         result = runner.run(["cmd"])
     assert result.stdout == "out"
     assert result.stderr == "err"
+
+
+def test_run_returns_failed_result_when_binary_missing() -> None:
+    """FileNotFoundError from missing binary returns returncode=1 instead of raising."""
+    runner = CommandRunner()
+    with patch("subprocess.run", side_effect=FileNotFoundError("no such file")):
+        result = runner.run(["nonexistent-binary-xyz"])
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "no such file" in result.stderr
+
+
+def test_run_returns_failed_result_on_permission_error() -> None:
+    """PermissionError returns returncode=1 instead of raising."""
+    runner = CommandRunner()
+    with patch("subprocess.run", side_effect=PermissionError("permission denied")):
+        result = runner.run(["/bin/forbidden"])
+    assert result.returncode == 1
+    assert "permission denied" in result.stderr
