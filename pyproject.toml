@@ -53,7 +53,7 @@ python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["lib/installers", "lib/python/guardrails"]
+source = ["lib/installers", "lib/python/guardrails", "src/ai_guardrails"]
 branch = true
 omit = ["lib/python/guardrails/__main__.py"]
 

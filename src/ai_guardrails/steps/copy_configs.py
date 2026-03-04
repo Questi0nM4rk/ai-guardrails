@@ -9,10 +9,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from ai_guardrails.pipelines.base import PipelineContext
 
 
 class CopyConfigsStep:
@@ -23,7 +25,7 @@ class CopyConfigsStep:
     def __init__(self, configs_dir: Path) -> None:
         self._configs_dir = configs_dir
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
@@ -51,9 +53,10 @@ class CopyConfigsStep:
                 copied.append(config_file)
 
         if not copied and skipped:
+            names = ", ".join(skipped)
             return StepResult(
                 status="skip",
-                message=f"All configs exist (use --force to overwrite): {', '.join(skipped)}",
+                message=f"All configs exist (use --force to overwrite): {names}",
             )
 
         parts = []

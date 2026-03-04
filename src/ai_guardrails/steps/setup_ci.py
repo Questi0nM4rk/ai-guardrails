@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import contextlib
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
+
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import PipelineContext
 
 _CI_OUTPUT = Path(".github/workflows/check.yml")
 
@@ -18,7 +22,7 @@ class SetupCIStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         if not self._template.exists():
             return [f"CI workflow template not found: {self._template}"]
         return []

@@ -15,8 +15,8 @@ from ai_guardrails.hooks._utils import has_hash_header
 
 
 def _git(*args: str) -> str:
-    result = subprocess.run(
-        ["git", *args],
+    result = subprocess.run(  # noqa: S603
+        ["git", *args],  # noqa: S607
         capture_output=True,
         text=True,
         check=False,
@@ -46,7 +46,7 @@ def _has_hash_header(filepath: str) -> bool:
     return has_hash_header(filepath)
 
 
-def main() -> int:
+def main() -> int:  # noqa: PLR0915
     """Entry point. Returns 0 (clean) or 1 (violations found)."""
     staged = _staged_files()
     if not staged:

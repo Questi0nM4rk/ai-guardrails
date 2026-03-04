@@ -8,10 +8,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
     from ai_guardrails.languages._base import LanguagePlugin
+    from ai_guardrails.pipelines.base import PipelineContext
 
 
 class DetectLanguagesStep:
@@ -22,7 +23,7 @@ class DetectLanguagesStep:
     def __init__(self, plugins: list[LanguagePlugin]) -> None:
         self._plugins = plugins
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

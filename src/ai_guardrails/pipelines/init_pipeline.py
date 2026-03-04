@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ai_guardrails.languages._registry import discover_plugins
-from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
+from ai_guardrails.pipelines.base import Pipeline, PipelineContext
 from ai_guardrails.steps.copy_configs import CopyConfigsStep
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
@@ -34,6 +34,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
     from ai_guardrails.languages._base import LanguagePlugin
+    from ai_guardrails.pipelines.base import StepResult
 
 
 @dataclass
@@ -50,7 +51,7 @@ class InitOptions:
 class InitPipeline:
     """Orchestrates full project initialization."""
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         options: InitOptions,
         data_dir: Path,

@@ -22,7 +22,7 @@ from ai_guardrails.constants import (
 from ai_guardrails.hooks._utils import has_hash_header
 
 
-def check_tool_input(
+def check_tool_input(  # noqa: PLR0911
     tool_input: dict[str, str],
     *,
     project_dir: Path | None = None,

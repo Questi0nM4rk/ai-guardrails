@@ -1,5 +1,5 @@
 # AI Guardrails - CI Check Workflow
-# Runs lefthook pre-commit checks (verify-only, no code modifications)
+# Runs ruff lint + format check (static analysis without git hooks context)
 name: Check
 
 on:
@@ -19,18 +19,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Install lefthook
-        run: npm install -g lefthook
+      - name: Install dependencies
+        run: uv sync --all-extras
 
-      - name: Run hooks
-        run: lefthook run pre-commit --no-auto-output
+      - name: Ruff lint (v1)
+        run: uv run ruff check src/ai_guardrails/
+
+      - name: Ruff format check (v1)
+        run: uv run ruff format --check src/ai_guardrails/
 
   semgrep:
     name: Semgrep

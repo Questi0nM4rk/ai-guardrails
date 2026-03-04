@@ -9,10 +9,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ai_guardrails.constants import REGISTRY_FILENAME
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    from ai_guardrails.pipelines.base import PipelineContext
 
 
 class ScaffoldRegistryStep:
@@ -23,7 +25,7 @@ class ScaffoldRegistryStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         if not self._template.exists():
             return [f"Registry template not found: {self._template}"]
         return []

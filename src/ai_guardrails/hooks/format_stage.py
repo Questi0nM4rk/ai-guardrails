@@ -82,7 +82,7 @@ FORMATTERS: dict[str, list[list[str]]] = {
 def _git_staged_files() -> list[str]:
     """Return list of staged filenames (Added/Copied/Modified only)."""
     result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],
+        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],  # noqa: S607
         capture_output=True,
         text=True,
         check=False,
@@ -95,7 +95,7 @@ def _git_staged_files() -> list[str]:
 def _run_formatter(cmd: list[str], filepath: str) -> None:
     """Run a single formatter on *filepath*, silently skipping if not installed."""
     with contextlib.suppress(FileNotFoundError):
-        subprocess.run(
+        subprocess.run(  # noqa: S603
             [*cmd, filepath],
             capture_output=True,
             text=True,
@@ -105,8 +105,8 @@ def _run_formatter(cmd: list[str], filepath: str) -> None:
 
 def _git_add(filepath: str) -> None:
     """Stage a single file with git add."""
-    subprocess.run(
-        ["git", "add", filepath],
+    subprocess.run(  # noqa: S603
+        ["git", "add", filepath],  # noqa: S607
         capture_output=True,
         text=True,
         check=False,

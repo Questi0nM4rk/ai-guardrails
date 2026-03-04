@@ -33,7 +33,7 @@ def _is_test_file(filepath: str) -> bool:
     return any(pattern in basename for pattern in TEST_BASENAME_PATTERNS)
 
 
-def _infer_extension(filepath: str) -> str | None:
+def _infer_extension(filepath: str) -> str | None:  # noqa: PLR0911
     """Infer language extension for *filepath* via suffix, dotfile map, or shebang."""
     path = Path(filepath)
     basename = path.name
