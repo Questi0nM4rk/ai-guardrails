@@ -36,6 +36,11 @@ class SetupAgentInstructionsStep:
         claude_md = ctx.project_dir / _CLAUDE_MD
         template_content = self._template.read_text()
 
+        # Ensure AGENTS.md symlink exists regardless of CLAUDE.md state
+        agents_md = ctx.project_dir / "AGENTS.md"
+        if not agents_md.exists():
+            agents_md.symlink_to("CLAUDE.md")
+
         if ctx.file_manager.exists(claude_md):
             existing = ctx.file_manager.read_text(claude_md)
             if _SECTION_MARKER in existing:
@@ -48,9 +53,4 @@ class SetupAgentInstructionsStep:
             new_content = template_content
 
         ctx.file_manager.write_text(claude_md, new_content)
-
-        agents_md = ctx.project_dir / "AGENTS.md"
-        if not agents_md.exists():
-            agents_md.symlink_to("CLAUDE.md")
-
         return StepResult(status="ok", message=f"Updated {_CLAUDE_MD}")

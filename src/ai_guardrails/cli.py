@@ -53,6 +53,18 @@ def _make_infra(
     )
 
 
+def _print_results(results: list, console: Console) -> None:
+    for result in results:
+        if result.status == "error":
+            console.error(f"  {result.message}")
+        elif result.status == "warn":
+            console.warning(f"  {result.message}")
+        elif result.status == "skip":
+            console.info(f"  (skip) {result.message}")
+        else:
+            console.success(f"  {result.message}")
+
+
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
@@ -70,15 +82,7 @@ def install(*, upgrade: bool = False) -> None:
         config_loader=loader,
         console=console,
     )
-    for result in results:
-        if result.status == "error":
-            console.error(f"  {result.message}")
-        elif result.status == "warn":
-            console.warning(f"  {result.message}")
-        elif result.status == "skip":
-            console.info(f"  (skip) {result.message}")
-        else:
-            console.success(f"  {result.message}")
+    _print_results(results, console)
 
 
 @app.command
@@ -116,15 +120,7 @@ def init(
         config_loader=loader,
         console=console,
     )
-    for result in results:
-        if result.status == "error":
-            console.error(f"  {result.message}")
-        elif result.status == "warn":
-            console.warning(f"  {result.message}")
-        elif result.status == "skip":
-            console.info(f"  (skip) {result.message}")
-        else:
-            console.success(f"  {result.message}")
+    _print_results(results, console)
 
 
 @app.command
@@ -151,15 +147,7 @@ def generate(
         config_loader=loader,
         console=console,
     )
-    for result in results:
-        if result.status == "error":
-            console.error(f"  {result.message}")
-        elif result.status == "warn":
-            console.warning(f"  {result.message}")
-        elif result.status == "skip":
-            console.info(f"  (skip) {result.message}")
-        else:
-            console.success(f"  {result.message}")
+    _print_results(results, console)
     if options.check and any(r.status == "error" for r in results):
         raise SystemExit(1)
 
