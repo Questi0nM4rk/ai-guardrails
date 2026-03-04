@@ -23,7 +23,9 @@ from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GenerateP
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
 
-app = cyclopts.App(name="ai-guardrails", help="Pedantic code enforcement for AI-maintained repos.")
+app = cyclopts.App(
+    name="ai-guardrails", help="Pedantic code enforcement for AI-maintained repos."
+)
 
 # ---------------------------------------------------------------------------
 # Package data paths
@@ -157,3 +159,5 @@ def generate(
             console.info(f"  (skip) {result.message}")
         else:
             console.success(f"  {result.message}")
+    if options.check and any(r.status == "error" for r in results):
+        raise SystemExit(1)
