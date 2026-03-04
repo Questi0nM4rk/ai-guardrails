@@ -1,0 +1,74 @@
+# ai-guardrails:hash:sha256:743ca6f74d6d1fefa932ab229070514d91b3abe71a5e54d792e036e93377d1f4
+pre-commit:
+  commands:
+    suppress-comments:
+      glob: '*.{py,js,ts,tsx,jsx,rs,cs,go,lua,sh}'
+      run: python -m ai_guardrails.hooks.suppress_comments {staged_files}
+      priority: 2
+    protect-configs:
+      glob: ruff.toml|biome.json|lefthook.yml|.editorconfig|.markdownlint.jsonc|.codespellrc
+      run: python -m ai_guardrails.hooks.protect_configs {staged_files}
+      priority: 2
+    gitleaks:
+      run: gitleaks detect --staged --no-banner
+      priority: 2
+    detect-secrets:
+      glob: '!.secrets.baseline'
+      run: detect-secrets-hook --baseline .secrets.baseline {staged_files}
+      priority: 2
+    codespell:
+      glob: '*.{py,md,txt,yaml,yml,toml,json}'
+      run: codespell --check-filenames {staged_files}
+      priority: 2
+    markdownlint:
+      glob: '*.md'
+      run: markdownlint-cli2 {staged_files}
+      priority: 2
+    validate-configs:
+      run: python -m ai_guardrails generate --check
+      priority: 2
+    python-format-and-stage:
+      glob: '*.py'
+      run: ruff format {staged_files} && ruff check --fix {staged_files} && git add
+        {staged_files}
+      stage_fixed: true
+      priority: 1
+    ruff-check:
+      glob: '*.py'
+      run: ruff check {staged_files}
+      priority: 2
+    node-format-and-stage:
+      glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
+      run: biome check --apply {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    biome-check:
+      glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
+      run: biome check --error-on-warnings {staged_files}
+      priority: 2
+    go-format-and-stage:
+      glob: '*.go'
+      run: gofmt -w {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    go-vet:
+      glob: '*.go'
+      run: go vet ./...
+      priority: 2
+    staticcheck:
+      glob: '*.go'
+      run: staticcheck ./...
+      priority: 2
+    shell-format-and-stage:
+      glob: '*.{sh,bash,zsh}'
+      run: shfmt -i 2 -ci -bn -w {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    shellcheck:
+      glob: '*.{sh,bash,zsh}'
+      run: shellcheck --severity=info -x {staged_files}
+      priority: 2
+commit-msg:
+  commands:
+    conventional:
+      run: echo "{1}" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?:"

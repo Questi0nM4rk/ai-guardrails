@@ -1,3 +1,5 @@
+# AI Guardrails - CI Check Workflow
+# Runs pre-commit checks (verify-only, no code modifications)
 name: Check
 
 on:
@@ -29,15 +31,19 @@ jobs:
           restore-keys: |
             pre-commit-
 
-      - name: Install pre-commit
-        run: pip install pre-commit
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
 
-      - name: Run pre-commit checks (excluding semgrep)
+      - name: Install pre-commit
+        run: uv tool install pre-commit
+
+      # Skip format-and-stage (local-only) and semgrep (run separately for parallelism)
+      - name: Run pre-commit checks
         run: SKIP=format-and-stage,semgrep pre-commit run --all-files
 
       - name: Run semgrep (parallel)
         run: |
-          pip install semgrep
+          uv tool install semgrep
           semgrep --config auto --error --exclude tests/
 
   test:
@@ -50,26 +56,20 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install test dependencies
-        run: pip install pytest pytest-cov pyyaml pyinfra tomli-w tomlkit
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --all-extras
 
       - name: Run tests with coverage
-        env:
-          PYTHONPATH: ${{ github.workspace }}
         run: |
-          # Note: lib/installers contains pyinfra deploy functions that require
-          # runtime state to test. Coverage is measured for lib/python only.
-          # Installer modules are tested via integration tests.
-          pytest tests/ \
-            --cov=lib/python \
+          uv run pytest tests/ \
+            --cov \
             --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=85
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
+      - name: Run type checker
+        run: uv run pyright
