@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import tomllib  # type: ignore[no-redef]
+from typing import TYPE_CHECKING
 
 from ai_guardrails.constants import REGISTRY_FILENAME
 from ai_guardrails.models.registry import ExceptionRegistry
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
+
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import PipelineContext
 
 
 class LoadRegistryStep:
@@ -22,6 +26,11 @@ class LoadRegistryStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         registry_path = ctx.project_dir / REGISTRY_FILENAME
+        if ctx.dry_run and not ctx.file_manager.exists(registry_path):
+            return StepResult(
+                status="skip",
+                message="Dry-run: registry not written yet",
+            )
         content = ctx.file_manager.read_text(registry_path)
         data = tomllib.loads(content)
         ctx.registry = ExceptionRegistry.from_toml(data)
