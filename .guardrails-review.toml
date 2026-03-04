@@ -8,6 +8,8 @@ model = "minimax/minimax-m2.5"
 # max_diff_chars = 120000
 agentic = true # Enable tool-use loop for context-gathering before review
 # max_iterations = 5    # Max tool-use rounds before forcing review submission
+auto_merge = true      # Auto-merge PR after approval (requires repo auto-merge enabled)
+merge_method = "squash"
 
 extra_instructions = """
 Focus areas:
