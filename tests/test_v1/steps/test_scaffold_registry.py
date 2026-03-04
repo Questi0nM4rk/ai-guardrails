@@ -9,7 +9,14 @@ from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.scaffold_registry import ScaffoldRegistryStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_TEMPLATE = Path(__file__).parents[3] / "templates" / "guardrails-exceptions.toml"
+_TEMPLATE = (
+    Path(__file__).parents[3]
+    / "src"
+    / "ai_guardrails"
+    / "_data"
+    / "templates"
+    / "guardrails-exceptions.toml"
+)
 
 
 def _make_context(

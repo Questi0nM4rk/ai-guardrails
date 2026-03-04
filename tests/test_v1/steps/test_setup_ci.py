@@ -9,7 +9,15 @@ from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.setup_ci import SetupCIStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_CI_TEMPLATE = Path(__file__).parents[3] / "templates" / "workflows" / "check.yml"
+_CI_TEMPLATE = (
+    Path(__file__).parents[3]
+    / "src"
+    / "ai_guardrails"
+    / "_data"
+    / "templates"
+    / "workflows"
+    / "check.yml"
+)
 _CI_OUTPUT = Path(".github/workflows/check.yml")
 
 

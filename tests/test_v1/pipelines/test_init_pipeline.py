@@ -9,11 +9,11 @@ from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
 _REPO_ROOT = Path(__file__).parents[3]
-_REGISTRY_TEMPLATE = _REPO_ROOT / "templates" / "guardrails-exceptions.toml"
-_CI_TEMPLATE = _REPO_ROOT / "templates" / "workflows" / "check.yml"
-_AGENT_TEMPLATE = _REPO_ROOT / "templates" / "CLAUDE.md.guardrails"
-_CONFIGS_DIR = _REPO_ROOT / "configs"
-_DATA_DIR = _REPO_ROOT
+_DATA_DIR = _REPO_ROOT / "src" / "ai_guardrails" / "_data"
+_REGISTRY_TEMPLATE = _DATA_DIR / "templates" / "guardrails-exceptions.toml"
+_CI_TEMPLATE = _DATA_DIR / "templates" / "workflows" / "check.yml"
+_AGENT_TEMPLATE = _DATA_DIR / "templates" / "CLAUDE.md.guardrails"
+_CONFIGS_DIR = _DATA_DIR / "configs"
 
 
 def _make_pipeline(**kwargs) -> InitPipeline:  # type: ignore[no-untyped-def]

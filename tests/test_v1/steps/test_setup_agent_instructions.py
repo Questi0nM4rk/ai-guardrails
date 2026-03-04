@@ -9,7 +9,14 @@ from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.setup_agent_instructions import SetupAgentInstructionsStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_GUARDRAILS_TEMPLATE = Path(__file__).parents[3] / "templates" / "CLAUDE.md.guardrails"
+_GUARDRAILS_TEMPLATE = (
+    Path(__file__).parents[3]
+    / "src"
+    / "ai_guardrails"
+    / "_data"
+    / "templates"
+    / "CLAUDE.md.guardrails"
+)
 
 _SECTION_MARKER = "## AI Guardrails"
 

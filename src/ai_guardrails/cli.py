@@ -8,6 +8,9 @@ Commands:
 
 from __future__ import annotations
 
+from importlib import (  # nosemgrep: python37-compatibility-importlib2
+    resources as _importlib_resources,
+)
 from pathlib import Path
 
 import cyclopts
@@ -26,17 +29,14 @@ app = cyclopts.App(name="ai-guardrails", help="Pedantic code enforcement for AI-
 # Package data paths
 # ---------------------------------------------------------------------------
 
-_PACKAGE_ROOT = Path(__file__).parents[2]
-_CONFIGS_DIR = _PACKAGE_ROOT / "configs"
-_TEMPLATES_DIR = _PACKAGE_ROOT / "templates"
+_DATA_DIR = Path(str(_importlib_resources.files("ai_guardrails"))) / "_data"
+_CONFIGS_DIR = _DATA_DIR / "configs"
+_TEMPLATES_DIR = _DATA_DIR / "templates"
 _REGISTRY_TEMPLATE = _TEMPLATES_DIR / "guardrails-exceptions.toml"
 _CI_TEMPLATE = _TEMPLATES_DIR / "workflows" / "check.yml"
 _AGENT_TEMPLATE = _TEMPLATES_DIR / "CLAUDE.md.guardrails"
 _GLOBAL_CONFIG_DIR = Path.home() / ".ai-guardrails"
 _CUSTOM_PLUGINS_DIR = _GLOBAL_CONFIG_DIR / "plugins"
-
-# data_dir is the repo root — configs/ and templates/ are found relative to it
-_DATA_DIR = _PACKAGE_ROOT
 
 
 def _make_infra(

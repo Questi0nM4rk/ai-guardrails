@@ -10,8 +10,8 @@ from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GenerateP
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
 _REPO_ROOT = Path(__file__).parents[3]
-_REGISTRY_TEMPLATE = _REPO_ROOT / "templates" / "guardrails-exceptions.toml"
-_DATA_DIR = _REPO_ROOT
+_DATA_DIR = _REPO_ROOT / "src" / "ai_guardrails" / "_data"
+_REGISTRY_TEMPLATE = _DATA_DIR / "templates" / "guardrails-exceptions.toml"
 
 
 def _empty_registry() -> ExceptionRegistry:
