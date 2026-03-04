@@ -92,7 +92,8 @@ class TestCheckHooks:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         result = check_hooks(project_dir)
         assert result.status == "ok"
-        assert "8/8" in result.message
+        n = len(HOOK_SCRIPTS)
+        assert f"{n}/{n}" in result.message
 
     def test_warn_when_missing(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
