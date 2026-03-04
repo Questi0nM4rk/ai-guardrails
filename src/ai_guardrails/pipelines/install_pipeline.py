@@ -61,7 +61,8 @@ class _CheckPrereqsStep:
         warned: list[str] = []
 
         for tool, required in [("git", True), ("lefthook", True)]:
-            result = ctx.command_runner.run([tool, "--version"])
+            flag = "version" if tool == "lefthook" else "--version"
+            result = ctx.command_runner.run([tool, flag])
             if result.returncode != 0:
                 if required:
                     missing.append(tool)

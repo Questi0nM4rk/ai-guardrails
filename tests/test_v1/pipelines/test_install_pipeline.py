@@ -34,7 +34,7 @@ def _run_pipeline(
     fm = FakeFileManager()
     runner = FakeCommandRunner()
     runner.register(["git", "--version"], returncode=0, stdout="git version 2.40.0")
-    runner.register(["lefthook", "--version"], returncode=0, stdout="lefthook 1.11.0")
+    runner.register(["lefthook", "version"], returncode=0, stdout="lefthook 1.11.0")
 
     settings_path = claude_settings_path or (tmp_path / ".claude" / "settings.json")
     if existing_settings is not None:
@@ -84,7 +84,7 @@ def test_install_pipeline_checks_lefthook(tmp_path: Path) -> None:
     fm = FakeFileManager()
     runner = FakeCommandRunner()
     runner.register(["git", "--version"], returncode=0, stdout="git version 2.40.0")
-    runner.register(["lefthook", "--version"], returncode=0, stdout="lefthook 1.11.0")
+    runner.register(["lefthook", "version"], returncode=0, stdout="lefthook 1.11.0")
 
     pipeline = _make_pipeline(global_config_dir=tmp_path / "config")
     pipeline.run(
@@ -94,7 +94,7 @@ def test_install_pipeline_checks_lefthook(tmp_path: Path) -> None:
         console=FakeConsole(),
     )
     called_cmds = [tuple(c) for c in runner.calls]
-    assert ("lefthook", "--version") in called_cmds
+    assert ("lefthook", "version") in called_cmds
 
 
 def test_install_pipeline_creates_global_config(tmp_path: Path) -> None:
