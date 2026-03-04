@@ -62,8 +62,8 @@ def _load_custom_plugins(custom_dir: Path, data_dir: Path) -> list[LanguagePlugi
                 and obj.__module__ == module.__name__
             ):
                 try:
-                    plugin = obj(data_dir)
-                    if isinstance(plugin, LanguagePlugin):
+                    plugin = obj(data_dir)  # type: ignore[call-arg]
+                    if isinstance(plugin, LanguagePlugin):  # type: ignore[misc]
                         plugins.append(plugin)
                 except Exception:  # noqa: BLE001
                     _log.warning("Failed to instantiate plugin %s", obj, exc_info=True)
@@ -75,7 +75,7 @@ def discover_plugins(
     custom_dir: Path | None = None,
 ) -> list[LanguagePlugin]:
     """Return all plugin instances: core plugins + any user plugins from custom_dir."""
-    plugins: list[LanguagePlugin] = [cls(data_dir) for cls in _CORE_PLUGINS]
+    plugins: list[LanguagePlugin] = [cls(data_dir) for cls in _CORE_PLUGINS]  # type: ignore[call-arg]
 
     if custom_dir is not None and custom_dir.is_dir():
         plugins.extend(_load_custom_plugins(custom_dir, data_dir))

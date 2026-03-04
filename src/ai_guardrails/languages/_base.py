@@ -110,8 +110,8 @@ class BaseLanguagePlugin:
 
     def generate(
         self,
-        _registry: ExceptionRegistry,
-        _project_dir: Path,
+        registry: ExceptionRegistry,  # noqa: ARG002
+        project_dir: Path,  # noqa: ARG002
     ) -> dict[Path, str]:
         """Return empty dict — subclasses override to generate files."""
         return {}
@@ -122,8 +122,8 @@ class BaseLanguagePlugin:
 
     def check(
         self,
-        _registry: ExceptionRegistry,
-        _project_dir: Path,
+        registry: ExceptionRegistry,  # noqa: ARG002
+        project_dir: Path,  # noqa: ARG002
     ) -> list[str]:
         """Return empty list — subclasses override to validate generated files."""
         return []

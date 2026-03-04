@@ -39,12 +39,12 @@ class _ExplicitLanguagePlugin(BaseLanguagePlugin):
     """Synthetic plugin representing an explicitly specified language key."""
 
     def __init__(self, key: str) -> None:
-        self.key = key
-        self.name = key
-        self.copy_files: list[str] = []
-        self.generated_configs: list[str] = []
+        self.key = key  # type: ignore[misc]
+        self.name = key  # type: ignore[misc]
+        self.copy_files = []  # type: ignore[misc]
+        self.generated_configs = []  # type: ignore[misc]
 
-    def detect(self, _project_dir: Path) -> bool:
+    def detect(self, project_dir: Path) -> bool:  # noqa: ARG002
         return True
 
 

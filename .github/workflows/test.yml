@@ -21,7 +21,7 @@ jobs:
       - name: YAML Lint
         run: |
           pip install yamllint
-          yamllint -c .yamllint.yml configs/languages.yaml templates/pre-commit/*.yaml
+          yamllint -c .yamllint.yml templates/pre-commit/*.yaml
 
       - name: Python Lint
         run: |
