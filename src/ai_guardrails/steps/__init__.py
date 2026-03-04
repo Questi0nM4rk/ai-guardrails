@@ -9,6 +9,7 @@ from ai_guardrails.steps.load_registry import LoadRegistryStep
 from ai_guardrails.steps.scaffold_registry import ScaffoldRegistryStep
 from ai_guardrails.steps.setup_agent_instructions import SetupAgentInstructionsStep
 from ai_guardrails.steps.setup_ci import SetupCIStep
+from ai_guardrails.steps.setup_hooks import SetupHooksStep
 
 __all__ = [
     "CopyConfigsStep",
@@ -18,4 +19,5 @@ __all__ = [
     "ScaffoldRegistryStep",
     "SetupAgentInstructionsStep",
     "SetupCIStep",
+    "SetupHooksStep",
 ]

@@ -24,6 +24,7 @@ from ai_guardrails.steps.load_registry import LoadRegistryStep
 from ai_guardrails.steps.scaffold_registry import ScaffoldRegistryStep
 from ai_guardrails.steps.setup_agent_instructions import SetupAgentInstructionsStep
 from ai_guardrails.steps.setup_ci import SetupCIStep
+from ai_guardrails.steps.setup_hooks import SetupHooksStep
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -98,6 +99,9 @@ class InitPipeline:
             LoadRegistryStep(),
             GenerateConfigsStep(),
         ]
+
+        if not self._options.no_hooks:
+            steps.append(SetupHooksStep())
 
         if not self._options.no_ci:
             steps.append(SetupCIStep(template_path=self._ci_template))
