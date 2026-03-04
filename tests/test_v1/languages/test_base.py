@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from ai_guardrails.languages._base import BaseLanguagePlugin, LanguagePlugin
 
@@ -14,11 +17,15 @@ from ai_guardrails.languages._base import BaseLanguagePlugin, LanguagePlugin
 class _PythonLike(BaseLanguagePlugin):
     key = "python"
     name = "Python"
-    detect_files = ["pyproject.toml", "setup.py", "requirements.txt"]
-    detect_patterns = ["*.py"]
-    detect_dirs: list[str] = []
-    copy_files: list[str] = []
-    generated_configs = ["ruff.toml"]
+    detect_files: ClassVar[list[str]] = [
+        "pyproject.toml",
+        "setup.py",
+        "requirements.txt",
+    ]
+    detect_patterns: ClassVar[list[str]] = ["*.py"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = ["ruff.toml"]
 
     def __init__(self) -> None:
         pass
@@ -32,11 +39,11 @@ class _DirPlugin(BaseLanguagePlugin):
 
     key = "lua"
     name = "Lua"
-    detect_files: list[str] = []
-    detect_patterns = ["*.lua"]
-    detect_dirs = ["lua"]
-    copy_files: list[str] = []
-    generated_configs = ["stylua.toml"]
+    detect_files: ClassVar[list[str]] = []
+    detect_patterns: ClassVar[list[str]] = ["*.lua"]
+    detect_dirs: ClassVar[list[str]] = ["lua"]
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = ["stylua.toml"]
 
     def __init__(self) -> None:
         pass
@@ -161,12 +168,45 @@ def test_hook_config_returns_empty_dict_by_default() -> None:
 
 
 # ---------------------------------------------------------------------------
+# fixtures dir skip
+# ---------------------------------------------------------------------------
+
+
+class _GoLike(BaseLanguagePlugin):
+    """Plugin that detects Go via go.mod pattern."""
+
+    key = "go"
+    name = "Go"
+    detect_files: ClassVar[list[str]] = []
+    detect_patterns: ClassVar[list[str]] = ["go.mod"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = []
+
+    def __init__(self) -> None:
+        pass
+
+    def generate(self, registry, project_dir):  # type: ignore[override]
+        return {}
+
+
+def test_detect_skips_fixtures_directory(tmp_path: Path) -> None:
+    """Files under tests/fixtures/ must not trigger language detection."""
+    fixture_dir = tmp_path / "tests" / "fixtures" / "go-bad"
+    fixture_dir.mkdir(parents=True)
+    (fixture_dir / "go.mod").write_text("module example.com/bad\n")
+
+    plugin = _GoLike()
+    assert plugin.detect(tmp_path) is False
+
+
+# ---------------------------------------------------------------------------
 # check() default
 # ---------------------------------------------------------------------------
 
 
 def test_check_returns_empty_list_by_default(tmp_path: Path) -> None:
-    from ai_guardrails.models.registry import ExceptionRegistry
+    from ai_guardrails.models.registry import ExceptionRegistry  # noqa: PLC0415
 
     registry = ExceptionRegistry.from_toml(
         {

@@ -11,7 +11,7 @@ Each language plugin encapsulates:
 
 from __future__ import annotations
 
-from pathlib import Path
+from pathlib import Path  # noqa: TC003  # used at runtime in glob and Protocol
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
@@ -33,6 +33,7 @@ _SKIP_DIRS: frozenset[str] = frozenset(
         "dist",
         "build",
         ".eggs",
+        "fixtures",
     }
 )
 
@@ -109,8 +110,8 @@ class BaseLanguagePlugin:
 
     def generate(
         self,
-        registry: ExceptionRegistry,
-        project_dir: Path,
+        _registry: ExceptionRegistry,
+        _project_dir: Path,
     ) -> dict[Path, str]:
         """Return empty dict — subclasses override to generate files."""
         return {}
@@ -121,8 +122,8 @@ class BaseLanguagePlugin:
 
     def check(
         self,
-        registry: ExceptionRegistry,
-        project_dir: Path,
+        _registry: ExceptionRegistry,
+        _project_dir: Path,
     ) -> list[str]:
         """Return empty list — subclasses override to validate generated files."""
         return []
