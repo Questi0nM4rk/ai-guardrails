@@ -3,12 +3,14 @@
 Steps:
   1. CheckPrereqs (git, lefthook — required; ruff, biome — optional)
   2. InstallGlobalConfig (create ~/.ai-guardrails/config.toml)
+  3. InstallGlobalClaudeSettings (merge hooks into ~/.claude/settings.json)
 """
 
 from __future__ import annotations
 
 import contextlib
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -32,6 +34,11 @@ _LEFTHOOK_INSTALL_HINT = (
     "install with: brew install lefthook"
     "  OR  go install github.com/evilmartians/lefthook@latest"
 )
+
+_OUR_HOOKS = [
+    {"type": "command", "command": "python -m ai_guardrails.hooks.dangerous_cmd"},
+    {"type": "command", "command": "python -m ai_guardrails.hooks.protect_configs"},
+]
 
 
 @dataclass
@@ -101,12 +108,69 @@ class _InstallGlobalConfigStep:
         return StepResult(status="ok", message=f"Created {config_path}")
 
 
+class _InstallGlobalClaudeSettingsStep:
+    """Merges ai-guardrails hooks into ~/.claude/settings.json."""
+
+    name = "install-global-claude-settings"
+
+    def __init__(self, claude_settings_path: Path) -> None:
+        self._settings_path = claude_settings_path
+
+    def validate(self, _ctx: PipelineContext) -> list[str]:
+        return []
+
+    def execute(self, ctx: PipelineContext) -> StepResult:
+        existing: dict = {}  # type: ignore[type-arg]
+        if ctx.file_manager.exists(self._settings_path):
+            raw = ctx.file_manager.read_text(self._settings_path)
+            existing = json.loads(raw)
+
+        hooks = existing.setdefault("hooks", {})
+        pre_tool: list[dict] = hooks.setdefault("PreToolUse", [])  # type: ignore[type-arg]
+
+        bash_entry = next((e for e in pre_tool if e.get("matcher") == "Bash"), None)
+        if bash_entry is None:
+            bash_entry = {"matcher": "Bash", "hooks": []}
+            pre_tool.append(bash_entry)
+
+        existing_cmds = {h["command"] for h in bash_entry["hooks"] if "command" in h}
+        added: list[str] = []
+        for hook in _OUR_HOOKS:
+            if hook["command"] not in existing_cmds:
+                bash_entry["hooks"].append(hook)
+                added.append(hook["command"])
+
+        if not added:
+            return StepResult(
+                status="skip", message="Global Claude Code hooks already installed"
+            )
+
+        with contextlib.suppress(FileExistsError, AttributeError):
+            ctx.file_manager.mkdir(
+                self._settings_path.parent, parents=True, exist_ok=True
+            )
+        ctx.file_manager.write_text(
+            self._settings_path, json.dumps(existing, indent=2) + "\n"
+        )
+        return StepResult(
+            status="ok", message=f"Installed {len(added)} global Claude Code hook(s)"
+        )
+
+
 class InstallPipeline:
     """Orchestrates global ai-guardrails installation."""
 
-    def __init__(self, options: InstallOptions, global_config_dir: Path) -> None:
+    def __init__(
+        self,
+        options: InstallOptions,
+        global_config_dir: Path,
+        claude_settings_path: Path | None = None,
+    ) -> None:
         self._options = options
         self._global_config_dir = global_config_dir
+        self._claude_settings_path = claude_settings_path or (
+            Path.home() / ".claude" / "settings.json"
+        )
 
     def run(
         self,
@@ -130,6 +194,9 @@ class InstallPipeline:
         steps: list = [
             _CheckPrereqsStep(),
             _InstallGlobalConfigStep(global_config_dir=self._global_config_dir),
+            _InstallGlobalClaudeSettingsStep(
+                claude_settings_path=self._claude_settings_path
+            ),
         ]
 
         pipeline = Pipeline(steps=steps)
