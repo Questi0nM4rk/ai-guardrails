@@ -285,42 +285,6 @@ def _make_project_with_registry(tmp_path: Path) -> tuple[Path, ExceptionRegistry
     return project, registry
 
 
-@pytest.mark.skip(
-    reason="Legacy language filtering via languages.yaml — replaced by v1 plugin system"
-)
-def test_python_only_skips_biome(tmp_path: Path) -> None:
-    """Python-only project should not generate biome.json."""
-    project, registry = _make_project_with_registry(tmp_path)
-
-    output = tmp_path / "output"
-    output.mkdir()
-
-    generated = _generate_to_dir(registry, project, output, languages=["python"])
-
-    assert "ruff.toml" in generated
-    assert "biome.json" not in generated
-    assert (output / "ruff.toml").exists()
-    assert not (output / "biome.json").exists()
-
-
-@pytest.mark.skip(
-    reason="Legacy language filtering via languages.yaml — replaced by v1 plugin system"
-)
-def test_node_project_generates_biome(tmp_path: Path) -> None:
-    """Node project should generate biome.json."""
-    project, registry = _make_project_with_registry(tmp_path)
-
-    output = tmp_path / "output"
-    output.mkdir()
-
-    generated = _generate_to_dir(registry, project, output, languages=["node"])
-
-    assert "biome.json" in generated
-    assert "ruff.toml" not in generated
-    assert (output / "biome.json").exists()
-    assert not (output / "ruff.toml").exists()
-
-
 def test_multi_language_generates_all_relevant(tmp_path: Path) -> None:
     """Python+Node project generates both ruff.toml and biome.json."""
     project, registry = _make_project_with_registry(tmp_path)
@@ -363,25 +327,6 @@ def test_no_languages_param_generates_all(tmp_path: Path) -> None:
     assert ".markdownlint.jsonc" in generated
 
 
-@pytest.mark.skip(
-    reason="Legacy language detection via languages.yaml — replaced by v1 plugin system"
-)
-def test_run_generate_configs_detects_languages(tmp_path: Path) -> None:
-    """run_generate_configs auto-detects languages and filters generation."""
-    project, _ = _make_project_with_registry(tmp_path)
-
-    # Create a Python marker file but no Node marker
-    (project / "pyproject.toml").write_text('[project]\nname = "test"\n')
-
-    # Generate configs
-    result = run_generate_configs(project_dir=str(project))
-    assert result is True
-
-    # ruff.toml should exist (Python detected), biome.json should NOT
-    assert (project / "ruff.toml").exists()
-    assert not (project / "biome.json").exists()
-
-
 def test_check_freshness_respects_languages(tmp_path: Path) -> None:
     """Check mode should not flag missing biome.json for Python-only project."""
     project, _ = _make_project_with_registry(tmp_path)
@@ -394,22 +339,3 @@ def test_check_freshness_respects_languages(tmp_path: Path) -> None:
 
     # Check should pass without biome.json
     assert run_generate_configs(project_dir=str(project), check=True) is True
-
-
-@pytest.mark.skip(reason="languages.yaml deleted — language configs now live in plugin classes")
-def test_lang_configs_matches_languages_yaml() -> None:
-    """LANG_CONFIGS in constants.py must match languages.yaml."""
-    from guardrails._paths import find_configs_dir
-    from guardrails.constants import LANG_CONFIGS
-
-    configs_dir = find_configs_dir()
-    with (configs_dir / "languages.yaml").open() as f:
-        lang_registry = yaml.safe_load(f)
-
-    for lang, config in lang_registry.items():
-        yaml_configs = config.get("configs", [])
-        constant_configs = LANG_CONFIGS.get(lang, [])
-        assert sorted(yaml_configs) == sorted(constant_configs), (
-            f"LANG_CONFIGS[{lang!r}] = {constant_configs} "
-            f"does not match languages.yaml configs = {yaml_configs}"
-        )

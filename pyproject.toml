@@ -102,6 +102,7 @@ ignore = [
   "PLR2004",
   "SIM108",
   "ERA001",
+  "TC002",   # pytest used as type annotation — fine in tests
   "TC003",
   "D100",    # missing module docstring (tests have them but not required)
   "D101",    # missing class docstring

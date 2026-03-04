@@ -37,17 +37,6 @@ def project_dir(tmp_path: Path) -> Path:
     return tmp_path
 
 
-@pytest.mark.skip(
-    reason="Legacy pre-commit generation requires languages.yaml — replaced by v1 lefthook"
-)
-@pytest.mark.usefixtures("_mock_hooks")
-def test_creates_precommit_config(project_dir: Path) -> None:
-    """Test that .pre-commit-config.yaml is created."""
-    with chdir(project_dir):
-        run_init(project_type="python", force=True, skip_precommit=False)
-    assert (project_dir / ".pre-commit-config.yaml").exists()
-
-
 @pytest.mark.usefixtures("_mock_hooks")
 def test_hooks_dir_populated(project_dir: Path) -> None:
     """Test that .ai-guardrails/hooks/ is populated."""
