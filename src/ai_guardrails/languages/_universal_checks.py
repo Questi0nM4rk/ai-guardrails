@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ai_guardrails.constants import GENERATED_CONFIGS
 from ai_guardrails.generators.base import compute_hash, make_hash_header, verify_hash
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ai_guardrails.models.registry import ExceptionRegistry
 
 _JSONC_HASH_PREFIX = "// ai-guardrails:hash:sha256:"
@@ -46,12 +47,14 @@ def generate_markdownlint(
     config = json.loads(strip_jsonc_comments(raw))
     for rule in registry.get_ignores("markdownlint"):
         config[rule] = False
-    body = json.dumps(config, indent=2)
+    body = json.dumps(config, indent=2) + "\n"
     header = f"{_JSONC_HASH_PREFIX}{compute_hash(body)}"
-    return project_dir / ".markdownlint.jsonc", f"{header}\n{body}\n"
+    return project_dir / ".markdownlint.jsonc", f"{header}\n{body}"
 
 
-def generate_codespellrc(registry: ExceptionRegistry, project_dir: Path) -> tuple[Path, str]:
+def generate_codespellrc(
+    registry: ExceptionRegistry, project_dir: Path
+) -> tuple[Path, str]:
     """Return (path, content) for .codespellrc from registry."""
     codespell_config = registry.global_rules.get("codespell", {})
     lines = ["[codespell]"]
@@ -76,14 +79,31 @@ def generate_claude_settings(project_dir: Path) -> tuple[Path, str]:
         "Bash(git push --force *)",
         "Bash(git push * --force *)",
     ]
-    pre_tool_hook = {"type": "command", "command": "python -m ai_guardrails.hooks.dangerous_cmd"}
+    pre_tool_hook = {
+        "type": "command",
+        "command": "python -m ai_guardrails.hooks.dangerous_cmd",
+    }
     settings = {
         "permissions": {"deny": edit_rules + bash_rules},
         "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [pre_tool_hook]}]},
     }
-    body = json.dumps(settings, indent=2)
+    body = json.dumps(settings, indent=2) + "\n"
     header = f"{_JSONC_HASH_PREFIX}{compute_hash(body)}"
-    return project_dir / ".claude" / "settings.json", f"{header}\n{body}\n"
+    return project_dir / ".claude" / "settings.json", f"{header}\n{body}"
+
+
+def _verify_jsonc_hash(existing: str, expected_body: str) -> bool:
+    """Return True if the JSONC hash header is valid and content matches expected.
+
+    Checks both tamper (actual body vs stored hash) and staleness (expected
+    body vs stored hash). Returns False if either check fails.
+    """
+    first_line = existing.split("\n", 1)[0].strip()
+    if not first_line.startswith(_JSONC_HASH_PREFIX):
+        return False
+    stored_hash = first_line[len(_JSONC_HASH_PREFIX) :]
+    actual_body = existing.split("\n", 1)[1] if "\n" in existing else ""
+    return stored_hash == compute_hash(actual_body) == compute_hash(expected_body)
 
 
 def check_editorconfig(configs_dir: Path, project_dir: Path) -> list[str]:
@@ -93,10 +113,10 @@ def check_editorconfig(configs_dir: Path, project_dir: Path) -> list[str]:
         return [".editorconfig is missing — run: ai-guardrails generate"]
     try:
         src = configs_dir / ".editorconfig"
-        if not src.exists():
-            return [".editorconfig base config not found in package data"]
-        base = src.read_text()
+        base = src.read_text() if src.exists() else None
     except OSError:
+        base = None
+    if base is None:
         return [".editorconfig base config not found in package data"]
     existing = target.read_text()
     if not verify_hash(existing, base):
@@ -108,28 +128,34 @@ def check_markdownlint(
     configs_dir: Path, registry: ExceptionRegistry, project_dir: Path
 ) -> list[str]:
     """Return issues if .markdownlint.jsonc is missing or stale."""
+    _stale = ".markdownlint.jsonc is stale or tampered — run: ai-guardrails generate"
     target = project_dir / ".markdownlint.jsonc"
     if not target.exists():
         return [".markdownlint.jsonc is missing — run: ai-guardrails generate"]
     existing = target.read_text()
+    expected_body = _build_markdownlint_body(configs_dir, registry)
+    if expected_body is None:
+        return [".markdownlint.jsonc base config not found in package data"]
+    if not _verify_jsonc_hash(existing, expected_body):
+        return [_stale]
+    return []
+
+
+def _build_markdownlint_body(
+    configs_dir: Path, registry: ExceptionRegistry
+) -> str | None:
+    """Return the expected markdownlint body, or None if the base config is missing."""
     try:
         src = configs_dir / ".markdownlint.jsonc"
         if not src.exists():
-            return [".markdownlint.jsonc base config not found in package data"]
+            return None
         raw = src.read_text()
         config = json.loads(strip_jsonc_comments(raw))
         for rule in registry.get_ignores("markdownlint"):
             config[rule] = False
-        expected_body = json.dumps(config, indent=2)
+        return json.dumps(config, indent=2) + "\n"
     except (OSError, json.JSONDecodeError):
-        return [".markdownlint.jsonc base config not found in package data"]
-    first_line = existing.split("\n", 1)[0].strip()
-    if not first_line.startswith(_JSONC_HASH_PREFIX):
-        return [".markdownlint.jsonc is stale or tampered — run: ai-guardrails generate"]
-    stored_hash = first_line[len(_JSONC_HASH_PREFIX) :]
-    if stored_hash != compute_hash(expected_body):
-        return [".markdownlint.jsonc is stale or tampered — run: ai-guardrails generate"]
-    return []
+        return None
 
 
 def check_codespellrc(registry: ExceptionRegistry, project_dir: Path) -> list[str]:
@@ -155,14 +181,11 @@ def check_codespellrc(registry: ExceptionRegistry, project_dir: Path) -> list[st
 
 def check_claude_settings(project_dir: Path) -> list[str]:
     """Return issues if .claude/settings.json is missing or tampered."""
+    _stale = ".claude/settings.json is stale or tampered — run: ai-guardrails generate"
     target = project_dir / ".claude" / "settings.json"
     if not target.exists():
         return [".claude/settings.json is missing — run: ai-guardrails generate"]
     existing = target.read_text()
-    first_line = existing.split("\n", 1)[0].strip()
-    if not first_line.startswith(_JSONC_HASH_PREFIX):
-        return [".claude/settings.json is stale or tampered — run: ai-guardrails generate"]
-    stored_hash = first_line[len(_JSONC_HASH_PREFIX) :]
     edit_rules = [f"Edit({cfg})" for cfg in sorted(GENERATED_CONFIGS)]
     bash_rules = [
         "Bash(* --no-verify *)",
@@ -170,23 +193,15 @@ def check_claude_settings(project_dir: Path) -> list[str]:
         "Bash(git push --force *)",
         "Bash(git push * --force *)",
     ]
+    pre_tool_hook = {
+        "type": "command",
+        "command": "python -m ai_guardrails.hooks.dangerous_cmd",
+    }
     settings = {
         "permissions": {"deny": edit_rules + bash_rules},
-        "hooks": {
-            "PreToolUse": [
-                {
-                    "matcher": "Bash",
-                    "hooks": [
-                        {
-                            "type": "command",
-                            "command": "python -m ai_guardrails.hooks.dangerous_cmd",
-                        }
-                    ],
-                }
-            ]
-        },
+        "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [pre_tool_hook]}]},
     }
-    expected_body = json.dumps(settings, indent=2)
-    if stored_hash != compute_hash(expected_body):
-        return [".claude/settings.json is stale or tampered — run: ai-guardrails generate"]
+    expected_body = json.dumps(settings, indent=2) + "\n"
+    if not _verify_jsonc_hash(existing, expected_body):
+        return [_stale]
     return []

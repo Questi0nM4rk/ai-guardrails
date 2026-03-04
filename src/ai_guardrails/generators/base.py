@@ -35,12 +35,25 @@ def parse_hash_header(text: str) -> str | None:
     return None
 
 
-def verify_hash(full_text: str, content: str) -> bool:
-    """Return True if the hash header in full_text matches the hash of content."""
+def verify_hash(full_text: str, expected_content: str) -> bool:
+    """Return True if the hash header is valid and file has not been tampered.
+
+    Performs two checks:
+    1. Tamper check: stored hash must match the actual file body (everything
+       after the first line).
+    2. Staleness check: stored hash must match the freshly-generated expected
+       body.
+    """
     stored = parse_hash_header(full_text)
     if stored is None:
         return False
-    return stored == compute_hash(content)
+    # Tamper check: stored hash must match actual file body
+    lines = full_text.split("\n", 1)
+    actual_body = lines[1] if len(lines) > 1 else ""
+    if stored != compute_hash(actual_body):
+        return False
+    # Staleness check: stored hash must match freshly-generated expected body
+    return stored == compute_hash(expected_content)
 
 
 @runtime_checkable
