@@ -141,7 +141,7 @@ def check_configs(project_dir: Path, *, languages: list[str]) -> CheckResult:
     """Check if expected config files are present."""
     expected = list(_BASE_CONFIGS)
     for lang in languages:
-        expected.extend(LANG_CONFIGS.get(lang, []))
+        expected.extend(LANG_CONFIGS.get(lang, ()))
 
     present = [c for c in expected if (project_dir / c).exists()]
     missing = [c for c in expected if c not in present]

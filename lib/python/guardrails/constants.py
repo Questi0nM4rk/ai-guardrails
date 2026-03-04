@@ -245,20 +245,20 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
 # ---------------------------------------------------------------------------
 # Language → config file mapping (shared by init and status)
 # ---------------------------------------------------------------------------
-LANG_CONFIGS: dict[str, list[str]] = {
-    "python": ["ruff.toml"],
-    "rust": ["rustfmt.toml"],
-    "dotnet": ["Directory.Build.props", ".globalconfig"],
-    "cpp": [".clang-format", ".clang-tidy"],
-    "lua": ["stylua.toml"],
-    "node": ["biome.json"],
+LANG_CONFIGS: dict[str, tuple[str, ...]] = {
+    "python": ("ruff.toml",),
+    "rust": ("rustfmt.toml",),
+    "dotnet": ("Directory.Build.props", ".globalconfig"),
+    "cpp": (".clang-format", ".clang-tidy"),
+    "lua": ("stylua.toml",),
+    "node": ("biome.json",),
     # go and shell: no config files, just pre-commit hooks
 }
 
-ALL_LANG_CONFIGS: list[str] = [name for names in LANG_CONFIGS.values() for name in names]
+ALL_LANG_CONFIGS: tuple[str, ...] = tuple(name for names in LANG_CONFIGS.values() for name in names)
 
 # Hook scripts to copy into .ai-guardrails/hooks/
-HOOK_SCRIPTS: list[str] = [
+HOOK_SCRIPTS: tuple[str, ...] = (
     "format-and-stage.sh",
     "detect-suppression-comments.sh",
     "validate-generated-configs.sh",
@@ -267,4 +267,4 @@ HOOK_SCRIPTS: list[str] = [
     "dangerous-command-check.sh",
     "pre-commit.sh",
     "pre-push.sh",
-]
+)

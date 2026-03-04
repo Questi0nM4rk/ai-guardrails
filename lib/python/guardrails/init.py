@@ -133,7 +133,7 @@ def _copy_language_configs(
 ) -> None:
     """Copy language-specific config files."""
     for lang in languages:
-        for name in LANG_CONFIGS.get(lang, []):
+        for name in LANG_CONFIGS.get(lang, ()):
             _copy_config(configs_dir / name, project_dir / name, force=force)
 
 
@@ -623,7 +623,7 @@ def _dry_run_report(
             _would(f"copy {name}")
     else:
         for lang in languages:
-            for name in LANG_CONFIGS.get(lang, []):
+            for name in LANG_CONFIGS.get(lang, ()):
                 _would(f"copy {name}")
 
     # Pre-commit
