@@ -9,9 +9,9 @@ Prompts user approval before:
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 from ai_guardrails.constants import (
     CONFIG_FILES,

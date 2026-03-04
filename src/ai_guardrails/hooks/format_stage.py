@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import contextlib
 import hashlib
-import subprocess
 from pathlib import Path
+import subprocess
 
 # Extension -> list of (command, args_prefix) formatters.
 # Each entry is a list where the first element is the tool name and remaining
@@ -93,7 +93,7 @@ def _git_staged_files() -> list[str]:
 
 
 def _run_formatter(cmd: list[str], filepath: str) -> None:
-    """Run a single formatter command on *filepath*, silently skipping if not installed."""
+    """Run a single formatter on *filepath*, silently skipping if not installed."""
     with contextlib.suppress(FileNotFoundError):
         subprocess.run(
             [*cmd, filepath],

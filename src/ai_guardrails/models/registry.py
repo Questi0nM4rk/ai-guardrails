@@ -100,4 +100,6 @@ class ExceptionRegistry:
 
     def get_per_file_ignores(self, tool: str) -> dict[str, list[str]]:
         """Return per-file ignore mapping (glob -> rules) for a specific tool."""
-        return {fe.glob: list(fe.rules) for fe in self.file_exceptions if fe.tool == tool}
+        return {
+            fe.glob: list(fe.rules) for fe in self.file_exceptions if fe.tool == tool
+        }

@@ -11,7 +11,7 @@ Each language plugin encapsulates:
 
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003  # used at runtime in glob and Protocol
+from pathlib import Path  # used at runtime in glob and Protocol
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 if TYPE_CHECKING:

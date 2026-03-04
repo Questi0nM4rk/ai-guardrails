@@ -46,7 +46,9 @@ class FileManager:
         """Return paths matching pattern relative to directory."""
         return sorted(directory.glob(pattern))
 
-    def mkdir(self, path: Path, *, parents: bool = False, exist_ok: bool = False) -> None:
+    def mkdir(
+        self, path: Path, *, parents: bool = False, exist_ok: bool = False
+    ) -> None:
         """Create a directory, with optional parents and exist_ok semantics."""
         if not exist_ok and path.exists():
             raise FileExistsError(path)

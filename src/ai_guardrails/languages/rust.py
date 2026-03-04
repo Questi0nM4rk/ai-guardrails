@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
 from ai_guardrails.languages._base import BaseLanguagePlugin
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class RustPlugin(BaseLanguagePlugin):
@@ -14,11 +17,11 @@ class RustPlugin(BaseLanguagePlugin):
 
     key = "rust"
     name = "Rust"
-    detect_files = ["Cargo.toml"]
-    detect_patterns = ["*.rs"]
-    detect_dirs: list[str] = []
-    copy_files = ["rustfmt.toml"]
-    generated_configs: list[str] = []
+    detect_files: ClassVar[list[str]] = ["Cargo.toml"]
+    detect_patterns: ClassVar[list[str]] = ["*.rs"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = ["rustfmt.toml"]
+    generated_configs: ClassVar[list[str]] = []
 
     _HOOKS_YAML = """\
 pre-commit:
@@ -30,7 +33,10 @@ pre-commit:
       priority: 1
     cargo-clippy:
       glob: "*.rs"
-      run: cargo clippy --all-targets --all-features -- -D warnings -D clippy::pedantic -D clippy::nursery -A clippy::module_name_repetitions
+      run: >-
+        cargo clippy --all-targets --all-features --
+        -D warnings -D clippy::pedantic -D clippy::nursery
+        -A clippy::module_name_repetitions
       priority: 2
     cargo-audit:
       run: cargo audit --deny warnings

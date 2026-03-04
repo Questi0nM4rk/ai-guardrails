@@ -6,9 +6,9 @@ Suppression comments create gray areas -- they are not allowed.
 
 from __future__ import annotations
 
+from pathlib import Path
 import re
 import sys
-from pathlib import Path
 
 from ai_guardrails.constants import (
     DOTFILE_MAP,
@@ -23,7 +23,7 @@ _DEFAULT_ALLOWLIST = ".suppression-allowlist"
 
 
 def _is_test_file(filepath: str) -> bool:
-    """Return True if *filepath* belongs to a test directory or matches a test filename pattern."""
+    """Return True if *filepath* is in a test directory or is a test file."""
     if any(segment in filepath for segment in TEST_PATH_SEGMENTS):
         return True
     # Check basename patterns against the filename only, not parent directories.
@@ -34,7 +34,7 @@ def _is_test_file(filepath: str) -> bool:
 
 
 def _infer_extension(filepath: str) -> str | None:
-    """Infer the language extension for *filepath* using suffix, dotfile map, or shebang."""
+    """Infer language extension for *filepath* via suffix, dotfile map, or shebang."""
     path = Path(filepath)
     basename = path.name
 
@@ -132,7 +132,9 @@ def _check_file(filepath: str, allowlist: list[str]) -> int:
         return 0
 
     try:
-        lines = Path(filepath).read_text(encoding="utf-8", errors="replace").splitlines()
+        lines = (
+            Path(filepath).read_text(encoding="utf-8", errors="replace").splitlines()
+        )
     except (OSError, UnicodeDecodeError):
         return 0
 
@@ -143,7 +145,9 @@ def _check_file(filepath: str, allowlist: list[str]) -> int:
     return count
 
 
-def main(argv: list[str] | None = None, *, allowlist_path: str = _DEFAULT_ALLOWLIST) -> int:
+def main(
+    argv: list[str] | None = None, *, allowlist_path: str = _DEFAULT_ALLOWLIST
+) -> int:
     """Entry point. Takes filenames as CLI args, returns 0 (clean) or 1 (violations)."""
     files = argv if argv is not None else sys.argv[1:]
     if not files:

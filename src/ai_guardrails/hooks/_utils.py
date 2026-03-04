@@ -9,7 +9,7 @@ _HEADER_SCAN_LINES = 5
 
 
 def has_hash_header(filepath: str) -> bool:
-    """Return True if a file contains an ai-guardrails hash header in its first few lines."""
+    """Return True if the file has an ai-guardrails hash header near the top."""
     try:
         with Path(filepath).open(encoding="utf-8", errors="replace") as f:
             for _ in range(_HEADER_SCAN_LINES):

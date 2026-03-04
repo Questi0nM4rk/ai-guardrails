@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
 from ai_guardrails.languages._base import BaseLanguagePlugin
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class DotnetPlugin(BaseLanguagePlugin):
@@ -14,11 +17,11 @@ class DotnetPlugin(BaseLanguagePlugin):
 
     key = "dotnet"
     name = "C#/.NET"
-    detect_files: list[str] = []
-    detect_patterns = ["*.csproj", "*.sln", "*.slnx"]
-    detect_dirs: list[str] = []
-    copy_files = ["Directory.Build.props", ".globalconfig"]
-    generated_configs: list[str] = []
+    detect_files: ClassVar[list[str]] = []
+    detect_patterns: ClassVar[list[str]] = ["*.csproj", "*.sln", "*.slnx"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = ["Directory.Build.props", ".globalconfig"]
+    generated_configs: ClassVar[list[str]] = []
 
     _HOOKS_YAML = """\
 pre-commit:

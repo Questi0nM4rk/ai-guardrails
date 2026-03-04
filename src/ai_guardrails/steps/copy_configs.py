@@ -28,7 +28,9 @@ class CopyConfigsStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         if not ctx.languages:
-            return StepResult(status="skip", message="No languages detected — nothing to copy")
+            return StepResult(
+                status="skip", message="No languages detected — nothing to copy"
+            )
 
         copied: list[str] = []
         skipped: list[str] = []
@@ -60,4 +62,6 @@ class CopyConfigsStep:
         if skipped:
             parts.append(f"Skipped (exists): {', '.join(skipped)}")
 
-        return StepResult(status="ok", message="; ".join(parts) if parts else "No configs to copy")
+        return StepResult(
+            status="ok", message="; ".join(parts) if parts else "No configs to copy"
+        )

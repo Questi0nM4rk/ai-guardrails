@@ -9,9 +9,12 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import logging
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_guardrails.languages._base import BaseLanguagePlugin, LanguagePlugin
+
+if TYPE_CHECKING:
+    from pathlib import Path
 from ai_guardrails.languages.cpp import CppPlugin
 from ai_guardrails.languages.dotnet import DotnetPlugin
 from ai_guardrails.languages.go import GoPlugin

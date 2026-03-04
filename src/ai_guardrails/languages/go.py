@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
 from ai_guardrails.languages._base import BaseLanguagePlugin
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class GoPlugin(BaseLanguagePlugin):
@@ -14,11 +17,11 @@ class GoPlugin(BaseLanguagePlugin):
 
     key = "go"
     name = "Go"
-    detect_files = ["go.mod", "go.sum"]
-    detect_patterns = ["*.go"]
-    detect_dirs: list[str] = []
-    copy_files: list[str] = []
-    generated_configs: list[str] = []
+    detect_files: ClassVar[list[str]] = ["go.mod", "go.sum"]
+    detect_patterns: ClassVar[list[str]] = ["*.go"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = []
 
     _HOOKS_YAML = """\
 pre-commit:

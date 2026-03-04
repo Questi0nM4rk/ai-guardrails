@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
 from ai_guardrails.languages._base import BaseLanguagePlugin
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class CppPlugin(BaseLanguagePlugin):
@@ -14,11 +17,11 @@ class CppPlugin(BaseLanguagePlugin):
 
     key = "cpp"
     name = "C/C++"
-    detect_files = ["CMakeLists.txt"]
-    detect_patterns = ["*.cpp", "*.c", "*.h", "*.hpp"]
-    detect_dirs: list[str] = []
-    copy_files = [".clang-format", ".clang-tidy"]
-    generated_configs: list[str] = []
+    detect_files: ClassVar[list[str]] = ["CMakeLists.txt"]
+    detect_patterns: ClassVar[list[str]] = ["*.cpp", "*.c", "*.h", "*.hpp"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = [".clang-format", ".clang-tidy"]
+    generated_configs: ClassVar[list[str]] = []
 
     _HOOKS_YAML = """\
 pre-commit:

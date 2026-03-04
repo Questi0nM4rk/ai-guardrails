@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
-    """Recursively merge override into base. Returns a new dict; does not mutate base."""
+    """Recursively merge override into base. Returns new dict; does not mutate base."""
     result: dict[str, Any] = dict(base)
     for key, value in override.items():
         if key in result and isinstance(result[key], dict) and isinstance(value, dict):

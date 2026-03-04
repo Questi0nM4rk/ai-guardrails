@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import tomllib  # type: ignore[no-redef]
-from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import tomli_w
 import yaml
@@ -14,6 +13,8 @@ from ai_guardrails.infra.config_loader import deep_merge
 from ai_guardrails.languages._base import BaseLanguagePlugin
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ai_guardrails.models.registry import ExceptionRegistry
 
 
@@ -22,18 +23,25 @@ class PythonPlugin(BaseLanguagePlugin):
 
     key = "python"
     name = "Python"
-    detect_files = ["pyproject.toml", "setup.py", "requirements.txt"]
-    detect_patterns = ["*.py"]
-    detect_dirs: list[str] = []
-    copy_files: list[str] = []
-    generated_configs = ["ruff.toml"]
+    detect_files: ClassVar[list[str]] = [
+        "pyproject.toml",
+        "setup.py",
+        "requirements.txt",
+    ]
+    detect_patterns: ClassVar[list[str]] = ["*.py"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = ["ruff.toml"]
 
     _HOOKS_YAML = """\
 pre-commit:
   commands:
     python-format-and-stage:
       glob: "*.py"
-      run: ruff format {staged_files} && ruff check --fix {staged_files} && git add {staged_files}
+      run: >-
+        ruff format {staged_files} &&
+        ruff check --fix {staged_files} &&
+        git add {staged_files}
       stage_fixed: true
       priority: 1
     ruff-check:

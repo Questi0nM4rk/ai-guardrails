@@ -12,8 +12,7 @@ Generate and check helpers live in _universal_checks.py (200-line limit).
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 import yaml
 
@@ -30,6 +29,8 @@ from ai_guardrails.languages._universal_checks import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ai_guardrails.models.registry import ExceptionRegistry
 
 
@@ -38,8 +39,8 @@ class UniversalPlugin(BaseLanguagePlugin):
 
     key = "universal"
     name = "Universal"
-    copy_files: list[str] = []
-    generated_configs = [
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = [
         ".editorconfig",
         ".markdownlint.jsonc",
         ".codespellrc",
@@ -47,42 +48,46 @@ class UniversalPlugin(BaseLanguagePlugin):
     ]
 
     # Base hooks — content from templates/lefthook/base.yaml, embedded here
-    _HOOKS_YAML = """\
-pre-commit:
-  commands:
-    suppress-comments:
-      glob: "*.{py,js,ts,tsx,jsx,rs,cs,go,lua,sh}"
-      run: python -m ai_guardrails.hooks.suppress_comments {staged_files}
-      priority: 2
-    protect-configs:
-      glob: "ruff.toml|biome.json|lefthook.yml|.editorconfig|.markdownlint.jsonc|.codespellrc"
-      run: python -m ai_guardrails.hooks.protect_configs {staged_files}
-      priority: 2
-    gitleaks:
-      run: gitleaks detect --staged --no-banner
-      priority: 2
-    detect-secrets:
-      glob: "!.secrets.baseline"
-      run: detect-secrets-hook --baseline .secrets.baseline {staged_files}
-      priority: 2
-    codespell:
-      glob: "*.{py,md,txt,yaml,yml,toml,json}"
-      run: codespell --check-filenames {staged_files}
-      priority: 2
-    markdownlint:
-      glob: "*.md"
-      run: markdownlint-cli2 {staged_files}
-      priority: 2
-    validate-configs:
-      run: python -m ai_guardrails generate --check
-      priority: 2
-commit-msg:
-  commands:
-    conventional:
-      run: >-
-        echo "{1}" | grep -qE
-        "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:"
-"""
+    # fmt: off
+    _HOOKS_YAML: ClassVar[str] = (
+        "pre-commit:\n"
+        "  commands:\n"
+        "    suppress-comments:\n"
+        '      glob: "*.{py,js,ts,tsx,jsx,rs,cs,go,lua,sh}"\n'
+        "      run: python -m ai_guardrails.hooks.suppress_comments {staged_files}\n"
+        "      priority: 2\n"
+        "    protect-configs:\n"
+        '      glob: "ruff.toml|biome.json|lefthook.yml'
+        '|.editorconfig|.markdownlint.jsonc|.codespellrc"\n'
+        "      run: python -m ai_guardrails.hooks.protect_configs {staged_files}\n"
+        "      priority: 2\n"
+        "    gitleaks:\n"
+        "      run: gitleaks detect --staged --no-banner\n"
+        "      priority: 2\n"
+        "    detect-secrets:\n"
+        '      glob: "!.secrets.baseline"\n'
+        "      run: detect-secrets-hook --baseline .secrets.baseline {staged_files}\n"
+        "      priority: 2\n"
+        "    codespell:\n"
+        '      glob: "*.{py,md,txt,yaml,yml,toml,json}"\n'
+        "      run: codespell --check-filenames {staged_files}\n"
+        "      priority: 2\n"
+        "    markdownlint:\n"
+        '      glob: "*.md"\n'
+        "      run: markdownlint-cli2 {staged_files}\n"
+        "      priority: 2\n"
+        "    validate-configs:\n"
+        "      run: python -m ai_guardrails generate --check\n"
+        "      priority: 2\n"
+        "commit-msg:\n"
+        "  commands:\n"
+        "    conventional:\n"
+        "      run: >-\n"
+        "        echo \"{1}\" | grep -qE\n"
+        "        \"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)"
+        "(\\\\(.+\\\\))?!?:\"\n"
+    )
+    # fmt: on
 
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"

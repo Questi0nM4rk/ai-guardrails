@@ -13,8 +13,12 @@ from __future__ import annotations
 import json
 import re
 import sys
+from typing import TYPE_CHECKING
 
-from ai_guardrails.constants import DANGEROUS_COMMANDS, MatchType
+from ai_guardrails.constants import DANGEROUS_COMMANDS
+
+if TYPE_CHECKING:
+    from ai_guardrails.constants import MatchType
 
 
 def _match_rule(match_type: MatchType, pattern: str, command: str) -> bool:
