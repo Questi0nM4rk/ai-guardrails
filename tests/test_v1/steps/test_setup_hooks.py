@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import MagicMock
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
@@ -88,6 +89,19 @@ def test_setup_hooks_returns_warn_on_failure(tmp_path: Path) -> None:
 
     assert result.status == "warn"
     assert "lefthook install failed" in result.message
+
+
+def test_setup_hooks_returns_warn_when_binary_missing(tmp_path: Path) -> None:
+    """If lefthook binary is not on PATH, returns warn (FileNotFoundError caught)."""
+    runner = MagicMock()
+    runner.run.side_effect = FileNotFoundError("lefthook")
+    ctx = _make_ctx(tmp_path, runner)
+
+    step = SetupHooksStep()
+    result = step.execute(ctx)
+
+    assert result.status == "warn"
+    assert "lefthook" in result.message.lower()
 
 
 def test_setup_hooks_validate_returns_empty(tmp_path: Path) -> None:

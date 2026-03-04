@@ -172,6 +172,7 @@ ignore = [
   "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
   "D107",   # __init__ docstrings: self-evident constructors
   "D102",   # public method docstrings: validate/execute are Protocol methods
+  "TC001",  # PipelineContext imported at runtime for isinstance/Protocol checks, not TYPE_CHECKING only
 ]
 "src/ai_guardrails/pipelines/*.py" = [
   "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
