@@ -22,6 +22,7 @@ from ai_guardrails.infra.file_manager import FileManager
 from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GeneratePipeline
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
+from ai_guardrails.pipelines.status_pipeline import StatusPipeline
 
 app = cyclopts.App(
     name="ai-guardrails", help="Pedantic code enforcement for AI-maintained repos."
@@ -161,3 +162,25 @@ def generate(
             console.success(f"  {result.message}")
     if options.check and any(r.status == "error" for r in results):
         raise SystemExit(1)
+
+
+@app.command
+def status() -> None:
+    """Show project health: detected languages, config freshness, hook status."""
+    custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
+    pipeline = StatusPipeline(data_dir=_DATA_DIR, custom_plugins_dir=custom_dir)
+    fm, runner, loader, console = _make_infra()
+    results = pipeline.run(
+        project_dir=Path.cwd(),
+        file_manager=fm,
+        command_runner=runner,
+        config_loader=loader,
+        console=console,
+    )
+    for result in results:
+        if result.status == "error":
+            console.error(f"  {result.message}")
+        elif result.status == "warn":
+            console.warning(f"  {result.message}")
+        elif result.status == "skip":
+            console.info(f"  (skip) {result.message}")
