@@ -1,5 +1,5 @@
 # AI Guardrails - CI Check Workflow
-# Runs pre-commit checks (verify-only, no code modifications)
+# Runs lefthook pre-commit checks (verify-only, no code modifications)
 name: Check
 
 on:
@@ -23,25 +23,29 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Cache pre-commit
-        uses: actions/cache@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install lefthook
+        run: npm install -g lefthook
+
+      - name: Run hooks
+        run: lefthook run pre-commit --no-auto-output
+
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            pre-commit-
+          python-version: "3.12"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v4
 
-      - name: Install pre-commit
-        run: uv tool install pre-commit
-
-      # Skip format-and-stage (local-only) and semgrep (run separately for parallelism)
-      - name: Run pre-commit checks
-        run: SKIP=format-and-stage,semgrep pre-commit run --all-files
-
-      - name: Run semgrep (parallel)
+      - name: Run semgrep
         run: |
           uv tool install semgrep
           semgrep --config auto --error --exclude tests/

@@ -2,13 +2,18 @@
 
 Appends the guardrails template section to CLAUDE.md if the section is
 not already present. Creates CLAUDE.md if it doesn't exist.
+Also creates AGENTS.md → CLAUDE.md symlink for non-Claude agents.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from ai_guardrails.pipelines.base import PipelineContext, StepResult
+from ai_guardrails.pipelines.base import StepResult
+
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import PipelineContext
 
 _SECTION_MARKER = "## AI Guardrails"
 _CLAUDE_MD = Path("CLAUDE.md")
@@ -22,7 +27,7 @@ class SetupAgentInstructionsStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(self, _ctx: PipelineContext) -> list[str]:
         if not self._template.exists():
             return [f"Agent instructions template not found: {self._template}"]
         return []
@@ -43,4 +48,9 @@ class SetupAgentInstructionsStep:
             new_content = template_content
 
         ctx.file_manager.write_text(claude_md, new_content)
+
+        agents_md = ctx.project_dir / "AGENTS.md"
+        if not agents_md.exists():
+            agents_md.symlink_to("CLAUDE.md")
+
         return StepResult(status="ok", message=f"Updated {_CLAUDE_MD}")

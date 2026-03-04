@@ -71,7 +71,9 @@ def test_creates_claude_md_if_missing(tmp_path: Path) -> None:
 
 def test_appends_guardrails_section_to_existing_claude_md(tmp_path: Path) -> None:
     step = SetupAgentInstructionsStep(template_path=_GUARDRAILS_TEMPLATE)
-    ctx, fm = _make_context(tmp_path, existing_claude_md="# My Project\n\nProject docs.\n")
+    ctx, fm = _make_context(
+        tmp_path, existing_claude_md="# My Project\n\nProject docs.\n"
+    )
     result = step.execute(ctx)
     assert result.status == "ok"
     written = dict(fm.written)
@@ -97,3 +99,27 @@ def test_appended_content_comes_from_template(tmp_path: Path) -> None:
     content = written.get(tmp_path / "CLAUDE.md", "")
     # Template contains AI Guardrails content
     assert "ai-guardrails" in content.lower() or "guardrails" in content.lower()
+
+
+def test_setup_agent_instructions_creates_agents_md_symlink(tmp_path: Path) -> None:
+    """After writing CLAUDE.md, step creates AGENTS.md → CLAUDE.md symlink."""
+    step = SetupAgentInstructionsStep(template_path=_GUARDRAILS_TEMPLATE)
+    ctx, _ = _make_context(tmp_path)
+    result = step.execute(ctx)
+    assert result.status == "ok"
+    agents_md = tmp_path / "AGENTS.md"
+    assert agents_md.is_symlink()
+    assert agents_md.readlink() == Path("CLAUDE.md")
+
+
+def test_setup_agent_instructions_skips_agents_md_if_exists(tmp_path: Path) -> None:
+    """If AGENTS.md already exists, step does not overwrite it."""
+    # Pre-create AGENTS.md as a regular file
+    existing_agents = tmp_path / "AGENTS.md"
+    existing_agents.write_text("custom agents instructions\n")
+    step = SetupAgentInstructionsStep(template_path=_GUARDRAILS_TEMPLATE)
+    ctx, _ = _make_context(tmp_path)
+    step.execute(ctx)
+    # File should still be the original, not a symlink
+    assert not existing_agents.is_symlink()
+    assert existing_agents.read_text() == "custom agents instructions\n"
