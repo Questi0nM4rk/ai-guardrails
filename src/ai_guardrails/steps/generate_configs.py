@@ -26,25 +26,36 @@ class GenerateConfigsStep:
 
     def validate(self, ctx: PipelineContext) -> list[str]:
         if ctx.registry is None:
+            if ctx.dry_run:
+                return []  # execute() will skip gracefully
             return ["Registry not loaded — run scaffold-registry first"]
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
-        assert ctx.registry is not None  # guaranteed by validate()
-
+        if ctx.registry is None:
+            return StepResult(status="skip", message="Dry-run: registry not loaded")
         if ctx.check:
-            all_issues: list[str] = []
-            for plugin in ctx.languages:
-                all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
-            if all_issues:
-                for issue in all_issues:
-                    ctx.console.error(issue)
-                return StepResult(
-                    status="error",
-                    message=f"{len(all_issues)} config(s) stale or tampered",
-                )
-            return StepResult(status="ok", message="All configs are fresh")
+            return self._run_check(ctx)
+        return self._run_generate(ctx)
 
+    def _run_check(self, ctx: PipelineContext) -> StepResult:
+        """Check mode: call plugin.check() and report issues without writing."""
+        assert ctx.registry is not None
+        all_issues: list[str] = []
+        for plugin in ctx.languages:
+            all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
+        if all_issues:
+            for issue in all_issues:
+                ctx.console.error(issue)
+            return StepResult(
+                status="error",
+                message=f"{len(all_issues)} config(s) stale or tampered",
+            )
+        return StepResult(status="ok", message="All configs are fresh")
+
+    def _run_generate(self, ctx: PipelineContext) -> StepResult:
+        """Generate mode: call plugin.generate() and write config files."""
+        assert ctx.registry is not None
         generated: list[str] = []
 
         # 1. Generate per-plugin config files

@@ -20,6 +20,8 @@ class LoadRegistryStep:
 
     def validate(self, ctx: PipelineContext) -> list[str]:
         registry_path = ctx.project_dir / REGISTRY_FILENAME
+        if ctx.dry_run and not ctx.file_manager.exists(registry_path):
+            return []  # execute() will skip gracefully
         if not ctx.file_manager.exists(registry_path):
             return [f"{REGISTRY_FILENAME} not found — run: ai-guardrails init"]
         return []

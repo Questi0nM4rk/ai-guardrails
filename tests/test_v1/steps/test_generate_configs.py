@@ -103,6 +103,27 @@ def test_generate_configs_validate_fails_without_registry(tmp_path: Path) -> Non
     assert "registry" in errors[0].lower()
 
 
+def test_generate_configs_dry_run_skips_when_registry_absent(tmp_path: Path) -> None:
+    """In dry-run mode without registry, validate passes and execute skips."""
+    fm = FakeFileManager()
+    ctx = PipelineContext(
+        project_dir=tmp_path,
+        file_manager=fm,
+        command_runner=FakeCommandRunner(),
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+        languages=[],
+        registry=None,
+        dry_run=True,
+        force=False,
+    )
+    step = GenerateConfigsStep()
+    assert step.validate(ctx) == []
+    result = step.execute(ctx)
+    assert result.status == "skip"
+    assert "dry" in result.message.lower()
+
+
 def test_generate_configs_validate_passes_with_registry(tmp_path: Path) -> None:
     step = GenerateConfigsStep()
     ctx, _ = _make_context(tmp_path)

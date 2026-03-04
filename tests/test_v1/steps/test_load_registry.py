@@ -71,6 +71,14 @@ def test_load_registry_execute_loads_registry(tmp_path: Path) -> None:
     assert ctx.registry is not None
 
 
+def test_load_registry_dry_run_validate_passes_when_file_absent(tmp_path: Path) -> None:
+    """In dry-run mode, validate() must not error when the registry is absent."""
+    ctx, _ = _make_context(tmp_path, dry_run=True)
+    step = LoadRegistryStep()
+    errors = step.validate(ctx)
+    assert errors == []
+
+
 def test_load_registry_dry_run_skips_when_file_absent(tmp_path: Path) -> None:
     """In dry-run mode, LoadRegistryStep must skip gracefully when the registry
     file has not been written yet (ScaffoldRegistryStep also skipped it)."""
