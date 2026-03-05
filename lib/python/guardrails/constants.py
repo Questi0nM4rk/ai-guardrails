@@ -6,6 +6,7 @@ Replaces guardrails-patterns.sh and scattered ANSI definitions.
 
 from __future__ import annotations
 
+import types
 from typing import Literal, TypeAlias
 
 # ---------------------------------------------------------------------------
@@ -245,7 +246,7 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
 # ---------------------------------------------------------------------------
 # Language → config file mapping (shared by init and status)
 # ---------------------------------------------------------------------------
-LANG_CONFIGS: dict[str, tuple[str, ...]] = {
+LANG_CONFIGS: types.MappingProxyType[str, tuple[str, ...]] = types.MappingProxyType({
     "python": ("ruff.toml",),
     "rust": ("rustfmt.toml",),
     "dotnet": ("Directory.Build.props", ".globalconfig"),
@@ -253,7 +254,7 @@ LANG_CONFIGS: dict[str, tuple[str, ...]] = {
     "lua": ("stylua.toml",),
     "node": ("biome.json",),
     # go and shell: no config files, just pre-commit hooks
-}
+})
 
 ALL_LANG_CONFIGS: tuple[str, ...] = tuple(name for names in LANG_CONFIGS.values() for name in names)
 
