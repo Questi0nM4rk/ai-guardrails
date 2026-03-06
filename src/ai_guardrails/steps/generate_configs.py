@@ -6,7 +6,6 @@ Assembles lefthook.yml from all active plugin hook_config() dicts.
 
 from __future__ import annotations
 
-import contextlib
 from typing import TYPE_CHECKING
 
 import yaml
@@ -86,8 +85,7 @@ class GenerateConfigsStep:
         for plugin in ctx.languages:
             outputs = plugin.generate(ctx.registry, ctx.project_dir)
             for path, content in outputs.items():
-                with contextlib.suppress(FileExistsError, AttributeError):
-                    ctx.file_manager.mkdir(path.parent, parents=True, exist_ok=True)
+                ctx.file_manager.mkdir(path.parent, parents=True, exist_ok=True)
                 ctx.file_manager.write_text(path, content)
                 generated.append(path.name)
 
@@ -101,10 +99,7 @@ class GenerateConfigsStep:
             header = f"{HASH_HEADER_PREFIX}{compute_hash(body)}"
             full_content = f"{header}\n{body}"
             lefthook_path = ctx.project_dir / "lefthook.yml"
-            with contextlib.suppress(FileExistsError, AttributeError):
-                ctx.file_manager.mkdir(
-                    lefthook_path.parent, parents=True, exist_ok=True
-                )
+            ctx.file_manager.mkdir(lefthook_path.parent, parents=True, exist_ok=True)
             ctx.file_manager.write_text(lefthook_path, full_content)
             generated.append("lefthook.yml")
 

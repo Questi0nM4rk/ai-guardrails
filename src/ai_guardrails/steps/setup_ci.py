@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -35,7 +34,6 @@ class SetupCIStep:
                 message=f"{_CI_OUTPUT} already exists (use --force to overwrite)",
             )
         content = self._template.read_text()
-        with contextlib.suppress(FileExistsError, AttributeError):
-            ctx.file_manager.mkdir(target.parent, parents=True, exist_ok=True)
+        ctx.file_manager.mkdir(target.parent, parents=True, exist_ok=True)
         ctx.file_manager.write_text(target, content)
         return StepResult(status="ok", message=f"Created {_CI_OUTPUT}")

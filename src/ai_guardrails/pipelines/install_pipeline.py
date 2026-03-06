@@ -8,7 +8,6 @@ Steps:
 
 from __future__ import annotations
 
-import contextlib
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -108,8 +107,7 @@ class _InstallGlobalConfigStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         config_path = self._config_dir / "config.toml"
-        with contextlib.suppress(FileExistsError, AttributeError):
-            ctx.file_manager.mkdir(self._config_dir, parents=True, exist_ok=True)
+        ctx.file_manager.mkdir(self._config_dir, parents=True, exist_ok=True)
         if ctx.file_manager.exists(config_path):
             return StepResult(status="skip", message="Global config already exists")
         ctx.file_manager.write_text(config_path, _GLOBAL_CONFIG_CONTENT)
@@ -153,10 +151,7 @@ class _InstallGlobalClaudeSettingsStep:
                 status="skip", message="Global Claude Code hooks already installed"
             )
 
-        with contextlib.suppress(FileExistsError, AttributeError):
-            ctx.file_manager.mkdir(
-                self._settings_path.parent, parents=True, exist_ok=True
-            )
+        ctx.file_manager.mkdir(self._settings_path.parent, parents=True, exist_ok=True)
         ctx.file_manager.write_text(
             self._settings_path, json.dumps(existing, indent=2) + "\n"
         )
