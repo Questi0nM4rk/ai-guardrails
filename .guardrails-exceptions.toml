@@ -32,6 +32,12 @@ schema_version = 1
 skip = [".git", "*.lock", "*.baseline", "node_modules", "venv", ".venv"]
 ignore_words = []
 
+[[file_exceptions]]
+glob = "src/ai_guardrails/cli.py"
+tool = "ruff"
+rules = ["PLR0913"]
+reason = "CLI commands legitimately accept many keyword-only flags"
+
 # --- Examples ---
 #
 # [[file_exceptions]]

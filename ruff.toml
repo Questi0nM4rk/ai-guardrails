@@ -1,4 +1,4 @@
-# ai-guardrails:hash:sha256:ad543f007631f0f84dab2c9aeb0a854f34422c16e33dc05dff847627b08e297d
+# ai-guardrails:hash:sha256:19acd11c606d25378fa6796c1c5f582db959e87da4a035ffd1da18d59b270237
 target-version = "py311"
 line-length = 88
 indent-width = 4
@@ -144,6 +144,9 @@ raises-require-match-for = [
 ]
 "__init__.py" = [
     "F401",
+]
+"src/ai_guardrails/cli.py" = [
+    "PLR0913",
 ]
 
 [format]
