@@ -62,22 +62,34 @@ pre-commit:
 
     def _build_config(self, registry: ExceptionRegistry) -> dict[str, object]:
         config = self._load_base()
-        lint = config.setdefault("lint", {})
 
-        # Merge global ignores (union, sorted)
-        existing_ignores: set[str] = set(lint.get("ignore", []))
-        new_ignores: set[str] = set(registry.get_ignores("ruff"))
-        lint["ignore"] = sorted(existing_ignores | new_ignores)
+        # Save base ignores/per-file-ignores before deep_merge can clobber them
+        base_lint = config.get("lint", {})
+        base_ignores: set[str] = set(base_lint.get("ignore", []))
+        base_pfi: dict[str, list[str]] = dict(base_lint.get("per-file-ignores", {}))
 
-        # Merge per-file-ignores (union per glob)
-        pfi = lint.setdefault("per-file-ignores", {})
-        for glob_pattern, rules in registry.get_per_file_ignores("ruff").items():
-            existing: set[str] = set(pfi.get(glob_pattern, []))
-            pfi[glob_pattern] = sorted(existing | set(rules))
-
-        # Apply custom overrides
+        # Apply custom overrides (may replace arrays — that's OK, we re-merge)
         if "ruff" in registry.custom:
             config = deep_merge(config, registry.custom["ruff"])
+
+        lint = config.setdefault("lint", {})
+
+        # Union all ignore sources: base + custom + registry (sorted)
+        custom_ignores: set[str] = set(lint.get("ignore", []))
+        registry_ignores: set[str] = set(registry.get_ignores("ruff"))
+        lint["ignore"] = sorted(base_ignores | custom_ignores | registry_ignores)
+
+        # Union all per-file-ignores: base + custom + registry (sorted per glob)
+        pfi = lint.setdefault("per-file-ignores", {})
+        all_globs = (
+            set(base_pfi) | set(pfi) | set(registry.get_per_file_ignores("ruff"))
+        )
+        for glob_pattern in all_globs:
+            merged: set[str] = set(base_pfi.get(glob_pattern, []))
+            merged |= set(pfi.get(glob_pattern, []))
+            for rule in registry.get_per_file_ignores("ruff").get(glob_pattern, []):
+                merged.add(rule)
+            pfi[glob_pattern] = sorted(merged)
 
         return config
 
