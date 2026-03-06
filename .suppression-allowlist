@@ -70,3 +70,15 @@ languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
 # ---------------------------------------------------------------------------
 languages/_registry\.py:\d+:.*# noqa: BLE001
 
+# ---------------------------------------------------------------------------
+# tests/ — type: ignore in test files
+# [misc]: Assigning to a frozen dataclass field in pytest.raises(AttributeError)
+#   blocks. Mypy sees this as a type error; we need the statement to exist at
+#   runtime so pytest can assert it raises. Not a real suppression — the test
+#   is verifying that the assignment fails.
+# [arg-type]: Passing deliberately wrong types (invalid Literals, **dict with
+#   mixed types) to test runtime validation or exercise all code paths.
+#   These are intentional bad-type probes, not production code suppressions.
+# ---------------------------------------------------------------------------
+tests/.*\.py:\d+:.*# type: ignore\[misc\]
+tests/.*\.py:\d+:.*# type: ignore\[arg-type\]
