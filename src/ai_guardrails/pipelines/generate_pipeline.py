@@ -8,7 +8,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ai_guardrails.languages._base import BaseLanguagePlugin
 from ai_guardrails.languages._registry import discover_plugins
 from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
@@ -33,19 +32,6 @@ class GenerateOptions:
     check: bool = False
     languages: list[str] | None = None
     dry_run: bool = False
-
-
-class _ExplicitLanguagePlugin(BaseLanguagePlugin):
-    """Synthetic plugin representing an explicitly specified language key."""
-
-    def __init__(self, key: str) -> None:
-        self.key = key  # type: ignore[misc]
-        self.name = key  # type: ignore[misc]
-        self.copy_files = []  # type: ignore[misc]
-        self.generated_configs = []  # type: ignore[misc]
-
-    def detect(self, project_dir: Path) -> bool:  # noqa: ARG002
-        return True
 
 
 class GeneratePipeline:

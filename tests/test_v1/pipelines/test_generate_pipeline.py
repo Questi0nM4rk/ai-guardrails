@@ -9,7 +9,6 @@ from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.generate_pipeline import (
     GenerateOptions,
     GeneratePipeline,
-    _ExplicitLanguagePlugin,
 )
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
@@ -158,20 +157,3 @@ def test_generate_with_languages_validates_known_keys(tmp_path: Path) -> None:
     assert "foobar" in results[0].message.lower()
     # Should NOT mention python since python is a valid key
     assert "python" not in results[0].message.lower().split("available")[0]
-
-
-# ---------------------------------------------------------------------------
-# L-7: _ExplicitLanguagePlugin behavior
-# ---------------------------------------------------------------------------
-
-
-def test_explicit_language_plugin_detect_returns_true(tmp_path: Path) -> None:
-    """_ExplicitLanguagePlugin.detect() always returns True."""
-    plugin = _ExplicitLanguagePlugin("anything")
-    assert plugin.detect(tmp_path) is True
-
-
-def test_explicit_language_plugin_has_empty_generated_configs() -> None:
-    """_ExplicitLanguagePlugin.generated_configs is an empty list."""
-    plugin = _ExplicitLanguagePlugin("anything")
-    assert plugin.generated_configs == []

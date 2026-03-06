@@ -70,12 +70,3 @@ languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
 # ---------------------------------------------------------------------------
 languages/_registry\.py:\d+:.*# noqa: BLE001
 
-# ---------------------------------------------------------------------------
-# pipelines/generate_pipeline.py
-# type: ignore[misc]: _ExplicitLanguagePlugin overrides ClassVar attributes as instance
-#   variables in __init__. Required to create a synthetic plugin with a dynamic key at
-#   runtime — no ClassVar-safe alternative without restructuring BaseLanguagePlugin.
-# ARG002: detect() always returns True for explicit plugins; project_dir is unused.
-# ---------------------------------------------------------------------------
-pipelines/generate_pipeline\.py:\d+:.*# type: ignore\[misc\]
-pipelines/generate_pipeline\.py:\d+:.*# noqa: ARG002

@@ -6,6 +6,7 @@ from importlib import (  # nosemgrep: python37-compatibility-importlib2
     resources as _importlib_resources,
 )
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cyclopts
 
@@ -17,6 +18,9 @@ from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GenerateP
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
 from ai_guardrails.pipelines.status_pipeline import StatusPipeline
+
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import StepResult
 
 app = cyclopts.App(
     name="ai-guardrails", help="Pedantic code enforcement for AI-maintained repos."
@@ -55,7 +59,7 @@ def _make_infra(
     )
 
 
-def _print_results(results: list, console: Console) -> None:
+def _print_results(results: list[StepResult], console: Console) -> None:
     """Print step results using appropriate severity formatting."""
     for result in results:
         if result.status == "error":
