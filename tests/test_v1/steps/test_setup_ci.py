@@ -91,4 +91,8 @@ def test_setup_ci_content_comes_from_template(tmp_path: Path) -> None:
     step.execute(ctx)
     written = dict(fm.written)
     content = written.get(tmp_path / _CI_OUTPUT, "")
-    assert "lefthook" in content or "ai-guardrails" in content or "check" in content.lower()
+    assert (
+        "lefthook" in content
+        or "ai-guardrails" in content
+        or "check" in content.lower()
+    )

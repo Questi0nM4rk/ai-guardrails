@@ -8,9 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ai_guardrails.languages._base import BaseLanguagePlugin
 from ai_guardrails.languages._registry import discover_plugins
-from ai_guardrails.pipelines.base import Pipeline, PipelineContext
+from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from ai_guardrails.steps.load_registry import LoadRegistryStep
@@ -23,7 +22,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
     from ai_guardrails.languages._base import LanguagePlugin
-    from ai_guardrails.pipelines.base import PipelineStep, StepResult
+    from ai_guardrails.pipelines.base import PipelineStep
 
 
 @dataclass
@@ -33,19 +32,6 @@ class GenerateOptions:
     check: bool = False
     languages: list[str] | None = None
     dry_run: bool = False
-
-
-class _ExplicitLanguagePlugin(BaseLanguagePlugin):
-    """Synthetic plugin representing an explicitly specified language key."""
-
-    def __init__(self, key: str) -> None:
-        self.key = key  # type: ignore[misc]
-        self.name = key  # type: ignore[misc]
-        self.copy_files = []  # type: ignore[misc]
-        self.generated_configs = []  # type: ignore[misc]
-
-    def detect(self, project_dir: Path) -> bool:  # noqa: ARG002
-        return True
 
 
 class GeneratePipeline:
@@ -85,16 +71,32 @@ class GeneratePipeline:
             check=self._options.check,
         )
 
-        # If languages are specified, inject synthetic plugins matching by key
+        # If languages are specified, inject selected plugins matching by key
         if self._options.languages:
             all_plugins = self._get_plugins()
             plugin_map = {p.key: p for p in all_plugins}
-            selected: list[LanguagePlugin] = []
-            for lang_key in self._options.languages:
-                if lang_key in plugin_map:
-                    selected.append(plugin_map[lang_key])
-                else:
-                    selected.append(_ExplicitLanguagePlugin(lang_key))
+
+            # M-5: Validate language keys
+            unknown = [k for k in self._options.languages if k not in plugin_map]
+            if unknown:
+                return [
+                    StepResult(
+                        status="error",
+                        message=f"Unknown language(s): {', '.join(unknown)}. "
+                        f"Available: {', '.join(sorted(plugin_map.keys()))}",
+                    )
+                ]
+
+            # B-1: Always include universal plugin
+            selected: list[LanguagePlugin] = [
+                p for p in all_plugins if p.key == "universal"
+            ]
+            selected.extend(
+                plugin_map[k]
+                for k in self._options.languages
+                if k != "universal" and k in plugin_map
+            )
+            # "universal" excluded above: already prepended, avoiding double-inclusion.
             ctx.languages = selected
             steps: list[PipelineStep] = [
                 LoadRegistryStep(),

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -22,7 +21,7 @@ class SetupCIStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         if not self._template.exists():
             return [f"CI workflow template not found: {self._template}"]
         return []
@@ -35,7 +34,6 @@ class SetupCIStep:
                 message=f"{_CI_OUTPUT} already exists (use --force to overwrite)",
             )
         content = self._template.read_text()
-        with contextlib.suppress(FileExistsError, AttributeError):
-            ctx.file_manager.mkdir(target.parent, parents=True, exist_ok=True)
+        ctx.file_manager.mkdir(target.parent, parents=True, exist_ok=True)
         ctx.file_manager.write_text(target, content)
         return StepResult(status="ok", message=f"Created {_CI_OUTPUT}")

@@ -48,8 +48,19 @@ class FileManager:
 
     def mkdir(
         self, path: Path, *, parents: bool = False, exist_ok: bool = False
-    ) -> None:
-        """Create a directory, with optional parents and exist_ok semantics."""
+    ) -> str | None:
+        """Create a directory. In dry-run, returns a description instead."""
+        if self.dry_run:
+            return f"would create directory {path}"
         if not exist_ok and path.exists():
             raise FileExistsError(path)
         path.mkdir(parents=parents, exist_ok=exist_ok)
+        return None
+
+    def symlink(self, link: Path, target: str) -> str | None:
+        """Create a symlink. In dry-run, returns a description instead."""
+        if self.dry_run:
+            return f"would symlink {link} -> {target}"
+        if not link.exists():
+            link.symlink_to(target)
+        return None

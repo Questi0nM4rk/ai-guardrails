@@ -112,8 +112,14 @@ def test_main_formats_and_restages_modified_file(tmp_path):
         add_calls.append(filepath)
 
     with (
-        patch("ai_guardrails.hooks.format_stage._git_staged_files", side_effect=fake_staged),
-        patch("ai_guardrails.hooks.format_stage._run_formatter", side_effect=fake_formatter),
+        patch(
+            "ai_guardrails.hooks.format_stage._git_staged_files",
+            side_effect=fake_staged,
+        ),
+        patch(
+            "ai_guardrails.hooks.format_stage._run_formatter",
+            side_effect=fake_formatter,
+        ),
         patch("ai_guardrails.hooks.format_stage._git_add", side_effect=fake_add),
     ):
         result = main()
@@ -138,8 +144,14 @@ def test_main_does_not_restage_unmodified_file(tmp_path):
         add_calls.append(filepath)
 
     with (
-        patch("ai_guardrails.hooks.format_stage._git_staged_files", side_effect=fake_staged),
-        patch("ai_guardrails.hooks.format_stage._run_formatter", side_effect=fake_formatter),
+        patch(
+            "ai_guardrails.hooks.format_stage._git_staged_files",
+            side_effect=fake_staged,
+        ),
+        patch(
+            "ai_guardrails.hooks.format_stage._run_formatter",
+            side_effect=fake_formatter,
+        ),
         patch("ai_guardrails.hooks.format_stage._git_add", side_effect=fake_add),
     ):
         result = main()
@@ -151,7 +163,9 @@ def test_main_does_not_restage_unmodified_file(tmp_path):
 def test_main_skips_missing_file(tmp_path):
     missing = str(tmp_path / "ghost.py")
 
-    with patch("ai_guardrails.hooks.format_stage._git_staged_files", return_value=[missing]):
+    with patch(
+        "ai_guardrails.hooks.format_stage._git_staged_files", return_value=[missing]
+    ):
         result = main()
 
     assert result == 0
@@ -164,8 +178,12 @@ def test_main_skips_unknown_extension(tmp_path):
     add_calls: list[str] = []
 
     with (
-        patch("ai_guardrails.hooks.format_stage._git_staged_files", return_value=[str(f)]),
-        patch("ai_guardrails.hooks.format_stage._git_add", side_effect=add_calls.append),
+        patch(
+            "ai_guardrails.hooks.format_stage._git_staged_files", return_value=[str(f)]
+        ),
+        patch(
+            "ai_guardrails.hooks.format_stage._git_add", side_effect=add_calls.append
+        ),
     ):
         result = main()
 

@@ -39,6 +39,7 @@ GENERATED_CONFIGS: frozenset[str] = frozenset(
         "Directory.Build.props",
         ".globalconfig",
         ".editorconfig",
+        ".claude/settings.json",
     }
 )
 
@@ -225,6 +226,21 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
         "substring",
         "PRE_COMMIT_ALLOW_NO_CONFIG",
         "Bypassing pre-commit via environment variables.",
+    ),
+    (
+        "substring",
+        "LEFTHOOK=0",
+        "Bypassing lefthook hooks via environment variable.",
+    ),
+    (
+        "substring",
+        "LEFTHOOK_SKIP",
+        "Bypassing lefthook hooks via environment variable.",
+    ),
+    (
+        "substring",
+        "LEFTHOOK=skip",
+        "Bypassing lefthook hooks via environment variable.",
     ),
     # Branch protection bypass
     (

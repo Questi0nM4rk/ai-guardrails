@@ -8,7 +8,6 @@ Steps:
 
 from __future__ import annotations
 
-import contextlib
 from dataclasses import dataclass
 import json
 from pathlib import Path
@@ -36,16 +35,21 @@ _LEFTHOOK_INSTALL_HINT = (
     "  OR  go install github.com/evilmartians/lefthook@latest"
 )
 
-_OUR_HOOKS = [
-    {
-        "type": "command",
-        "command": "uv run python -m ai_guardrails.hooks.dangerous_cmd",
-    },
-    {
-        "type": "command",
-        "command": "uv run python -m ai_guardrails.hooks.protect_configs",
-    },
-]
+# Map each Claude Code tool matcher → hooks to install on it.
+# Commands are entry-point scripts installed by `uv tool install ai-guardrails`
+# (or `pip install`), so no path assumptions are needed.
+_HOOK_CONFIGS: dict[str, list[dict[str, str]]] = {
+    "Bash": [
+        {"type": "command", "command": "ai-guardrails-dangerous-cmd"},
+        {"type": "command", "command": "ai-guardrails-protect-configs"},
+    ],
+    "Edit": [
+        {"type": "command", "command": "ai-guardrails-protect-configs"},
+    ],
+    "Write": [
+        {"type": "command", "command": "ai-guardrails-protect-configs"},
+    ],
+}
 
 
 @dataclass
@@ -60,7 +64,7 @@ class _CheckPrereqsStep:
 
     name = "check-prereqs"
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
@@ -103,13 +107,12 @@ class _InstallGlobalConfigStep:
     def __init__(self, global_config_dir: Path) -> None:
         self._config_dir = global_config_dir
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         config_path = self._config_dir / "config.toml"
-        with contextlib.suppress(FileExistsError, AttributeError):
-            ctx.file_manager.mkdir(self._config_dir, parents=True, exist_ok=True)
+        ctx.file_manager.mkdir(self._config_dir, parents=True, exist_ok=True)
         if ctx.file_manager.exists(config_path):
             return StepResult(status="skip", message="Global config already exists")
         ctx.file_manager.write_text(config_path, _GLOBAL_CONFIG_CONTENT)
@@ -124,44 +127,48 @@ class _InstallGlobalClaudeSettingsStep:
     def __init__(self, claude_settings_path: Path) -> None:
         self._settings_path = claude_settings_path
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         existing: dict[str, Any] = {}
         if ctx.file_manager.exists(self._settings_path):
             raw = ctx.file_manager.read_text(self._settings_path)
-            existing = json.loads(raw)
+            try:
+                existing = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                return StepResult(
+                    status="error",
+                    message=f"Malformed {self._settings_path}: {exc.args[0]}",
+                )
 
-        hooks: dict[str, Any] = existing.setdefault("hooks", {})
-        pre_tool: list[dict[str, Any]] = hooks.setdefault("PreToolUse", [])
+        hooks_section: dict[str, Any] = existing.setdefault("hooks", {})
+        pre_tool: list[dict[str, Any]] = hooks_section.setdefault("PreToolUse", [])
 
-        bash_entry = next((e for e in pre_tool if e.get("matcher") == "Bash"), None)
-        if bash_entry is None:
-            bash_entry = {"matcher": "Bash", "hooks": []}
-            pre_tool.append(bash_entry)
+        added_count = 0
+        for matcher, desired_hooks in _HOOK_CONFIGS.items():
+            entry = next((e for e in pre_tool if e.get("matcher") == matcher), None)
+            if entry is None:
+                entry = {"matcher": matcher, "hooks": []}
+                pre_tool.append(entry)
+            existing_cmds = {h["command"] for h in entry["hooks"] if "command" in h}
+            for hook in desired_hooks:
+                if hook["command"] not in existing_cmds:
+                    entry["hooks"].append(hook)
+                    added_count += 1
 
-        existing_cmds = {h["command"] for h in bash_entry["hooks"] if "command" in h}
-        added: list[str] = []
-        for hook in _OUR_HOOKS:
-            if hook["command"] not in existing_cmds:
-                bash_entry["hooks"].append(hook)
-                added.append(hook["command"])
-
-        if not added:
+        if not added_count:
             return StepResult(
                 status="skip", message="Global Claude Code hooks already installed"
             )
 
-        with contextlib.suppress(FileExistsError, AttributeError):
-            ctx.file_manager.mkdir(
-                self._settings_path.parent, parents=True, exist_ok=True
-            )
+        ctx.file_manager.mkdir(self._settings_path.parent, parents=True, exist_ok=True)
         ctx.file_manager.write_text(
             self._settings_path, json.dumps(existing, indent=2) + "\n"
         )
         return StepResult(
-            status="ok", message=f"Installed {len(added)} global Claude Code hook(s)"
+            status="ok",
+            message=f"Installed {added_count} global Claude Code hook(s)",
         )
 
 

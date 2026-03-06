@@ -24,7 +24,8 @@ _DEFAULT_ALLOWLIST = ".suppression-allowlist"
 
 def _is_test_file(filepath: str) -> bool:
     """Return True if *filepath* is in a test directory or is a test file."""
-    if any(segment in filepath for segment in TEST_PATH_SEGMENTS):
+    normalized = filepath.replace("\\", "/")
+    if any(segment in normalized for segment in TEST_PATH_SEGMENTS):
         return True
     # Check basename patterns against the filename only, not parent directories.
     # e.g. "/test_" should match "test_foo.py" but not a pytest tmpdir like

@@ -1,8 +1,4 @@
-"""Generate and check helpers for UniversalPlugin.
-
-Extracted to keep universal.py under the 200-line module limit.
-Each function either builds or verifies one generated config file.
-"""
+"""Generate and check helpers for UniversalPlugin."""
 
 from __future__ import annotations
 
@@ -78,19 +74,36 @@ def generate_codespellrc(
 def _build_claude_settings_body() -> str:
     """Return the expected .claude/settings.json content body."""
     edit_rules = [f"Edit({cfg})" for cfg in sorted(GENERATED_CONFIGS)]
+    write_rules = [f"Write({cfg})" for cfg in sorted(GENERATED_CONFIGS)]
     bash_rules = [
         "Bash(* --no-verify *)",
         "Bash(git commit * -n *)",
         "Bash(git push --force *)",
         "Bash(git push * --force *)",
     ]
-    pre_tool_hook = {
+    # Use "uv run python -m" here (not the entry-point scripts like
+    # "ai-guardrails-dangerous-cmd") because this per-project settings.json
+    # must work when ai-guardrails is only a project dev dependency
+    # (uv add ai-guardrails), not a globally installed tool.
+    # The global ~/.claude/settings.json written by "ai-guardrails install"
+    # uses entry-point scripts, which assume "uv tool install ai-guardrails".
+    dangerous_cmd_hook = {
         "type": "command",
         "command": "uv run python -m ai_guardrails.hooks.dangerous_cmd",
     }
+    protect_configs_hook = {
+        "type": "command",
+        "command": "uv run python -m ai_guardrails.hooks.protect_configs",
+    }
     settings = {
-        "permissions": {"deny": edit_rules + bash_rules},
-        "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [pre_tool_hook]}]},
+        "permissions": {"deny": edit_rules + write_rules + bash_rules},
+        "hooks": {
+            "PreToolUse": [
+                {"matcher": "Bash", "hooks": [dangerous_cmd_hook]},
+                {"matcher": "Edit", "hooks": [protect_configs_hook]},
+                {"matcher": "Write", "hooks": [protect_configs_hook]},
+            ]
+        },
     }
     return json.dumps(settings, indent=2) + "\n"
 

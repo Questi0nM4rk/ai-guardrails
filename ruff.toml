@@ -1,4 +1,4 @@
-# ai-guardrails:hash:sha256:ad543f007631f0f84dab2c9aeb0a854f34422c16e33dc05dff847627b08e297d
+# ai-guardrails:hash:sha256:d00ce71b128c3154a7215f3d58f597c7b30780e367836a8f4f4d8c7955b669fa
 target-version = "py311"
 line-length = 88
 indent-width = 4
@@ -144,6 +144,18 @@ raises-require-match-for = [
 ]
 "__init__.py" = [
     "F401",
+]
+"src/ai_guardrails/cli.py" = [
+    "PLR0913",
+]
+"src/ai_guardrails/languages/universal.py" = [
+    "ARG002",
+]
+"src/ai_guardrails/pipelines/install_pipeline.py" = [
+    "ARG002",
+]
+"src/ai_guardrails/steps/*.py" = [
+    "ARG002",
 ]
 
 [format]

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import subprocess
+from typing import TYPE_CHECKING
 from unittest.mock import patch
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from ai_guardrails.infra.command_runner import CommandRunner
 
@@ -91,3 +94,16 @@ def test_run_returns_failed_result_on_permission_error() -> None:
         result = runner.run(["/bin/forbidden"])
     assert result.returncode == 1
     assert "permission denied" in result.stderr
+
+
+def test_run_returns_failed_result_on_timeout() -> None:
+    """TimeoutExpired returns returncode=1 instead of raising."""
+    runner = CommandRunner()
+    with patch(
+        "subprocess.run",
+        side_effect=subprocess.TimeoutExpired(cmd=["slow-cmd"], timeout=30),
+    ):
+        result = runner.run(["slow-cmd"])
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert "timed out" in result.stderr.lower() or "timeout" in result.stderr.lower()

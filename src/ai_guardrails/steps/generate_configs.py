@@ -6,12 +6,11 @@ Assembles lefthook.yml from all active plugin hook_config() dicts.
 
 from __future__ import annotations
 
-import contextlib
 from typing import TYPE_CHECKING
 
 import yaml
 
-from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash, verify_hash
 from ai_guardrails.infra.config_loader import deep_merge
 from ai_guardrails.pipelines.base import StepResult
 
@@ -45,6 +44,28 @@ class GenerateConfigsStep:
         all_issues: list[str] = []
         for plugin in ctx.languages:
             all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
+
+        # Also check lefthook.yml staleness
+        lefthook_config: dict[str, object] = {}
+        for plugin in ctx.languages:
+            lefthook_config = deep_merge(lefthook_config, plugin.hook_config())
+        if lefthook_config:
+            lefthook_path = ctx.project_dir / "lefthook.yml"
+            if not lefthook_path.exists():
+                all_issues.append(
+                    "lefthook.yml is missing — run: ai-guardrails generate"
+                )
+            else:
+                body = yaml.dump(
+                    lefthook_config, default_flow_style=False, sort_keys=False
+                )
+                existing = lefthook_path.read_text()
+                if not verify_hash(existing, body):
+                    all_issues.append(
+                        "lefthook.yml is stale or tampered"
+                        " — run: ai-guardrails generate"
+                    )
+
         if all_issues:
             for issue in all_issues:
                 ctx.console.error(issue)
@@ -64,8 +85,7 @@ class GenerateConfigsStep:
         for plugin in ctx.languages:
             outputs = plugin.generate(ctx.registry, ctx.project_dir)
             for path, content in outputs.items():
-                with contextlib.suppress(FileExistsError, AttributeError):
-                    ctx.file_manager.mkdir(path.parent, parents=True, exist_ok=True)
+                ctx.file_manager.mkdir(path.parent, parents=True, exist_ok=True)
                 ctx.file_manager.write_text(path, content)
                 generated.append(path.name)
 
@@ -79,10 +99,7 @@ class GenerateConfigsStep:
             header = f"{HASH_HEADER_PREFIX}{compute_hash(body)}"
             full_content = f"{header}\n{body}"
             lefthook_path = ctx.project_dir / "lefthook.yml"
-            with contextlib.suppress(FileExistsError, AttributeError):
-                ctx.file_manager.mkdir(
-                    lefthook_path.parent, parents=True, exist_ok=True
-                )
+            ctx.file_manager.mkdir(lefthook_path.parent, parents=True, exist_ok=True)
             ctx.file_manager.write_text(lefthook_path, full_content)
             generated.append("lefthook.yml")
 
