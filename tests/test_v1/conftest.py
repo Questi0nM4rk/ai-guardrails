@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import subprocess
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # FakeFileManager
@@ -162,32 +164,32 @@ class FakeConsole:
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_files() -> FakeFileManager:
     return FakeFileManager()
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_files_dry() -> FakeFileManager:
     return FakeFileManager(dry_run=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_runner() -> FakeCommandRunner:
     return FakeCommandRunner()
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_console() -> FakeConsole:
     return FakeConsole()
 
 
-@pytest.fixture
+@pytest.fixture()
 def fake_console_quiet() -> FakeConsole:
     return FakeConsole(quiet=True)
 
 
-@pytest.fixture
+@pytest.fixture()
 def sample_exceptions_toml() -> dict[str, Any]:
     return {
         "schema_version": 1,

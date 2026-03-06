@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import textwrap
-from pathlib import Path
+from typing import TYPE_CHECKING
 
+from ai_guardrails.languages._base import LanguagePlugin
 from ai_guardrails.languages._registry import _load_custom_plugins, discover_plugins
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_data_dir(tmp_path: Path) -> Path:
@@ -142,8 +146,6 @@ class PrivatePlugin(BaseLanguagePlugin):
 
 
 def test_discover_plugins_custom_plugin_satisfies_protocol(tmp_path: Path) -> None:
-    from ai_guardrails.languages._base import LanguagePlugin
-
     data_dir = _make_data_dir(tmp_path)
     custom_dir = tmp_path / "plugins"
     custom_dir.mkdir()

@@ -21,7 +21,7 @@ class SetupCIStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         if not self._template.exists():
             return [f"CI workflow template not found: {self._template}"]
         return []

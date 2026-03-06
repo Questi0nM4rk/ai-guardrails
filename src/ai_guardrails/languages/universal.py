@@ -95,7 +95,7 @@ class UniversalPlugin(BaseLanguagePlugin):
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"
 
-    def detect(self, _project_dir: Path) -> bool:
+    def detect(self, project_dir: Path) -> bool:
         """Always active — every project gets universal configs."""
         return True
 

@@ -23,7 +23,7 @@ class DetectLanguagesStep:
     def __init__(self, plugins: list[LanguagePlugin]) -> None:
         self._plugins = plugins
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

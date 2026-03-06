@@ -21,7 +21,7 @@ class SetupHooksStep:
 
     name = "setup-hooks"
 
-    def validate(self, _ctx: PipelineContext) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         """No preconditions — lefthook may or may not be installed."""
         return []
 

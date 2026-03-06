@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import tomllib  # type: ignore[no-redef]
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import tomli_w
 import yaml
@@ -53,14 +53,14 @@ pre-commit:
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"
 
-    def _load_base(self) -> dict[str, object]:
+    def _load_base(self) -> dict[str, Any]:
         src = self._configs_dir / "ruff.toml"
         if not src.exists():
             raise FileNotFoundError(src)
         with src.open("rb") as f:
             return tomllib.load(f)
 
-    def _build_config(self, registry: ExceptionRegistry) -> dict[str, object]:
+    def _build_config(self, registry: ExceptionRegistry) -> dict[str, Any]:
         config = self._load_base()
 
         # Save base ignores/per-file-ignores before deep_merge can clobber them
@@ -84,7 +84,7 @@ pre-commit:
         all_globs = (
             set(base_pfi) | set(pfi) | set(registry.get_per_file_ignores("ruff"))
         )
-        for glob_pattern in all_globs:
+        for glob_pattern in sorted(all_globs):
             merged: set[str] = set(base_pfi.get(glob_pattern, []))
             merged |= set(pfi.get(glob_pattern, []))
             for rule in registry.get_per_file_ignores("ruff").get(glob_pattern, []):

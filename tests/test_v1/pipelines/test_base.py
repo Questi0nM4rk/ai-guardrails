@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
+from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import (
     Pipeline,
     PipelineContext,
@@ -11,10 +12,11 @@ from ai_guardrails.pipelines.base import (
 )
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 def _make_context(tmp_path: Path) -> PipelineContext:
-    from ai_guardrails.infra.config_loader import ConfigLoader
-
     return PipelineContext(
         project_dir=tmp_path,
         file_manager=FakeFileManager(),

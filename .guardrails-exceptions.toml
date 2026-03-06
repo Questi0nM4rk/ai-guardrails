@@ -38,6 +38,24 @@ tool = "ruff"
 rules = ["PLR0913"]
 reason = "CLI commands legitimately accept many keyword-only flags"
 
+[[file_exceptions]]
+glob = "src/ai_guardrails/steps/*.py"
+tool = "ruff"
+rules = ["ARG002"]
+reason = "PipelineStep Protocol requires validate(ctx) by name for pyright structural typing; ctx is unused in implementations that return [] unconditionally"
+
+[[file_exceptions]]
+glob = "src/ai_guardrails/pipelines/install_pipeline.py"
+tool = "ruff"
+rules = ["ARG002"]
+reason = "PipelineStep Protocol requires validate(ctx) by name for pyright structural typing; ctx is unused in implementations that return [] unconditionally"
+
+[[file_exceptions]]
+glob = "src/ai_guardrails/languages/universal.py"
+tool = "ruff"
+rules = ["ARG002"]
+reason = "LanguagePlugin.detect(project_dir) is Protocol-required; UniversalPlugin always returns True without inspecting the directory"
+
 # --- Examples ---
 #
 # [[file_exceptions]]
