@@ -10,12 +10,10 @@
 
 | Bot | Focus | Trigger |
 |-----|-------|---------|
-| PR-Agent | Semantic code review, inline suggestions | **Auto** on PR open; manual `/review`, `/improve` |
-| CodeRabbit | Static analysis, security, language conventions | **Manual only** (`@coderabbitai review`) |
-| Claude | Code quality, architecture, modern patterns | **Manual** (`@claude` in PR comment) |
+| guardrails-review | Pedantic defect detection, auto-resolve, commit status gate | **Auto** on PR open + every push |
+| CodeRabbit | Static analysis, security, language conventions | **Optional** (`@coderabbitai review`) |
 
 - Address ALL review feedback before pushing again — fix every comment, push once
-- Trigger CodeRabbit last as final gate before merge
 
 ## Review Thread Resolution Protocol
 

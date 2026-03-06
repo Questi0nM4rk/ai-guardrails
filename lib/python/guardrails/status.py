@@ -13,37 +13,15 @@ from enum import Enum
 from pathlib import Path
 from typing import Literal
 
-from guardrails.constants import GREEN, NC, RED, YELLOW
-
-# Expected hook scripts
-_EXPECTED_HOOKS = [
-    "format-and-stage.sh",
-    "detect-suppression-comments.sh",
-    "validate-generated-configs.sh",
-    "protect-generated-configs.sh",
-    "detect-config-ignore-edits.sh",
-    "dangerous-command-check.sh",
-    "pre-commit.sh",
-    "pre-push.sh",
-]
+from guardrails.constants import GREEN, HOOK_SCRIPTS, LANG_CONFIGS, NC, RED, YELLOW
 
 # Base configs always expected
 _BASE_CONFIGS = [".editorconfig"]
 
-# Language-specific configs
-_LANG_CONFIGS: dict[str, list[str]] = {
-    "python": ["ruff.toml"],
-    "rust": ["rustfmt.toml"],
-    "dotnet": ["Directory.Build.props", ".globalconfig"],
-    "cpp": [".clang-format"],
-    "lua": ["stylua.toml"],
-    "node": ["biome.json"],
-}
-
 # Review bot config files (DeepSource and Gemini removed)
 _BOT_CONFIGS = [
+    (".guardrails-review.toml", "guardrails-review"),
     (".coderabbit.yaml", "CodeRabbit"),
-    (".pr_agent.toml", "PR-Agent"),
 ]
 
 # Agent instruction marker
@@ -146,16 +124,18 @@ def check_hooks(project_dir: Path) -> CheckResult:
     if not hooks_dir.is_dir():
         return CheckResult(Check.HOOKS, "error", "No .ai-guardrails/hooks/ directory")
 
-    deployed = [h for h in _EXPECTED_HOOKS if (hooks_dir / h).exists()]
-    total = len(_EXPECTED_HOOKS)
+    deployed = [h for h in HOOK_SCRIPTS if (hooks_dir / h).exists()]
+    total = len(HOOK_SCRIPTS)
     count = len(deployed)
 
     if count == total:
         return CheckResult(Check.HOOKS, "ok", f"{count}/{total} hooks deployed")
 
-    missing = [h for h in _EXPECTED_HOOKS if h not in deployed]
+    missing = [h for h in HOOK_SCRIPTS if h not in deployed]
     return CheckResult(
-        Check.HOOKS, "warn", f"{count}/{total} hooks deployed (missing: {', '.join(missing)})"
+        Check.HOOKS,
+        "warn",
+        f"{count}/{total} hooks deployed (missing: {', '.join(missing)})",
     )
 
 
@@ -163,7 +143,7 @@ def check_configs(project_dir: Path, *, languages: list[str]) -> CheckResult:
     """Check if expected config files are present."""
     expected = list(_BASE_CONFIGS)
     for lang in languages:
-        expected.extend(_LANG_CONFIGS.get(lang, []))
+        expected.extend(LANG_CONFIGS.get(lang, ()))
 
     present = [c for c in expected if (project_dir / c).exists()]
     missing = [c for c in expected if c not in present]

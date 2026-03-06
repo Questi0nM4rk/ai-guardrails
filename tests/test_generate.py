@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from guardrails.generate import _load_registry, run_generate_configs
-
-if TYPE_CHECKING:
-    import pytest
+import pytest
+import yaml
+from guardrails.generate import _generate_to_dir, _load_registry, run_generate_configs
+from guardrails.registry import ExceptionRegistry
 
 
 class TestLoadRegistry:
@@ -108,7 +108,9 @@ class TestRunGenerateConfigsCheck:
         # Write existing config that matches what _generate_to_dir produces
         (tmp_path / "ruff.toml").write_text("# generated\n")
 
-        def write_matching(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+        def write_matching(
+            registry: object, project_path: Path, output_dir: Path, **kwargs: object
+        ) -> list[str]:
             (output_dir / "ruff.toml").write_text("# generated\n")
             return ["ruff.toml"]
 
@@ -128,11 +130,13 @@ class TestRunGenerateConfigsCheck:
         """Check fails when generated configs differ from existing files."""
         registry_file = tmp_path / ".guardrails-exceptions.toml"
         registry_file.write_text("schema_version = 1\n")
-        # Write existing config that differs from what _generate_to_dir produces
-        (tmp_path / "ruff.toml").write_text("# old content\n")
+        # Write existing config that differs semantically from generated
+        (tmp_path / "ruff.toml").write_text('key = "old"\n')
 
-        def write_different(registry: object, project_path: Path, output_dir: Path) -> list[str]:
-            (output_dir / "ruff.toml").write_text("# new content\n")
+        def write_different(
+            registry: object, project_path: Path, output_dir: Path, **kwargs: object
+        ) -> list[str]:
+            (output_dir / "ruff.toml").write_text('key = "new"\n')
             return ["ruff.toml"]
 
         mock_gen.side_effect = write_different
@@ -159,7 +163,9 @@ class TestRunGenerateConfigsGenerate:
         registry_file = tmp_path / ".guardrails-exceptions.toml"
         registry_file.write_text("schema_version = 1\n")
 
-        def write_fake_config(registry: object, project_path: Path, output_dir: Path) -> list[str]:
+        def write_fake_config(
+            registry: object, project_path: Path, output_dir: Path, **kwargs: object
+        ) -> list[str]:
             (output_dir / "ruff.toml").write_text("# generated\n")
             return ["ruff.toml"]
 
@@ -184,3 +190,152 @@ class TestRunGenerateConfigsGenerate:
         assert result is False
         captured = capsys.readouterr()
         assert "Error" in captured.err
+
+
+# -- Language-filtered generation tests ----------------------------------------
+
+
+def _make_project_with_registry(tmp_path: Path) -> tuple[Path, ExceptionRegistry]:
+    """Set up a project with registry, base templates, and languages.yaml."""
+    project = tmp_path / "project"
+    project.mkdir()
+
+    # Registry with both ruff and biome exceptions
+    (project / ".guardrails-exceptions.toml").write_text(
+        dedent("""\
+        schema_version = 1
+
+        [global.ruff]
+        "D" = "docstrings not enforced"
+
+        [global.markdownlint]
+        "MD013" = "line-length handled by editors"
+
+        [global.codespell]
+        skip = [".git"]
+        ignore_words = ["brin"]
+
+        [[file_exceptions]]
+        glob = ["*.config.ts"]
+        tool = "biome"
+        rules = ["style/noDefaultExport"]
+        reason = "Config files"
+
+        [[inline_suppressions]]
+        pattern = "noqa: BLE001"
+        glob = "**/tools/*.py"
+        reason = "MCP tool boundaries"
+    """)
+    )
+
+    # Base config templates (in a configs/ dir within the project)
+    configs = project / "configs"
+    configs.mkdir()
+    (configs / "ruff.toml").write_text(
+        dedent("""\
+        target-version = "py311"
+        line-length = 88
+        [lint]
+        select = ["ALL"]
+        ignore = []
+        [lint.per-file-ignores]
+        [format]
+        quote-style = "double"
+    """)
+    )
+    (configs / "biome.json").write_text(
+        json.dumps(
+            {
+                "$schema": "https://biomejs.dev/schemas/2.0.0/schema.json",
+                "linter": {"enabled": True, "rules": {"recommended": True}},
+                "overrides": [],
+            },
+            indent=2,
+        )
+    )
+    (configs / ".markdownlint.jsonc").write_text(
+        dedent("""\
+        {
+          "default": true,
+          "MD013": true,
+          "MD041": true
+        }
+    """)
+    )
+
+    # languages.yaml (in configs dir)
+    (configs / "languages.yaml").write_text(
+        yaml.dump(
+            {
+                "python": {
+                    "name": "Python",
+                    "detect": {"files": ["pyproject.toml"], "patterns": ["*.py"]},
+                    "configs": ["ruff.toml"],
+                },
+                "node": {
+                    "name": "TypeScript/JavaScript",
+                    "detect": {"files": ["package.json"], "patterns": ["*.ts"]},
+                    "configs": ["biome.json"],
+                },
+            }
+        )
+    )
+
+    registry = ExceptionRegistry.load(project / ".guardrails-exceptions.toml")
+    return project, registry
+
+
+def test_multi_language_generates_all_relevant(tmp_path: Path) -> None:
+    """Python+Node project generates both ruff.toml and biome.json."""
+    project, registry = _make_project_with_registry(tmp_path)
+
+    output = tmp_path / "output"
+    output.mkdir()
+
+    generated = _generate_to_dir(registry, project, output, languages=["python", "node"])
+
+    assert "ruff.toml" in generated
+    assert "biome.json" in generated
+
+
+def test_agnostic_configs_always_generated(tmp_path: Path) -> None:
+    """markdownlint, codespell, allowlist generate regardless of language."""
+    project, registry = _make_project_with_registry(tmp_path)
+
+    output = tmp_path / "output"
+    output.mkdir()
+
+    # Only Python detected, but agnostic configs should still generate
+    generated = _generate_to_dir(registry, project, output, languages=["python"])
+
+    assert ".markdownlint.jsonc" in generated
+    assert ".codespellrc" in generated
+    assert ".suppression-allowlist" in generated
+
+
+def test_no_languages_param_generates_all(tmp_path: Path) -> None:
+    """When languages=None (default), all configs are generated (backward compat)."""
+    project, registry = _make_project_with_registry(tmp_path)
+
+    output = tmp_path / "output"
+    output.mkdir()
+
+    generated = _generate_to_dir(registry, project, output, languages=None)
+
+    assert "ruff.toml" in generated
+    assert "biome.json" in generated
+    assert ".markdownlint.jsonc" in generated
+
+
+def test_check_freshness_respects_languages(tmp_path: Path) -> None:
+    """Check mode should not flag missing biome.json for Python-only project."""
+    project, _ = _make_project_with_registry(tmp_path)
+
+    # Create a Python marker file but no Node marker
+    (project / "pyproject.toml").write_text('[project]\nname = "test"\n')
+
+    # Generate configs (will be Python-only)
+    assert run_generate_configs(project_dir=str(project)) is True
+
+    # Check should pass without biome.json
+    assert run_generate_configs(project_dir=str(project), check=True) is True

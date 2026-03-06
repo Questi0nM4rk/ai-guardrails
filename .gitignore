@@ -30,4 +30,5 @@ Thumbs.db
 .claude/*
 !.claude/rules/
 !.claude/commands/
+!.claude/skills/
 .coverage
