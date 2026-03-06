@@ -77,10 +77,22 @@ SUPPRESSION_PATTERNS: tuple[tuple[str, str, frozenset[str]], ...] = (
     (r"# pragma: no cover", "Coverage exclusion", frozenset({"py"})),
     # TypeScript / JavaScript
     (r"// @ts-ignore", "TypeScript ignore", frozenset({"ts", "tsx", "js", "jsx"})),
-    (r"// @ts-expect-error", "TypeScript expect-error", frozenset({"ts", "tsx", "js", "jsx"})),
+    (
+        r"// @ts-expect-error",
+        "TypeScript expect-error",
+        frozenset({"ts", "tsx", "js", "jsx"}),
+    ),
     (r"// @ts-nocheck", "TypeScript nocheck", frozenset({"ts", "tsx", "js", "jsx"})),
-    (r"/\* eslint-disable", "ESLint disable block", frozenset({"ts", "tsx", "js", "jsx"})),
-    (r"// eslint-disable", "ESLint disable line", frozenset({"ts", "tsx", "js", "jsx"})),
+    (
+        r"/\* eslint-disable",
+        "ESLint disable block",
+        frozenset({"ts", "tsx", "js", "jsx"}),
+    ),
+    (
+        r"// eslint-disable",
+        "ESLint disable line",
+        frozenset({"ts", "tsx", "js", "jsx"}),
+    ),
     # C#
     (r"#pragma warning disable", "C# pragma disable", frozenset({"cs"})),
     (r"// ReSharper disable", "ReSharper disable", frozenset({"cs"})),
@@ -170,7 +182,11 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
     ("substring", "rm -rf ~", "Refusing to delete home directory"),
     ("substring", "rm -rf $HOME", "Refusing to delete home directory"),
     ("regex", r"rm\s+-rf\s+/home/?(?:\s|$|[;&|])", "Refusing to delete home directory"),
-    ("regex", r"rm\s+-rf\s+/\s*$|rm\s+-rf\s+/\s*[;&|]", "Refusing to delete root filesystem"),
+    (
+        "regex",
+        r"rm\s+-rf\s+/\s*$|rm\s+-rf\s+/\s*[;&|]",
+        "Refusing to delete root filesystem",
+    ),
     ("substring", "> /dev/sda", "Refusing to write directly to block device"),
     ("substring", "mkfs.", "Refusing to format disk"),
     ("substring", ":(){:|:&};:", "Fork bomb detected"),
@@ -189,7 +205,11 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
         "  This is never allowed. Fix the issue that's causing hooks to fail.",
     ),
     ("substring", "--no-gpg-sign", "--no-gpg-sign bypasses commit signing."),
-    ("substring", "core.hooksPath=", "Overriding core.hooksPath bypasses all git hooks."),
+    (
+        "substring",
+        "core.hooksPath=",
+        "Overriding core.hooksPath bypasses all git hooks.",
+    ),
     ("substring", "SKIP=", "Bypassing pre-commit via environment variables."),
     (
         "substring",
@@ -213,7 +233,11 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
         "Force push with lease - safer than --force but still rewrites history",
     ),
     # ── Destructive git operations ───────────────────────────────────────
-    ("regex", r"git\s+reset\s+--hard\b", "git reset --hard discards uncommitted changes"),
+    (
+        "regex",
+        r"git\s+reset\s+--hard\b",
+        "git reset --hard discards uncommitted changes",
+    ),
     (
         "regex",
         r"git\s+checkout\s+(?:--\s+)?\.(?:\s*$|\s*&&|\s*;|\s*\|)",
@@ -246,17 +270,21 @@ DANGEROUS_COMMANDS: tuple[DangerousRule, ...] = (
 # ---------------------------------------------------------------------------
 # Language → config file mapping (shared by init and status)
 # ---------------------------------------------------------------------------
-LANG_CONFIGS: types.MappingProxyType[str, tuple[str, ...]] = types.MappingProxyType({
-    "python": ("ruff.toml",),
-    "rust": ("rustfmt.toml",),
-    "dotnet": ("Directory.Build.props", ".globalconfig"),
-    "cpp": (".clang-format", ".clang-tidy"),
-    "lua": ("stylua.toml",),
-    "node": ("biome.json",),
-    # go and shell: no config files, just pre-commit hooks
-})
+LANG_CONFIGS: types.MappingProxyType[str, tuple[str, ...]] = types.MappingProxyType(
+    {
+        "python": ("ruff.toml",),
+        "rust": ("rustfmt.toml",),
+        "dotnet": ("Directory.Build.props", ".globalconfig"),
+        "cpp": (".clang-format", ".clang-tidy"),
+        "lua": ("stylua.toml",),
+        "node": ("biome.json",),
+        # go and shell: no config files, just pre-commit hooks
+    }
+)
 
-ALL_LANG_CONFIGS: tuple[str, ...] = tuple(name for names in LANG_CONFIGS.values() for name in names)
+ALL_LANG_CONFIGS: tuple[str, ...] = tuple(
+    name for names in LANG_CONFIGS.values() for name in names
+)
 
 # Hook scripts to copy into .ai-guardrails/hooks/
 HOOK_SCRIPTS: tuple[str, ...] = (
