@@ -38,8 +38,7 @@ class SetupAgentInstructionsStep:
 
         # Ensure AGENTS.md symlink exists regardless of CLAUDE.md state
         agents_md = ctx.project_dir / "AGENTS.md"
-        if not agents_md.exists():
-            agents_md.symlink_to("CLAUDE.md")
+        ctx.file_manager.symlink(agents_md, "CLAUDE.md")
 
         if ctx.file_manager.exists(claude_md):
             existing = ctx.file_manager.read_text(claude_md)
