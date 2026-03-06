@@ -410,6 +410,9 @@ class TestFreshnessCheck:
         project = tmp_path / "project"
         project.mkdir()
 
+        # Python marker so language detection finds "python"
+        (project / "pyproject.toml").write_text('[project]\nname = "test"\n')
+
         # Registry
         (project / ".guardrails-exceptions.toml").write_text(
             dedent("""\
@@ -480,9 +483,9 @@ class TestFreshnessCheck:
         # Generate configs
         assert run_generate_configs(str(project)) is True
 
-        # Tamper with a generated file
+        # Tamper with a generated file (semantic change, not just formatting)
         ruff = project / "ruff.toml"
-        ruff.write_text(ruff.read_text() + "\n# manual edit\n")
+        ruff.write_text(ruff.read_text() + '\ntampered_key = "manual edit"\n')
 
         # Check should fail
         assert run_generate_configs(str(project), check=True) is False

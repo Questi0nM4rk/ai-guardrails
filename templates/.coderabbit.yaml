@@ -60,7 +60,7 @@ reviews:
   path_instructions:
     # Global rules — applied to ALL files
     # CodeRabbit's specialization: static analysis, security, language conventions.
-    # PR-Agent handles: semantic code review, inline suggestions.
+    # guardrails-review handles: semantic code review, inline suggestions.
     - path: "**/*"
       instructions: |
         Your specialization — focus on these:

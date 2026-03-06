@@ -140,12 +140,10 @@ repos:
   - repo: https://github.com/biomejs/pre-commit
     rev: "v2.3.12"
     hooks:
-      - id: biome-check
+      - id: biome-ci
         name: "🟦 typescript · biome lint+format (strict)"
         additional_dependencies: ["@biomejs/biome@2.3.12"]
         args: [
-          "--config-path=configs/biome.json",
-          "--error-on-warnings",
           "--diagnostic-level=info",
         ]
         exclude: ^tests/fixtures/

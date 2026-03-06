@@ -7,9 +7,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+from guardrails.constants import HOOK_SCRIPTS
 from guardrails.status import (
     _BOT_CONFIGS,
-    _EXPECTED_HOOKS,
     Check,
     CheckResult,
     StatusReport,
@@ -25,13 +25,21 @@ from guardrails.status import (
 )
 
 
-def test_bot_configs_contains_coderabbit_and_pr_agent() -> None:
-    """_BOT_CONFIGS includes both CodeRabbit and PR-Agent."""
+def test_bot_configs_contains_guardrails_review_and_coderabbit() -> None:
+    """_BOT_CONFIGS includes guardrails-review and CodeRabbit."""
     bot_names = [name for _, name in _BOT_CONFIGS]
+    assert "guardrails-review" in bot_names
     assert "CodeRabbit" in bot_names
-    assert "PR-Agent" in bot_names
+    assert "PR-Agent" not in bot_names
     assert not any("DeepSource" in name for _, name in _BOT_CONFIGS)
     assert not any("Gemini" in name for _, name in _BOT_CONFIGS)
+
+
+def test_bot_configs_guardrails_review_config_file() -> None:
+    """_BOT_CONFIGS maps guardrails-review to .guardrails-review.toml."""
+    config_map = dict(_BOT_CONFIGS)
+    assert ".guardrails-review.toml" in config_map
+    assert config_map[".guardrails-review.toml"] == "guardrails-review"
 
 
 @pytest.fixture
@@ -80,11 +88,12 @@ class TestCheckHooks:
     def test_ok_when_all_deployed(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in _EXPECTED_HOOKS:
+        for name in HOOK_SCRIPTS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         result = check_hooks(project_dir)
         assert result.status == "ok"
-        assert "8/8" in result.message
+        n = len(HOOK_SCRIPTS)
+        assert f"{n}/{n}" in result.message
 
     def test_warn_when_missing(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
@@ -146,22 +155,22 @@ class TestCheckAgentInstructions:
 
 class TestCheckReviewBots:
     def test_ok_when_all_bots_present(self, project_dir: Path) -> None:
-        """Both CodeRabbit and PR-Agent configs must be present for 'ok' status."""
+        """Both guardrails-review and CodeRabbit configs must be present for 'ok' status."""
+        (project_dir / ".guardrails-review.toml").write_text("[config]\n")
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        (project_dir / ".pr_agent.toml").write_text("[config]\n")
         result = check_review_bots(project_dir)
         assert result.status == "ok"
 
     def test_warn_when_only_coderabbit_present(self, project_dir: Path) -> None:
-        """Partial status when only CodeRabbit is present but PR-Agent is missing."""
+        """Partial status when only CodeRabbit is present but guardrails-review is missing."""
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
         result = check_review_bots(project_dir)
         assert result.status == "warn"
-        assert "PR-Agent" in result.message
+        assert "guardrails-review" in result.message
 
-    def test_warn_when_only_pr_agent_present(self, project_dir: Path) -> None:
-        """Partial status when only PR-Agent is present but CodeRabbit is missing."""
-        (project_dir / ".pr_agent.toml").write_text("[config]\n")
+    def test_warn_when_only_guardrails_review_present(self, project_dir: Path) -> None:
+        """Partial status when only guardrails-review is present but CodeRabbit is missing."""
+        (project_dir / ".guardrails-review.toml").write_text("[config]\n")
         result = check_review_bots(project_dir)
         assert result.status == "warn"
         assert "CodeRabbit" in result.message
@@ -254,13 +263,13 @@ class TestRunStatus:
     def test_returns_zero_on_healthy(self, project_dir: Path) -> None:
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in _EXPECTED_HOOKS:
+        for name in HOOK_SCRIPTS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         (project_dir / ".editorconfig").write_text("root = true\n")
         (project_dir / "CLAUDE.md").write_text("## AI Guardrails - Code Standards\n")
         # Review bot configs needed for healthy status
+        (project_dir / ".guardrails-review.toml").write_text("[config]\n")
         (project_dir / ".coderabbit.yaml").write_text("reviews:\n")
-        (project_dir / ".pr_agent.toml").write_text("[config]\n")
 
         with patch("shutil.which", return_value="/usr/bin/pre-commit"):
             rc = run_status(project_dir=project_dir)
@@ -270,7 +279,7 @@ class TestRunStatus:
         # Deploy hooks so no "error" status — only "warn" from missing pre-commit
         hooks_dir = project_dir / ".ai-guardrails" / "hooks"
         hooks_dir.mkdir(parents=True)
-        for name in _EXPECTED_HOOKS:
+        for name in HOOK_SCRIPTS:
             (hooks_dir / name).write_text("#!/bin/sh\n")
         with patch("shutil.which", return_value=None):
             rc = run_status(project_dir=project_dir)

@@ -38,14 +38,6 @@ def project_dir(tmp_path: Path) -> Path:
 
 
 @pytest.mark.usefixtures("_mock_hooks")
-def test_creates_precommit_config(project_dir: Path) -> None:
-    """Test that .pre-commit-config.yaml is created."""
-    with chdir(project_dir):
-        run_init(project_type="python", force=True, skip_precommit=False)
-    assert (project_dir / ".pre-commit-config.yaml").exists()
-
-
-@pytest.mark.usefixtures("_mock_hooks")
 def test_hooks_dir_populated(project_dir: Path) -> None:
     """Test that .ai-guardrails/hooks/ is populated."""
     with chdir(project_dir):

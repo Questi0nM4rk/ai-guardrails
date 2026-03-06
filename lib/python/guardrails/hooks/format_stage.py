@@ -43,6 +43,9 @@ _FORMATTERS: dict[str, list[list[str]]] = {
     ".json": [
         ["biome", "check", "--write"],
     ],
+    ".jsonc": [
+        ["biome", "check", "--write"],
+    ],
     ".toml": [
         ["taplo", "format"],
     ],

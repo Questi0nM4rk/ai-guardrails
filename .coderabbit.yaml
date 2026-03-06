@@ -22,7 +22,7 @@ reviews:
   # WIP pushes that aren't ready for review.
   #
   # Workflow:
-  #   1. Push changes, let CI + PR-Agent run
+  #   1. Push changes, let CI + guardrails-review run
   #   2. Resolve ALL their comments first
   #   3. Only then trigger: @coderabbitai review
   #   4. For a full re-review: @coderabbitai full review
@@ -38,7 +38,7 @@ reviews:
   path_instructions:
     # Global rules — applied to ALL files
     # CodeRabbit's specialization: static analysis, security, language conventions.
-    # PR-Agent handles: semantic code review, inline suggestions.
+    # guardrails-review handles: semantic code review, inline suggestions.
     - path: "**/*"
       instructions: |
         Your specialization — focus on these:

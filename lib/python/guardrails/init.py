@@ -22,38 +22,20 @@ import typing
 from pathlib import Path
 
 from guardrails._paths import find_configs_dir, find_lib_dir, find_templates_dir
-from guardrails.constants import BLUE, GREEN, NC, RED, YELLOW
+from guardrails.constants import (
+    ALL_LANG_CONFIGS,
+    BLUE,
+    GREEN,
+    HOOK_SCRIPTS,
+    LANG_CONFIGS,
+    NC,
+    RED,
+    YELLOW,
+)
 
 _log = logging.getLogger(__name__)
 
 _PIP_AUDIT_REV = "v2.10.0"
-
-# ---------------------------------------------------------------------------
-# Language → config file mapping
-# ---------------------------------------------------------------------------
-_LANG_CONFIGS: dict[str, list[str]] = {
-    "python": ["ruff.toml"],
-    "rust": ["rustfmt.toml"],
-    "dotnet": ["Directory.Build.props", ".globalconfig"],
-    "cpp": [".clang-format"],
-    "lua": ["stylua.toml"],
-    "node": ["biome.json"],
-    # go and shell: no config files, just pre-commit hooks
-}
-
-_ALL_LANG_CONFIGS: list[str] = [name for names in _LANG_CONFIGS.values() for name in names]
-
-# Hook scripts to copy into .ai-guardrails/hooks/
-_HOOK_SCRIPTS: list[str] = [
-    "format-and-stage.sh",
-    "detect-suppression-comments.sh",
-    "validate-generated-configs.sh",
-    "protect-generated-configs.sh",
-    "detect-config-ignore-edits.sh",
-    "dangerous-command-check.sh",
-    "pre-commit.sh",
-    "pre-push.sh",
-]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -151,7 +133,7 @@ def _copy_language_configs(
 ) -> None:
     """Copy language-specific config files."""
     for lang in languages:
-        for name in _LANG_CONFIGS.get(lang, []):
+        for name in LANG_CONFIGS.get(lang, ()):
             _copy_config(configs_dir / name, project_dir / name, force=force)
 
 
@@ -196,12 +178,31 @@ def _setup_precommit(
         else:
             _print_fail("Failed to generate .pre-commit-config.yaml")
 
+    # Create .secrets.baseline if detect-secrets is configured
+    baseline_path = project_dir / ".secrets.baseline"
+    if not baseline_path.exists():
+        try:
+            result = subprocess.run(
+                ["detect-secrets", "scan"],
+                capture_output=True,
+                text=True,
+                cwd=project_dir,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                baseline_path.write_text(result.stdout)
+                _print_ok(".secrets.baseline")
+            else:
+                _print_warn("detect-secrets scan failed — create .secrets.baseline manually")
+        except FileNotFoundError:
+            _print_warn("detect-secrets not found — create .secrets.baseline manually")
+
     # Copy hook scripts to .ai-guardrails/hooks/
     hooks_dir = project_dir / ".ai-guardrails" / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
 
     src_hooks = lib_dir / "hooks"
-    for script in _HOOK_SCRIPTS:
+    for script in HOOK_SCRIPTS:
         src = src_hooks / script
         if src.exists():
             dst = hooks_dir / script
@@ -217,6 +218,18 @@ def _setup_precommit(
             shutil.rmtree(dst_python)
         shutil.copytree(src_python, dst_python)
         _print_ok("lib/python/guardrails (hook runtime)")
+
+    # Copy configs directory for hook runtime (so validate-generated-configs
+    # can find the same base templates used during generation)
+    try:
+        src_configs = find_configs_dir()
+        dst_configs = project_dir / ".ai-guardrails" / "configs"
+        if dst_configs.exists():
+            shutil.rmtree(dst_configs)
+        shutil.copytree(src_configs, dst_configs)
+        _print_ok("configs (base templates)")
+    except FileNotFoundError:
+        _print_warn("configs directory not found — validate-generated-configs hook may fail")
 
     # Install Claude Code PreToolUse hooks
     _install_claude_hook()
@@ -259,7 +272,8 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
                     "uv",
                     "export",
                     "--format",
-                    "requirements.txt",
+                    "requirements-txt",
+                    "--no-emit-project",
                     "--output-file",
                     "requirements-audit.txt",
                     "--quiet",
@@ -273,25 +287,27 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
             return
 
         block = f"""
-  # pip-audit - CVE scanning for Python dependencies
-  - repo: https://github.com/pypa/pip-audit
-    rev: {_PIP_AUDIT_REV}
-    hooks:
-      - id: pip-audit
-        name: "python - pip-audit CVE scan"
-        args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]"""
+# pip-audit - CVE scanning for Python dependencies
+- repo: https://github.com/pypa/pip-audit
+  rev: {_PIP_AUDIT_REV}
+  hooks:
+  - id: pip-audit
+    name: "python - pip-audit CVE scan"
+    args: ["--strict", "--progress-spinner", "off", "-r", "requirements-audit.txt"]
+"""
         _print_ok("Configured pip-audit for uv (-r requirements-audit.txt)")
 
     elif mode == "pip":
         req_flag = "-r requirements.txt" if (project_dir / "requirements.txt").exists() else "."
         block = f"""
-  # pip-audit - CVE scanning for Python dependencies
-  - repo: https://github.com/pypa/pip-audit
-    rev: {_PIP_AUDIT_REV}
-    hooks:
-      - id: pip-audit
-        name: "python - pip-audit CVE scan"
-        args: ["--strict", "--progress-spinner", "off", "{req_flag}"]"""
+# pip-audit - CVE scanning for Python dependencies
+- repo: https://github.com/pypa/pip-audit
+  rev: {_PIP_AUDIT_REV}
+  hooks:
+  - id: pip-audit
+    name: "python - pip-audit CVE scan"
+    args: ["--strict", "--progress-spinner", "off", "{req_flag}"]
+"""
         _print_ok(f"Configured pip-audit for pip ({req_flag})")
 
     elif mode == "none":
@@ -507,28 +523,28 @@ def _install_coderabbit(templates_dir: Path, project_dir: Path, *, force: bool) 
         _print_warn("CodeRabbit config template not found")
 
 
-def _install_pr_agent(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
-    """Install PR-Agent config and workflow."""
+def _install_guardrails_review(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+    """Install guardrails-review config and workflow."""
     print()
-    print(f"{GREEN}Setting up PR-Agent...{NC}")
-    # Copy .pr_agent.toml config
-    src_config = templates_dir / ".pr_agent.toml"
+    print(f"{GREEN}Setting up guardrails-review...{NC}")
+    # Copy .guardrails-review.toml config
+    src_config = templates_dir / ".guardrails-review.toml"
     if src_config.exists():
-        _copy_config(src_config, project_dir / ".pr_agent.toml", force=force)
+        _copy_config(src_config, project_dir / ".guardrails-review.toml", force=force)
     else:
-        _print_warn("PR-Agent config template not found")
+        _print_warn("guardrails-review config template not found")
         return
 
-    # Copy pr-agent.yml workflow
-    src_workflow = templates_dir / "workflows" / "pr-agent.yml"
+    # Copy guardrails-review.yml workflow
+    src_workflow = templates_dir / "workflows" / "guardrails-review.yml"
     if src_workflow.exists():
         workflows_dir = project_dir / ".github" / "workflows"
         workflows_dir.mkdir(parents=True, exist_ok=True)
-        _copy_config(src_workflow, workflows_dir / "pr-agent.yml", force=force)
+        _copy_config(src_workflow, workflows_dir / "guardrails-review.yml", force=force)
     else:
-        _print_warn("PR-Agent workflow template not found")
+        _print_warn("guardrails-review workflow template not found")
 
-    print(f"  {BLUE}\u2192 Customize extra_instructions in .pr_agent.toml for your project{NC}")
+    print(f"  {BLUE}\u2192 Set model in .guardrails-review.toml{NC}")
     print(f"  {BLUE}\u2192 Add OPENROUTER_KEY to your GitHub repo/org secrets{NC}")
 
 
@@ -586,7 +602,7 @@ def _dry_run_report(
     pip_audit_mode: str,
     install_ci: str,
     install_coderabbit: str,
-    install_pr_agent: str,
+    install_guardrails_review: str,
 ) -> None:
     """Print what ``run_init`` would do without making changes."""
 
@@ -603,11 +619,11 @@ def _dry_run_report(
     _would("copy .editorconfig")
     _would("copy .markdownlint.jsonc")
     if project_type == "all":
-        for name in _ALL_LANG_CONFIGS:
+        for name in ALL_LANG_CONFIGS:
             _would(f"copy {name}")
     else:
         for lang in languages:
-            for name in _LANG_CONFIGS.get(lang, []):
+            for name in LANG_CONFIGS.get(lang, ()):
                 _would(f"copy {name}")
 
     # Pre-commit
@@ -631,8 +647,11 @@ def _dry_run_report(
     is_github = _is_github_project(project_dir)
     _integration_names = [
         (install_ci, "CI workflow (.github/workflows/check.yml)"),
+        (
+            install_guardrails_review,
+            "guardrails-review config (.guardrails-review.toml + guardrails-review.yml)",
+        ),
         (install_coderabbit, "CodeRabbit config (.coderabbit.yaml)"),
-        (install_pr_agent, "PR-Agent config (.pr_agent.toml + pr-agent.yml)"),
     ]
     active = [
         name for flag, name in _integration_names if flag == "yes" or (flag == "auto" and is_github)
@@ -659,8 +678,8 @@ def run_init(
     skip_precommit: bool = False,
     pip_audit_mode: str = "auto",
     install_ci: str = "auto",
+    install_guardrails_review: str = "auto",
     install_coderabbit: str = "auto",
-    install_pr_agent: str = "auto",
     dry_run: bool = False,
 ) -> int:
     """Run the full init workflow.
@@ -671,8 +690,8 @@ def run_init(
         skip_precommit: Skip pre-commit config setup.
         pip_audit_mode: ``"auto"``, ``"pip"``, ``"uv"``, or ``"none"``.
         install_ci: ``"auto"``, ``"yes"``, or ``"no"``.
+        install_guardrails_review: ``"auto"``, ``"yes"``, or ``"no"``.
         install_coderabbit: ``"auto"``, ``"yes"``, or ``"no"``.
-        install_pr_agent: ``"auto"``, ``"yes"``, or ``"no"``.
         dry_run: Show what would be done without making changes.
 
     Returns:
@@ -707,8 +726,8 @@ def run_init(
             skip_precommit=skip_precommit,
             pip_audit_mode=pip_audit_mode,
             install_ci=install_ci,
+            install_guardrails_review=install_guardrails_review,
             install_coderabbit=install_coderabbit,
-            install_pr_agent=install_pr_agent,
         )
         return 0
 
@@ -719,7 +738,7 @@ def run_init(
     _copy_base_configs(configs_dir, project_dir, force=force)
 
     if project_type == "all":
-        for name in _ALL_LANG_CONFIGS:
+        for name in ALL_LANG_CONFIGS:
             _copy_config(configs_dir / name, project_dir / name, force=force)
     else:
         _copy_language_configs(configs_dir, project_dir, languages=languages, force=force)
@@ -750,8 +769,11 @@ def run_init(
 
     _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
         (install_ci, lambda t, p: _install_ci_workflow(t, p, force=force)),
+        (
+            install_guardrails_review,
+            lambda t, p: _install_guardrails_review(t, p, force=force),
+        ),
         (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
-        (install_pr_agent, lambda t, p: _install_pr_agent(t, p, force=force)),
     ]
     for flag, installer in _github_integrations:
         if flag == "yes" or (flag == "auto" and is_github):
@@ -779,7 +801,7 @@ def run_init(
 def _resolve_languages(project_type: str, configs_dir: Path, project_dir: Path) -> list[str]:
     """Determine which languages to configure."""
     if project_type == "all":
-        return list(_LANG_CONFIGS.keys())
+        return list(LANG_CONFIGS.keys())
 
     if project_type:
         print(f"{BLUE}Detected project type:{NC} {project_type}")

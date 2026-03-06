@@ -26,6 +26,7 @@ from guardrails.init import (
     _install_ci_workflow,
     _install_coderabbit,
     _install_dangerous_cmd_hook,
+    _install_guardrails_review,
     _install_precommit_hooks,
     _install_pretooluse_hook,
     _is_github_project,
@@ -77,9 +78,9 @@ def templates(tmp_path: Path) -> Path:
     wf = d / "workflows"
     wf.mkdir()
     (wf / "check.yml").write_text("name: check\n")
-    (wf / "pr-agent.yml").write_text("name: pr-agent\n")
+    (wf / "guardrails-review.yml").write_text("name: guardrails-review\n")
     (d / ".coderabbit.yaml").write_text("reviews:\n")
-    (d / ".pr_agent.toml").write_text("[pr_reviewer]\n")
+    (d / ".guardrails-review.toml").write_text("[config]\n")
     (d / "CLAUDE.md.guardrails").write_text("## AI Guardrails - Code Standards\nRules here.\n")
     return d
 
@@ -269,6 +270,30 @@ def test_configure_pip_audit_uv_success(tmp_path: Path) -> None:
     content = cfg.read_text()
     assert "pip-audit" in content
     assert "requirements-audit.txt" in content
+
+
+def test_configure_pip_audit_produces_valid_yaml(tmp_path: Path) -> None:
+    """_configure_pip_audit block is a valid top-level repos entry, not nested."""
+    import yaml
+
+    cfg = tmp_path / ".pre-commit-config.yaml"
+    base_yaml = (
+        "repos:\n- repo: local\n  hooks:\n"
+        "  - id: dummy\n    name: dummy\n"
+        "    entry: 'true'\n    language: system\n"
+    )
+    cfg.write_text(base_yaml)
+    with patch("guardrails.init.subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock()
+        _configure_pip_audit("uv", tmp_path)
+    content = cfg.read_text()
+    parsed = yaml.safe_load(content)
+    # pip-audit should be a separate top-level repo entry, not nested
+    repos = parsed["repos"]
+    pip_audit_repos = [
+        r for r in repos if isinstance(r, dict) and "pypa/pip-audit" in r.get("repo", "")
+    ]
+    assert len(pip_audit_repos) == 1, f"Expected 1 pip-audit repo entry, got {len(pip_audit_repos)}"
 
 
 def test_configure_pip_audit_uv_export_fails(
@@ -680,6 +705,60 @@ def test_install_coderabbit_no_template(
 
 
 # ---------------------------------------------------------------------------
+# _install_guardrails_review
+# ---------------------------------------------------------------------------
+
+
+def test_install_guardrails_review_copies_config_and_workflow(
+    templates: Path,
+    project: Path,
+) -> None:
+    """_install_guardrails_review copies .guardrails-review.toml and workflow."""
+    _install_guardrails_review(templates, project, force=True)
+    assert (project / ".guardrails-review.toml").exists()
+    assert (project / ".github" / "workflows" / "guardrails-review.yml").exists()
+
+
+def test_install_guardrails_review_no_config_template(
+    project: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """_install_guardrails_review warns when config template is missing."""
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    _install_guardrails_review(empty, project, force=True)
+    assert "not found" in capsys.readouterr().out
+
+
+def test_install_guardrails_review_no_workflow_template(
+    project: Path,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """_install_guardrails_review warns when workflow template is missing."""
+    partial = tmp_path / "partial"
+    partial.mkdir()
+    (partial / ".guardrails-review.toml").write_text("[config]\n")
+    _install_guardrails_review(partial, project, force=True)
+    assert (project / ".guardrails-review.toml").exists()
+    out = capsys.readouterr().out
+    assert "not found" in out
+
+
+def test_install_guardrails_review_prints_setup_hints(
+    templates: Path,
+    project: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """_install_guardrails_review prints setup hints for model and secrets."""
+    _install_guardrails_review(templates, project, force=True)
+    out = capsys.readouterr().out
+    assert "model" in out.lower() or "Set model" in out
+    assert "OPENROUTER_KEY" in out
+
+
+# ---------------------------------------------------------------------------
 # _setup_agent_instructions
 # ---------------------------------------------------------------------------
 
@@ -837,7 +916,7 @@ def test_dry_run_report_outputs_would_actions(
             pip_audit_mode="auto",
             install_ci="no",
             install_coderabbit="no",
-            install_pr_agent="no",
+            install_guardrails_review="no",
         )
     out = capsys.readouterr().out
     assert "would" in out
@@ -860,7 +939,7 @@ def test_dry_run_report_all_type(
             pip_audit_mode="auto",
             install_ci="no",
             install_coderabbit="no",
-            install_pr_agent="no",
+            install_guardrails_review="no",
         )
     out = capsys.readouterr().out
     assert "would" in out
@@ -882,7 +961,7 @@ def test_dry_run_report_github_integrations(
             pip_audit_mode="auto",
             install_ci="auto",
             install_coderabbit="auto",
-            install_pr_agent="auto",
+            install_guardrails_review="auto",
         )
     out = capsys.readouterr().out
     assert "CI workflow" in out
@@ -904,7 +983,7 @@ def test_dry_run_report_skip_precommit(
             pip_audit_mode="auto",
             install_ci="no",
             install_coderabbit="no",
-            install_pr_agent="no",
+            install_guardrails_review="no",
         )
     out = capsys.readouterr().out
     assert "pre-commit install" not in out
@@ -1036,7 +1115,7 @@ def test_run_init_ci_yes(
             force=True,
             install_ci="yes",
             install_coderabbit="no",
-            install_pr_agent="no",
+            install_guardrails_review="no",
         )
     assert rc == 0
     assert (project / ".github" / "workflows" / "check.yml").exists()

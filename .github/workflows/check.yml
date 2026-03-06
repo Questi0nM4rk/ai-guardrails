@@ -1,3 +1,5 @@
+# AI Guardrails - CI Check Workflow
+# Runs ruff lint + format check (static analysis without git hooks context)
 name: Check
 
 on:
@@ -17,27 +19,34 @@ jobs:
         with:
           python-version: "3.12"
 
-      - uses: actions/setup-node@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Ruff lint (v1)
+        run: uv run ruff check src/ai_guardrails/
+
+      - name: Ruff format check (v1)
+        run: uv run ruff format --check src/ai_guardrails/
+
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
-          node-version: "20"
+          python-version: "3.12"
 
-      - name: Cache pre-commit
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-          restore-keys: |
-            pre-commit-
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
 
-      - name: Install pre-commit
-        run: pip install pre-commit
-
-      - name: Run pre-commit checks (excluding semgrep)
-        run: SKIP=format-and-stage,semgrep pre-commit run --all-files
-
-      - name: Run semgrep (parallel)
+      - name: Run semgrep
         run: |
-          pip install semgrep
+          uv tool install semgrep
           semgrep --config auto --error --exclude tests/
 
   test:
@@ -50,26 +59,20 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install test dependencies
-        run: pip install pytest pytest-cov pyyaml pyinfra tomli-w tomlkit
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+
+      - name: Install dependencies
+        run: uv sync --all-extras
 
       - name: Run tests with coverage
-        env:
-          PYTHONPATH: ${{ github.workspace }}
         run: |
-          # Note: lib/installers contains pyinfra deploy functions that require
-          # runtime state to test. Coverage is measured for lib/python only.
-          # Installer modules are tested via integration tests.
-          pytest tests/ \
-            --cov=lib/python \
+          uv run pytest tests/ \
+            --cov \
             --cov-branch \
             --cov-report=term-missing \
             --cov-report=xml \
             --cov-fail-under=85
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        if: always()
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
+      - name: Run type checker
+        run: uv run pyright
