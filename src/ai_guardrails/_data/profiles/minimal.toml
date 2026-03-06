@@ -1,0 +1,8 @@
+name = "minimal"
+suppression_comments = "allow"
+allow_syntax_require_expiry = false
+allow_syntax_require_ticket = false
+agent_commits_require_review = false
+hold_the_line = "off"
+exception_budget = 50
+require_dual_approval = false

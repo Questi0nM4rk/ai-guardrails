@@ -27,8 +27,8 @@ class OrgPolicy:
     allowed_profiles: tuple[str, ...]
 
     def is_locked(self, rule: str) -> bool:
-        """Return True if the rule is locked at org level."""
-        return rule in self.locked_rules
+        """Return True if the rule value is locked at org level."""
+        return any(lr.rule == rule for lr in self.locked_rules.values())
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> OrgPolicy:
