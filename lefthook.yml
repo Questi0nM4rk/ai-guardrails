@@ -1,16 +1,16 @@
-# ai-guardrails:hash:sha256:b9d42eec0fadd4e2b6122a526ca0d79461af8256dda99557f41735ba0162d318
+# ai-guardrails:hash:sha256:f4619f822b940bc13a9525ea15e761135c475c4f34a417dc6c27a485e0240835
 pre-commit:
   commands:
     suppress-comments:
       glob: '*.{py,js,ts,tsx,jsx,rs,cs,go,lua,sh}'
-      run: python -m ai_guardrails.hooks.suppress_comments {staged_files}
+      run: uv run python -m ai_guardrails.hooks.suppress_comments {staged_files}
       priority: 2
     protect-configs:
       glob: ruff.toml|biome.json|lefthook.yml|.editorconfig|.markdownlint.jsonc|.codespellrc
-      run: python -m ai_guardrails.hooks.protect_configs {staged_files}
+      run: uv run python -m ai_guardrails.hooks.protect_configs {staged_files}
       priority: 2
     gitleaks:
-      run: gitleaks detect --staged --no-banner
+      run: gitleaks protect --staged --no-banner
       priority: 2
     detect-secrets:
       glob: '!.secrets.baseline'
@@ -25,7 +25,7 @@ pre-commit:
       run: markdownlint-cli2 {staged_files}
       priority: 2
     validate-configs:
-      run: python -m ai_guardrails generate --check
+      run: uv run python -m ai_guardrails generate --check
       priority: 2
     python-format-and-stage:
       glob: '*.py'
@@ -49,4 +49,5 @@ pre-commit:
 commit-msg:
   commands:
     conventional:
-      run: echo "{1}" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:"
+      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:"
+        {1}
