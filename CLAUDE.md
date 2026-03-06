@@ -63,7 +63,7 @@ Old code. Being replaced by v1. Don't add new features here.
 ## Current State (2026-03-02)
 
 - v1 MVP code complete: infra, models, generators, steps, pipelines, CLI, hooks
-- 319 v1 tests + 664 legacy tests, all passing
+- 434 v1 tests + 597 legacy tests, all passing
 - Package configured: `uv run python -c "from ai_guardrails.cli import app"` works
 - Branch: `refactor/extract-lang-config`, PR #53 open
 - Review bot: `minimax/minimax-m2.5` via `.guardrails-review.toml`
