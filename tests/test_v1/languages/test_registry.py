@@ -47,7 +47,17 @@ def test_discover_plugins_includes_all_core_languages(tmp_path: Path) -> None:
     data_dir = _make_data_dir(tmp_path)
     plugins = discover_plugins(data_dir)
     keys = [p.key for p in plugins]
-    expected_keys = ["universal", "python", "node", "rust", "go", "dotnet", "cpp", "lua", "shell"]
+    expected_keys = [
+        "universal",
+        "python",
+        "node",
+        "rust",
+        "go",
+        "dotnet",
+        "cpp",
+        "lua",
+        "shell",
+    ]
     for expected_key in expected_keys:
         assert expected_key in keys, f"Missing plugin: {expected_key}"
 
