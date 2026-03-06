@@ -36,7 +36,9 @@ def _make_ctx(
     )
 
 
-def _run_init_pipeline(tmp_path: Path, runner: FakeCommandRunner, *, no_hooks: bool) -> None:
+def _run_init_pipeline(
+    tmp_path: Path, runner: FakeCommandRunner, *, no_hooks: bool
+) -> None:
     pipeline = InitPipeline(
         options=InitOptions(no_hooks=no_hooks),
         data_dir=_DATA_DIR,
@@ -69,7 +71,8 @@ def test_setup_hooks_runs_lefthook_install(tmp_path: Path) -> None:
 
     assert result.status == "ok"
     assert (
-        "lefthook install" in result.message.lower() or "hooks installed" in result.message.lower()
+        "lefthook install" in result.message.lower()
+        or "hooks installed" in result.message.lower()
     )
     assert runner.calls == [["lefthook", "install"]]
 
@@ -123,3 +126,25 @@ def test_setup_hooks_called_by_default(tmp_path: Path) -> None:
     runner = FakeCommandRunner()
     _run_init_pipeline(tmp_path, runner, no_hooks=False)
     assert ["lefthook", "install"] in runner.calls
+
+
+def test_setup_hooks_not_found_in_stderr_returns_lefthook_hint(
+    tmp_path: Path,
+) -> None:
+    """When stderr contains 'not found', return warn with install hint."""
+    runner = FakeCommandRunner()
+    runner.register(
+        ["lefthook", "install"],
+        returncode=1,
+        stderr="lefthook: not found",
+    )
+    ctx = _make_ctx(tmp_path, runner)
+
+    step = SetupHooksStep()
+    result = step.execute(ctx)
+
+    assert result.status == "warn"
+    assert (
+        "lefthook not found" in result.message.lower()
+        or "not found" in result.message.lower()
+    )

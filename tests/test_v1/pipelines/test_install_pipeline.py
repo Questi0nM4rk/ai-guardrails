@@ -195,3 +195,31 @@ def test_install_is_idempotent_for_claude_settings(tmp_path: Path) -> None:
     else:
         # Skipped — original not modified, check skip result
         assert any(r.status == "skip" for r in results)
+
+
+def test_install_handles_malformed_claude_settings(tmp_path: Path) -> None:
+    """When settings.json contains invalid JSON, step returns error StepResult."""
+    fm = FakeFileManager()
+    runner = FakeCommandRunner()
+    runner.register(["git", "--version"], returncode=0, stdout="git version 2.40.0")
+    runner.register(["lefthook", "version"], returncode=0, stdout="lefthook 1.11.0")
+
+    settings_path = tmp_path / ".claude" / "settings.json"
+    fm.seed(settings_path, "{this is not valid json!!!")
+
+    pipeline = _make_pipeline(
+        global_config_dir=tmp_path / "config",
+        claude_settings_path=settings_path,
+    )
+    results = pipeline.run(
+        file_manager=fm,
+        command_runner=runner,
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+    )
+    error_results = [r for r in results if r.status == "error"]
+    assert len(error_results) == 1
+    assert (
+        "Malformed" in error_results[0].message
+        or "malformed" in error_results[0].message
+    )
