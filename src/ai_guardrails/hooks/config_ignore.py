@@ -42,10 +42,6 @@ def _added_lines_for(filepath: str) -> list[str]:
     ]
 
 
-def _has_hash_header(filepath: str) -> bool:
-    return has_hash_header(filepath)
-
-
 def main() -> int:  # noqa: PLR0915
     """Entry point. Returns 0 (clean) or 1 (violations found)."""
     staged = _staged_files()
@@ -62,7 +58,7 @@ def main() -> int:  # noqa: PLR0915
         if not Path(filepath).is_file():
             continue
 
-        if _has_hash_header(filepath):
+        if has_hash_header(filepath):
             continue
 
         added = _added_lines_for(filepath)

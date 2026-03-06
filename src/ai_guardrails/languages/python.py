@@ -53,14 +53,14 @@ pre-commit:
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"
 
-    def _load_base(self) -> dict:  # type: ignore[type-arg]
+    def _load_base(self) -> dict[str, object]:
         src = self._configs_dir / "ruff.toml"
         if not src.exists():
             raise FileNotFoundError(src)
         with src.open("rb") as f:
             return tomllib.load(f)
 
-    def _build_config(self, registry: ExceptionRegistry) -> dict:  # type: ignore[type-arg]
+    def _build_config(self, registry: ExceptionRegistry) -> dict[str, object]:
         config = self._load_base()
         lint = config.setdefault("lint", {})
 
@@ -96,7 +96,7 @@ pre-commit:
         full_content = f"{header}\n{body}"
         return {project_dir / "ruff.toml": full_content}
 
-    def hook_config(self) -> dict:  # type: ignore[type-arg]
+    def hook_config(self) -> dict[str, object]:
         """Return Python pre-commit hooks config."""
         return yaml.safe_load(self._HOOKS_YAML) or {}
 

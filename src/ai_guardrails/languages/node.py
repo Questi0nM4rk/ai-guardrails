@@ -47,5 +47,5 @@ pre-commit:
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"
 
-    def hook_config(self) -> dict:  # type: ignore[type-arg]
+    def hook_config(self) -> dict[str, object]:
         return yaml.safe_load(self._HOOKS_YAML) or {}

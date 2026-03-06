@@ -124,17 +124,6 @@ TEST_BASENAME_PATTERNS: tuple[str, ...] = (
     ".spec.",
 )
 
-TEST_PATH_PATTERNS: tuple[str, ...] = (
-    "tests/",
-    "test/",
-    "__tests__/",
-    "spec/",
-    "test_",
-    "_test.",
-    "_spec.",
-    ".spec.",
-)
-
 # ---------------------------------------------------------------------------
 # File extension inference helpers (used by suppress_comments hook)
 # ---------------------------------------------------------------------------

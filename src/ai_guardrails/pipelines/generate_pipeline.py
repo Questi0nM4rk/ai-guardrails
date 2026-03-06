@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
     from ai_guardrails.languages._base import LanguagePlugin
-    from ai_guardrails.pipelines.base import StepResult
+    from ai_guardrails.pipelines.base import PipelineStep, StepResult
 
 
 @dataclass
@@ -96,7 +96,7 @@ class GeneratePipeline:
                 else:
                     selected.append(_ExplicitLanguagePlugin(lang_key))
             ctx.languages = selected
-            steps: list = [
+            steps: list[PipelineStep] = [
                 LoadRegistryStep(),
                 GenerateConfigsStep(),
             ]

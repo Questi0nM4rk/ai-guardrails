@@ -59,7 +59,7 @@ class LanguagePlugin(Protocol):
         """Return {path: content} for all files this plugin generates."""
         ...
 
-    def hook_config(self) -> dict:  # type: ignore[type-arg]
+    def hook_config(self) -> dict[str, object]:
         """Return dict to be deep-merged into lefthook.yml."""
         ...
 
@@ -116,7 +116,7 @@ class BaseLanguagePlugin:
         """Return empty dict — subclasses override to generate files."""
         return {}
 
-    def hook_config(self) -> dict:  # type: ignore[type-arg]
+    def hook_config(self) -> dict[str, object]:
         """Return empty dict — subclasses override to provide hook config."""
         return {}
 

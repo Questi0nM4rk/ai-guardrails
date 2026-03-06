@@ -9,8 +9,8 @@ from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_DANGEROUS_CMD = "python -m ai_guardrails.hooks.dangerous_cmd"
-_PROTECT_CONFIGS_CMD = "python -m ai_guardrails.hooks.protect_configs"
+_DANGEROUS_CMD = "uv run python -m ai_guardrails.hooks.dangerous_cmd"
+_PROTECT_CONFIGS_CMD = "uv run python -m ai_guardrails.hooks.protect_configs"
 
 
 def _make_pipeline(

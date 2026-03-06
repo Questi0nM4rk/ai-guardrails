@@ -1,0 +1,74 @@
+# Suppression allowlist for ai-guardrails
+#
+# Format: one Python regex per non-comment line.
+# Each pattern is matched against "{filepath}:{lineno}:{line_content}".
+# Every entry must document WHY it is legitimate.
+#
+# Approval required: human must review and approve any additions here.
+# Do not add entries to silence false positives — fix the code instead.
+
+# ---------------------------------------------------------------------------
+# constants.py — string DATA containing suppression pattern strings
+# These lines are tuple entries in SUPPRESSION_PATTERNS, not actual suppressions.
+# The strings "# noqa", "# type: ignore" etc. are pattern VALUES being registered.
+# ---------------------------------------------------------------------------
+constants\.py:\d+:\s+\(r"#\s*noqa
+constants\.py:\d+:\s+\(r"#\s*type: ignore
+constants\.py:\d+:\s+\(r"#\s*pylint:
+constants\.py:\d+:\s+\(r"#\s*pragma: no cover
+
+# ---------------------------------------------------------------------------
+# hooks/config_ignore.py
+# subprocess.run calls git — trusted, controlled input, this IS a pre-commit hook.
+# PLR0915: main() orchestrates several sequential steps; splitting would obscure flow.
+# ---------------------------------------------------------------------------
+hooks/config_ignore\.py:\d+:.*subprocess\.run.*# noqa: S603
+hooks/config_ignore\.py:\d+:.*\["git".*# noqa: S607
+hooks/config_ignore\.py:\d+:def main.*# noqa: PLR0915
+
+# ---------------------------------------------------------------------------
+# hooks/suppress_comments.py
+# PLR0911: _infer_extension has many early returns by design (extension detection).
+# ---------------------------------------------------------------------------
+hooks/suppress_comments\.py:\d+:def _infer_extension.*# noqa: PLR0911
+
+# ---------------------------------------------------------------------------
+# hooks/protect_configs.py
+# PLR0911: check_tool_input has many early returns by design (multi-condition guard).
+# ---------------------------------------------------------------------------
+hooks/protect_configs\.py:\d+:def check_tool_input.*# noqa: PLR0911
+
+# ---------------------------------------------------------------------------
+# languages/_base.py
+# TC003: Path is imported at runtime — used in BaseLanguagePlugin.detect() glob() calls
+#        and as a Protocol method parameter (runtime_checkable Protocol needs it).
+# ARG002: Base class stub implementations intentionally ignore all parameters;
+#         subclasses override with real implementations.
+# ---------------------------------------------------------------------------
+languages/_base\.py:\d+:from pathlib import Path.*# noqa: TC003
+languages/_base\.py:\d+:.*# noqa: ARG002
+
+# ---------------------------------------------------------------------------
+# languages/python.py
+# type: ignore[no-redef]: tomllib is in stdlib on Python 3.11+ and in tomli on 3.10.
+# The import guard pattern triggers no-redef because both branches define the same name.
+# ---------------------------------------------------------------------------
+languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
+
+# ---------------------------------------------------------------------------
+# languages/_registry.py
+# BLE001: Loading arbitrary user-provided plugin modules requires broad Exception catch.
+# User plugins can raise literally any exception on import or instantiation.
+# The exception is logged with exc_info=True before being swallowed.
+# ---------------------------------------------------------------------------
+languages/_registry\.py:\d+:.*# noqa: BLE001
+
+# ---------------------------------------------------------------------------
+# pipelines/generate_pipeline.py
+# type: ignore[misc]: _ExplicitLanguagePlugin overrides ClassVar attributes as instance
+#   variables in __init__. Required to create a synthetic plugin with a dynamic key at
+#   runtime — no ClassVar-safe alternative without restructuring BaseLanguagePlugin.
+# ARG002: detect() always returns True for explicit plugins; project_dir is unused.
+# ---------------------------------------------------------------------------
+pipelines/generate_pipeline\.py:\d+:.*# type: ignore\[misc\]
+pipelines/generate_pipeline\.py:\d+:.*# noqa: ARG002

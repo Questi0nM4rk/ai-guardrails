@@ -12,7 +12,7 @@ import contextlib
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 
@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.config_loader import ConfigLoader
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
+    from ai_guardrails.pipelines.base import PipelineStep
 
 _GLOBAL_CONFIG_CONTENT = """\
 [install]
@@ -36,8 +37,14 @@ _LEFTHOOK_INSTALL_HINT = (
 )
 
 _OUR_HOOKS = [
-    {"type": "command", "command": "python -m ai_guardrails.hooks.dangerous_cmd"},
-    {"type": "command", "command": "python -m ai_guardrails.hooks.protect_configs"},
+    {
+        "type": "command",
+        "command": "uv run python -m ai_guardrails.hooks.dangerous_cmd",
+    },
+    {
+        "type": "command",
+        "command": "uv run python -m ai_guardrails.hooks.protect_configs",
+    },
 ]
 
 
@@ -121,13 +128,13 @@ class _InstallGlobalClaudeSettingsStep:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
-        existing: dict = {}  # type: ignore[type-arg]
+        existing: dict[str, Any] = {}
         if ctx.file_manager.exists(self._settings_path):
             raw = ctx.file_manager.read_text(self._settings_path)
             existing = json.loads(raw)
 
-        hooks = existing.setdefault("hooks", {})
-        pre_tool: list[dict] = hooks.setdefault("PreToolUse", [])  # type: ignore[type-arg]
+        hooks: dict[str, Any] = existing.setdefault("hooks", {})
+        pre_tool: list[dict[str, Any]] = hooks.setdefault("PreToolUse", [])
 
         bash_entry = next((e for e in pre_tool if e.get("matcher") == "Bash"), None)
         if bash_entry is None:
@@ -192,7 +199,7 @@ class InstallPipeline:
             force=self._options.upgrade,
         )
 
-        steps: list = [
+        steps: list[PipelineStep] = [
             _CheckPrereqsStep(),
             _InstallGlobalConfigStep(global_config_dir=self._global_config_dir),
             _InstallGlobalClaudeSettingsStep(

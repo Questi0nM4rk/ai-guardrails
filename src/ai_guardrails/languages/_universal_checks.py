@@ -52,10 +52,8 @@ def generate_markdownlint(
     return project_dir / ".markdownlint.jsonc", f"{header}\n{body}"
 
 
-def generate_codespellrc(
-    registry: ExceptionRegistry, project_dir: Path
-) -> tuple[Path, str]:
-    """Return (path, content) for .codespellrc from registry."""
+def _build_codespellrc_body(registry: ExceptionRegistry) -> str:
+    """Return the expected .codespellrc content body."""
     codespell_config = registry.global_rules.get("codespell", {})
     lines = ["[codespell]"]
     skip = codespell_config.get("skip", [])
@@ -65,13 +63,20 @@ def generate_codespellrc(
     if ignore_words:
         lines.append(f"ignore-words-list = {','.join(ignore_words)}")
     lines.append("")
-    body = "\n".join(lines)
+    return "\n".join(lines)
+
+
+def generate_codespellrc(
+    registry: ExceptionRegistry, project_dir: Path
+) -> tuple[Path, str]:
+    """Return (path, content) for .codespellrc from registry."""
+    body = _build_codespellrc_body(registry)
     header = make_hash_header(body)
     return project_dir / ".codespellrc", f"{header}\n{body}"
 
 
-def generate_claude_settings(project_dir: Path) -> tuple[Path, str]:
-    """Return (path, content) for .claude/settings.json with deny rules."""
+def _build_claude_settings_body() -> str:
+    """Return the expected .claude/settings.json content body."""
     edit_rules = [f"Edit({cfg})" for cfg in sorted(GENERATED_CONFIGS)]
     bash_rules = [
         "Bash(* --no-verify *)",
@@ -81,13 +86,18 @@ def generate_claude_settings(project_dir: Path) -> tuple[Path, str]:
     ]
     pre_tool_hook = {
         "type": "command",
-        "command": "python -m ai_guardrails.hooks.dangerous_cmd",
+        "command": "uv run python -m ai_guardrails.hooks.dangerous_cmd",
     }
     settings = {
         "permissions": {"deny": edit_rules + bash_rules},
         "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [pre_tool_hook]}]},
     }
-    body = json.dumps(settings, indent=2) + "\n"
+    return json.dumps(settings, indent=2) + "\n"
+
+
+def generate_claude_settings(project_dir: Path) -> tuple[Path, str]:
+    """Return (path, content) for .claude/settings.json with deny rules."""
+    body = _build_claude_settings_body()
     header = f"{_JSONC_HASH_PREFIX}{compute_hash(body)}"
     return project_dir / ".claude" / "settings.json", f"{header}\n{body}"
 
@@ -164,16 +174,7 @@ def check_codespellrc(registry: ExceptionRegistry, project_dir: Path) -> list[st
     if not target.exists():
         return [".codespellrc is missing — run: ai-guardrails generate"]
     existing = target.read_text()
-    codespell_config = registry.global_rules.get("codespell", {})
-    lines = ["[codespell]"]
-    skip = codespell_config.get("skip", [])
-    if skip:
-        lines.append(f"skip = {','.join(skip)}")
-    ignore_words = codespell_config.get("ignore_words", [])
-    if ignore_words:
-        lines.append(f"ignore-words-list = {','.join(ignore_words)}")
-    lines.append("")
-    expected_body = "\n".join(lines)
+    expected_body = _build_codespellrc_body(registry)
     if not verify_hash(existing, expected_body):
         return [".codespellrc is stale or tampered — run: ai-guardrails generate"]
     return []
@@ -186,22 +187,7 @@ def check_claude_settings(project_dir: Path) -> list[str]:
     if not target.exists():
         return [".claude/settings.json is missing — run: ai-guardrails generate"]
     existing = target.read_text()
-    edit_rules = [f"Edit({cfg})" for cfg in sorted(GENERATED_CONFIGS)]
-    bash_rules = [
-        "Bash(* --no-verify *)",
-        "Bash(git commit * -n *)",
-        "Bash(git push --force *)",
-        "Bash(git push * --force *)",
-    ]
-    pre_tool_hook = {
-        "type": "command",
-        "command": "python -m ai_guardrails.hooks.dangerous_cmd",
-    }
-    settings = {
-        "permissions": {"deny": edit_rules + bash_rules},
-        "hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [pre_tool_hook]}]},
-    }
-    expected_body = json.dumps(settings, indent=2) + "\n"
+    expected_body = _build_claude_settings_body()
     if not _verify_jsonc_hash(existing, expected_body):
         return [_stale]
     return []

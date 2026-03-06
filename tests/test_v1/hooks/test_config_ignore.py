@@ -66,7 +66,7 @@ def test_main_ignore_pattern_in_pyproject_returns_one(tmp_path, capsys):
             return_value=['+ignore = ["E501"]'],
         ),
         patch(
-            "ai_guardrails.hooks.config_ignore._has_hash_header",
+            "ai_guardrails.hooks.config_ignore.has_hash_header",
             return_value=False,
         ),
     ):
@@ -91,7 +91,7 @@ def test_main_generated_file_skipped(tmp_path):
             return_value=['+ignore = ["E501"]'],
         ),
         patch(
-            "ai_guardrails.hooks.config_ignore._has_hash_header",
+            "ai_guardrails.hooks.config_ignore.has_hash_header",
             return_value=True,
         ),
     ):
@@ -115,7 +115,7 @@ def test_main_clean_diff_returns_zero(tmp_path):
             return_value=["+line-length = 100"],
         ),
         patch(
-            "ai_guardrails.hooks.config_ignore._has_hash_header",
+            "ai_guardrails.hooks.config_ignore.has_hash_header",
             return_value=False,
         ),
     ):
@@ -152,7 +152,7 @@ def test_main_empty_added_lines_returns_zero(tmp_path):
             return_value=[],
         ),
         patch(
-            "ai_guardrails.hooks.config_ignore._has_hash_header",
+            "ai_guardrails.hooks.config_ignore.has_hash_header",
             return_value=False,
         ),
     ):

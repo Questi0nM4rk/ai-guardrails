@@ -40,7 +40,8 @@ class GenerateConfigsStep:
 
     def _run_check(self, ctx: PipelineContext) -> StepResult:
         """Check mode: call plugin.check() and report issues without writing."""
-        assert ctx.registry is not None
+        if ctx.registry is None:
+            raise RuntimeError("registry must be loaded before generate-configs")
         all_issues: list[str] = []
         for plugin in ctx.languages:
             all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
@@ -55,7 +56,8 @@ class GenerateConfigsStep:
 
     def _run_generate(self, ctx: PipelineContext) -> StepResult:
         """Generate mode: call plugin.generate() and write config files."""
-        assert ctx.registry is not None
+        if ctx.registry is None:
+            raise RuntimeError("registry must be loaded before generate-configs")
         generated: list[str] = []
 
         # 1. Generate per-plugin config files
@@ -68,7 +70,7 @@ class GenerateConfigsStep:
                 generated.append(path.name)
 
         # 2. Assemble lefthook.yml from all active hook_configs
-        lefthook_config: dict = {}  # type: ignore[type-arg]
+        lefthook_config: dict[str, object] = {}
         for plugin in ctx.languages:
             lefthook_config = deep_merge(lefthook_config, plugin.hook_config())
 
