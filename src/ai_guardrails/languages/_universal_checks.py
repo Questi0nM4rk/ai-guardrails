@@ -81,6 +81,12 @@ def _build_claude_settings_body() -> str:
         "Bash(git push --force *)",
         "Bash(git push * --force *)",
     ]
+    # Use "uv run python -m" here (not the entry-point scripts like
+    # "ai-guardrails-dangerous-cmd") because this per-project settings.json
+    # must work when ai-guardrails is only a project dev dependency
+    # (uv add ai-guardrails), not a globally installed tool.
+    # The global ~/.claude/settings.json written by "ai-guardrails install"
+    # uses entry-point scripts, which assume "uv tool install ai-guardrails".
     dangerous_cmd_hook = {
         "type": "command",
         "command": "uv run python -m ai_guardrails.hooks.dangerous_cmd",
