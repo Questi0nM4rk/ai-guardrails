@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
+from ai_guardrails.constants import GENERATED_CONFIGS
 from ai_guardrails.generators.base import HASH_HEADER_PREFIX, verify_hash
 from ai_guardrails.languages.universal import UniversalPlugin
 from ai_guardrails.models.registry import ExceptionRegistry
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_data_dir(tmp_path: Path) -> Path:
@@ -271,6 +275,24 @@ def test_claude_settings_has_deny_rules(tmp_path: Path) -> None:
     assert any("--no-verify" in rule for rule in deny)
 
 
+def test_claude_settings_has_write_deny_rules(tmp_path: Path) -> None:
+    """S-1/S-5: Write() deny rules must be present for all generated configs."""
+    data_dir = _make_data_dir(tmp_path)
+    plugin = UniversalPlugin(data_dir)
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    outputs = plugin.generate(_empty_registry(), project_dir)
+    content = outputs[project_dir / ".claude" / "settings.json"]
+    body = content.split("\n", 1)[1]
+    parsed = json.loads(body)
+    deny = parsed["permissions"]["deny"]
+    write_rules = [r for r in deny if r.startswith("Write(")]
+    assert len(write_rules) > 0, "No Write() deny rules found"
+    # Every GENERATED_CONFIG must have a Write() rule
+    for cfg in GENERATED_CONFIGS:
+        assert f"Write({cfg})" in deny, f"Missing Write({cfg}) deny rule"
+
+
 def test_claude_settings_has_pre_tool_use_hook(tmp_path: Path) -> None:
     data_dir = _make_data_dir(tmp_path)
     plugin = UniversalPlugin(data_dir)
@@ -283,6 +305,37 @@ def test_claude_settings_has_pre_tool_use_hook(tmp_path: Path) -> None:
     hooks = parsed["hooks"]["PreToolUse"]
     assert len(hooks) > 0
     assert hooks[0]["matcher"] == "Bash"
+
+
+def test_claude_settings_has_edit_and_write_pretooluse_matchers(
+    tmp_path: Path,
+) -> None:
+    """S-5: PreToolUse must have Edit and Write matchers with protect_configs hooks."""
+    data_dir = _make_data_dir(tmp_path)
+    plugin = UniversalPlugin(data_dir)
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    outputs = plugin.generate(_empty_registry(), project_dir)
+    content = outputs[project_dir / ".claude" / "settings.json"]
+    body = content.split("\n", 1)[1]
+    parsed = json.loads(body)
+    hooks = parsed["hooks"]["PreToolUse"]
+    matchers = [h["matcher"] for h in hooks]
+    assert "Bash" in matchers
+    assert "Edit" in matchers, "Missing Edit matcher in PreToolUse"
+    assert "Write" in matchers, "Missing Write matcher in PreToolUse"
+    # Edit and Write matchers should have protect_configs hooks
+    for matcher_name in ("Edit", "Write"):
+        entry = next(h for h in hooks if h["matcher"] == matcher_name)
+        cmds = [hk["command"] for hk in entry["hooks"]]
+        assert any("protect_configs" in c for c in cmds), (
+            f"{matcher_name} matcher missing protect_configs hook"
+        )
+
+
+def test_claude_settings_json_in_generated_configs() -> None:
+    """S-2: .claude/settings.json must be in GENERATED_CONFIGS."""
+    assert ".claude/settings.json" in GENERATED_CONFIGS
 
 
 # ---------------------------------------------------------------------------

@@ -81,6 +81,24 @@ def test_check_command_dd_block_device():
     assert any("block device" in m.lower() for m in msgs)
 
 
+def test_check_command_lefthook_zero_blocked():
+    """S-3: LEFTHOOK=0 bypasses lefthook hooks."""
+    msgs = check_command("LEFTHOOK=0 git commit -m 'skip hooks'")
+    assert any("lefthook" in m.lower() for m in msgs)
+
+
+def test_check_command_lefthook_skip_env_blocked():
+    """S-3: LEFTHOOK_SKIP bypasses lefthook hooks."""
+    msgs = check_command("LEFTHOOK_SKIP=lint git commit -m 'skip hooks'")
+    assert any("lefthook" in m.lower() for m in msgs)
+
+
+def test_check_command_lefthook_skip_value_blocked():
+    """S-3: LEFTHOOK=skip bypasses lefthook hooks."""
+    msgs = check_command("LEFTHOOK=skip git commit -m 'skip hooks'")
+    assert any("lefthook" in m.lower() for m in msgs)
+
+
 def test_check_command_no_match_returns_empty():
     assert check_command("ls -la /tmp") == []
 

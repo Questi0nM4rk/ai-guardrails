@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import textwrap
+from typing import TYPE_CHECKING
 
-from ai_guardrails.languages._registry import discover_plugins
+from ai_guardrails.languages._base import LanguagePlugin
+from ai_guardrails.languages._registry import _load_custom_plugins, discover_plugins
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_data_dir(tmp_path: Path) -> Path:
@@ -46,7 +51,17 @@ def test_discover_plugins_includes_all_core_languages(tmp_path: Path) -> None:
     data_dir = _make_data_dir(tmp_path)
     plugins = discover_plugins(data_dir)
     keys = [p.key for p in plugins]
-    expected_keys = ["universal", "python", "node", "rust", "go", "dotnet", "cpp", "lua", "shell"]
+    expected_keys = [
+        "universal",
+        "python",
+        "node",
+        "rust",
+        "go",
+        "dotnet",
+        "cpp",
+        "lua",
+        "shell",
+    ]
     for expected_key in expected_keys:
         assert expected_key in keys, f"Missing plugin: {expected_key}"
 
@@ -131,8 +146,6 @@ class PrivatePlugin(BaseLanguagePlugin):
 
 
 def test_discover_plugins_custom_plugin_satisfies_protocol(tmp_path: Path) -> None:
-    from ai_guardrails.languages._base import LanguagePlugin
-
     data_dir = _make_data_dir(tmp_path)
     custom_dir = tmp_path / "plugins"
     custom_dir.mkdir()
@@ -158,3 +171,38 @@ class KotlinPlugin(BaseLanguagePlugin):
     plugins = discover_plugins(data_dir, custom_dir=custom_dir)
     kotlin = next(p for p in plugins if p.key == "kotlin")
     assert isinstance(kotlin, LanguagePlugin)
+
+
+# ---------------------------------------------------------------------------
+# L-8: _load_custom_plugins error paths
+# ---------------------------------------------------------------------------
+
+
+def test_load_custom_plugins_handles_syntax_error(tmp_path: Path) -> None:
+    """Malformed plugin file is skipped with warning."""
+    plugin_file = tmp_path / "bad_plugin.py"
+    plugin_file.write_text("def broken(\n")  # syntax error
+    result = _load_custom_plugins(tmp_path, tmp_path)
+    assert result == []
+
+
+def test_load_custom_plugins_handles_init_failure(tmp_path: Path) -> None:
+    """Plugin that raises in __init__ is skipped."""
+    plugin_file = tmp_path / "crash_plugin.py"
+    plugin_file.write_text(
+        textwrap.dedent("""\
+        from ai_guardrails.languages._base import BaseLanguagePlugin
+        class CrashPlugin(BaseLanguagePlugin):
+            key = "crash"
+            name = "Crash"
+            detect_files = []
+            detect_patterns = []
+            detect_dirs = []
+            copy_files = []
+            generated_configs = []
+            def __init__(self, data_dir):
+                raise RuntimeError("boom")
+    """)
+    )
+    result = _load_custom_plugins(tmp_path, tmp_path)
+    assert result == []

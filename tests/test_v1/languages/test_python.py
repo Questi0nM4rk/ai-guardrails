@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import tomllib  # type: ignore[no-redef]
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import tomli_w
 
 from ai_guardrails.generators.base import HASH_HEADER_PREFIX
 from ai_guardrails.languages.python import PythonPlugin
 from ai_guardrails.models.registry import ExceptionRegistry
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_data_dir(tmp_path: Path) -> Path:
@@ -260,6 +263,49 @@ def test_python_check_reports_missing_ruff_toml(tmp_path: Path) -> None:
     project_dir.mkdir()
     issues = plugin.check(_empty_registry(), project_dir)
     assert any("ruff.toml" in i for i in issues)
+
+
+def test_build_config_custom_overrides_dont_destroy_registry_ignores(
+    tmp_path: Path,
+) -> None:
+    """Custom overrides via registry.custom['ruff'] must not replace registry ignores.
+
+    Regression test for M-3: deep_merge treats lists as scalars and replaces
+    the ignore array built from registry.get_ignores().  After the fix, custom
+    overrides are applied BEFORE the registry ignore merge, so registry ignores
+    always win.
+    """
+    data_dir = _make_data_dir(tmp_path)
+    plugin = PythonPlugin(data_dir)
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+
+    # Registry with BOTH custom ruff overrides AND global ignores
+    registry = ExceptionRegistry.from_toml(
+        {
+            "schema_version": 1,
+            "global_rules": {"ruff": {"ignore": ["F401", "F811"]}},
+            "exceptions": [],
+            "file_exceptions": [],
+            "custom": {"ruff": {"lint": {"ignore": ["E501"]}}},
+            "inline_suppressions": [],
+        }
+    )
+
+    outputs = plugin.generate(registry, project_dir)
+    content = outputs[project_dir / "ruff.toml"]
+    body = content.split("\n", 1)[1]
+    parsed = tomllib.loads(body)
+    ignores = parsed["lint"]["ignore"]
+
+    # Base config ignores (W191, COM812) must be present
+    assert "W191" in ignores, f"base ignore W191 missing from {ignores}"
+    assert "COM812" in ignores, f"base ignore COM812 missing from {ignores}"
+    # Custom override ignore (E501) must be present
+    assert "E501" in ignores, f"custom ignore E501 missing from {ignores}"
+    # Registry global ignores (F401, F811) must ALWAYS be present
+    assert "F401" in ignores, f"registry ignore F401 missing from {ignores}"
+    assert "F811" in ignores, f"registry ignore F811 missing from {ignores}"
 
 
 def test_python_check_reports_stale_ruff_toml(tmp_path: Path) -> None:

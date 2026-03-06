@@ -7,7 +7,9 @@ import io
 from ai_guardrails.infra.console import Console
 
 
-def _make_console(*, tty: bool = False, quiet: bool = False) -> tuple[Console, io.StringIO]:
+def _make_console(
+    *, tty: bool = False, quiet: bool = False
+) -> tuple[Console, io.StringIO]:
     stream = io.StringIO()
     # Simulate TTY by patching isatty
     stream.isatty = lambda: tty  # type: ignore[method-assign]

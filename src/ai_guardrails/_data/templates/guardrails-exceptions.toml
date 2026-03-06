@@ -6,7 +6,7 @@
 # DO NOT MODIFY unless you are the project owner.
 # AI agents MUST NOT edit this file. Ask the project owner to add exceptions.
 #
-# Regenerate tool configs: ai-guardrails-generate
+# Regenerate tool configs: ai-guardrails generate
 # =============================================================================
 
 schema_version = 1

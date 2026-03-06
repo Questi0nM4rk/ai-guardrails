@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 from ai_guardrails.generators.base import (
     HASH_HEADER_PREFIX,
@@ -12,6 +12,11 @@ from ai_guardrails.generators.base import (
     verify_hash,
 )
 from ai_guardrails.models.registry import ExceptionRegistry
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from ai_guardrails.generators.base import Generator
 
 
 def _empty_registry() -> ExceptionRegistry:
@@ -102,11 +107,10 @@ def test_verify_hash_detects_tampered_body() -> None:
 
 def test_generator_protocol_is_structural() -> None:
     """Ensure Generator can be used as a structural Protocol (not just ABC)."""
-    from ai_guardrails.generators.base import Generator
 
     class _ConcreteGenerator:
         name = "test"
-        output_files = ["test.toml"]
+        output_files: ClassVar[list[str]] = ["test.toml"]
 
         def generate(
             self,

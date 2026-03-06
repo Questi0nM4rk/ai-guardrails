@@ -95,3 +95,48 @@ def test_mkdir_exist_ok_false_raises_on_existing(tmp_path: Path) -> None:
     existing.mkdir()
     with pytest.raises(FileExistsError):
         fm.mkdir(existing, exist_ok=False)
+
+
+def test_mkdir_dry_run_returns_description(tmp_path: Path) -> None:
+    fm = FileManager(dry_run=True)
+    new_dir = tmp_path / "new_dir"
+    result = fm.mkdir(new_dir, parents=True, exist_ok=True)
+    assert result is not None
+    assert "would create directory" in result
+    assert not new_dir.exists()
+
+
+def test_mkdir_returns_none_on_actual_create(tmp_path: Path) -> None:
+    fm = FileManager()
+    new_dir = tmp_path / "sub" / "dir"
+    result = fm.mkdir(new_dir, parents=True, exist_ok=True)
+    assert result is None
+    assert new_dir.is_dir()
+
+
+def test_symlink_dry_run_returns_description(tmp_path: Path) -> None:
+    fm = FileManager(dry_run=True)
+    link = tmp_path / "AGENTS.md"
+    result = fm.symlink(link, "CLAUDE.md")
+    assert result is not None
+    assert "would symlink" in result
+    assert not link.exists()
+
+
+def test_symlink_creates_link(tmp_path: Path) -> None:
+    fm = FileManager()
+    link = tmp_path / "AGENTS.md"
+    result = fm.symlink(link, "CLAUDE.md")
+    assert result is None
+    assert link.is_symlink()
+    assert link.readlink() == Path("CLAUDE.md")
+
+
+def test_symlink_skips_existing(tmp_path: Path) -> None:
+    fm = FileManager()
+    link = tmp_path / "AGENTS.md"
+    link.write_text("existing content")
+    result = fm.symlink(link, "CLAUDE.md")
+    assert result is None
+    assert not link.is_symlink()
+    assert link.read_text() == "existing content"

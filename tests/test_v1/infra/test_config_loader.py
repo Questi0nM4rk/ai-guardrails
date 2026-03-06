@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import tomllib
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from ai_guardrails.infra.config_loader import ConfigLoader, deep_merge
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # TOML loading

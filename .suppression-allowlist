@@ -18,6 +18,13 @@ constants\.py:\d+:\s+\(r"#\s*pylint:
 constants\.py:\d+:\s+\(r"#\s*pragma: no cover
 
 # ---------------------------------------------------------------------------
+# infra/command_runner.py
+# S603: CommandRunner is the single subprocess abstraction — it is the intended
+# call site for subprocess.run with variable args. All other code uses CommandRunner.
+# ---------------------------------------------------------------------------
+infra/command_runner\.py:\d+:.*subprocess\.run.*# noqa: S603
+
+# ---------------------------------------------------------------------------
 # hooks/config_ignore.py
 # subprocess.run calls git — trusted, controlled input, this IS a pre-commit hook.
 # PLR0915: main() orchestrates several sequential steps; splitting would obscure flow.
@@ -63,12 +70,3 @@ languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
 # ---------------------------------------------------------------------------
 languages/_registry\.py:\d+:.*# noqa: BLE001
 
-# ---------------------------------------------------------------------------
-# pipelines/generate_pipeline.py
-# type: ignore[misc]: _ExplicitLanguagePlugin overrides ClassVar attributes as instance
-#   variables in __init__. Required to create a synthetic plugin with a dynamic key at
-#   runtime — no ClassVar-safe alternative without restructuring BaseLanguagePlugin.
-# ARG002: detect() always returns True for explicit plugins; project_dir is unused.
-# ---------------------------------------------------------------------------
-pipelines/generate_pipeline\.py:\d+:.*# type: ignore\[misc\]
-pipelines/generate_pipeline\.py:\d+:.*# noqa: ARG002

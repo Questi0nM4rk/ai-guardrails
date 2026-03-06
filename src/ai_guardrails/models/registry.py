@@ -53,36 +53,59 @@ class ExceptionRegistry:
     @classmethod
     def from_toml(cls, data: dict[str, Any]) -> ExceptionRegistry:
         """Parse and validate a TOML-loaded dict into an ExceptionRegistry."""
-        schema_version = data["schema_version"]
+        try:
+            schema_version = data["schema_version"]
+        except KeyError:
+            raise ValueError(
+                "Missing required key 'schema_version' in registry"
+            ) from None
 
-        exceptions = [
-            RuleException(
-                tool=exc["tool"],
-                rule=exc["rule"],
-                reason=exc["reason"],
-                scope=exc.get("scope"),
-                expires=exc.get("expires"),
-            )
-            for exc in data.get("exceptions", [])
-        ]
+        exceptions: list[RuleException] = []
+        for i, exc in enumerate(data.get("exceptions", [])):
+            try:
+                exceptions.append(
+                    RuleException(
+                        tool=exc["tool"],
+                        rule=exc["rule"],
+                        reason=exc["reason"],
+                        scope=exc.get("scope"),
+                        expires=exc.get("expires"),
+                    )
+                )
+            except KeyError as e:
+                raise ValueError(
+                    f"Exception #{i + 1} missing required field: {e}"
+                ) from None
 
-        file_exceptions = [
-            FileException(
-                glob=fe["glob"],
-                tool=fe["tool"],
-                rules=list(fe["rules"]),
-                reason=fe["reason"],
-            )
-            for fe in data.get("file_exceptions", [])
-        ]
+        file_exceptions: list[FileException] = []
+        for i, fe in enumerate(data.get("file_exceptions", [])):
+            try:
+                file_exceptions.append(
+                    FileException(
+                        glob=fe["glob"],
+                        tool=fe["tool"],
+                        rules=list(fe["rules"]),
+                        reason=fe["reason"],
+                    )
+                )
+            except KeyError as e:
+                raise ValueError(
+                    f"File exception #{i + 1} missing required field: {e}"
+                ) from None
 
-        inline_suppressions = [
-            InlineSuppression(
-                pattern=sup["pattern"],
-                reason=sup["reason"],
-            )
-            for sup in data.get("inline_suppressions", [])
-        ]
+        inline_suppressions: list[InlineSuppression] = []
+        for i, sup in enumerate(data.get("inline_suppressions", [])):
+            try:
+                inline_suppressions.append(
+                    InlineSuppression(
+                        pattern=sup["pattern"],
+                        reason=sup["reason"],
+                    )
+                )
+            except KeyError as e:
+                raise ValueError(
+                    f"Inline suppression #{i + 1} missing required field: {e}"
+                ) from None
 
         return cls(
             schema_version=schema_version,

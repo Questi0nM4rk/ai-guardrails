@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_guardrails.languages.rust import RustPlugin
 from ai_guardrails.models.registry import ExceptionRegistry
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _empty_registry() -> ExceptionRegistry:

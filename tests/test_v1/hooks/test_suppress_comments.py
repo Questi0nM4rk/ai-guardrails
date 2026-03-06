@@ -39,6 +39,13 @@ def test_is_test_file_dunder_tests():
     assert _is_test_file("/project/__tests__/auth.test.ts") is True
 
 
+def test_is_test_file_windows_path():
+    """Windows backslash paths should still detect test directories."""
+    assert _is_test_file("C:\\project\\tests\\test_foo.py") is True
+    assert _is_test_file("C:\\project\\__tests__\\foo.spec.js") is True
+    assert _is_test_file("C:\\project\\src\\main.py") is False
+
+
 # ---------------------------------------------------------------------------
 # _infer_extension
 # ---------------------------------------------------------------------------

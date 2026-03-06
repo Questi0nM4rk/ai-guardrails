@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.languages._base import BaseLanguagePlugin, LanguagePlugin
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ---------------------------------------------------------------------------
 # Test double plugins
@@ -20,8 +23,8 @@ class _AlwaysPlugin(BaseLanguagePlugin):
 
     key = "always"
     name = "Always"
-    copy_files: list[str] = []
-    generated_configs: list[str] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = []
 
     def __init__(self) -> None:
         pass
@@ -35,8 +38,8 @@ class _NeverPlugin(BaseLanguagePlugin):
 
     key = "never"
     name = "Never"
-    copy_files: list[str] = []
-    generated_configs: list[str] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = []
 
     def __init__(self) -> None:
         pass
@@ -48,11 +51,15 @@ class _NeverPlugin(BaseLanguagePlugin):
 class _PythonPlugin(BaseLanguagePlugin):
     key = "python"
     name = "Python"
-    detect_files = ["pyproject.toml", "setup.py", "requirements.txt"]
-    detect_patterns = ["*.py"]
-    detect_dirs: list[str] = []
-    copy_files: list[str] = []
-    generated_configs = ["ruff.toml"]
+    detect_files: ClassVar[list[str]] = [
+        "pyproject.toml",
+        "setup.py",
+        "requirements.txt",
+    ]
+    detect_patterns: ClassVar[list[str]] = ["*.py"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = ["ruff.toml"]
 
     def __init__(self) -> None:
         pass
@@ -61,11 +68,11 @@ class _PythonPlugin(BaseLanguagePlugin):
 class _RustPlugin(BaseLanguagePlugin):
     key = "rust"
     name = "Rust"
-    detect_files = ["Cargo.toml"]
-    detect_patterns = ["*.rs"]
-    detect_dirs: list[str] = []
-    copy_files = ["rustfmt.toml"]
-    generated_configs: list[str] = []
+    detect_files: ClassVar[list[str]] = ["Cargo.toml"]
+    detect_patterns: ClassVar[list[str]] = ["*.rs"]
+    detect_dirs: ClassVar[list[str]] = []
+    copy_files: ClassVar[list[str]] = ["rustfmt.toml"]
+    generated_configs: ClassVar[list[str]] = []
 
     def __init__(self) -> None:
         pass

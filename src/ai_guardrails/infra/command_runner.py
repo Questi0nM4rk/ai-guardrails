@@ -37,7 +37,7 @@ class CommandRunner:
                 timeout=timeout,
                 cwd=cwd,
             )
-        except (FileNotFoundError, PermissionError) as exc:
+        except (FileNotFoundError, PermissionError, subprocess.TimeoutExpired) as exc:
             return subprocess.CompletedProcess(
                 args=args,
                 returncode=1,

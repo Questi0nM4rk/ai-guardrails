@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from ai_guardrails.models.registry import ExceptionRegistry
 
 HASH_HEADER_PREFIX = "# ai-guardrails:hash:sha256:"
+JSONC_HASH_HEADER_PREFIX = "// ai-guardrails:hash:sha256:"
+_HASH_MARKER = "ai-guardrails:hash:sha256:"
 
 
 def compute_hash(content: str) -> str:
@@ -28,11 +30,16 @@ def make_hash_header(content: str) -> str:
 
 
 def parse_hash_header(text: str) -> str | None:
-    """Extract the hash from the first line of text, or None if absent."""
+    """Extract the hash from the first line of text, or None if absent.
+
+    Supports both ``# ai-guardrails:hash:sha256:`` (TOML/YAML/INI) and
+    ``// ai-guardrails:hash:sha256:`` (JSON/JSONC) prefixes.
+    """
     first_line = text.split("\n", 1)[0].strip()
-    if first_line.startswith(HASH_HEADER_PREFIX):
-        return first_line[len(HASH_HEADER_PREFIX) :]
-    return None
+    idx = first_line.find(_HASH_MARKER)
+    if idx == -1:
+        return None
+    return first_line[idx + len(_HASH_MARKER) :]
 
 
 def verify_hash(full_text: str, expected_content: str) -> bool:

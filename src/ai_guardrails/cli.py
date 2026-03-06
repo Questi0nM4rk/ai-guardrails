@@ -1,10 +1,4 @@
-"""CLI entry point for ai-guardrails using cyclopts.
-
-Commands:
-  install  — one-time global setup
-  init     — per-project initialization
-  generate — regenerate configs from exception registry
-"""
+"""CLI entry point for ai-guardrails using cyclopts."""
 
 from __future__ import annotations
 
@@ -12,6 +6,7 @@ from importlib import (  # nosemgrep: python37-compatibility-importlib2
     resources as _importlib_resources,
 )
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import cyclopts
 
@@ -24,13 +19,12 @@ from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
 from ai_guardrails.pipelines.status_pipeline import StatusPipeline
 
+if TYPE_CHECKING:
+    from ai_guardrails.pipelines.base import StepResult
+
 app = cyclopts.App(
     name="ai-guardrails", help="Pedantic code enforcement for AI-maintained repos."
 )
-
-# ---------------------------------------------------------------------------
-# Package data paths
-# ---------------------------------------------------------------------------
 
 _DATA_DIR = Path(str(_importlib_resources.files("ai_guardrails"))) / "_data"
 _CONFIGS_DIR = _DATA_DIR / "configs"
@@ -42,9 +36,21 @@ _GLOBAL_CONFIG_DIR = Path.home() / ".ai-guardrails"
 _CUSTOM_PLUGINS_DIR = _GLOBAL_CONFIG_DIR / "plugins"
 
 
+def _resolve_project_dir(project_dir: Path | None) -> Path:
+    """Resolve and validate the project directory is a git repo."""
+    resolved = (project_dir or Path.cwd()).resolve()
+    if not (resolved / ".git").is_dir():
+        raise SystemExit(
+            f"Error: {resolved} is not a git repository. Run 'git init' first."
+        )
+    return resolved
+
+
 def _make_infra(
-    *, dry_run: bool = False
+    *,
+    dry_run: bool = False,
 ) -> tuple[FileManager, CommandRunner, ConfigLoader, Console]:
+    """Create infrastructure objects for pipeline execution."""
     return (
         FileManager(dry_run=dry_run),
         CommandRunner(),
@@ -53,7 +59,8 @@ def _make_infra(
     )
 
 
-def _print_results(results: list, console: Console) -> None:
+def _print_results(results: list[StepResult], console: Console) -> None:
+    """Print step results using appropriate severity formatting."""
     for result in results:
         if result.status == "error":
             console.error(f"  {result.message}")
@@ -65,14 +72,16 @@ def _print_results(results: list, console: Console) -> None:
             console.success(f"  {result.message}")
 
 
-# ---------------------------------------------------------------------------
-# Commands
-# ---------------------------------------------------------------------------
-
-
 @app.command
 def install(*, upgrade: bool = False) -> None:
-    """Install ai-guardrails globally (once per machine)."""
+    """Install ai-guardrails globally (once per machine).
+
+    Creates ~/.ai-guardrails/config.toml and merges PreToolUse hooks
+    into ~/.claude/settings.json for dangerous command detection and
+    config protection.
+
+    Use --upgrade to re-run after updating ai-guardrails.
+    """
     options = InstallOptions(upgrade=upgrade)
     pipeline = InstallPipeline(options=options, global_config_dir=_GLOBAL_CONFIG_DIR)
     fm, runner, loader, console = _make_infra()
@@ -88,13 +97,20 @@ def install(*, upgrade: bool = False) -> None:
 @app.command
 def init(
     *,
+    project_dir: Path | None = None,
     force: bool = False,
     no_hooks: bool = False,
     no_ci: bool = False,
     no_agent_instructions: bool = False,
     dry_run: bool = False,
 ) -> None:
-    """Initialize ai-guardrails in the current project."""
+    """Initialize ai-guardrails in the current project.
+
+    Detects languages, creates .guardrails-exceptions.toml, generates
+    linter configs (ruff.toml, lefthook.yml, .editorconfig, etc.),
+    optionally installs git hooks and CI workflow.
+    """
+    resolved = _resolve_project_dir(project_dir)
     options = InitOptions(
         force=force,
         no_hooks=no_hooks,
@@ -114,7 +130,7 @@ def init(
     )
     fm, runner, loader, console = _make_infra(dry_run=dry_run)
     results = pipeline.run(
-        project_dir=Path.cwd(),
+        project_dir=resolved,
         file_manager=fm,
         command_runner=runner,
         config_loader=loader,
@@ -126,11 +142,17 @@ def init(
 @app.command
 def generate(
     *,
+    project_dir: Path | None = None,
     check: bool = False,
     languages: str | None = None,
     dry_run: bool = False,
 ) -> None:
-    """Regenerate tool configs from exception registry."""
+    """Regenerate tool configs from the exception registry.
+
+    Reads .guardrails-exceptions.toml and regenerates all managed configs.
+    Use --check in CI to verify configs are fresh without writing.
+    """
+    resolved = _resolve_project_dir(project_dir)
     lang_list = [lang.strip() for lang in languages.split(",")] if languages else None
     options = GenerateOptions(check=check, languages=lang_list, dry_run=dry_run)
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
@@ -141,7 +163,7 @@ def generate(
     )
     fm, runner, loader, console = _make_infra(dry_run=dry_run)
     results = pipeline.run(
-        project_dir=Path.cwd(),
+        project_dir=resolved,
         file_manager=fm,
         command_runner=runner,
         config_loader=loader,
@@ -153,22 +175,20 @@ def generate(
 
 
 @app.command
-def status() -> None:
-    """Show project health: detected languages, config freshness, hook status."""
+def status(*, project_dir: Path | None = None) -> None:
+    """Show project health: detected languages, config freshness, hook status.
+
+    Informational only -- never fails. Use 'generate --check' for CI validation.
+    """
+    resolved = _resolve_project_dir(project_dir)
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = StatusPipeline(data_dir=_DATA_DIR, custom_plugins_dir=custom_dir)
     fm, runner, loader, console = _make_infra()
     results = pipeline.run(
-        project_dir=Path.cwd(),
+        project_dir=resolved,
         file_manager=fm,
         command_runner=runner,
         config_loader=loader,
         console=console,
     )
-    for result in results:
-        if result.status == "error":
-            console.error(f"  {result.message}")
-        elif result.status == "warn":
-            console.warning(f"  {result.message}")
-        elif result.status == "skip":
-            console.info(f"  (skip) {result.message}")
+    _print_results(results, console)
