@@ -9,8 +9,8 @@ from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
-_DANGEROUS_CMD = "uv run python -m ai_guardrails.hooks.dangerous_cmd"
-_PROTECT_CONFIGS_CMD = "uv run python -m ai_guardrails.hooks.protect_configs"
+_DANGEROUS_CMD = "ai-guardrails-dangerous-cmd"
+_PROTECT_CONFIGS_CMD = "ai-guardrails-protect-configs"
 
 
 def _make_pipeline(
@@ -127,7 +127,7 @@ def test_install_pipeline_errors_on_missing_required_tool(tmp_path: Path) -> Non
 def test_install_creates_global_claude_hooks_when_settings_missing(
     tmp_path: Path,
 ) -> None:
-    """When settings.json is missing, install creates it with both hooks."""
+    """When settings.json is missing, install creates it with hooks on all matchers."""
     _, fm, results = _run_pipeline(tmp_path)
     assert all(r.status in ("ok", "skip") for r in results)
 
@@ -136,10 +136,18 @@ def test_install_creates_global_claude_hooks_when_settings_missing(
     assert settings_path in written
 
     data = json.loads(written[settings_path])
-    bash_hooks = data["hooks"]["PreToolUse"][0]["hooks"]
-    cmds = [h["command"] for h in bash_hooks]
-    assert _DANGEROUS_CMD in cmds
-    assert _PROTECT_CONFIGS_CMD in cmds
+    pre_tool = data["hooks"]["PreToolUse"]
+    matchers = {e["matcher"]: e["hooks"] for e in pre_tool}
+
+    # Bash gets both hooks
+    bash_cmds = [h["command"] for h in matchers["Bash"]]
+    assert _DANGEROUS_CMD in bash_cmds
+    assert _PROTECT_CONFIGS_CMD in bash_cmds
+
+    # Edit and Write get protect_configs
+    for matcher in ("Edit", "Write"):
+        cmds = [h["command"] for h in matchers[matcher]]
+        assert _PROTECT_CONFIGS_CMD in cmds
 
 
 def test_install_merges_into_existing_claude_settings(tmp_path: Path) -> None:
@@ -154,17 +162,21 @@ def test_install_merges_into_existing_claude_settings(tmp_path: Path) -> None:
 
     data = json.loads(written[settings_path])
     assert data["someOtherSetting"] is True
-    bash_entry = next(
-        e for e in data["hooks"]["PreToolUse"] if e.get("matcher") == "Bash"
-    )
-    cmds = [h["command"] for h in bash_entry["hooks"]]
-    assert _DANGEROUS_CMD in cmds
-    assert _PROTECT_CONFIGS_CMD in cmds
+
+    pre_tool = data["hooks"]["PreToolUse"]
+    matchers = {e["matcher"]: e["hooks"] for e in pre_tool}
+
+    bash_cmds = [h["command"] for h in matchers["Bash"]]
+    assert _DANGEROUS_CMD in bash_cmds
+    assert _PROTECT_CONFIGS_CMD in bash_cmds
+
+    for matcher in ("Edit", "Write"):
+        cmds = [h["command"] for h in matchers[matcher]]
+        assert _PROTECT_CONFIGS_CMD in cmds
 
 
 def test_install_is_idempotent_for_claude_settings(tmp_path: Path) -> None:
     """Running install twice does not duplicate hooks."""
-    # Pre-populate with hooks already installed
     already_installed = {
         "hooks": {
             "PreToolUse": [
@@ -174,26 +186,32 @@ def test_install_is_idempotent_for_claude_settings(tmp_path: Path) -> None:
                         {"type": "command", "command": _DANGEROUS_CMD},
                         {"type": "command", "command": _PROTECT_CONFIGS_CMD},
                     ],
-                }
+                },
+                {
+                    "matcher": "Edit",
+                    "hooks": [{"type": "command", "command": _PROTECT_CONFIGS_CMD}],
+                },
+                {
+                    "matcher": "Write",
+                    "hooks": [{"type": "command", "command": _PROTECT_CONFIGS_CMD}],
+                },
             ]
         }
     }
     _, fm, results = _run_pipeline(tmp_path, existing_settings=already_installed)
 
-    # Step should skip (already installed)
     settings_path = tmp_path / ".claude" / "settings.json"
     written = dict(fm.written)
-    # Either skipped (not written) or written with no duplication
     if settings_path in written:
         data = json.loads(written[settings_path])
-        bash_entry = next(
-            e for e in data["hooks"]["PreToolUse"] if e.get("matcher") == "Bash"
-        )
-        cmds = [h["command"] for h in bash_entry["hooks"]]
-        assert cmds.count(_DANGEROUS_CMD) == 1
-        assert cmds.count(_PROTECT_CONFIGS_CMD) == 1
+        matchers = {e["matcher"]: e["hooks"] for e in data["hooks"]["PreToolUse"]}
+        bash_cmds = [h["command"] for h in matchers["Bash"]]
+        assert bash_cmds.count(_DANGEROUS_CMD) == 1
+        assert bash_cmds.count(_PROTECT_CONFIGS_CMD) == 1
+        for matcher in ("Edit", "Write"):
+            cmds = [h["command"] for h in matchers[matcher]]
+            assert cmds.count(_PROTECT_CONFIGS_CMD) == 1
     else:
-        # Skipped — original not modified, check skip result
         assert any(r.status == "skip" for r in results)
 
 

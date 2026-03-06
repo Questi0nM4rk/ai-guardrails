@@ -96,6 +96,7 @@ class GeneratePipeline:
                 for k in self._options.languages
                 if k != "universal" and k in plugin_map
             )
+            # "universal" excluded above: already prepended, avoiding double-inclusion.
             ctx.languages = selected
             steps: list[PipelineStep] = [
                 LoadRegistryStep(),

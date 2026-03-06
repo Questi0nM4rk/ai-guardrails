@@ -21,6 +21,8 @@ dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4", "pyright>=1.1
 [project.scripts]
 ai-guardrails = "ai_guardrails.cli:app"
 ai-guardrails-install = "install:main"
+ai-guardrails-dangerous-cmd = "ai_guardrails.hooks.dangerous_cmd:main"
+ai-guardrails-protect-configs = "ai_guardrails.hooks.protect_configs:main"
 
 [build-system]
 requires = ["hatchling"]
