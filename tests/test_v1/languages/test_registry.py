@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import textwrap
 from pathlib import Path
 
-from ai_guardrails.languages._registry import discover_plugins
+from ai_guardrails.languages._registry import _load_custom_plugins, discover_plugins
 
 
 def _make_data_dir(tmp_path: Path) -> Path:
@@ -158,3 +159,38 @@ class KotlinPlugin(BaseLanguagePlugin):
     plugins = discover_plugins(data_dir, custom_dir=custom_dir)
     kotlin = next(p for p in plugins if p.key == "kotlin")
     assert isinstance(kotlin, LanguagePlugin)
+
+
+# ---------------------------------------------------------------------------
+# L-8: _load_custom_plugins error paths
+# ---------------------------------------------------------------------------
+
+
+def test_load_custom_plugins_handles_syntax_error(tmp_path: Path) -> None:
+    """Malformed plugin file is skipped with warning."""
+    plugin_file = tmp_path / "bad_plugin.py"
+    plugin_file.write_text("def broken(\n")  # syntax error
+    result = _load_custom_plugins(tmp_path, tmp_path)
+    assert result == []
+
+
+def test_load_custom_plugins_handles_init_failure(tmp_path: Path) -> None:
+    """Plugin that raises in __init__ is skipped."""
+    plugin_file = tmp_path / "crash_plugin.py"
+    plugin_file.write_text(
+        textwrap.dedent("""\
+        from ai_guardrails.languages._base import BaseLanguagePlugin
+        class CrashPlugin(BaseLanguagePlugin):
+            key = "crash"
+            name = "Crash"
+            detect_files = []
+            detect_patterns = []
+            detect_dirs = []
+            copy_files = []
+            generated_configs = []
+            def __init__(self, data_dir):
+                raise RuntimeError("boom")
+    """)
+    )
+    result = _load_custom_plugins(tmp_path, tmp_path)
+    assert result == []
