@@ -1,9 +1,11 @@
-"""Claude Code PreToolUse hook: protect generated and config files.
+"""Protect generated config files — dual-mode hook.
 
-Prompts user approval before:
-1. Editing auto-generated config files (hash header detected)
-2. Editing .guardrails-exceptions.toml
-3. Adding ignore patterns to config files
+**PreToolUse mode** (Claude Code): reads JSON from stdin, prompts user
+approval before editing auto-generated configs, the registry, or adding
+ignore patterns.
+
+**Pre-commit mode** (lefthook): receives filenames as argv, verifies that
+staged generated configs with hash headers have not been tampered with.
 """
 
 from __future__ import annotations
@@ -19,6 +21,7 @@ from ai_guardrails.constants import (
     IGNORE_PATTERN,
     REGISTRY_FILENAME,
 )
+from ai_guardrails.generators.base import compute_hash
 from ai_guardrails.hooks._utils import has_hash_header
 
 
@@ -89,11 +92,35 @@ def _emit_ask(reason: str) -> int:
     return 0
 
 
-def main() -> int:
-    """Entry point. Reads JSON from stdin, emits decision to stdout."""
+def _run_precommit(files: list[str]) -> int:
+    """Pre-commit mode: verify staged generated configs have valid hashes."""
+    violations = 0
+    for filepath in files:
+        path = Path(filepath)
+        if path.name not in GENERATED_CONFIGS:
+            continue
+        if not path.is_file():
+            continue
+        if not has_hash_header(filepath):
+            continue
+        # Hash header present — verify body matches stored hash
+        content = path.read_text()
+        first_line, _, body = content.partition("\n")
+        stored_hash = first_line.rsplit(":", 1)[-1].strip()
+        actual_hash = compute_hash(body)
+        if stored_hash != actual_hash:
+            print(f"ERROR: {filepath} has been tampered with (hash mismatch).")
+            print("  The hash header does not match the file content.")
+            print("  Run: ai-guardrails generate")
+            violations += 1
+    return 1 if violations else 0
+
+
+def _run_pretool_use() -> int:
+    """PreToolUse mode: read JSON from stdin, emit decision to stdout."""
     try:
         raw = sys.stdin.read()
-        data = json.loads(raw)
+        data = json.loads(raw) if raw.strip() else {}
     except (json.JSONDecodeError, OSError, ValueError):
         return 0
 
@@ -102,10 +129,14 @@ def main() -> int:
         return 0
 
     reason = check_tool_input(tool_input)
-    if reason:
-        return _emit_ask(reason)
+    return _emit_ask(reason) if reason else 0
 
-    return 0
+
+def main() -> int:
+    """Entry point. Handles both PreToolUse (stdin JSON) and pre-commit (argv)."""
+    if len(sys.argv) > 1:
+        return _run_precommit(sys.argv[1:])
+    return _run_pretool_use()
 
 
 if __name__ == "__main__":
