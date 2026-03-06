@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash, verify_hash
 from ai_guardrails.infra.config_loader import deep_merge
 from ai_guardrails.pipelines.base import StepResult
 
@@ -45,6 +45,28 @@ class GenerateConfigsStep:
         all_issues: list[str] = []
         for plugin in ctx.languages:
             all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
+
+        # Also check lefthook.yml staleness
+        lefthook_config: dict[str, object] = {}
+        for plugin in ctx.languages:
+            lefthook_config = deep_merge(lefthook_config, plugin.hook_config())
+        if lefthook_config:
+            lefthook_path = ctx.project_dir / "lefthook.yml"
+            if not lefthook_path.exists():
+                all_issues.append(
+                    "lefthook.yml is missing — run: ai-guardrails generate"
+                )
+            else:
+                body = yaml.dump(
+                    lefthook_config, default_flow_style=False, sort_keys=False
+                )
+                existing = lefthook_path.read_text()
+                if not verify_hash(existing, body):
+                    all_issues.append(
+                        "lefthook.yml is stale or tampered"
+                        " — run: ai-guardrails generate"
+                    )
+
         if all_issues:
             for issue in all_issues:
                 ctx.console.error(issue)

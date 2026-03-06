@@ -343,9 +343,9 @@ def test_check_mode_detects_missing_lefthook_yml(tmp_path: Path) -> None:
     # No lefthook.yml on disk
     result = step.execute(ctx)
     assert result.status == "error"
-    assert (
-        "lefthook.yml" in result.message.lower() or "missing" in result.message.lower()
-    )
+    # Detailed issue text goes to console.error(), summary to result.message
+    console = ctx.console
+    assert console.has("error", "lefthook.yml is missing")
 
 
 def test_check_mode_detects_stale_lefthook_yml(tmp_path: Path) -> None:
