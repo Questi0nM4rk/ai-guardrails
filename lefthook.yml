@@ -1,4 +1,4 @@
-# ai-guardrails:hash:sha256:0f58d24b978e6ff99ca6c84aff7747d721b69c15f89cd68bccd7c913df50ed1d
+# ai-guardrails:hash:sha256:b9d42eec0fadd4e2b6122a526ca0d79461af8256dda99557f41735ba0162d318
 pre-commit:
   commands:
     suppress-comments:
@@ -29,13 +29,13 @@ pre-commit:
       priority: 2
     python-format-and-stage:
       glob: '*.py'
-      run: ruff format {staged_files} && ruff check --fix {staged_files} && git add
-        {staged_files}
+      run: uv run ruff format {staged_files} && uv run ruff check --fix {staged_files}
+        && git add {staged_files}
       stage_fixed: true
       priority: 1
     ruff-check:
       glob: '*.py'
-      run: ruff check {staged_files}
+      run: uv run ruff check {staged_files}
       priority: 2
     shell-format-and-stage:
       glob: '*.{sh,bash,zsh}'

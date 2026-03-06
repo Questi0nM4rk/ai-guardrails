@@ -249,9 +249,7 @@ def run_generate_configs(
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         try:
-            generated = _generate_to_dir(
-                registry, project_path, tmp, languages=languages
-            )
+            generated = _generate_to_dir(registry, project_path, tmp, languages=languages)
         except Exception as e:  # noqa: BLE001
             print(f"{RED}Error during config generation: {e}{NC}", file=sys.stderr)
             return False

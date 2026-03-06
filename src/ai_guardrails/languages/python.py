@@ -39,14 +39,14 @@ pre-commit:
     python-format-and-stage:
       glob: "*.py"
       run: >-
-        ruff format {staged_files} &&
-        ruff check --fix {staged_files} &&
+        uv run ruff format {staged_files} &&
+        uv run ruff check --fix {staged_files} &&
         git add {staged_files}
       stage_fixed: true
       priority: 1
     ruff-check:
       glob: "*.py"
-      run: ruff check {staged_files}
+      run: uv run ruff check {staged_files}
       priority: 2
 """
 

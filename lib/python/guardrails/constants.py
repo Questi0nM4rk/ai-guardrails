@@ -282,9 +282,7 @@ LANG_CONFIGS: types.MappingProxyType[str, tuple[str, ...]] = types.MappingProxyT
     }
 )
 
-ALL_LANG_CONFIGS: tuple[str, ...] = tuple(
-    name for names in LANG_CONFIGS.values() for name in names
-)
+ALL_LANG_CONFIGS: tuple[str, ...] = tuple(name for names in LANG_CONFIGS.values() for name in names)
 
 # Hook scripts to copy into .ai-guardrails/hooks/
 HOOK_SCRIPTS: tuple[str, ...] = (

@@ -249,7 +249,5 @@ class ExceptionRegistry:
         expired: list[FileException | InlineSuppression] = [
             fe for fe in self.file_exceptions if _is_expired(fe, today)
         ]
-        expired.extend(
-            sup for sup in self.inline_suppressions if _is_expired(sup, today)
-        )
+        expired.extend(sup for sup in self.inline_suppressions if _is_expired(sup, today))
         return expired
