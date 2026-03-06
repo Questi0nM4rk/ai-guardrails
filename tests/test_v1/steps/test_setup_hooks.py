@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
@@ -95,9 +94,13 @@ def test_setup_hooks_returns_warn_on_failure(tmp_path: Path) -> None:
 
 
 def test_setup_hooks_returns_warn_when_binary_missing(tmp_path: Path) -> None:
-    """If lefthook binary is not on PATH, returns warn (FileNotFoundError caught)."""
-    runner = MagicMock()
-    runner.run.side_effect = FileNotFoundError("lefthook")
+    """CommandRunner returns 'No such file' stderr when binary is missing."""
+    runner = FakeCommandRunner()
+    runner.register(
+        ["lefthook", "install"],
+        returncode=1,
+        stderr="[Errno 2] No such file or directory: 'lefthook'",
+    )
     ctx = _make_ctx(tmp_path, runner)
 
     step = SetupHooksStep()

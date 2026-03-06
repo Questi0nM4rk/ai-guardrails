@@ -129,7 +129,13 @@ class _InstallGlobalClaudeSettingsStep:
         existing: dict[str, Any] = {}
         if ctx.file_manager.exists(self._settings_path):
             raw = ctx.file_manager.read_text(self._settings_path)
-            existing = json.loads(raw)
+            try:
+                existing = json.loads(raw)
+            except json.JSONDecodeError as exc:
+                return StepResult(
+                    status="error",
+                    message=f"Malformed {self._settings_path}: {exc.args[0]}",
+                )
 
         hooks: dict[str, Any] = existing.setdefault("hooks", {})
         pre_tool: list[dict[str, Any]] = hooks.setdefault("PreToolUse", [])

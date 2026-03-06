@@ -27,16 +27,16 @@ class SetupHooksStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         """Run `lefthook install` in the project directory."""
-        try:
-            result = ctx.command_runner.run(
-                ["lefthook", "install"],
-                cwd=ctx.project_dir,
-            )
-        except FileNotFoundError:
-            return StepResult(status="warn", message=_LEFTHOOK_NOT_FOUND_MSG)
+        result = ctx.command_runner.run(
+            ["lefthook", "install"],
+            cwd=ctx.project_dir,
+        )
         if result.returncode != 0:
+            stderr = result.stderr.strip()
+            if "not found" in stderr.lower() or "no such file" in stderr.lower():
+                return StepResult(status="warn", message=_LEFTHOOK_NOT_FOUND_MSG)
             return StepResult(
                 status="warn",
-                message=f"lefthook install failed: {result.stderr}",
+                message=f"lefthook install failed: {stderr}",
             )
         return StepResult(status="ok", message="Hooks installed (lefthook install)")
