@@ -22,6 +22,7 @@ class FakeFileManager:
         self._dirs: set[Path] = set()
         self.written: list[tuple[Path, str]] = []
         self.copied: list[tuple[Path, Path]] = []
+        self.symlinked: list[tuple[Path, str]] = []
 
     def read_text(self, path: Path) -> str:
         if path not in self._files:
@@ -57,10 +58,23 @@ class FakeFileManager:
                 pass
         return sorted(results)
 
-    def mkdir(self, path: Path, *, parents: bool = False, exist_ok: bool = False) -> None:
+    def mkdir(
+        self, path: Path, *, parents: bool = False, exist_ok: bool = False
+    ) -> str | None:
+        if self.dry_run:
+            return f"would create directory {path}"
         if not exist_ok and path in self._dirs:
             raise FileExistsError(path)
         self._dirs.add(path)
+        return None
+
+    def symlink(self, link: Path, target: str) -> str | None:
+        if self.dry_run:
+            return f"would symlink {link} -> {target}"
+        if not self.exists(link):
+            self._files[link] = f"-> {target}"
+            self.symlinked.append((link, target))
+        return None
 
     def seed(self, path: Path, content: str) -> None:
         """Pre-populate a file for test setup."""
