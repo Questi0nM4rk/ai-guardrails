@@ -8,7 +8,8 @@ from unittest.mock import MagicMock, patch
 from cyclopts import App
 import pytest
 
-from ai_guardrails.cli import app, generate, init, install, status
+from ai_guardrails.cli import _print_results, app, generate, init, install, status
+from ai_guardrails.infra.console import Console
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
@@ -169,3 +170,29 @@ def test_install_does_not_require_git(
 
         install()  # Must not raise
         mock_pipeline.run.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# L-5: status command
+# ---------------------------------------------------------------------------
+
+
+def test_status_command_exists() -> None:
+    assert callable(status)
+
+
+# ---------------------------------------------------------------------------
+# L-9: _print_results branch coverage
+# ---------------------------------------------------------------------------
+
+
+def test_print_results_warn_branch() -> None:
+    """Verify _print_results handles warn status."""
+    console = Console()
+    _print_results([StepResult(status="warn", message="test warning")], console)
+
+
+def test_print_results_skip_branch() -> None:
+    """Verify _print_results handles skip status."""
+    console = Console()
+    _print_results([StepResult(status="skip", message="test skip")], console)
