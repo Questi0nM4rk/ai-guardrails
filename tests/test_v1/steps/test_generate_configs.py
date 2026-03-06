@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import yaml
 
-from ai_guardrails.generators.base import HASH_HEADER_PREFIX
-from ai_guardrails.infra.config_loader import ConfigLoader
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash
+from ai_guardrails.infra.config_loader import ConfigLoader, deep_merge
 from ai_guardrails.languages._base import BaseLanguagePlugin
 from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.base import PipelineContext
@@ -245,8 +245,13 @@ def test_generate_configs_no_hooks_no_lefthook(tmp_path: Path) -> None:
 class _CheckPlugin(_FakePlugin):
     """Plugin whose check() returns configurable issues."""
 
-    def __init__(self, key: str, issues: list[str]) -> None:
-        super().__init__(key, [])
+    def __init__(
+        self,
+        key: str,
+        issues: list[str],
+        hooks: dict | None = None,  # type: ignore[type-arg]
+    ) -> None:
+        super().__init__(key, [], hooks=hooks)
         self._issues = issues
 
     def check(self, registry: ExceptionRegistry, project_dir: Path) -> list[str]:
@@ -310,3 +315,67 @@ def test_generate_configs_check_mode_does_not_write_files(tmp_path: Path) -> Non
     ctx, fm = _make_check_context(tmp_path, languages=[plugin])
     step.execute(ctx)
     assert fm.written == []
+
+
+# ---------------------------------------------------------------------------
+# H-3: check mode lefthook.yml staleness
+# ---------------------------------------------------------------------------
+
+
+def _build_lefthook_content(plugins: list[_FakePlugin]) -> str:
+    """Build correct lefthook.yml content from plugins, matching _run_generate."""
+    config: dict[str, object] = {}
+    for plugin in plugins:
+        config = deep_merge(config, plugin.hook_config())
+    body = yaml.dump(config, default_flow_style=False, sort_keys=False)
+    header = f"{HASH_HEADER_PREFIX}{compute_hash(body)}"
+    return f"{header}\n{body}"
+
+
+def test_check_mode_detects_missing_lefthook_yml(tmp_path: Path) -> None:
+    """check=True reports missing lefthook.yml when plugins have hooks."""
+    hooks = {
+        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
+    }
+    plugin = _CheckPlugin("universal", issues=[], hooks=hooks)
+    step = GenerateConfigsStep()
+    ctx, _ = _make_check_context(tmp_path, languages=[plugin])
+    # No lefthook.yml on disk
+    result = step.execute(ctx)
+    assert result.status == "error"
+    assert (
+        "lefthook.yml" in result.message.lower() or "missing" in result.message.lower()
+    )
+
+
+def test_check_mode_detects_stale_lefthook_yml(tmp_path: Path) -> None:
+    """check=True reports stale lefthook.yml when hash does not match."""
+    hooks = {
+        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
+    }
+    plugin = _CheckPlugin("universal", issues=[], hooks=hooks)
+    # Write a lefthook.yml with wrong hash
+    (tmp_path / "lefthook.yml").write_text(
+        f"{HASH_HEADER_PREFIX}deadbeef\nstale: content\n"
+    )
+    step = GenerateConfigsStep()
+    ctx, _ = _make_check_context(tmp_path, languages=[plugin])
+    result = step.execute(ctx)
+    assert result.status == "error"
+    assert "stale" in result.message.lower() or "tampered" in result.message.lower()
+
+
+def test_check_mode_passes_fresh_lefthook_yml(tmp_path: Path) -> None:
+    """check=True passes when lefthook.yml hash matches expected content."""
+    hooks = {
+        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
+    }
+    plugin = _CheckPlugin("universal", issues=[], hooks=hooks)
+    # Write correct lefthook.yml
+    correct_content = _build_lefthook_content([plugin])
+    (tmp_path / "lefthook.yml").write_text(correct_content)
+    step = GenerateConfigsStep()
+    ctx, _ = _make_check_context(tmp_path, languages=[plugin])
+    result = step.execute(ctx)
+    assert result.status == "ok"
+    assert "fresh" in result.message.lower()
