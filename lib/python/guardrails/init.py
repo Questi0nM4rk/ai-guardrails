@@ -116,7 +116,9 @@ def _detect_python_deps(project_dir: Path) -> str:
 
 def _copy_base_configs(configs_dir: Path, project_dir: Path, *, force: bool) -> None:
     """Always-installed configs (.editorconfig, .markdownlint.jsonc)."""
-    _copy_config(configs_dir / ".editorconfig", project_dir / ".editorconfig", force=force)
+    _copy_config(
+        configs_dir / ".editorconfig", project_dir / ".editorconfig", force=force
+    )
     _copy_config(
         configs_dir / ".markdownlint.jsonc",
         project_dir / ".markdownlint.jsonc",
@@ -154,7 +156,9 @@ def _setup_precommit(
     print()
     print(f"{GREEN}Setting up pre-commit...{NC}")
 
-    configure_pip_audit = not (project_dir / ".pre-commit-config.yaml").exists() or force
+    configure_pip_audit = (
+        not (project_dir / ".pre-commit-config.yaml").exists() or force
+    )
 
     # Generate pre-commit config via assemble module
     if (project_dir / ".pre-commit-config.yaml").exists() and not force:
@@ -193,7 +197,9 @@ def _setup_precommit(
                 baseline_path.write_text(result.stdout)
                 _print_ok(".secrets.baseline")
             else:
-                _print_warn("detect-secrets scan failed — create .secrets.baseline manually")
+                _print_warn(
+                    "detect-secrets scan failed — create .secrets.baseline manually"
+                )
         except FileNotFoundError:
             _print_warn("detect-secrets not found — create .secrets.baseline manually")
 
@@ -229,7 +235,9 @@ def _setup_precommit(
         shutil.copytree(src_configs, dst_configs)
         _print_ok("configs (base templates)")
     except FileNotFoundError:
-        _print_warn("configs directory not found — validate-generated-configs hook may fail")
+        _print_warn(
+            "configs directory not found — validate-generated-configs hook may fail"
+        )
 
     # Install Claude Code PreToolUse hooks
     _install_claude_hook()
@@ -298,7 +306,11 @@ def _configure_pip_audit(mode: str, project_dir: Path) -> None:
         _print_ok("Configured pip-audit for uv (-r requirements-audit.txt)")
 
     elif mode == "pip":
-        req_flag = "-r requirements.txt" if (project_dir / "requirements.txt").exists() else "."
+        req_flag = (
+            "-r requirements.txt"
+            if (project_dir / "requirements.txt").exists()
+            else "."
+        )
         block = f"""
 # pip-audit - CVE scanning for Python dependencies
 - repo: https://github.com/pypa/pip-audit
@@ -496,7 +508,9 @@ def _generate_from_registry(project_dir: Path) -> None:
         _print_warn("Config generation failed (check .guardrails-exceptions.toml)")
 
 
-def _install_ci_workflow(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+def _install_ci_workflow(
+    templates_dir: Path, project_dir: Path, *, force: bool
+) -> None:
     """Install check.yml CI workflow."""
     print()
     print(f"{GREEN}Setting up CI workflow...{NC}")
@@ -523,7 +537,9 @@ def _install_coderabbit(templates_dir: Path, project_dir: Path, *, force: bool) 
         _print_warn("CodeRabbit config template not found")
 
 
-def _install_guardrails_review(templates_dir: Path, project_dir: Path, *, force: bool) -> None:
+def _install_guardrails_review(
+    templates_dir: Path, project_dir: Path, *, force: bool
+) -> None:
     """Install guardrails-review config and workflow."""
     print()
     print(f"{GREEN}Setting up guardrails-review...{NC}")
@@ -654,7 +670,9 @@ def _dry_run_report(
         (install_coderabbit, "CodeRabbit config (.coderabbit.yaml)"),
     ]
     active = [
-        name for flag, name in _integration_names if flag == "yes" or (flag == "auto" and is_github)
+        name
+        for flag, name in _integration_names
+        if flag == "yes" or (flag == "auto" and is_github)
     ]
     if active:
         print(f"\n{GREEN}GitHub integrations:{NC}")
@@ -741,7 +759,9 @@ def run_init(
         for name in ALL_LANG_CONFIGS:
             _copy_config(configs_dir / name, project_dir / name, force=force)
     else:
-        _copy_language_configs(configs_dir, project_dir, languages=languages, force=force)
+        _copy_language_configs(
+            configs_dir, project_dir, languages=languages, force=force
+        )
 
     # Pre-commit
     if not skip_precommit:
@@ -769,7 +789,10 @@ def run_init(
 
     _github_integrations: list[tuple[str, typing.Callable[[Path, Path], None]]] = [
         (install_ci, lambda t, p: _install_ci_workflow(t, p, force=force)),
-        (install_guardrails_review, lambda t, p: _install_guardrails_review(t, p, force=force)),
+        (
+            install_guardrails_review,
+            lambda t, p: _install_guardrails_review(t, p, force=force),
+        ),
         (install_coderabbit, lambda t, p: _install_coderabbit(t, p, force=force)),
     ]
     for flag, installer in _github_integrations:
@@ -795,7 +818,9 @@ def run_init(
     return 0
 
 
-def _resolve_languages(project_type: str, configs_dir: Path, project_dir: Path) -> list[str]:
+def _resolve_languages(
+    project_type: str, configs_dir: Path, project_dir: Path
+) -> list[str]:
     """Determine which languages to configure."""
     if project_type == "all":
         return list(LANG_CONFIGS.keys())
@@ -814,13 +839,17 @@ def _resolve_languages(project_type: str, configs_dir: Path, project_dir: Path) 
             detected = detect_languages(project_dir, registry)
             if detected:
                 if len(detected) > 1:
-                    print(f"{BLUE}Detected multiple languages:{NC} {' '.join(detected)}")
+                    print(
+                        f"{BLUE}Detected multiple languages:{NC} {' '.join(detected)}"
+                    )
                 else:
                     print(f"{BLUE}Detected project type:{NC} {detected[0]}")
                 return detected
     except Exception:
         _log.debug("Language auto-detection failed", exc_info=True)
 
-    print(f"{YELLOW}No language detected - installing base config only (.editorconfig){NC}")
+    print(
+        f"{YELLOW}No language detected - installing base config only (.editorconfig){NC}"
+    )
     print(f"{YELLOW}Use --type or --all to install language-specific configs{NC}")
     return []

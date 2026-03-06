@@ -133,7 +133,9 @@ def check_hooks(project_dir: Path) -> CheckResult:
 
     missing = [h for h in HOOK_SCRIPTS if h not in deployed]
     return CheckResult(
-        Check.HOOKS, "warn", f"{count}/{total} hooks deployed (missing: {', '.join(missing)})"
+        Check.HOOKS,
+        "warn",
+        f"{count}/{total} hooks deployed (missing: {', '.join(missing)})",
     )
 
 
@@ -185,7 +187,9 @@ def check_agent_instructions(project_dir: Path) -> CheckResult:
         if filepath.exists():
             content = filepath.read_text()
             if _AGENT_MARKER in content:
-                return CheckResult(Check.AGENT_INSTRUCTIONS, "ok", f"Guardrails rules in {name}")
+                return CheckResult(
+                    Check.AGENT_INSTRUCTIONS, "ok", f"Guardrails rules in {name}"
+                )
 
     return CheckResult(
         Check.AGENT_INSTRUCTIONS,

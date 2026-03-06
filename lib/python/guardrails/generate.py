@@ -175,7 +175,10 @@ def _check_freshness(registry: ExceptionRegistry, project_path: Path) -> bool:
             for name in missing:
                 print(f"  - {name}", file=sys.stderr)
         if stale:
-            print(f"{RED}Stale generated configs (out of sync with registry):{NC}", file=sys.stderr)
+            print(
+                f"{RED}Stale generated configs (out of sync with registry):{NC}",
+                file=sys.stderr,
+            )
             for name in stale:
                 print(f"  - {name}", file=sys.stderr)
 
@@ -188,7 +191,10 @@ def _load_registry(project_path: Path) -> ExceptionRegistry | None:
     registry_path = project_path / REGISTRY_FILENAME
 
     if not registry_path.exists():
-        print(f"{RED}Error: {REGISTRY_FILENAME} not found in {project_path}{NC}", file=sys.stderr)
+        print(
+            f"{RED}Error: {REGISTRY_FILENAME} not found in {project_path}{NC}",
+            file=sys.stderr,
+        )
         print("Run 'ai-guardrails-init' to scaffold one.", file=sys.stderr)
         return None
 
@@ -243,7 +249,9 @@ def run_generate_configs(
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         try:
-            generated = _generate_to_dir(registry, project_path, tmp, languages=languages)
+            generated = _generate_to_dir(
+                registry, project_path, tmp, languages=languages
+            )
         except Exception as e:  # noqa: BLE001
             print(f"{RED}Error during config generation: {e}{NC}", file=sys.stderr)
             return False

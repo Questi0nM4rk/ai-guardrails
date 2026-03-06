@@ -317,7 +317,9 @@ def format_compact(threads: list[dict]) -> str:
         else _MIN_BOT_COL
     )
     loc_width = (
-        max(_MIN_LOC_COL, *(len(_thread_location(t)) for t in threads)) if threads else _MIN_LOC_COL
+        max(_MIN_LOC_COL, *(len(_thread_location(t)) for t in threads))
+        if threads
+        else _MIN_LOC_COL
     )
 
     for t in threads:
@@ -327,7 +329,9 @@ def format_compact(threads: list[dict]) -> str:
         preview = _truncate(t["body_preview"], COMPACT_PREVIEW_LENGTH)
         resolved = " [resolved]" if t["resolved"] else ""
 
-        lines.append(f"{tid}  {bot:<{bot_width}s} {loc:<{loc_width}s} {preview}{resolved}")
+        lines.append(
+            f"{tid}  {bot:<{bot_width}s} {loc:<{loc_width}s} {preview}{resolved}"
+        )
 
     return "\n".join(lines)
 
@@ -404,7 +408,9 @@ def fetch_threads(owner: str, repo: str, pr: int) -> list[dict]:
 
         result = _run_gh(*cmd)
         if result.returncode != 0:
-            print("Warning: Failed to fetch review threads via GraphQL", file=sys.stderr)
+            print(
+                "Warning: Failed to fetch review threads via GraphQL", file=sys.stderr
+            )
             break
 
         try:
@@ -481,7 +487,9 @@ def resolve_threads(
     for thread in threads:
         if reply_body:
             if thread["comment_id"]:
-                if not reply_to_thread(owner, repo, pr, thread["comment_id"], reply_body):
+                if not reply_to_thread(
+                    owner, repo, pr, thread["comment_id"], reply_body
+                ):
                     failed += 1
                     continue
             else:
@@ -534,7 +542,10 @@ def run_comments(
     if pr is None:
         pr = _get_pr_number()
         if pr is None:
-            print("Error: No PR found for current branch. Use --pr NUMBER", file=sys.stderr)
+            print(
+                "Error: No PR found for current branch. Use --pr NUMBER",
+                file=sys.stderr,
+            )
             return 1
 
     # Get repo info
@@ -590,7 +601,9 @@ def run_comments(
 
     # Handle resolve-all action
     if resolve_all:
-        if resolve_all_body is not None and not validate_resolve_message(resolve_all_body):
+        if resolve_all_body is not None and not validate_resolve_message(
+            resolve_all_body
+        ):
             cats = ", ".join(VALID_RESOLVE_CATEGORIES)
             print(
                 f"Error: Resolve message requires a valid category prefix: {cats}\n"

@@ -110,7 +110,11 @@ def main(argv: list[str] | None = None) -> int:
             continue
 
         try:
-            lines = Path(filepath).read_text(encoding="utf-8", errors="replace").splitlines()
+            lines = (
+                Path(filepath)
+                .read_text(encoding="utf-8", errors="replace")
+                .splitlines()
+            )
         except (OSError, UnicodeDecodeError):
             continue
 
@@ -144,7 +148,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if found_suppressions:
         print(f"{RED}========================================{NC}")
-        print(f"{RED}Found {suppression_pattern_count} suppression pattern(s) across files{NC}")
+        print(
+            f"{RED}Found {suppression_pattern_count} suppression pattern(s) across files{NC}"
+        )
         print(f"{RED}========================================{NC}")
         print()
         print("AI Guardrails philosophy: 'Everything is an error or it's ignored.'")

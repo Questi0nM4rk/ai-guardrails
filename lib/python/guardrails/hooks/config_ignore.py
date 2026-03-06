@@ -44,7 +44,9 @@ def _is_config_file(filename: str) -> bool:
 def _added_lines_for(filepath: str) -> list[str]:
     raw = _git("diff", "--cached", "-U0", filepath)
     return [
-        line for line in raw.splitlines() if line.startswith("+") and not line.startswith("+++")
+        line
+        for line in raw.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
     ]
 
 
@@ -71,7 +73,9 @@ def main() -> int:
         if not added:
             continue
 
-        detected = [line for line in added if re.search(IGNORE_PATTERN, line, re.IGNORECASE)]
+        detected = [
+            line for line in added if re.search(IGNORE_PATTERN, line, re.IGNORECASE)
+        ]
         if detected:
             found_violations = True
             print(f"{RED}ERROR: Ignore pattern detected in {filepath}{NC}")

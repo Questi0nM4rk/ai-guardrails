@@ -24,14 +24,26 @@ def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Set up pedantic code enforcement for a project",
         description="Initialize ai-guardrails configs, hooks, and CI for the current project.",
     )
-    p.add_argument("--type", dest="project_type", help="Project type (python, rust, node, ...)")
-    p.add_argument("--all", action="store_true", help="Copy ALL configs (multi-language)")
-    p.add_argument("--force", action="store_true", help="Overwrite existing config files")
+    p.add_argument(
+        "--type", dest="project_type", help="Project type (python, rust, node, ...)"
+    )
+    p.add_argument(
+        "--all", action="store_true", help="Copy ALL configs (multi-language)"
+    )
+    p.add_argument(
+        "--force", action="store_true", help="Overwrite existing config files"
+    )
     p.add_argument("--no-precommit", action="store_true", help="Skip pre-commit config")
-    p.add_argument("--pip-audit-pip", action="store_const", const="pip", dest="pip_audit")
+    p.add_argument(
+        "--pip-audit-pip", action="store_const", const="pip", dest="pip_audit"
+    )
     p.add_argument("--pip-audit-uv", action="store_const", const="uv", dest="pip_audit")
-    p.add_argument("--no-pip-audit", action="store_const", const="none", dest="pip_audit")
-    p.add_argument("--ci", action="store_true", default=None, help="Install CI workflow")
+    p.add_argument(
+        "--no-pip-audit", action="store_const", const="none", dest="pip_audit"
+    )
+    p.add_argument(
+        "--ci", action="store_true", default=None, help="Install CI workflow"
+    )
     p.add_argument("--no-ci", action="store_true", help="Skip CI workflow")
     p.add_argument(
         "--guardrails-review",
@@ -39,7 +51,9 @@ def _add_init_parser(subparsers: argparse._SubParsersAction) -> None:
         default=None,
         dest="guardrails_review",
     )
-    p.add_argument("--no-guardrails-review", action="store_true", dest="no_guardrails_review")
+    p.add_argument(
+        "--no-guardrails-review", action="store_true", dest="no_guardrails_review"
+    )
     p.add_argument("--coderabbit", action="store_true", default=None)
     p.add_argument("--no-coderabbit", action="store_true")
     p.add_argument(
@@ -58,7 +72,9 @@ def _add_generate_parser(subparsers: argparse._SubParsersAction) -> None:
     p.add_argument("project_dir", nargs="?", default=".", help="Project directory")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--dry-run", action="store_true", help="Validate registry only")
-    mode.add_argument("--check", action="store_true", help="Check if configs are up to date")
+    mode.add_argument(
+        "--check", action="store_true", help="Check if configs are up to date"
+    )
 
 
 def _add_comments_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -68,9 +84,13 @@ def _add_comments_parser(subparsers: argparse._SubParsersAction) -> None:
         description="Universal PR review comments — list, reply, and resolve threads.",
     )
     p.add_argument("--pr", type=int, help="PR number (default: current branch)")
-    p.add_argument("--bot", "-b", help="Filter by bot (comma-separated: coderabbit,claude,...)")
+    p.add_argument(
+        "--bot", "-b", help="Filter by bot (comma-separated: coderabbit,claude,...)"
+    )
     p.add_argument("--all", "-a", action="store_true", help="Include resolved threads")
-    p.add_argument("--json", action="store_true", help="Output full JSON instead of compact")
+    p.add_argument(
+        "--json", action="store_true", help="Output full JSON instead of compact"
+    )
     action = p.add_mutually_exclusive_group()
     action.add_argument(
         "--reply",
@@ -101,7 +121,9 @@ def _add_status_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Check project health and configuration status",
         description="Report the status of hooks, configs, dependencies, and integrations.",
     )
-    p.add_argument("--json", action="store_true", help="Output JSON instead of human-readable")
+    p.add_argument(
+        "--json", action="store_true", help="Output JSON instead of human-readable"
+    )
 
 
 def _resolve_flag(args: argparse.Namespace, name: str) -> str:
@@ -190,7 +212,9 @@ def main(argv: list[str] | None = None) -> int:
         prog="ai-guardrails",
         description="Pedantic code enforcement for AI-maintained repositories",
     )
-    parser.add_argument("--version", action="version", version=f"%(prog)s {_get_version()}")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {_get_version()}"
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
     _add_init_parser(subparsers)
