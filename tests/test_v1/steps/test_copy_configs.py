@@ -75,7 +75,7 @@ def test_copy_copies_language_config_files(tmp_path: Path) -> None:
     step = CopyConfigsStep(configs_dir=configs_dir)
     result = step.execute(ctx)
     assert result.status == "ok"
-    assert (project_dir / "rustfmt.toml") in [dst for _, dst in fm.copied]
+    assert (project_dir / "rustfmt.toml") in [dst for dst, _ in fm.written]
 
 
 def test_copy_skips_existing_file_without_force(tmp_path: Path) -> None:
@@ -94,7 +94,7 @@ def test_copy_skips_existing_file_without_force(tmp_path: Path) -> None:
     step = CopyConfigsStep(configs_dir=configs_dir)
     result = step.execute(ctx)
     assert result.status == "skip"
-    assert not fm.copied
+    assert not fm.written
 
 
 def test_copy_overwrites_with_force(tmp_path: Path) -> None:
@@ -113,7 +113,7 @@ def test_copy_overwrites_with_force(tmp_path: Path) -> None:
     step = CopyConfigsStep(configs_dir=configs_dir)
     result = step.execute(ctx)
     assert result.status == "ok"
-    assert (project_dir / "rustfmt.toml") in [dst for _, dst in fm.copied]
+    assert (project_dir / "rustfmt.toml") in [dst for dst, _ in fm.written]
 
 
 def test_copy_skips_config_not_in_configs_dir(tmp_path: Path) -> None:

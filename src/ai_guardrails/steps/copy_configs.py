@@ -2,6 +2,8 @@
 
 Handles configs that don't go through generators (rustfmt.toml, .clang-format,
 stylua.toml, .clang-tidy, Directory.Build.props, .globalconfig).
+Prepends an ai-guardrails hash header so configs are tracked by the freshness
+system. XML files (.props) are copied without a hash header.
 Skips existing files unless force=True.
 """
 
@@ -9,12 +11,31 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from ai_guardrails.generators.base import (
+    HASH_HEADER_PREFIX,
+    JSONC_HASH_HEADER_PREFIX,
+    compute_hash,
+)
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from ai_guardrails.pipelines.base import PipelineContext
+
+# File extensions that cannot carry a hash header (no single-line comment syntax)
+_NO_HASH_EXTENSIONS = frozenset({".props", ".xml"})
+
+
+def _hash_header_for(filename: str, body: str) -> str | None:
+    """Return the hash header line for *filename*, or None to skip protection."""
+    for ext in _NO_HASH_EXTENSIONS:
+        if filename.endswith(ext):
+            return None
+    h = compute_hash(body)
+    if filename.endswith(".json"):
+        return f"{JSONC_HASH_HEADER_PREFIX}{h}"
+    return f"{HASH_HEADER_PREFIX}{h}"
 
 
 class CopyConfigsStep:
@@ -49,7 +70,10 @@ class CopyConfigsStep:
                     skipped.append(config_file)
                     continue
 
-                ctx.file_manager.copy(src, dst)
+                body = ctx.file_manager.read_text(src)
+                header = _hash_header_for(config_file, body)
+                content = f"{header}\n{body}" if header is not None else body
+                ctx.file_manager.write_text(dst, content)
                 copied.append(config_file)
 
         if not copied and skipped:
