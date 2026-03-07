@@ -9,6 +9,8 @@ registry (it uses its own baseline file, not the exception allowlist).
 from __future__ import annotations
 
 from dataclasses import dataclass
+import datetime
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -80,4 +82,20 @@ class CheckPipeline:
         ]
 
         pipeline = Pipeline(steps=steps)
-        return pipeline.run(ctx)
+        results = pipeline.run(ctx)
+
+        check_result = next(
+            (r for r in results if r.status in ("ok", "error", "skip")), None
+        )
+        if check_result and check_result.status != "skip":
+            status = "ok" if check_result.status == "ok" else "error"
+            record = {
+                "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+                "command": "check",
+                "new_issues": sum(1 for r in results if r.status == "error"),
+                "status": status,
+            }
+            audit_path = project_dir / ".guardrails-audit.jsonl"
+            file_manager.append_text(audit_path, json.dumps(record) + "\n")
+
+        return results
