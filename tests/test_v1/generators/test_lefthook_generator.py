@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_guardrails.generators.lefthook import LefthookGenerator
 import yaml
 
 from ai_guardrails.generators.base import (
@@ -12,6 +11,7 @@ from ai_guardrails.generators.base import (
     compute_hash,
     parse_hash_header,
 )
+from ai_guardrails.generators.lefthook import LefthookGenerator
 from ai_guardrails.models.registry import ExceptionRegistry
 
 

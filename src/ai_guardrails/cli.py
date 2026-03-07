@@ -15,6 +15,7 @@ from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.infra.console import Console
 from ai_guardrails.infra.file_manager import FileManager
 from ai_guardrails.infra.prompt_ui import is_tty
+from ai_guardrails.pipelines.check_pipeline import CheckOptions, CheckPipeline
 from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GeneratePipeline
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
@@ -38,7 +39,11 @@ _CUSTOM_PLUGINS_DIR = _GLOBAL_CONFIG_DIR / "plugins"
 
 
 def _resolve_project_dir(project_dir: Path | None) -> Path:
-    """Resolve and validate the project directory is a git repo."""
+    """Resolve and validate the project directory is a git repo.
+
+    Accepts both normal repos (.git is a directory) and git worktrees
+    (.git is a file pointing at the main repo's worktree state).
+    """
     resolved = (project_dir or Path.cwd()).resolve()
     if not (resolved / ".git").exists():
         raise SystemExit(
@@ -202,3 +207,38 @@ def status(*, project_dir: Path | None = None) -> None:
         console=console,
     )
     _print_results(results, console)
+
+
+@app.command
+def check(
+    *,
+    project_dir: Path | None = None,
+    baseline: Path | None = None,
+) -> None:
+    """Run linters and compare against baseline. Fails if new issues found.
+
+    Reads .guardrails-baseline.json (or --baseline) and runs configured linters
+    for detected languages. New issues — those whose fingerprint is not recorded
+    in the baseline — cause exit code 1. Baseline issues are suppressed.
+
+    Use 'ai-guardrails snapshot' to capture the current state as a new baseline.
+    """
+    resolved = _resolve_project_dir(project_dir)
+    options = CheckOptions(baseline_file=baseline)
+    custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
+    pipeline = CheckPipeline(
+        options=options,
+        data_dir=_DATA_DIR,
+        custom_plugins_dir=custom_dir,
+    )
+    fm, runner, loader, console = _make_infra()
+    results = pipeline.run(
+        project_dir=resolved,
+        file_manager=fm,
+        command_runner=runner,
+        config_loader=loader,
+        console=console,
+    )
+    _print_results(results, console)
+    if any(r.status == "error" for r in results):
+        raise SystemExit(1)
