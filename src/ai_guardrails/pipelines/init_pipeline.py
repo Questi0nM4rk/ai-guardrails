@@ -50,6 +50,7 @@ class InitOptions:
     dry_run: bool = False
     profile: str = "standard"
     interactive: bool = False
+    upgrade: bool = False
 
 
 class InitPipeline:
@@ -75,6 +76,25 @@ class InitPipeline:
 
     def _get_plugins(self) -> list[LanguagePlugin]:
         return discover_plugins(self._data_dir, custom_dir=self._custom_plugins_dir)
+
+    def _resolve_optional_flags(self) -> tuple[bool, bool, bool]:
+        """Return (run_hooks, run_ci, run_agent) after applying interactive prompts."""
+        run_hooks = not self._options.no_hooks
+        run_ci = not self._options.no_ci
+        run_agent = not self._options.no_agent_instructions
+
+        if self._options.interactive:
+            try:
+                if run_hooks:
+                    run_hooks = ask_yes_no("Install lefthook hooks?")
+                if run_ci:
+                    run_ci = ask_yes_no("Generate CI workflow?")
+                if run_agent:
+                    run_agent = ask_yes_no("Install Claude Code agent instructions?")
+            except EOFError:
+                pass  # non-TTY pipe with --interactive: use defaults
+
+        return run_hooks, run_ci, run_agent
 
     def run(
         self,
@@ -105,25 +125,17 @@ class InitPipeline:
         steps: list = [
             DetectLanguagesStep(plugins=plugins),
             CopyConfigsStep(configs_dir=self._configs_dir),
-            ScaffoldRegistryStep(template_path=self._registry_template),
+        ]
+
+        if not self._options.upgrade:
+            steps.append(ScaffoldRegistryStep(template_path=self._registry_template))
+
+        steps += [
             LoadRegistryStep(),
             GenerateConfigsStep(),
         ]
 
-        run_hooks = not self._options.no_hooks
-        run_ci = not self._options.no_ci
-        run_agent = not self._options.no_agent_instructions
-
-        if self._options.interactive:
-            try:
-                if run_hooks:
-                    run_hooks = ask_yes_no("Install lefthook hooks?")
-                if run_ci:
-                    run_ci = ask_yes_no("Generate CI workflow?")
-                if run_agent:
-                    run_agent = ask_yes_no("Install Claude Code agent instructions?")
-            except EOFError:
-                pass  # non-TTY pipe with --interactive: use defaults
+        run_hooks, run_ci, run_agent = self._resolve_optional_flags()
 
         if run_hooks:
             steps.append(SetupHooksStep())

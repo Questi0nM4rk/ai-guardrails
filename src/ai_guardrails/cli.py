@@ -111,6 +111,7 @@ def init(
     dry_run: bool = False,
     profile: str = "standard",
     interactive: bool | None = None,
+    upgrade: bool = False,
 ) -> None:
     """Initialize ai-guardrails in the current project.
 
@@ -121,6 +122,7 @@ def init(
     Use --profile to select an enforcement posture: minimal, standard (default), strict.
     Use --interactive / --no-interactive to force or suppress Y/N prompts.
     When omitted, prompts appear only when running in an interactive terminal.
+    Use --upgrade to re-run without overwriting the existing exception registry.
     """
     resolved = _resolve_project_dir(project_dir)
     run_interactive = interactive if interactive is not None else is_tty()
@@ -132,6 +134,7 @@ def init(
         dry_run=dry_run,
         profile=profile,
         interactive=run_interactive,
+        upgrade=upgrade,
     )
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = InitPipeline(
