@@ -196,3 +196,74 @@ def test_print_results_skip_branch() -> None:
     """Verify _print_results handles skip status."""
     console = Console()
     _print_results([StepResult(status="skip", message="test skip")], console)
+
+
+# ---------------------------------------------------------------------------
+# Interactive init flag
+# ---------------------------------------------------------------------------
+
+
+def test_init_interactive_true_sets_options_interactive(tmp_path: Path) -> None:
+    """--interactive passes interactive=True to InitOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=True)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is True
+
+
+def test_init_no_interactive_sets_options_interactive_false(tmp_path: Path) -> None:
+    """--no-interactive passes interactive=False to InitOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=False)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is False
+
+
+def test_init_interactive_auto_detect_uses_is_tty(tmp_path: Path) -> None:
+    """When interactive=None, is_tty() determines interactive mode."""
+    (tmp_path / ".git").mkdir()
+
+    with (
+        patch("ai_guardrails.cli.InitPipeline") as mock_cls,
+        patch("ai_guardrails.cli.is_tty", return_value=True),
+    ):
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=None)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is True
+
+
+def test_init_interactive_auto_detect_non_tty(tmp_path: Path) -> None:
+    """When interactive=None and not a TTY, interactive is False."""
+    (tmp_path / ".git").mkdir()
+
+    with (
+        patch("ai_guardrails.cli.InitPipeline") as mock_cls,
+        patch("ai_guardrails.cli.is_tty", return_value=False),
+    ):
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=None)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is False
