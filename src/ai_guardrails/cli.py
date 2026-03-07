@@ -237,6 +237,7 @@ def check(
     *,
     project_dir: Path | None = None,
     baseline: Path | None = None,
+    output_format: str = "text",
 ) -> None:
     """Run linters and compare against baseline. Fails if new issues found.
 
@@ -244,10 +245,11 @@ def check(
     for detected languages. New issues — those whose fingerprint is not recorded
     in the baseline — cause exit code 1. Baseline issues are suppressed.
 
+    Use --output-format sarif to emit SARIF 2.1.0 JSON to stdout (GitHub Code Scanning).
     Use 'ai-guardrails snapshot' to capture the current state as a new baseline.
     """
     resolved = _resolve_project_dir(project_dir)
-    options = CheckOptions(baseline_file=baseline)
+    options = CheckOptions(baseline_file=baseline, output_format=output_format)
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = CheckPipeline(
         options=options,
