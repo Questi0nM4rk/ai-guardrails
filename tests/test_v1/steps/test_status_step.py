@@ -132,7 +132,7 @@ def test_status_step_always_returns_ok(tmp_path: Path) -> None:
 
 def test_status_step_shows_fresh_configs(tmp_path: Path) -> None:
     """Fresh plugin generates no issues — output says 'fresh'."""
-    step = StatusStep()
+    step = StatusStep(generators=[])  # isolate: test plugin-driven status only
     runner = FakeCommandRunner()
     runner.register(["lefthook", "version"], returncode=0, stdout="lefthook 1.13.6")
     ctx, console = _make_context(

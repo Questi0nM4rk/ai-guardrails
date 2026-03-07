@@ -6,7 +6,7 @@ import json
 from typing import TYPE_CHECKING
 
 from ai_guardrails.constants import GENERATED_CONFIGS
-from ai_guardrails.generators.base import HASH_HEADER_PREFIX, verify_hash
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX
 from ai_guardrails.languages.universal import UniversalPlugin
 from ai_guardrails.models.registry import ExceptionRegistry
 
@@ -88,10 +88,12 @@ def test_universal_plugin_name(tmp_path: Path) -> None:
 def test_universal_plugin_generated_configs_includes_expected(tmp_path: Path) -> None:
     plugin = UniversalPlugin(tmp_path)
     configs = plugin.generated_configs
-    assert ".editorconfig" in configs
-    assert ".markdownlint.jsonc" in configs
+    # UniversalPlugin exclusively owns .codespellrc and .claude/settings.json.
+    # .editorconfig and .markdownlint.jsonc are owned by standalone generators.
     assert ".codespellrc" in configs
     assert ".claude/settings.json" in configs
+    assert ".editorconfig" not in configs
+    assert ".markdownlint.jsonc" not in configs
 
 
 def test_universal_plugin_copy_files_is_empty(tmp_path: Path) -> None:
@@ -114,79 +116,6 @@ def test_universal_detect_true_for_empty_dir(tmp_path: Path) -> None:
     empty.mkdir()
     plugin = UniversalPlugin(tmp_path)
     assert plugin.detect(empty) is True
-
-
-# ---------------------------------------------------------------------------
-# generate() — editorconfig
-# ---------------------------------------------------------------------------
-
-
-def test_generate_produces_editorconfig(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    outputs = plugin.generate(_empty_registry(), project_dir)
-    assert project_dir / ".editorconfig" in outputs
-
-
-def test_editorconfig_has_hash_header(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    outputs = plugin.generate(_empty_registry(), project_dir)
-    content = outputs[project_dir / ".editorconfig"]
-    assert content.startswith(HASH_HEADER_PREFIX)
-
-
-def test_editorconfig_hash_is_valid(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    outputs = plugin.generate(_empty_registry(), project_dir)
-    full = outputs[project_dir / ".editorconfig"]
-    body = full.split("\n", 1)[1]
-    assert verify_hash(full, body)
-
-
-# ---------------------------------------------------------------------------
-# generate() — markdownlint
-# ---------------------------------------------------------------------------
-
-
-def test_generate_produces_markdownlint(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    outputs = plugin.generate(_empty_registry(), project_dir)
-    assert project_dir / ".markdownlint.jsonc" in outputs
-
-
-def test_markdownlint_has_hash_header(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    outputs = plugin.generate(_empty_registry(), project_dir)
-    content = outputs[project_dir / ".markdownlint.jsonc"]
-    assert content.startswith("// ai-guardrails:hash:sha256:")
-
-
-def test_markdownlint_merges_registry_ignores(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    registry = _registry_with_markdownlint_ignore(["MD001", "MD013"])
-    outputs = plugin.generate(registry, project_dir)
-    content = outputs[project_dir / ".markdownlint.jsonc"]
-    body = content.split("\n", 1)[1]
-    parsed = json.loads(body)
-    assert parsed.get("MD001") is False
-    assert parsed.get("MD013") is False
 
 
 # ---------------------------------------------------------------------------
@@ -356,26 +285,6 @@ def test_check_returns_empty_when_fresh(tmp_path: Path) -> None:
     assert plugin.check(registry, project_dir) == []
 
 
-def test_check_reports_missing_editorconfig(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    issues = plugin.check(_empty_registry(), project_dir)
-    missing = [i for i in issues if ".editorconfig" in i]
-    assert len(missing) >= 1
-
-
-def test_check_reports_missing_markdownlint(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    issues = plugin.check(_empty_registry(), project_dir)
-    missing = [i for i in issues if ".markdownlint.jsonc" in i]
-    assert len(missing) >= 1
-
-
 def test_check_reports_missing_codespellrc(tmp_path: Path) -> None:
     data_dir = _make_data_dir(tmp_path)
     plugin = UniversalPlugin(data_dir)
@@ -384,43 +293,6 @@ def test_check_reports_missing_codespellrc(tmp_path: Path) -> None:
     issues = plugin.check(_empty_registry(), project_dir)
     missing = [i for i in issues if ".codespellrc" in i]
     assert len(missing) >= 1
-
-
-def test_check_reports_tampered_editorconfig(tmp_path: Path) -> None:
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    registry = _empty_registry()
-    outputs = plugin.generate(registry, project_dir)
-    for path, content in outputs.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
-    # Tamper with editorconfig
-    (project_dir / ".editorconfig").write_text("# tampered\n[*]\nindent_size = 2\n")
-    issues = plugin.check(registry, project_dir)
-    tampered = [i for i in issues if ".editorconfig" in i]
-    assert len(tampered) >= 1
-
-
-def test_check_markdownlint_detects_tampered_body(tmp_path: Path) -> None:
-    """Appending to markdownlint body must be detected even when header hash matches."""
-    data_dir = _make_data_dir(tmp_path)
-    plugin = UniversalPlugin(data_dir)
-    project_dir = tmp_path / "project"
-    project_dir.mkdir()
-    registry = _empty_registry()
-    outputs = plugin.generate(registry, project_dir)
-    for path, content in outputs.items():
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content)
-    # Append tamper content after the body (header stays intact)
-    target = project_dir / ".markdownlint.jsonc"
-    original = target.read_text()
-    target.write_text(original + "TAMPERED")
-    issues = plugin.check(registry, project_dir)
-    tampered = [i for i in issues if ".markdownlint.jsonc" in i]
-    assert len(tampered) >= 1
 
 
 def test_check_claude_settings_detects_tampered_body(tmp_path: Path) -> None:
