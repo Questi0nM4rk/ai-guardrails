@@ -51,18 +51,6 @@ def test_shell_copy_files_is_empty(tmp_path: Path) -> None:
     assert ShellPlugin(tmp_path).copy_files == []
 
 
-def test_shell_hook_config_has_format_command(tmp_path: Path) -> None:
-    config = ShellPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "shell-format-and-stage" in commands
-
-
-def test_shell_hook_config_has_shellcheck(tmp_path: Path) -> None:
-    config = ShellPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "shellcheck" in commands
-
-
 def test_shell_generate_returns_empty(tmp_path: Path) -> None:
     outputs = ShellPlugin(tmp_path).generate(_empty_registry(), tmp_path)
     assert outputs == {}

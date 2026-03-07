@@ -98,26 +98,6 @@ def test_node_generated_configs_is_empty(tmp_path: Path) -> None:
     assert plugin.generated_configs == []
 
 
-def test_node_hook_config_has_pre_commit(tmp_path: Path) -> None:
-    plugin = NodePlugin(tmp_path)
-    config = plugin.hook_config()
-    assert "pre-commit" in config
-
-
-def test_node_hook_config_has_format_command(tmp_path: Path) -> None:
-    plugin = NodePlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "node-format-and-stage" in commands
-
-
-def test_node_hook_config_has_biome_check(tmp_path: Path) -> None:
-    plugin = NodePlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "biome-check" in commands
-
-
 def test_node_generate_returns_empty(tmp_path: Path) -> None:
     """NodePlugin uses copy_files not generate()."""
     plugin = NodePlugin(tmp_path)

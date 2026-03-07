@@ -343,52 +343,6 @@ def test_claude_settings_json_in_generated_configs() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_hook_config_returns_dict(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    assert isinstance(config, dict)
-
-
-def test_hook_config_has_pre_commit(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    assert "pre-commit" in config
-
-
-def test_hook_config_has_suppress_comments_command(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "suppress-comments" in commands
-
-
-def test_hook_config_has_protect_configs_command(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "protect-configs" in commands
-
-
-def test_hook_config_has_codespell_command(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "codespell" in commands
-
-
-def test_hook_config_has_markdownlint_command(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "markdownlint" in commands
-
-
-def test_hook_config_has_commit_msg_section(tmp_path: Path) -> None:
-    plugin = UniversalPlugin(tmp_path)
-    config = plugin.hook_config()
-    assert "commit-msg" in config
-
-
 # ---------------------------------------------------------------------------
 # check() — validates generated files
 # ---------------------------------------------------------------------------

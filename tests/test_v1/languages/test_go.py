@@ -51,18 +51,6 @@ def test_go_copy_files_is_empty(tmp_path: Path) -> None:
     assert GoPlugin(tmp_path).copy_files == []
 
 
-def test_go_hook_config_has_format_command(tmp_path: Path) -> None:
-    config = GoPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "go-format-and-stage" in commands
-
-
-def test_go_hook_config_has_go_vet(tmp_path: Path) -> None:
-    config = GoPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "go-vet" in commands
-
-
 def test_go_generate_returns_empty(tmp_path: Path) -> None:
     outputs = GoPlugin(tmp_path).generate(_empty_registry(), tmp_path)
     assert outputs == {}

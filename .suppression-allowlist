@@ -67,8 +67,14 @@ languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
 # BLE001: Loading arbitrary user-provided plugin modules requires broad Exception catch.
 # User plugins can raise literally any exception on import or instantiation.
 # The exception is logged with exc_info=True before being swallowed.
+# type: ignore[union-attr]: spec.loader is checked for None above, but pyright can't track it.
+# type: ignore[call-arg]: dynamic plugin instantiation — cls(data_dir) not known to type checker.
+# type: ignore[misc]: runtime_checkable Protocol isinstance check; pyright flags as redundant.
 # ---------------------------------------------------------------------------
 languages/_registry\.py:\d+:.*# noqa: BLE001
+languages/_registry\.py:\d+:.*# type: ignore\[union-attr\]
+languages/_registry\.py:\d+:.*# type: ignore\[call-arg\]
+languages/_registry\.py:\d+:.*# type: ignore\[misc\]
 
 # ---------------------------------------------------------------------------
 # tests/ — type: ignore in test files

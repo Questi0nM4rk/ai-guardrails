@@ -58,18 +58,6 @@ def test_cpp_copy_files_includes_expected(tmp_path: Path) -> None:
     assert ".clang-tidy" in copy
 
 
-def test_cpp_hook_config_has_format_command(tmp_path: Path) -> None:
-    config = CppPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "clang-format-and-stage" in commands
-
-
-def test_cpp_hook_config_has_clang_tidy(tmp_path: Path) -> None:
-    config = CppPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "clang-tidy" in commands
-
-
 def test_cpp_generate_returns_empty(tmp_path: Path) -> None:
     outputs = CppPlugin(tmp_path).generate(_empty_registry(), tmp_path)
     assert outputs == {}

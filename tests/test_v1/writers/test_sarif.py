@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import json
 
-from ai_guardrails.writers.sarif import build_sarif
-
 from ai_guardrails.models.lint_issue import LintIssue
+from ai_guardrails.writers.sarif import build_sarif
 
 
 def _issue(rule: str = "UP007", file: str = "src/foo.py", line: int = 10) -> LintIssue:

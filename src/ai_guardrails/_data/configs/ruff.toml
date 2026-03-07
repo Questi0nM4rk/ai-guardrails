@@ -12,6 +12,7 @@ indent-width = 4
 # Strict: never auto-fix, force manual review
 fix = false
 unsafe-fixes = false
+exclude = ["tests/fixtures"]
 
 [lint]
 # Enable ALL rules, then ignore categories that are redundant or too noisy.

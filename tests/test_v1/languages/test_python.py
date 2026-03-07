@@ -206,39 +206,6 @@ def test_generate_ruff_toml_ignores_are_sorted(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_python_hook_config_returns_dict(tmp_path: Path) -> None:
-    plugin = PythonPlugin(tmp_path)
-    config = plugin.hook_config()
-    assert isinstance(config, dict)
-
-
-def test_python_hook_config_has_pre_commit(tmp_path: Path) -> None:
-    plugin = PythonPlugin(tmp_path)
-    config = plugin.hook_config()
-    assert "pre-commit" in config
-
-
-def test_python_hook_config_has_format_command(tmp_path: Path) -> None:
-    plugin = PythonPlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "python-format-and-stage" in commands
-
-
-def test_python_hook_config_has_ruff_check(tmp_path: Path) -> None:
-    plugin = PythonPlugin(tmp_path)
-    config = plugin.hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "ruff-check" in commands
-
-
-def test_python_hook_config_format_has_priority_1(tmp_path: Path) -> None:
-    plugin = PythonPlugin(tmp_path)
-    config = plugin.hook_config()
-    fmt_cmd = config["pre-commit"]["commands"]["python-format-and-stage"]
-    assert fmt_cmd["priority"] == 1
-
-
 # ---------------------------------------------------------------------------
 # check()
 # ---------------------------------------------------------------------------

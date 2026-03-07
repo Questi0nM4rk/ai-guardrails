@@ -11,10 +11,11 @@ Each language plugin encapsulates:
 
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003  # used at runtime in glob and Protocol
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ai_guardrails.models.registry import ExceptionRegistry
 
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -110,8 +111,8 @@ class BaseLanguagePlugin:
 
     def generate(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> dict[Path, str]:
         """Return empty dict — subclasses override to generate files."""
         return {}
@@ -122,8 +123,8 @@ class BaseLanguagePlugin:
 
     def check(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> list[str]:
         """Return empty list — subclasses override to validate generated files."""
         return []

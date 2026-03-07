@@ -118,14 +118,15 @@ def test_lefthook_generator_includes_validate_configs(tmp_path: Path) -> None:
     assert "validate-configs" in commands
 
 
-def test_lefthook_generator_python_adds_ruff(tmp_path: Path) -> None:
-    """Python language adds ruff-check and python-format-and-stage hooks."""
+def test_lefthook_generator_python_adds_guardrails_check(tmp_path: Path) -> None:
+    """Python language adds guardrails-check and python-format-and-stage hooks."""
     gen = LefthookGenerator()
     registry = _registry()
     outputs = gen.generate(registry, ["python"], tmp_path)
     parsed = _parse_body(outputs[Path("lefthook.yml")])
     commands = parsed["pre-commit"]["commands"]
-    assert "ruff-check" in commands
+    assert "guardrails-check" in commands
+    assert "python-format-and-stage" in commands
 
 
 def test_lefthook_generator_shell_adds_shellcheck(tmp_path: Path) -> None:

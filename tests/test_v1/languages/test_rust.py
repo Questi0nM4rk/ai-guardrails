@@ -51,18 +51,6 @@ def test_rust_copy_files_includes_rustfmt(tmp_path: Path) -> None:
     assert "rustfmt.toml" in RustPlugin(tmp_path).copy_files
 
 
-def test_rust_hook_config_has_format_command(tmp_path: Path) -> None:
-    config = RustPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "rust-format-and-stage" in commands
-
-
-def test_rust_hook_config_has_clippy(tmp_path: Path) -> None:
-    config = RustPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "cargo-clippy" in commands
-
-
 def test_rust_generate_returns_empty(tmp_path: Path) -> None:
     outputs = RustPlugin(tmp_path).generate(_empty_registry(), tmp_path)
     assert outputs == {}

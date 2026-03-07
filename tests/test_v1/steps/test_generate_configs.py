@@ -186,36 +186,6 @@ def test_generate_configs_lefthook_has_hash_header(tmp_path: Path) -> None:
     assert lefthook_content.startswith(HASH_HEADER_PREFIX)
 
 
-def test_generate_configs_merges_multiple_plugin_hooks(tmp_path: Path) -> None:
-    universal_hooks = {
-        "pre-commit": {
-            "commands": {
-                "codespell": {"run": "codespell {staged_files}", "priority": 2}
-            }
-        }
-    }
-    python_hooks = {
-        "pre-commit": {
-            "commands": {
-                "ruff-check": {"run": "ruff check {staged_files}", "priority": 2}
-            }
-        }
-    }
-    p1 = _FakePlugin("universal", [], hooks=universal_hooks)
-    p2 = _FakePlugin("python", ["ruff.toml"], hooks=python_hooks)
-    step = GenerateConfigsStep()
-    ctx, fm = _make_context(tmp_path, languages=[p1, p2])
-    step.execute(ctx)
-    lefthook_content = next(
-        content for path, content in fm.written if path.name == "lefthook.yml"
-    )
-    body = lefthook_content.split("\n", 1)[1]
-    parsed = yaml.safe_load(body)
-    commands = parsed["pre-commit"]["commands"]
-    assert "codespell" in commands
-    assert "ruff-check" in commands
-
-
 def test_generate_configs_creates_parent_directories(tmp_path: Path) -> None:
     plugin = _FakePlugin("settings", [".claude/settings.json"])
     step = GenerateConfigsStep()

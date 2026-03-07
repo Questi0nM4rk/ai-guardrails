@@ -29,7 +29,10 @@ class SnapshotStep:
         self._baseline_file = baseline_file
         self._dry_run = dry_run
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         """No preconditions."""
         return []
 

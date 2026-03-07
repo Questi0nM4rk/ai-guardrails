@@ -24,7 +24,10 @@ class GenerateAgentRulesStep:
     def __init__(self, generator: AgentRulesGenerator | None = None) -> None:
         self._generator = generator or AgentRulesGenerator()
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

@@ -27,7 +27,10 @@ class SetupAgentInstructionsStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         if not self._template.exists():
             return [f"Agent instructions template not found: {self._template}"]
         return []

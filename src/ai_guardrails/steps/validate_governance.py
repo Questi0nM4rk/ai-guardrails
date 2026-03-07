@@ -24,7 +24,10 @@ class ValidateGovernanceStep:
 
     name = "validate-governance"
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

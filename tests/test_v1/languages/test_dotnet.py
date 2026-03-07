@@ -53,18 +53,6 @@ def test_dotnet_copy_files_includes_expected(tmp_path: Path) -> None:
     assert ".globalconfig" in copy
 
 
-def test_dotnet_hook_config_has_format_command(tmp_path: Path) -> None:
-    config = DotnetPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "dotnet-format-and-stage" in commands
-
-
-def test_dotnet_hook_config_has_build(tmp_path: Path) -> None:
-    config = DotnetPlugin(tmp_path).hook_config()
-    commands = config["pre-commit"]["commands"]
-    assert "dotnet-build" in commands
-
-
 def test_dotnet_generate_returns_empty(tmp_path: Path) -> None:
     outputs = DotnetPlugin(tmp_path).generate(_empty_registry(), tmp_path)
     assert outputs == {}

@@ -14,7 +14,10 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ai_guardrails.hooks.allow_comment import parse_allow_comment
+from ai_guardrails.hooks.allow_comment import (
+    get_bare_allowed_rules,
+    parse_allow_comment,
+)
 from ai_guardrails.models.baseline import BaselineEntry, BaselineStatus
 from ai_guardrails.models.lint_issue import LintIssue
 from ai_guardrails.pipelines.base import StepResult
@@ -48,7 +51,10 @@ class CheckStep:
         self._baseline_file = baseline_file
         self.new_issues: list[LintIssue] = []
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         """No preconditions — baseline absence is handled gracefully in execute."""
         return []
 
@@ -119,7 +125,9 @@ class CheckStep:
 
         return (issues, allow_count) if supported else None
 
-    def _run_ruff(self, ctx: PipelineContext) -> tuple[list[LintIssue], int]:
+    def _run_ruff(  # ai-guardrails-allow: PLR0915, E501 "ruff output parsing has many required branches"
+        self, ctx: PipelineContext
+    ) -> tuple[list[LintIssue], int]:
         """Invoke ruff and parse JSON output into LintIssue list."""
         result = ctx.command_runner.run(
             [
@@ -171,6 +179,32 @@ class CheckStep:
             allowed = parse_allow_comment(line_content)
             if rule in allowed:
                 allow_count += 1
+                continue
+
+            bare = get_bare_allowed_rules(line_content)
+            if rule in bare:
+                # Bare allow comment (no reason) → report AI001 instead of original rule
+                ai_fp = LintIssue.compute_fingerprint(
+                    rule="AI001",
+                    file=file_path,
+                    line_content=line_content,
+                    context_before=context_before,
+                    context_after=context_after,
+                )
+                issues.append(
+                    LintIssue(
+                        rule="AI001",
+                        linter="ai-guardrails",
+                        file=file_path,
+                        line=line,
+                        col=col,
+                        message=(
+                            f'ai-guardrails-allow on "{rule}": '
+                            'missing quoted reason — add "reason text"'
+                        ),
+                        fingerprint=ai_fp,
+                    )
+                )
                 continue
 
             issues.append(

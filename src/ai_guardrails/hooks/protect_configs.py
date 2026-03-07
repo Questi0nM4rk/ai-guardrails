@@ -25,7 +25,7 @@ from ai_guardrails.generators.base import compute_hash
 from ai_guardrails.hooks._utils import has_hash_header
 
 
-def check_tool_input(  # noqa: PLR0911
+def check_tool_input(  # ai-guardrails-allow: PLR0911, E501 "multiple early-return guard clauses"
     tool_input: dict[str, str],
     *,
     project_dir: Path | None = None,
