@@ -261,3 +261,70 @@ def test_check_step_validate_always_passes(tmp_path: Path) -> None:
     ctx = _make_context(tmp_path, FakeCommandRunner())
     errors = step.validate(ctx)
     assert errors == []
+
+
+def test_check_step_allow_comment_suppresses_rule(tmp_path: Path) -> None:
+    """Issues with # ai-guardrails-allow: RULE on their source line are skipped."""
+    # Create a real Python file with the allow comment
+    src_file = tmp_path / "src" / "foo.py"
+    src_file.parent.mkdir(parents=True)
+    src_file.write_text("x: Optional[str]  # ai-guardrails-allow: UP007\n")
+
+    ruff_json = json.dumps(
+        [
+            {
+                "filename": str(src_file),
+                "location": {"row": 1, "column": 1},
+                "message": "Use `X | Y` for union type annotations",
+                "code": "UP007",
+            }
+        ]
+    )
+
+    runner = FakeCommandRunner()
+    runner.register(
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
+        stdout=ruff_json,
+    )
+    step = CheckStep(baseline_file=tmp_path / ".guardrails-baseline.json")
+    ctx = _make_context(tmp_path, runner)
+    result = step.execute(ctx)
+
+    assert result.status == "ok"
+    assert "ai-guardrails-allow" in result.message
+
+
+def test_check_step_allow_comment_only_suppresses_named_rule(tmp_path: Path) -> None:
+    """Allow comment for UP007 does not suppress a different rule (E501)."""
+    src_file = tmp_path / "src" / "foo.py"
+    src_file.parent.mkdir(parents=True)
+    src_file.write_text("x: Optional[str]  # ai-guardrails-allow: UP007\n")
+
+    ruff_json = json.dumps(
+        [
+            {
+                "filename": str(src_file),
+                "location": {"row": 1, "column": 1},
+                "message": "Use `X | Y`",
+                "code": "UP007",
+            },
+            {
+                "filename": str(src_file),
+                "location": {"row": 1, "column": 1},
+                "message": "Line too long",
+                "code": "E501",
+            },
+        ]
+    )
+
+    runner = FakeCommandRunner()
+    runner.register(
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
+        stdout=ruff_json,
+    )
+    step = CheckStep(baseline_file=tmp_path / ".guardrails-baseline.json")
+    ctx = _make_context(tmp_path, runner)
+    result = step.execute(ctx)
+
+    assert result.status == "error"
+    assert "E501" in result.message
