@@ -1,0 +1,44 @@
+name: 'AI Guardrails Check'
+description: 'Run ai-guardrails hold-the-line lint check. Fails if new issues are introduced.'
+
+inputs:
+  baseline:
+    description: 'Path to baseline file'
+    required: false
+    default: '.guardrails-baseline.json'
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Code Scanning'
+    required: false
+    default: 'false'
+  python-version:
+    description: 'Python version to use'
+    required: false
+    default: '3.11'
+
+outputs:
+  new-issues:
+    description: 'Number of new issues found'
+    value: ${{ steps.check.outputs.new-issues }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Run ai-guardrails check
+      id: check
+      shell: bash
+      env:
+        BASELINE_FILE: ${{ inputs.baseline }}
+      run: |
+        uv tool run ai-guardrails check --baseline "$BASELINE_FILE" --output-format sarif > results.sarif
+        echo "new-issues=$(jq '.runs[0].results | length' results.sarif)" >> "$GITHUB_OUTPUT"
+
+    - name: Upload SARIF results
+      if: ${{ inputs.upload-sarif == 'true' && always() }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: results.sarif

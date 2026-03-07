@@ -1,4 +1,4 @@
-# ai-guardrails:hash:sha256:d00ce71b128c3154a7215f3d58f597c7b30780e367836a8f4f4d8c7955b669fa
+# ai-guardrails:hash:sha256:630ac8457fad9f16b048a43447bcb8f55c936d116eac2d5a7329e06f4d25ae26
 target-version = "py311"
 line-length = 88
 indent-width = 4
@@ -10,33 +10,33 @@ select = [
     "ALL",
 ]
 ignore = [
-    "ANN",
-    "COM812",
-    "COM819",
-    "CPY001",
-    "D",
-    "D206",
-    "D300",
+    "W191",
     "E111",
     "E114",
     "E117",
-    "EM101",
-    "EM102",
-    "ERA001",
-    "FIX001",
-    "FIX002",
-    "INP001",
-    "ISC001",
-    "ISC002",
+    "D206",
+    "D300",
     "Q000",
     "Q001",
     "Q002",
     "Q003",
-    "S101",
-    "T201",
+    "COM812",
+    "COM819",
+    "ISC001",
+    "ISC002",
+    "ANN",
+    "D",
+    "FIX001",
+    "FIX002",
     "TD",
+    "ERA001",
+    "CPY001",
+    "INP001",
+    "T201",
+    "EM101",
+    "EM102",
     "TRY003",
-    "W191",
+    "S101",
 ]
 
 [lint.pydocstyle]
@@ -148,13 +148,13 @@ raises-require-match-for = [
 "src/ai_guardrails/cli.py" = [
     "PLR0913",
 ]
-"src/ai_guardrails/languages/universal.py" = [
+"src/ai_guardrails/steps/*.py" = [
     "ARG002",
 ]
 "src/ai_guardrails/pipelines/install_pipeline.py" = [
     "ARG002",
 ]
-"src/ai_guardrails/steps/*.py" = [
+"src/ai_guardrails/languages/universal.py" = [
     "ARG002",
 ]
 

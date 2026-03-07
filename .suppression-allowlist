@@ -70,3 +70,45 @@ languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
 # ---------------------------------------------------------------------------
 languages/_registry\.py:\d+:.*# noqa: BLE001
 
+# ---------------------------------------------------------------------------
+# tests/ — type: ignore in test files
+# [misc]: Assigning to a frozen dataclass field in pytest.raises(AttributeError)
+#   blocks. Mypy sees this as a type error; we need the statement to exist at
+#   runtime so pytest can assert it raises. Not a real suppression — the test
+#   is verifying that the assignment fails.
+# [arg-type]: Passing deliberately wrong types (invalid Literals, **dict with
+#   mixed types) to test runtime validation or exercise all code paths.
+#   These are intentional bad-type probes, not production code suppressions.
+# ---------------------------------------------------------------------------
+tests/.*\.py:\d+:.*# type: ignore\[misc\]
+tests/.*\.py:\d+:.*# type: ignore\[arg-type\]
+
+# ---------------------------------------------------------------------------
+# generators/agent_rules.py
+# ARG002: AgentRulesGenerator.generate() and .check() satisfy the Generator
+#         protocol which requires registry/languages/project_dir parameters.
+#         The generator is template-driven and does not use these args directly,
+#         but the protocol signature cannot be changed.
+# ---------------------------------------------------------------------------
+generators/agent_rules\.py:\d+:.*# noqa: ARG002
+
+# ---------------------------------------------------------------------------
+# generators/ruff.py, generators/markdownlint.py, generators/editorconfig.py,
+# generators/lefthook.py
+# ARG002: Generator protocol requires (registry, languages, project_dir) on
+#         generate() and (registry, project_dir) on check(). Some generators
+#         do not use all parameters but must match the protocol signature.
+# ---------------------------------------------------------------------------
+generators/ruff\.py:\d+:.*# noqa: ARG002
+generators/markdownlint\.py:\d+:.*# noqa: ARG002
+generators/editorconfig\.py:\d+:.*# noqa: ARG002
+generators/lefthook\.py:\d+:.*# noqa: ARG002
+
+# ---------------------------------------------------------------------------
+# pipelines/init_pipeline.py
+# PLR0913: InitPipeline.__init__ must accept all pipeline config paths as
+#          explicit constructor args (data_dir, configs_dir, registry_template,
+#          ci_template, agent_template, custom_plugins_dir) for testability.
+#          Bundling into a config dataclass would hide required dependencies.
+# ---------------------------------------------------------------------------
+pipelines/init_pipeline\.py:\d+:\s*def __init__.*# noqa: PLR0913

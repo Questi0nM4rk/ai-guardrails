@@ -15,10 +15,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ai_guardrails.infra.profile_loader import load_profile
+from ai_guardrails.infra.prompt_ui import ask_yes_no
 from ai_guardrails.languages._registry import discover_plugins
-from ai_guardrails.pipelines.base import Pipeline, PipelineContext
+from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.copy_configs import CopyConfigsStep
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
+from ai_guardrails.steps.generate_agent_rules import GenerateAgentRulesStep
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from ai_guardrails.steps.load_registry import LoadRegistryStep
 from ai_guardrails.steps.scaffold_registry import ScaffoldRegistryStep
@@ -34,7 +37,6 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
     from ai_guardrails.languages._base import LanguagePlugin
-    from ai_guardrails.pipelines.base import StepResult
 
 
 @dataclass
@@ -46,6 +48,9 @@ class InitOptions:
     no_ci: bool = False
     no_agent_instructions: bool = False
     dry_run: bool = False
+    profile: str = "standard"
+    interactive: bool = False
+    upgrade: bool = False
 
 
 class InitPipeline:
@@ -72,6 +77,25 @@ class InitPipeline:
     def _get_plugins(self) -> list[LanguagePlugin]:
         return discover_plugins(self._data_dir, custom_dir=self._custom_plugins_dir)
 
+    def _resolve_optional_flags(self) -> tuple[bool, bool, bool]:
+        """Return (run_hooks, run_ci, run_agent) after applying interactive prompts."""
+        run_hooks = not self._options.no_hooks
+        run_ci = not self._options.no_ci
+        run_agent = not self._options.no_agent_instructions
+
+        if self._options.interactive:
+            try:
+                if run_hooks:
+                    run_hooks = ask_yes_no("Install lefthook hooks?")
+                if run_ci:
+                    run_ci = ask_yes_no("Generate CI workflow?")
+                if run_agent:
+                    run_agent = ask_yes_no("Install Claude Code agent instructions?")
+            except EOFError:
+                pass  # non-TTY pipe with --interactive: use defaults
+
+        return run_hooks, run_ci, run_agent
+
     def run(
         self,
         project_dir: Path,
@@ -80,6 +104,11 @@ class InitPipeline:
         config_loader: ConfigLoader,
         console: Console,
     ) -> list[StepResult]:
+        try:
+            load_profile(self._options.profile)
+        except ValueError as exc:
+            return [StepResult(status="error", message=str(exc))]
+
         plugins = self._get_plugins()
         ctx = PipelineContext(
             project_dir=project_dir,
@@ -96,19 +125,27 @@ class InitPipeline:
         steps: list = [
             DetectLanguagesStep(plugins=plugins),
             CopyConfigsStep(configs_dir=self._configs_dir),
-            ScaffoldRegistryStep(template_path=self._registry_template),
+        ]
+
+        if not self._options.upgrade:
+            steps.append(ScaffoldRegistryStep(template_path=self._registry_template))
+
+        steps += [
             LoadRegistryStep(),
             GenerateConfigsStep(),
         ]
 
-        if not self._options.no_hooks:
+        run_hooks, run_ci, run_agent = self._resolve_optional_flags()
+
+        if run_hooks:
             steps.append(SetupHooksStep())
 
-        if not self._options.no_ci:
+        if run_ci:
             steps.append(SetupCIStep(template_path=self._ci_template))
 
-        if not self._options.no_agent_instructions:
+        if run_agent:
             steps.append(SetupAgentInstructionsStep(template_path=self._agent_template))
+            steps.append(GenerateAgentRulesStep())
 
         pipeline = Pipeline(steps=steps)
         return pipeline.run(ctx)

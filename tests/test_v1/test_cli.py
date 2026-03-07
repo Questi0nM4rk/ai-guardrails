@@ -8,7 +8,15 @@ from unittest.mock import MagicMock, patch
 from cyclopts import App
 import pytest
 
-from ai_guardrails.cli import _print_results, app, generate, init, install, status
+from ai_guardrails.cli import (
+    _print_results,
+    app,
+    check,
+    generate,
+    init,
+    install,
+    status,
+)
 from ai_guardrails.infra.console import Console
 from ai_guardrails.pipelines.base import StepResult
 
@@ -143,6 +151,20 @@ def test_status_rejects_non_git_directory(tmp_path: Path) -> None:
         status(project_dir=tmp_path)
 
 
+def test_init_accepts_git_worktree(tmp_path: Path) -> None:
+    """init must accept a project_dir where .git is a file (git worktree)."""
+    # In a git worktree .git is a plain file, not a directory.
+    (tmp_path / ".git").write_text("gitdir: /some/real/repo/.git/worktrees/foo\n")
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path)  # Must not raise
+        mock_pipeline.run.assert_called_once()
+
+
 def test_init_accepts_project_dir_flag(tmp_path: Path) -> None:
     """init --project-dir passes resolved path to the pipeline."""
     (tmp_path / ".git").mkdir()
@@ -155,6 +177,21 @@ def test_init_accepts_project_dir_flag(tmp_path: Path) -> None:
         init(project_dir=tmp_path)
         _, run_kwargs = mock_pipeline.run.call_args
         assert run_kwargs["project_dir"] == tmp_path.resolve()
+
+
+def test_init_accepts_worktree_git_file(tmp_path: Path) -> None:
+    """init must accept a directory where .git is a FILE (git worktree)."""
+    # In a git worktree, .git is a text file pointing at the main .git dir
+    (tmp_path / ".git").write_text("gitdir: /some/main/repo/.git/worktrees/wt\n")
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        # Must NOT raise SystemExit — a worktree is a valid git repo
+        init(project_dir=tmp_path)
+        mock_pipeline.run.assert_called_once()
 
 
 def test_install_does_not_require_git(
@@ -196,3 +233,113 @@ def test_print_results_skip_branch() -> None:
     """Verify _print_results handles skip status."""
     console = Console()
     _print_results([StepResult(status="skip", message="test skip")], console)
+
+
+# ---------------------------------------------------------------------------
+# Interactive init flag
+# ---------------------------------------------------------------------------
+
+
+def test_init_interactive_true_sets_options_interactive(tmp_path: Path) -> None:
+    """--interactive passes interactive=True to InitOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=True)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is True
+
+
+def test_init_no_interactive_sets_options_interactive_false(tmp_path: Path) -> None:
+    """--no-interactive passes interactive=False to InitOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=False)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is False
+
+
+def test_init_interactive_auto_detect_uses_is_tty(tmp_path: Path) -> None:
+    """When interactive=None, is_tty() determines interactive mode."""
+    (tmp_path / ".git").mkdir()
+
+    with (
+        patch("ai_guardrails.cli.InitPipeline") as mock_cls,
+        patch("ai_guardrails.cli.is_tty", return_value=True),
+    ):
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=None)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is True
+
+
+def test_init_interactive_auto_detect_non_tty(tmp_path: Path) -> None:
+    """When interactive=None and not a TTY, interactive is False."""
+    (tmp_path / ".git").mkdir()
+
+    with (
+        patch("ai_guardrails.cli.InitPipeline") as mock_cls,
+        patch("ai_guardrails.cli.is_tty", return_value=False),
+    ):
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=None)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is False
+
+
+# ---------------------------------------------------------------------------
+# check command with --format flag
+# ---------------------------------------------------------------------------
+
+
+def test_check_command_exists() -> None:
+    assert callable(check)
+
+
+def test_check_passes_sarif_format_to_options(tmp_path: Path) -> None:
+    """check --format sarif passes output_format='sarif' to CheckOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.CheckPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        check(project_dir=tmp_path, output_format="sarif")
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.output_format == "sarif"
+
+
+def test_check_default_format_is_text(tmp_path: Path) -> None:
+    """check without --format defaults to output_format='text'."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.CheckPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        check(project_dir=tmp_path)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.output_format == "text"
