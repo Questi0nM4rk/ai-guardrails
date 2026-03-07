@@ -140,3 +140,27 @@ def test_symlink_skips_existing(tmp_path: Path) -> None:
     assert result is None
     assert not link.is_symlink()
     assert link.read_text() == "existing content"
+
+
+def test_file_manager_append_text_creates_file(tmp_path: Path) -> None:
+    fm = FileManager()
+    p = tmp_path / "log.jsonl"
+    result = fm.append_text(p, "line1\n")
+    assert result is None
+    assert p.read_text() == "line1\n"
+
+
+def test_file_manager_append_text_appends(tmp_path: Path) -> None:
+    fm = FileManager()
+    p = tmp_path / "log.jsonl"
+    fm.append_text(p, "line1\n")
+    fm.append_text(p, "line2\n")
+    assert p.read_text() == "line1\nline2\n"
+
+
+def test_file_manager_append_text_dry_run(tmp_path: Path) -> None:
+    fm = FileManager(dry_run=True)
+    p = tmp_path / "log.jsonl"
+    result = fm.append_text(p, "line1\n")
+    assert result is not None
+    assert not p.exists()

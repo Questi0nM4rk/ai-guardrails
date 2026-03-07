@@ -78,6 +78,14 @@ class FakeFileManager:
             self.symlinked.append((link, target))
         return None
 
+    def append_text(self, path: Path, text: str) -> str | None:
+        if self.dry_run:
+            return f"would append to {path}"
+        existing = self._files.get(path, "")
+        self._files[path] = existing + text
+        self.written.append((path, text))
+        return None
+
     def seed(self, path: Path, content: str) -> None:
         """Pre-populate a file for test setup."""
         self._files[path] = content
