@@ -28,17 +28,13 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install ai-guardrails
-      shell: bash
-      run: uv tool install ai-guardrails
-
     - name: Run ai-guardrails check
       id: check
       shell: bash
       env:
         BASELINE_FILE: ${{ inputs.baseline }}
       run: |
-        ai-guardrails check --baseline "$BASELINE_FILE" --output-format sarif > results.sarif
+        uv tool run ai-guardrails check --baseline "$BASELINE_FILE" --output-format sarif > results.sarif
         echo "new-issues=$(jq '.runs[0].results | length' results.sarif)" >> "$GITHUB_OUTPUT"
 
     - name: Upload SARIF results
