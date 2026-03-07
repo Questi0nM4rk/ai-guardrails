@@ -41,8 +41,8 @@ class MarkdownlintGenerator:
     def generate(
         self,
         registry: ExceptionRegistry,
-        languages: list[str],  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        languages: list[str],  # ai-guardrails-allow: ARG002 "unused in base"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> dict[Path, str]:
         """Return {Path(".markdownlint.jsonc"): content} with hash header."""
         body = self._build_body(registry)
@@ -54,7 +54,7 @@ class MarkdownlintGenerator:
         self,
         registry: ExceptionRegistry,
         project_dir: Path,
-        languages: list[str] | None = None,  # noqa: ARG002
+        languages: list[str] | None = None,  # ai-guardrails-allow: ARG002 "unused"
     ) -> list[str]:
         """Return stale/missing descriptions (empty list = fresh)."""
         target = project_dir / ".markdownlint.jsonc"

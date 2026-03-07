@@ -21,7 +21,10 @@ class SetupCIStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         if not self._template.exists():
             return [f"CI workflow template not found: {self._template}"]
         return []
@@ -33,7 +36,7 @@ class SetupCIStep:
                 status="skip",
                 message=f"{_CI_OUTPUT} already exists (use --force to overwrite)",
             )
-        content = self._template.read_text()
+        content = self._template.read_text(encoding="utf-8")
         ctx.file_manager.mkdir(target.parent, parents=True, exist_ok=True)
         ctx.file_manager.write_text(target, content)
         return StepResult(status="ok", message=f"Created {_CI_OUTPUT}")

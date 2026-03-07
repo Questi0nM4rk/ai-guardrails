@@ -1,9 +1,12 @@
-# ai-guardrails:hash:sha256:630ac8457fad9f16b048a43447bcb8f55c936d116eac2d5a7329e06f4d25ae26
+# ai-guardrails:hash:sha256:a9e00eebf049deda7877096c54acdf9c2d4755d30379dcf4315f251e46e18e70
 target-version = "py311"
 line-length = 88
 indent-width = 4
 fix = false
 unsafe-fixes = false
+exclude = [
+    "tests/fixtures",
+]
 
 [lint]
 select = [

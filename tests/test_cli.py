@@ -1,108 +1,345 @@
-"""Tests for guardrails.cli -- unified CLI entry point."""
+"""Tests for CLI -- cyclopts app with install, init, generate commands."""
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
+from cyclopts import App
 import pytest
-from guardrails import __version__
-from guardrails.cli import _get_version, main
+
+from ai_guardrails.cli import (
+    _print_results,
+    app,
+    check,
+    generate,
+    init,
+    install,
+    status,
+)
+from ai_guardrails.infra.console import Console
+from ai_guardrails.pipelines.base import StepResult
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
-class TestVersion:
-    """Test version retrieval."""
-
-    def test_returns_version_string(self) -> None:
-        version = _get_version()
-        assert version == __version__
-
-    def test_version_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
-        with pytest.raises(SystemExit, match="0"):
-            main(["--version"])
-        captured = capsys.readouterr()
-        assert __version__ in captured.out
+def test_cli_is_cyclopts_app() -> None:
+    assert isinstance(app, App)
 
 
-class TestSubcommandRequired:
-    """Test that a subcommand is required."""
-
-    def test_no_subcommand_exits_2(self) -> None:
-        with pytest.raises(SystemExit, match="2"):
-            main([])
+def test_cli_has_install_command() -> None:
+    # cyclopts registers commands -- smoke test app is configured
+    assert app is not None
 
 
-class TestInitSubcommand:
-    """Test init subcommand dispatches to run_init."""
-
-    @patch("guardrails.cli._cmd_init")
-    def test_dispatches_to_init(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        result = main(["init"])
-        mock_cmd.assert_called_once()
-        assert result == 0
-
-    @patch("guardrails.cli._cmd_init")
-    def test_init_with_type_flag(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["init", "--type", "python"])
-        args = mock_cmd.call_args[0][0]
-        assert args.project_type == "python"
-
-    @patch("guardrails.cli._cmd_init")
-    def test_init_with_force_flag(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["init", "--force"])
-        args = mock_cmd.call_args[0][0]
-        assert args.force is True
-
-    @patch("guardrails.cli._cmd_init")
-    def test_init_with_ci_flag(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["init", "--ci"])
-        args = mock_cmd.call_args[0][0]
-        assert args.ci is True
-
-    @patch("guardrails.cli._cmd_init")
-    def test_init_with_no_precommit(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["init", "--no-precommit"])
-        args = mock_cmd.call_args[0][0]
-        assert args.no_precommit is True
+def test_install_command_exists() -> None:
+    """Install subcommand is registered."""
+    assert callable(install)
 
 
-class TestGenerateSubcommand:
-    """Test generate subcommand dispatches to run_generate_configs."""
+def test_init_command_exists() -> None:
+    assert callable(init)
 
-    @patch("guardrails.cli._cmd_generate")
-    def test_dispatches_to_generate(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        result = main(["generate"])
-        mock_cmd.assert_called_once()
-        assert result == 0
 
-    @patch("guardrails.cli._cmd_generate")
-    def test_generate_with_dry_run(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["generate", "--dry-run"])
-        args = mock_cmd.call_args[0][0]
-        assert args.dry_run is True
-        assert args.check is False
+def test_generate_command_exists() -> None:
+    assert callable(generate)
 
-    @patch("guardrails.cli._cmd_generate")
-    def test_generate_with_check(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["generate", "--check"])
-        args = mock_cmd.call_args[0][0]
-        assert args.check is True
-        assert args.dry_run is False
 
-    @patch("guardrails.cli._cmd_generate")
-    def test_generate_with_project_dir(self, mock_cmd: MagicMock) -> None:
-        mock_cmd.return_value = 0
-        main(["generate", "/some/path"])
-        args = mock_cmd.call_args[0][0]
-        assert args.project_dir == "/some/path"
+def test_install_invokes_install_pipeline(tmp_path: Path) -> None:
+    with patch("ai_guardrails.cli.InstallPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
 
-    def test_generate_dry_run_and_check_mutually_exclusive(self) -> None:
-        with pytest.raises(SystemExit, match="2"):
-            main(["generate", "--dry-run", "--check"])
+        install()
+        mock_cls.assert_called_once()
+        mock_pipeline.run.assert_called_once()
+
+
+def test_init_invokes_init_pipeline(tmp_path: Path) -> None:
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init()
+        mock_cls.assert_called_once()
+        mock_pipeline.run.assert_called_once()
+
+
+def test_generate_invokes_generate_pipeline(tmp_path: Path) -> None:
+    with patch("ai_guardrails.cli.GeneratePipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        generate()
+        mock_cls.assert_called_once()
+        mock_pipeline.run.assert_called_once()
+
+
+def test_init_passes_force_flag() -> None:
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(force=True)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.force is True
+
+
+def test_generate_passes_check_flag() -> None:
+    with patch("ai_guardrails.cli.GeneratePipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        generate(check=True)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.check is True
+
+
+def test_generate_check_exits_nonzero_when_stale() -> None:
+    """generate --check must raise SystemExit(1) when any result has status=='error'."""
+    with patch("ai_guardrails.cli.GeneratePipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = [
+            StepResult(status="error", message="ruff.toml is stale"),
+        ]
+        mock_cls.return_value = mock_pipeline
+
+        with pytest.raises(SystemExit) as exc_info:
+            generate(check=True)
+        assert exc_info.value.code == 1
+
+
+def test_generate_check_does_not_exit_when_all_ok() -> None:
+    """generate --check must NOT raise SystemExit when all results are ok."""
+    with patch("ai_guardrails.cli.GeneratePipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = [StepResult(status="ok", message="all good")]
+        mock_cls.return_value = mock_pipeline
+
+        # Must not raise
+        generate(check=True)
+
+
+# ---------------------------------------------------------------------------
+# M-4 / M-6: _resolve_project_dir + --project-dir flag
+# ---------------------------------------------------------------------------
+
+
+def test_init_rejects_non_git_directory(tmp_path: Path) -> None:
+    """init must raise SystemExit when project_dir has no .git directory."""
+    with pytest.raises(SystemExit, match="not a git repository"):
+        init(project_dir=tmp_path)
+
+
+def test_generate_rejects_non_git_directory(tmp_path: Path) -> None:
+    """generate must raise SystemExit when project_dir has no .git directory."""
+    with pytest.raises(SystemExit, match="not a git repository"):
+        generate(project_dir=tmp_path)
+
+
+def test_status_rejects_non_git_directory(tmp_path: Path) -> None:
+    """status must raise SystemExit when project_dir has no .git directory."""
+    with pytest.raises(SystemExit, match="not a git repository"):
+        status(project_dir=tmp_path)
+
+
+def test_init_accepts_git_worktree(tmp_path: Path) -> None:
+    """init must accept a project_dir where .git is a file (git worktree)."""
+    # In a git worktree .git is a plain file, not a directory.
+    (tmp_path / ".git").write_text("gitdir: /some/real/repo/.git/worktrees/foo\n")
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path)  # Must not raise
+        mock_pipeline.run.assert_called_once()
+
+
+def test_init_accepts_project_dir_flag(tmp_path: Path) -> None:
+    """init --project-dir passes resolved path to the pipeline."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path)
+        _, run_kwargs = mock_pipeline.run.call_args
+        assert run_kwargs["project_dir"] == tmp_path.resolve()
+
+
+def test_init_accepts_worktree_git_file(tmp_path: Path) -> None:
+    """init must accept a directory where .git is a FILE (git worktree)."""
+    # In a git worktree, .git is a text file pointing at the main .git dir
+    (tmp_path / ".git").write_text("gitdir: /some/main/repo/.git/worktrees/wt\n")
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        # Must NOT raise SystemExit — a worktree is a valid git repo
+        init(project_dir=tmp_path)
+        mock_pipeline.run.assert_called_once()
+
+
+def test_install_does_not_require_git(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """install is global -- must NOT check for .git directory."""
+    monkeypatch.chdir(tmp_path)
+
+    with patch("ai_guardrails.cli.InstallPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        install()  # Must not raise
+        mock_pipeline.run.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# L-5: status command
+# ---------------------------------------------------------------------------
+
+
+def test_status_command_exists() -> None:
+    assert callable(status)
+
+
+# ---------------------------------------------------------------------------
+# L-9: _print_results branch coverage
+# ---------------------------------------------------------------------------
+
+
+def test_print_results_warn_branch() -> None:
+    """Verify _print_results handles warn status."""
+    console = Console()
+    _print_results([StepResult(status="warn", message="test warning")], console)
+
+
+def test_print_results_skip_branch() -> None:
+    """Verify _print_results handles skip status."""
+    console = Console()
+    _print_results([StepResult(status="skip", message="test skip")], console)
+
+
+# ---------------------------------------------------------------------------
+# Interactive init flag
+# ---------------------------------------------------------------------------
+
+
+def test_init_interactive_true_sets_options_interactive(tmp_path: Path) -> None:
+    """--interactive passes interactive=True to InitOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=True)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is True
+
+
+def test_init_no_interactive_sets_options_interactive_false(tmp_path: Path) -> None:
+    """--no-interactive passes interactive=False to InitOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=False)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is False
+
+
+def test_init_interactive_auto_detect_uses_is_tty(tmp_path: Path) -> None:
+    """When interactive=None, is_tty() determines interactive mode."""
+    (tmp_path / ".git").mkdir()
+
+    with (
+        patch("ai_guardrails.cli.InitPipeline") as mock_cls,
+        patch("ai_guardrails.cli.is_tty", return_value=True),
+    ):
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=None)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is True
+
+
+def test_init_interactive_auto_detect_non_tty(tmp_path: Path) -> None:
+    """When interactive=None and not a TTY, interactive is False."""
+    (tmp_path / ".git").mkdir()
+
+    with (
+        patch("ai_guardrails.cli.InitPipeline") as mock_cls,
+        patch("ai_guardrails.cli.is_tty", return_value=False),
+    ):
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path, interactive=None)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.interactive is False
+
+
+# ---------------------------------------------------------------------------
+# check command with --format flag
+# ---------------------------------------------------------------------------
+
+
+def test_check_command_exists() -> None:
+    assert callable(check)
+
+
+def test_check_passes_sarif_format_to_options(tmp_path: Path) -> None:
+    """check --format sarif passes output_format='sarif' to CheckOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.CheckPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        check(project_dir=tmp_path, output_format="sarif")
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.output_format == "sarif"
+
+
+def test_check_default_format_is_text(tmp_path: Path) -> None:
+    """check without --format defaults to output_format='text'."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.CheckPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        check(project_dir=tmp_path)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.output_format == "text"

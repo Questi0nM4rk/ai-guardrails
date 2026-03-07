@@ -15,8 +15,8 @@ from ai_guardrails.hooks._utils import has_hash_header
 
 
 def _git(*args: str) -> str:
-    result = subprocess.run(  # noqa: S603
-        ["git", *args],  # noqa: S607
+    result = subprocess.run(  # ai-guardrails-allow: S603, E501 "trusted internal subprocess with fixed args"
+        ["git", *args],  # ai-guardrails-allow: S607 "git partial path"
         capture_output=True,
         text=True,
         check=False,
@@ -42,7 +42,7 @@ def _added_lines_for(filepath: str) -> list[str]:
     ]
 
 
-def main() -> int:  # noqa: PLR0915
+def main() -> int:  # ai-guardrails-allow: PLR0915 "sequential steps"
     """Entry point. Returns 0 (clean) or 1 (violations found)."""
     staged = _staged_files()
     if not staged:

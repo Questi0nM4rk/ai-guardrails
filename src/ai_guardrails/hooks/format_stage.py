@@ -82,7 +82,13 @@ FORMATTERS: dict[str, list[list[str]]] = {
 def _git_staged_files() -> list[str]:
     """Return list of staged filenames (Added/Copied/Modified only)."""
     result = subprocess.run(
-        ["git", "diff", "--cached", "--name-only", "--diff-filter=ACM"],  # noqa: S607
+        [  # ai-guardrails-allow: S607 "git partial path"
+            "git",
+            "diff",
+            "--cached",
+            "--name-only",
+            "--diff-filter=ACM",
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -95,7 +101,7 @@ def _git_staged_files() -> list[str]:
 def _run_formatter(cmd: list[str], filepath: str) -> None:
     """Run a single formatter on *filepath*, silently skipping if not installed."""
     with contextlib.suppress(FileNotFoundError):
-        subprocess.run(  # noqa: S603
+        subprocess.run(  # ai-guardrails-allow: S603, E501 "trusted internal subprocess with fixed args"
             [*cmd, filepath],
             capture_output=True,
             text=True,
@@ -105,8 +111,8 @@ def _run_formatter(cmd: list[str], filepath: str) -> None:
 
 def _git_add(filepath: str) -> None:
     """Stage a single file with git add."""
-    subprocess.run(  # noqa: S603
-        ["git", "add", filepath],  # noqa: S607
+    subprocess.run(  # ai-guardrails-allow: S603, E501 "trusted internal subprocess with fixed args"
+        ["git", "add", filepath],  # ai-guardrails-allow: S607 "git partial path"
         capture_output=True,
         text=True,
         check=False,

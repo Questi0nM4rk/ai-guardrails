@@ -46,7 +46,10 @@ class CopyConfigsStep:
     def __init__(self, configs_dir: Path) -> None:
         self._configs_dir = configs_dir
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

@@ -52,7 +52,7 @@ def _load_custom_plugins(custom_dir: Path, data_dir: Path) -> list[LanguagePlugi
         module = importlib.util.module_from_spec(spec)
         try:
             spec.loader.exec_module(module)  # type: ignore[union-attr]
-        except Exception:  # noqa: BLE001
+        except Exception:  # ai-guardrails-allow: BLE001, E501 "plugin load must not crash the registry"
             _log.warning("Failed to load custom plugin %s", py_file, exc_info=True)
             continue
         for _name, obj in inspect.getmembers(module, inspect.isclass):
@@ -65,7 +65,7 @@ def _load_custom_plugins(custom_dir: Path, data_dir: Path) -> list[LanguagePlugi
                     plugin = obj(data_dir)  # type: ignore[call-arg]
                     if isinstance(plugin, LanguagePlugin):  # type: ignore[misc]
                         plugins.append(plugin)
-                except Exception:  # noqa: BLE001
+                except Exception:  # ai-guardrails-allow: BLE001, E501 "plugin load must not crash the registry"
                     _log.warning("Failed to instantiate plugin %s", obj, exc_info=True)
     return plugins
 

@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import tomllib  # type: ignore[no-redef]
+import tomllib
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import tomli_w
-import yaml
 
 from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash, verify_hash
 from ai_guardrails.infra.config_loader import deep_merge
@@ -23,6 +22,7 @@ class PythonPlugin(BaseLanguagePlugin):
 
     key = "python"
     name = "Python"
+    linter = "ruff"
     detect_files: ClassVar[list[str]] = [
         "pyproject.toml",
         "setup.py",
@@ -32,23 +32,6 @@ class PythonPlugin(BaseLanguagePlugin):
     detect_dirs: ClassVar[list[str]] = []
     copy_files: ClassVar[list[str]] = []
     generated_configs: ClassVar[list[str]] = ["ruff.toml"]
-
-    _HOOKS_YAML = """\
-pre-commit:
-  commands:
-    python-format-and-stage:
-      glob: "*.py"
-      run: >-
-        uv run ruff format {staged_files} &&
-        uv run ruff check --fix {staged_files} &&
-        git add {staged_files}
-      stage_fixed: true
-      priority: 1
-    ruff-check:
-      glob: "*.py"
-      run: uv run ruff check {staged_files}
-      priority: 2
-"""
 
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"
@@ -81,14 +64,12 @@ pre-commit:
 
         # Union all per-file-ignores: base + custom + registry (sorted per glob)
         pfi = lint.setdefault("per-file-ignores", {})
-        all_globs = (
-            set(base_pfi) | set(pfi) | set(registry.get_per_file_ignores("ruff"))
-        )
+        registry_pfi = registry.get_per_file_ignores("ruff")
+        all_globs = set(base_pfi) | set(pfi) | set(registry_pfi)
         for glob_pattern in sorted(all_globs):
             merged: set[str] = set(base_pfi.get(glob_pattern, []))
-            merged |= set(pfi.get(glob_pattern, []))
-            for rule in registry.get_per_file_ignores("ruff").get(glob_pattern, []):
-                merged.add(rule)
+            merged.update(pfi.get(glob_pattern, []))
+            merged.update(registry_pfi.get(glob_pattern, []))
             pfi[glob_pattern] = sorted(merged)
 
         return config
@@ -108,10 +89,6 @@ pre-commit:
         full_content = f"{header}\n{body}"
         return {project_dir / "ruff.toml": full_content}
 
-    def hook_config(self) -> dict[str, object]:
-        """Return Python pre-commit hooks config."""
-        return yaml.safe_load(self._HOOKS_YAML) or {}
-
     def check(
         self,
         registry: ExceptionRegistry,
@@ -121,7 +98,7 @@ pre-commit:
         target = project_dir / "ruff.toml"
         if not target.exists():
             return ["ruff.toml is missing — run: ai-guardrails generate"]
-        existing = target.read_text()
+        existing = target.read_text(encoding="utf-8")
         try:
             expected_body = self._build_body(registry)
         except FileNotFoundError:

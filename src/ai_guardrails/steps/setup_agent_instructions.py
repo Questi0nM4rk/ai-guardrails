@@ -27,14 +27,17 @@ class SetupAgentInstructionsStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         if not self._template.exists():
             return [f"Agent instructions template not found: {self._template}"]
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         claude_md = ctx.project_dir / _CLAUDE_MD
-        template_content = self._template.read_text()
+        template_content = self._template.read_text(encoding="utf-8")
 
         # Ensure AGENTS.md symlink exists regardless of CLAUDE.md state
         agents_md = ctx.project_dir / "AGENTS.md"

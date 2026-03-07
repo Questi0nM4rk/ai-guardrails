@@ -25,7 +25,10 @@ class ScaffoldRegistryStep:
     def __init__(self, template_path: Path) -> None:
         self._template = template_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         if not self._template.exists():
             return [f"Registry template not found: {self._template}"]
         return []
@@ -37,6 +40,6 @@ class ScaffoldRegistryStep:
                 status="skip",
                 message=f"{REGISTRY_FILENAME} already exists (never overwritten)",
             )
-        content = self._template.read_text()
+        content = self._template.read_text(encoding="utf-8")
         ctx.file_manager.write_text(target, content)
         return StepResult(status="ok", message=f"Created {REGISTRY_FILENAME}")

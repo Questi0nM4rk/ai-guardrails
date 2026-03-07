@@ -56,7 +56,7 @@ class InitOptions:
 class InitPipeline:
     """Orchestrates full project initialization."""
 
-    def __init__(  # noqa: PLR0913
+    def __init__(  # ai-guardrails-allow: PLR0913, E501 "CLI init requires many configuration options"
         self,
         options: InitOptions,
         data_dir: Path,

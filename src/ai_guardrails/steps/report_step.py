@@ -19,7 +19,10 @@ class ReportStep:
 
     name = "report"
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         """No preconditions required."""
         return []
 

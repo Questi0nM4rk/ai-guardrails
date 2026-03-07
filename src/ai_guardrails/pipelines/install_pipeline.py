@@ -64,7 +64,10 @@ class _CheckPrereqsStep:
 
     name = "check-prereqs"
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
@@ -107,7 +110,10 @@ class _InstallGlobalConfigStep:
     def __init__(self, global_config_dir: Path) -> None:
         self._config_dir = global_config_dir
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:
@@ -127,7 +133,10 @@ class _InstallGlobalClaudeSettingsStep:
     def __init__(self, claude_settings_path: Path) -> None:
         self._settings_path = claude_settings_path
 
-    def validate(self, ctx: PipelineContext) -> list[str]:
+    def validate(
+        self,
+        ctx: PipelineContext,  # ai-guardrails-allow: ARG002 "PipelineStep protocol"
+    ) -> list[str]:
         return []
 
     def execute(self, ctx: PipelineContext) -> StepResult:

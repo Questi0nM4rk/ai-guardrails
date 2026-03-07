@@ -25,7 +25,7 @@ from ai_guardrails.generators.base import compute_hash
 from ai_guardrails.hooks._utils import has_hash_header
 
 
-def check_tool_input(  # noqa: PLR0911
+def check_tool_input(  # ai-guardrails-allow: PLR0911, E501 "multiple early-return guard clauses"
     tool_input: dict[str, str],
     *,
     project_dir: Path | None = None,
@@ -104,7 +104,7 @@ def _run_precommit(files: list[str]) -> int:
         if not has_hash_header(filepath):
             continue
         # Hash header present — verify body matches stored hash
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         first_line, _, body = content.partition("\n")
         stored_hash = first_line.rsplit(":", 1)[-1].strip()
         actual_hash = compute_hash(body)

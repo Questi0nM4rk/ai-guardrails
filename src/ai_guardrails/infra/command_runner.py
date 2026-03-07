@@ -29,7 +29,7 @@ class CommandRunner:
         """Run a command and return CompletedProcess. Never raises on non-zero exit."""
         logger.debug("Running: %s", " ".join(args))
         try:
-            return subprocess.run(  # noqa: S603
+            return subprocess.run(  # ai-guardrails-allow: S603, E501 "CommandRunner controls args — no shell injection risk"
                 args,
                 capture_output=True,
                 text=True,

@@ -103,7 +103,7 @@ def install(*, upgrade: bool = False) -> None:
 
 
 @app.command
-def init(
+def init(  # ai-guardrails-allow: PLR0913 "CLI init requires many configuration options"
     *,
     project_dir: Path | None = None,
     force: bool = False,

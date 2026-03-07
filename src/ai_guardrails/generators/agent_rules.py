@@ -44,9 +44,9 @@ class AgentRulesGenerator:
 
     def generate(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
-        languages: list[str],  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
+        languages: list[str],  # ai-guardrails-allow: ARG002 "unused in base"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> dict[Path, str]:
         """Return {relative_path: full_content} for all agent files."""
         base = (self._templates_dir / "base.md").read_text(encoding="utf-8")
@@ -65,7 +65,7 @@ class AgentRulesGenerator:
 
     def check(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
         project_dir: Path,
     ) -> list[str]:
         """Return descriptions of stale or missing agent files (empty = all fresh)."""

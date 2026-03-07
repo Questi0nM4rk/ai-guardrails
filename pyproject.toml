@@ -1,6 +1,6 @@
 [project]
 name = "ai-guardrails"
-version = "0.2.0"
+version = "2.0.0"
 description = "Pedantic code enforcement for AI-maintained repositories"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -9,18 +9,16 @@ readme = "README.md"
 
 dependencies = [
   "cyclopts>=4.6.0",
-  "pyinfra>=3.2",
   "pyyaml>=6.0",
   "tomli-w>=1.0",
   "tomlkit>=0.12",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "pytest-cov>=4.0", "mypy>=1.0", "ruff>=0.4", "pyright>=1.1.408"]
+dev = ["pytest>=8.0", "pytest-cov>=4.0", "pyright>=1.1.408"]
 
 [project.scripts]
 ai-guardrails = "ai_guardrails.cli:app"
-ai-guardrails-install = "install:main"
 ai-guardrails-dangerous-cmd = "ai_guardrails.hooks.dangerous_cmd:main"
 ai-guardrails-protect-configs = "ai_guardrails.hooks.protect_configs:main"
 
@@ -29,19 +27,15 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["lib/python/guardrails", "src/ai_guardrails"]
+packages = ["src/ai_guardrails"]
 [tool.hatch.build.targets.wheel.sources]
-"lib/python" = ""
 "src" = ""
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "install.py",
-  "lib/**/*.py",
   "src/**/*.py",
   "src/**/*.typed",
   "src/ai_guardrails/_data/**",
-  "bin/**",
   "tests/**/*.py",
   "pyproject.toml",
   "README.md",
@@ -49,14 +43,13 @@ include = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".", "lib/python", "src"]
+pythonpath = [".", "src"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
 
 [tool.coverage.run]
-source = ["lib/installers", "lib/python/guardrails", "src/ai_guardrails"]
+source = ["src/ai_guardrails"]
 branch = true
-omit = ["lib/python/guardrails/__main__.py"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -64,153 +57,20 @@ exclude_lines = [
   "if TYPE_CHECKING:",
   "raise NotImplementedError",
 ]
-
-[tool.ruff]
-target-version = "py311"
-line-length = 100
-force-exclude = true
-exclude = [
-  "tests/fixtures", # Intentionally bad code for testing
-  ".ai-guardrails", # Dogfooding output — legacy code installed by ai-guardrails init
-]
-
-[tool.ruff.lint]
-select = ["ALL"]
-pydocstyle.convention = "google"
-ignore = [
-  "COM812",  # trailing comma (conflicts with formatter)
-  "ISC001",  # implicit string concatenation (conflicts with formatter)
-  "T201",    # print found (expected in CLI tools)
-  "FBT",     # boolean-typed positional arguments (acceptable for internal functions)
-  "PLR0912", # too many branches (acceptable for CLI main())
-  "PLR0915", # too many statements (acceptable for CLI main())
-  "C901",    # too complex (acceptable for CLI main())
-  "S101",    # assert (acceptable in tests)
-  "PLC0415", # import not at top (acceptable in tests)
-  "D203",    # blank line before class docstring (conflicts with D211)
-  "D213",    # multi-line summary second line (conflicts with D212)
-]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = [
-  "S101",
-  "PLC0415",
-  "F811",
-  "ARG001",
-  "ARG002",  # unused method argument (needed for @patch-injected mocks)
-  "ARG005",  # unused lambda argument (needed for mock side_effect signatures)
-  "PT019",   # @patch-injected mocks look like unused fixtures to ruff
-  "PLR2004",
-  "SIM108",
-  "ERA001",
-  "TC002",   # pytest used as type annotation — fine in tests
-  "TC003",
-  "D100",    # missing module docstring (tests have them but not required)
-  "D101",    # missing class docstring
-  "D102",    # missing method docstring
-  "D103",    # missing function docstring
-  "D104",    # missing package docstring (__init__.py)
-  "D107",    # missing __init__ docstring (test doubles/fakes don't need them)
-  "RUF012",  # ClassVar annotation: test mock classes follow Protocol convention
-  "SLF001",  # private member access (needed for testing internal state)
-  "ANN",     # type annotations not required in tests
-]
-"install.py" = [
-  "T201",
-  "UP036",
-  "PLW0603",
-] # print, UP036, global statement (pyinfra pattern)
-"lib/python/guardrails/init.py" = [
-  "PLR0913", # run_init() has many keyword-only args by design
-  "S603",    # subprocess calls with fixed args are safe
-  "S607",    # partial paths (git, pre-commit, uv) are intentional
-  "BLE001",  # broad exception in _resolve_languages - fallback for auto-detection
-]
-"lib/python/guardrails/assemble.py" = [
-  "PLR0911",
-] # main() needs many returns for error handling
-"lib/python/guardrails/hooks/protect_configs.py" = [
-  "PLR0911", # main() needs multiple early returns for each check
-]
-"lib/python/guardrails/hooks/format_stage.py" = [
-  "S603", # subprocess calls with fixed args are safe
-  "S607", # partial paths (git, formatters) are intentional
-]
-"lib/python/guardrails/hooks/config_ignore.py" = [
-  "S603", # subprocess calls with fixed git args are safe
-  "S607", # partial paths (git) are intentional
-]
-"lib/python/guardrails/comments.py" = [
-  "PLR0911", # run_comments() needs many returns for each action
-  "PLR0913", # run_comments() has many keyword-only args by design
-  "S603",    # subprocess calls with fixed gh args are safe
-  "S607",    # partial paths (gh) are intentional
-]
-"src/ai_guardrails/hooks/format_stage.py" = [
-  "S603", # subprocess calls with fixed args are safe
-  "S607", # partial paths (git, formatters) are intentional
-]
-"src/ai_guardrails/hooks/config_ignore.py" = [
-  "S603", # subprocess calls with fixed git args are safe
-  "S607", # partial paths (git) are intentional
-]
-"src/ai_guardrails/__init__.py" = ["D104"]
-"src/ai_guardrails/hooks/__init__.py" = ["D104"]
-"src/ai_guardrails/generators/*.py" = [
-  "ARG002", # Protocol conformance: registry/languages unused in some generators by design
-  "RUF012", # ClassVar: Protocol class attrs (name, output_files) follow Protocol convention
-  "D107",   # __init__ docstrings: self-evident constructors (configs_dir, templates_dir)
-]
-"src/ai_guardrails/languages/*.py" = [
-  "ARG002", # Plugin base class methods accept args that subclasses use
-  "RUF012", # ClassVar: plugin class attrs (key, name, detect_*) are class-level config
-  "D107",   # __init__ docstrings: self-evident constructors (data_dir)
-  "D102",   # public method docstrings: hook_config/detect are protocol methods
-  "TC003",  # Path used at runtime in __init__ — not TYPE_CHECKING only
-  "E501",   # Hook YAML strings embed long shell commands — can't break mid-string
-]
-"src/ai_guardrails/steps/*.py" = [
-  "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
-  "D107",   # __init__ docstrings: self-evident constructors
-  "D102",   # public method docstrings: validate/execute are Protocol methods
-  "TC001",  # PipelineContext imported at runtime for isinstance/Protocol checks, not TYPE_CHECKING only
-]
-"src/ai_guardrails/pipelines/*.py" = [
-  "ARG002", # Protocol conformance: validate(ctx) unused when no validation needed
-  "D107",   # __init__ docstrings: self-evident constructors
-  "D102",   # public method docstrings: run() signature is self-documenting
-]
-"src/ai_guardrails/infra/*.py" = [
-  "D107", # __init__ docstrings: self-evident constructors
-]
-"src/ai_guardrails/infra/command_runner.py" = [
-  "S603",    # subprocess calls with controlled args are safe
-  "PLW1510", # check=False is intentional: callers inspect returncode themselves
-]
-"src/ai_guardrails/pipelines/init_pipeline.py" = [
-  "PLR0913", # __init__ has many paths by design (all template paths required)
-]
-"tests/test_comments.py" = [
-  "PLR0913", # test helpers have many keyword-only args for flexibility
-]
+fail_under = 85
 
 [tool.pyright]
-include = ["lib/python/guardrails"]
+include = ["src/ai_guardrails"]
 pythonVersion = "3.11"
 typeCheckingMode = "standard"
 
 [tool.codespell]
 ignore-words-list = "brin,crate"
 
-[tool.mypy]
-python_version = "3.11"
-strict = true
-warn_return_any = true
-warn_unused_ignores = true
-
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
+    "ruff>=0.9.0",
 ]
 type-check = ["pyright>=1.1.408"]

@@ -27,6 +27,9 @@ Thumbs.db
 # Test output
 *.log
 .test/
+
+# Legacy v0 runtime directory (created by old ai-guardrails init, not used by v1+)
+.ai-guardrails/
 .claude/*
 !.claude/rules/
 !.claude/commands/
