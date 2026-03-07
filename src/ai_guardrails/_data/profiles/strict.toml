@@ -1,0 +1,9 @@
+name = "strict"
+inherits = "standard"
+suppression_comments = "block"
+allow_syntax_require_expiry = true
+allow_syntax_require_ticket = true
+agent_commits_require_review = true
+hold_the_line = "strict"
+exception_budget = 5
+require_dual_approval = true

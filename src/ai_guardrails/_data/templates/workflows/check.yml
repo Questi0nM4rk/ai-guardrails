@@ -32,3 +32,12 @@ jobs:
         run: uv tool install semgrep
       - name: Run semgrep
         run: semgrep --config auto --error .
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run ai-guardrails check
+        uses: Questi0nM4rk/ai-guardrails@v2
+        with:
+          upload-sarif: 'true'

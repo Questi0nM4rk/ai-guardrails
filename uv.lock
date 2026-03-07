@@ -24,6 +24,10 @@ dev = [
 ]
 
 [package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
 type-check = [
     { name = "pyright" },
 ]
@@ -44,6 +48,10 @@ requires-dist = [
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+]
 type-check = [{ name = "pyright", specifier = ">=1.1.408" }]
 
 [[package]]

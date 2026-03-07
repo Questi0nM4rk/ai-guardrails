@@ -11,8 +11,10 @@ from typing import TYPE_CHECKING
 from ai_guardrails.languages._registry import discover_plugins
 from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
+from ai_guardrails.steps.generate_agent_rules import GenerateAgentRulesStep
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from ai_guardrails.steps.load_registry import LoadRegistryStep
+from ai_guardrails.steps.validate_governance import ValidateGovernanceStep
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -100,14 +102,18 @@ class GeneratePipeline:
             ctx.languages = selected
             steps: list[PipelineStep] = [
                 LoadRegistryStep(),
+                ValidateGovernanceStep(),
                 GenerateConfigsStep(),
+                GenerateAgentRulesStep(),
             ]
         else:
             plugins = self._get_plugins()
             steps = [
                 DetectLanguagesStep(plugins=plugins),
                 LoadRegistryStep(),
+                ValidateGovernanceStep(),
                 GenerateConfigsStep(),
+                GenerateAgentRulesStep(),
             ]
 
         pipeline = Pipeline(steps=steps)
