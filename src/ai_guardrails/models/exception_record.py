@@ -57,7 +57,7 @@ class ExceptionRecord:
             if isinstance(expires_raw, str)
             else expires_raw
         )
-        created_raw = data.get("created")
+        created_raw = data["created"]
         created = (
             datetime.date.fromisoformat(created_raw)
             if isinstance(created_raw, str)

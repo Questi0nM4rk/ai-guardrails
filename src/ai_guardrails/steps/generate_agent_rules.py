@@ -36,6 +36,8 @@ class GenerateAgentRulesStep:
         return self._run_generate(ctx)
 
     def _run_check(self, ctx: PipelineContext) -> StepResult:
+        if ctx.registry is None:
+            return StepResult(status="skip", message="Registry not loaded")
         registry = ctx.registry
         # Filter: skip files that are symlinks (managed by SetupAgentInstructionsStep).
         stale = [
@@ -53,6 +55,8 @@ class GenerateAgentRulesStep:
         return StepResult(status="ok", message="Agent rule files are fresh")
 
     def _run_generate(self, ctx: PipelineContext) -> StepResult:
+        if ctx.registry is None:
+            return StepResult(status="skip", message="Registry not loaded")
         registry = ctx.registry
         outputs = self._generator.generate(registry, [], ctx.project_dir)
         written = 0

@@ -8,8 +8,10 @@ from ai_guardrails.infra.policy_loader import load_org_policy, load_team_policy
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
-    from ai_guardrails.models.exception_record import ExceptionRecord
+    from collections.abc import Sequence
+
     from ai_guardrails.models.governance import OrgPolicy, TeamPolicy
+    from ai_guardrails.models.registry import RuleException
     from ai_guardrails.pipelines.base import PipelineContext
 
 
@@ -45,7 +47,7 @@ class ValidateGovernanceStep:
 
 
 def _check_locked_rules(
-    exceptions: list[ExceptionRecord],
+    exceptions: Sequence[RuleException],
     org: OrgPolicy | None,
     team: TeamPolicy | None,
 ) -> list[str]:
@@ -67,11 +69,13 @@ def _check_locked_rules(
 
 
 def _check_budget(
-    exceptions: list[ExceptionRecord], team: TeamPolicy | None
+    exceptions: Sequence[RuleException], team: TeamPolicy | None
 ) -> list[str]:
     if team is None or team.exception_budget is None:
         return []
-    approved_count = sum(1 for e in exceptions if e.is_approved)
+    # V1 RuleException has no approval state — all TOML entries are approved by
+    # definition. V2 ExceptionRecord has is_approved; respect it when present.
+    approved_count = sum(1 for e in exceptions if getattr(e, "is_approved", True))
     if approved_count > team.exception_budget:
         return [
             f"Exception budget exhausted: {approved_count} approved"

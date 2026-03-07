@@ -7,7 +7,7 @@ content after the header line, so the header itself is excluded from hashing.
 from __future__ import annotations
 
 import hashlib
-from typing import TYPE_CHECKING, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -83,7 +83,7 @@ class Generator(Protocol):
     """Protocol that all config generators must satisfy."""
 
     name: str
-    output_files: list[str]
+    output_files: ClassVar[list[str]]
 
     def generate(
         self,
