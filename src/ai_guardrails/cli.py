@@ -103,12 +103,15 @@ def init(
     no_ci: bool = False,
     no_agent_instructions: bool = False,
     dry_run: bool = False,
+    profile: str = "standard",
 ) -> None:
     """Initialize ai-guardrails in the current project.
 
     Detects languages, creates .guardrails-exceptions.toml, generates
     linter configs (ruff.toml, lefthook.yml, .editorconfig, etc.),
     optionally installs git hooks and CI workflow.
+
+    Use --profile to select an enforcement posture: minimal, standard (default), strict.
     """
     resolved = _resolve_project_dir(project_dir)
     options = InitOptions(
@@ -117,6 +120,7 @@ def init(
         no_ci=no_ci,
         no_agent_instructions=no_agent_instructions,
         dry_run=dry_run,
+        profile=profile,
     )
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = InitPipeline(

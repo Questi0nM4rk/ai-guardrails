@@ -15,10 +15,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from ai_guardrails.infra.profile_loader import load_profile
 from ai_guardrails.languages._registry import discover_plugins
-from ai_guardrails.pipelines.base import Pipeline, PipelineContext
+from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.copy_configs import CopyConfigsStep
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
+from ai_guardrails.steps.generate_agent_rules import GenerateAgentRulesStep
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from ai_guardrails.steps.load_registry import LoadRegistryStep
 from ai_guardrails.steps.scaffold_registry import ScaffoldRegistryStep
@@ -34,7 +36,6 @@ if TYPE_CHECKING:
     from ai_guardrails.infra.console import Console
     from ai_guardrails.infra.file_manager import FileManager
     from ai_guardrails.languages._base import LanguagePlugin
-    from ai_guardrails.pipelines.base import StepResult
 
 
 @dataclass
@@ -46,6 +47,7 @@ class InitOptions:
     no_ci: bool = False
     no_agent_instructions: bool = False
     dry_run: bool = False
+    profile: str = "standard"
 
 
 class InitPipeline:
@@ -80,6 +82,11 @@ class InitPipeline:
         config_loader: ConfigLoader,
         console: Console,
     ) -> list[StepResult]:
+        try:
+            load_profile(self._options.profile)
+        except ValueError as exc:
+            return [StepResult(status="error", message=str(exc))]
+
         plugins = self._get_plugins()
         ctx = PipelineContext(
             project_dir=project_dir,
@@ -109,6 +116,7 @@ class InitPipeline:
 
         if not self._options.no_agent_instructions:
             steps.append(SetupAgentInstructionsStep(template_path=self._agent_template))
+            steps.append(GenerateAgentRulesStep())
 
         pipeline = Pipeline(steps=steps)
         return pipeline.run(ctx)

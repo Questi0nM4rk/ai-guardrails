@@ -16,6 +16,9 @@ if TYPE_CHECKING:
 
 HASH_HEADER_PREFIX = "# ai-guardrails:hash:sha256:"
 JSONC_HASH_HEADER_PREFIX = "// ai-guardrails:hash:sha256:"
+# Markdown files use an HTML comment so the hash line is not treated as H1.
+MD_HASH_HEADER_PREFIX = "<!-- ai-guardrails:hash:sha256:"
+_MD_HASH_SUFFIX = " -->"
 _HASH_MARKER = "ai-guardrails:hash:sha256:"
 
 
@@ -29,17 +32,29 @@ def make_hash_header(content: str) -> str:
     return f"{HASH_HEADER_PREFIX}{compute_hash(content)}"
 
 
+def make_md_hash_header(content: str) -> str:
+    """Return an HTML-comment hash header for markdown files.
+
+    Uses ``<!-- ai-guardrails:hash:sha256:HASH -->`` so the line is not treated
+    as an H1 heading by markdown linters (avoiding MD025 violations).
+    """
+    return f"{MD_HASH_HEADER_PREFIX}{compute_hash(content)}{_MD_HASH_SUFFIX}"
+
+
 def parse_hash_header(text: str) -> str | None:
     """Extract the hash from the first line of text, or None if absent.
 
-    Supports both ``# ai-guardrails:hash:sha256:`` (TOML/YAML/INI) and
-    ``// ai-guardrails:hash:sha256:`` (JSON/JSONC) prefixes.
+    Supports ``# ai-guardrails:hash:sha256:`` (TOML/YAML/INI),
+    ``// ai-guardrails:hash:sha256:`` (JSON/JSONC), and
+    ``<!-- ai-guardrails:hash:sha256:HASH -->`` (Markdown) prefixes.
     """
     first_line = text.split("\n", 1)[0].strip()
     idx = first_line.find(_HASH_MARKER)
     if idx == -1:
         return None
-    return first_line[idx + len(_HASH_MARKER) :]
+    raw = first_line[idx + len(_HASH_MARKER) :]
+    # Strip trailing HTML comment suffix (` -->`) if present.
+    return raw.split()[0] if raw else None
 
 
 def verify_hash(full_text: str, expected_content: str) -> bool:

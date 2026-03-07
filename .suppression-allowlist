@@ -82,3 +82,21 @@ languages/_registry\.py:\d+:.*# noqa: BLE001
 # ---------------------------------------------------------------------------
 tests/.*\.py:\d+:.*# type: ignore\[misc\]
 tests/.*\.py:\d+:.*# type: ignore\[arg-type\]
+
+# ---------------------------------------------------------------------------
+# generators/agent_rules.py
+# ARG002: AgentRulesGenerator.generate() and .check() satisfy the Generator
+#         protocol which requires registry/languages/project_dir parameters.
+#         The generator is template-driven and does not use these args directly,
+#         but the protocol signature cannot be changed.
+# ---------------------------------------------------------------------------
+generators/agent_rules\.py:\d+:.*# noqa: ARG002
+
+# ---------------------------------------------------------------------------
+# pipelines/init_pipeline.py
+# PLR0913: InitPipeline.__init__ must accept all pipeline config paths as
+#          explicit constructor args (data_dir, configs_dir, registry_template,
+#          ci_template, agent_template, custom_plugins_dir) for testability.
+#          Bundling into a config dataclass would hide required dependencies.
+# ---------------------------------------------------------------------------
+pipelines/init_pipeline\.py:\d+:\s*def __init__.*# noqa: PLR0913
