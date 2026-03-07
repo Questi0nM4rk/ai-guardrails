@@ -46,7 +46,7 @@ class CheckStep:
     def __init__(self, baseline_file: Path = _DEFAULT_BASELINE) -> None:
         self._baseline_file = baseline_file
 
-    def validate(self, ctx: object) -> list[str]:
+    def validate(self, ctx: PipelineContext) -> list[str]:
         """No preconditions — baseline absence is handled gracefully in execute."""
         return []
 
@@ -105,7 +105,14 @@ class CheckStep:
     def _run_ruff(self, ctx: PipelineContext) -> list[LintIssue]:
         """Invoke ruff and parse JSON output into LintIssue list."""
         result = ctx.command_runner.run(
-            ["ruff", "check", "--output-format=json", str(ctx.project_dir)],
+            [
+                "uv",
+                "run",
+                "ruff",
+                "check",
+                "--output-format=json",
+                str(ctx.project_dir),
+            ],
             cwd=ctx.project_dir,
         )
 

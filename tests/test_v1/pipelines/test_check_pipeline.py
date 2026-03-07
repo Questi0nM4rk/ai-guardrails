@@ -34,7 +34,7 @@ def test_check_pipeline_run_returns_list(tmp_path: Path) -> None:
     runner = FakeCommandRunner()
     # ruff returns no issues (empty JSON array)
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=0,
         stdout="[]",
     )
@@ -56,7 +56,7 @@ def test_check_pipeline_no_issues_succeeds(tmp_path: Path) -> None:
     """Pipeline succeeds when ruff finds no issues and no baseline exists."""
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=0,
         stdout="[]",
     )
@@ -78,7 +78,7 @@ def test_check_pipeline_with_explicit_baseline(tmp_path: Path) -> None:
     baseline_path = tmp_path / "custom-baseline.json"
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=0,
         stdout="[]",
     )

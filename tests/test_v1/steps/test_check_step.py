@@ -121,7 +121,7 @@ def test_check_step_no_issues_returns_ok(tmp_path: Path) -> None:
     """When ruff reports no issues, step returns ok."""
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=0,
         stdout=_RUFF_JSON_NO_ISSUES,
     )
@@ -140,7 +140,7 @@ def test_check_step_new_issue_returns_error(tmp_path: Path) -> None:
     """When ruff reports an issue not in the baseline, step returns error."""
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=1,
         stdout=_RUFF_JSON_ONE_ISSUE,
     )
@@ -166,7 +166,7 @@ def test_check_step_baseline_suppresses_known_issue(tmp_path: Path) -> None:
 
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=1,
         stdout=_RUFF_JSON_ONE_ISSUE,
     )
@@ -183,7 +183,7 @@ def test_check_step_missing_baseline_treats_all_as_new(tmp_path: Path) -> None:
     """When no baseline file exists, every issue is treated as new."""
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=1,
         stdout=_RUFF_JSON_ONE_ISSUE,
     )
@@ -206,7 +206,7 @@ def test_check_step_promoted_baseline_entry_does_not_suppress(tmp_path: Path) ->
 
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=1,
         stdout=_RUFF_JSON_ONE_ISSUE,
     )
@@ -229,7 +229,7 @@ def test_check_step_burn_down_entry_suppresses(tmp_path: Path) -> None:
 
     runner = FakeCommandRunner()
     runner.register(
-        ["ruff", "check", "--output-format=json", str(tmp_path)],
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
         returncode=1,
         stdout=_RUFF_JSON_ONE_ISSUE,
     )
@@ -255,13 +255,9 @@ def test_check_step_no_python_detected_returns_skip(tmp_path: Path) -> None:
     assert not runner.calls  # ruff must not have been invoked
 
 
-def test_check_step_validate_always_passes() -> None:
+def test_check_step_validate_always_passes(tmp_path: Path) -> None:
     """validate() has no preconditions — baseline absence is handled in execute."""
-    step = CheckStep(baseline_file=Path(".guardrails-baseline.json"))
-
-    class _FakeCtx:
-        pass
-
-    # validate() accepts PipelineContext — pass a bare object to confirm no crash
-    errors = step.validate(_FakeCtx())  # type: ignore[arg-type]
+    step = CheckStep(baseline_file=tmp_path / ".guardrails-baseline.json")
+    ctx = _make_context(tmp_path, FakeCommandRunner())
+    errors = step.validate(ctx)
     assert errors == []
