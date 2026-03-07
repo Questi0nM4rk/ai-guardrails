@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import yaml
+
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.setup_ci import SetupCIStep
@@ -96,3 +98,38 @@ def test_setup_ci_content_comes_from_template(tmp_path: Path) -> None:
         or "ai-guardrails" in content
         or "check" in content.lower()
     )
+
+
+def test_check_yml_template_contains_action_reference() -> None:
+    """The CI workflow template includes the ai-guardrails action step."""
+    template = _CI_TEMPLATE.read_text()
+    assert "Questi0nM4rk/ai-guardrails" in template
+
+
+def test_action_yml_is_valid_yaml() -> None:
+    """action.yml exists, is valid YAML, and has the expected structure."""
+    action = Path(__file__).parents[3] / "action.yml"
+    assert action.exists(), "action.yml must exist at the repo root"
+    data = yaml.safe_load(action.read_text())
+    assert data["name"] == "AI Guardrails Check"
+    assert data["runs"]["using"] == "composite"
+
+
+def test_action_yml_defines_expected_inputs() -> None:
+    """action.yml exposes the required inputs for CI integration.
+
+    Inputs: mode, baseline, upload-sarif, python-version.
+    """
+    action = Path(__file__).parents[3] / "action.yml"
+    data = yaml.safe_load(action.read_text())
+    inputs = data.get("inputs", {})
+    for expected in ("mode", "baseline", "upload-sarif", "python-version"):
+        assert expected in inputs, f"Missing input: {expected}"
+
+
+def test_action_yml_defines_new_issues_output() -> None:
+    """action.yml exposes a new-issues output."""
+    action = Path(__file__).parents[3] / "action.yml"
+    data = yaml.safe_load(action.read_text())
+    outputs = data.get("outputs", {})
+    assert "new-issues" in outputs, "Missing output: new-issues"
