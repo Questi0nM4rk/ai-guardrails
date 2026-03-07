@@ -19,6 +19,7 @@ from ai_guardrails.pipelines.check_pipeline import CheckOptions, CheckPipeline
 from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GeneratePipeline
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.pipelines.install_pipeline import InstallOptions, InstallPipeline
+from ai_guardrails.pipelines.report_pipeline import ReportPipeline
 from ai_guardrails.pipelines.status_pipeline import StatusPipeline
 
 if TYPE_CHECKING:
@@ -111,6 +112,7 @@ def init(
     dry_run: bool = False,
     profile: str = "standard",
     interactive: bool | None = None,
+    upgrade: bool = False,
 ) -> None:
     """Initialize ai-guardrails in the current project.
 
@@ -121,6 +123,7 @@ def init(
     Use --profile to select an enforcement posture: minimal, standard (default), strict.
     Use --interactive / --no-interactive to force or suppress Y/N prompts.
     When omitted, prompts appear only when running in an interactive terminal.
+    Use --upgrade to re-run without overwriting the existing exception registry.
     """
     resolved = _resolve_project_dir(project_dir)
     run_interactive = interactive if interactive is not None else is_tty()
@@ -132,6 +135,7 @@ def init(
         dry_run=dry_run,
         profile=profile,
         interactive=run_interactive,
+        upgrade=upgrade,
     )
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = InitPipeline(
@@ -198,6 +202,25 @@ def status(*, project_dir: Path | None = None) -> None:
     resolved = _resolve_project_dir(project_dir)
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = StatusPipeline(data_dir=_DATA_DIR, custom_plugins_dir=custom_dir)
+    fm, runner, loader, console = _make_infra()
+    results = pipeline.run(
+        project_dir=resolved,
+        file_manager=fm,
+        command_runner=runner,
+        config_loader=loader,
+        console=console,
+    )
+    _print_results(results, console)
+
+
+@app.command
+def report(*, project_dir: Path | None = None) -> None:
+    """Show a summary of recent ai-guardrails check runs.
+
+    Reads .guardrails-audit.jsonl and prints the last 10 check run results.
+    """
+    resolved = _resolve_project_dir(project_dir)
+    pipeline = ReportPipeline()
     fm, runner, loader, console = _make_infra()
     results = pipeline.run(
         project_dir=resolved,

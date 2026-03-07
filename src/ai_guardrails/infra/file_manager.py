@@ -64,3 +64,11 @@ class FileManager:
         if not link.exists():
             link.symlink_to(target)
         return None
+
+    def append_text(self, path: Path, text: str) -> str | None:
+        """Append text to a file (creates if absent). Dry-run returns description."""
+        if self.dry_run:
+            return f"would append to {path}"
+        with path.open("a", encoding="utf-8") as f:
+            f.write(text)
+        return None

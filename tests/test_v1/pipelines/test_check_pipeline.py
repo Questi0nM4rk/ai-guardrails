@@ -153,3 +153,33 @@ def test_check_pipeline_text_format_does_not_print_json(
 
     captured = capsys.readouterr()
     assert captured.out == ""
+
+
+def test_check_pipeline_writes_audit_log(tmp_path: Path) -> None:
+    """After a successful check run the audit JSONL is written."""
+    runner = FakeCommandRunner()
+    runner.register(
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
+        returncode=0,
+        stdout="[]",
+    )
+
+    fm = FakeFileManager()
+    pipeline = _make_pipeline()
+    pipeline.run(
+        project_dir=tmp_path,
+        file_manager=fm,
+        command_runner=runner,
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+    )
+
+    audit_path = tmp_path / ".guardrails-audit.jsonl"
+    written_paths = [p for p, _ in fm.written]
+    assert audit_path in written_paths
+    content = next(text for p, text in fm.written if p == audit_path)
+    record = json.loads(content.strip())
+    assert record["command"] == "check"
+    assert record["status"] in ("ok", "error")
+    assert "timestamp" in record
+    assert "new_issues" in record
