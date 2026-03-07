@@ -8,6 +8,7 @@ from ai_guardrails.infra.policy_loader import load_org_policy, load_team_policy
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
+    from ai_guardrails.models.exception_record import ExceptionRecord
     from ai_guardrails.models.governance import OrgPolicy, TeamPolicy
     from ai_guardrails.pipelines.base import PipelineContext
 
@@ -41,7 +42,7 @@ class ValidateGovernanceStep:
 
 
 def _check_locked_rules(
-    exceptions: list,
+    exceptions: list[ExceptionRecord],
     org: OrgPolicy | None,
     team: TeamPolicy | None,
 ) -> list[str]:
@@ -62,7 +63,9 @@ def _check_locked_rules(
     return errors
 
 
-def _check_budget(exceptions: list, team: TeamPolicy | None) -> list[str]:
+def _check_budget(
+    exceptions: list[ExceptionRecord], team: TeamPolicy | None
+) -> list[str]:
     if team is None or team.exception_budget is None:
         return []
     approved_count = sum(1 for e in exceptions if e.is_approved)
