@@ -24,6 +24,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _DEFAULT_BASELINE = Path(".guardrails-baseline.json")
+
+
+def _read_lines(file_path: str) -> list[str]:
+    """Read source lines from a file; return empty list on any error."""
+    try:
+        text = Path(file_path).read_text(encoding="utf-8", errors="replace")
+        return text.splitlines()
+    except OSError:
+        return []
+
+
 _MAX_INLINE_ISSUES = 5
 
 
@@ -116,12 +127,20 @@ class CheckStep:
             col = location.get("column", 0)
             message = item.get("message", "")
 
+            # Read source lines for content-stable fingerprinting.
+            # Falls back to empty strings if the file cannot be read.
+            src_lines = _read_lines(file_path)
+            line_idx = max(0, line - 1)
+            line_content = src_lines[line_idx] if line_idx < len(src_lines) else ""
+            context_before = src_lines[max(0, line_idx - 2) : line_idx]
+            context_after = src_lines[line_idx + 1 : line_idx + 3]
+
             fingerprint = LintIssue.compute_fingerprint(
                 rule=rule,
                 file=file_path,
-                line_content="",
-                context_before=[],
-                context_after=[],
+                line_content=line_content,
+                context_before=context_before,
+                context_after=context_after,
             )
             issues.append(
                 LintIssue(
