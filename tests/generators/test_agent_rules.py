@@ -2,21 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from ai_guardrails.generators.agent_rules import AgentRulesGenerator
 from ai_guardrails.generators.base import parse_hash_header
 from ai_guardrails.models.registry import ExceptionRegistry
+from tests.conftest import TEMPLATES_DIR
 
-_TEMPLATES_DIR = (
-    Path(__file__).parent.parent.parent
-    / "src"
-    / "ai_guardrails"
-    / "_data"
-    / "templates"
-    / "agent-rules"
-)
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_registry() -> ExceptionRegistry:
@@ -24,7 +19,7 @@ def _make_registry() -> ExceptionRegistry:
 
 
 def _make_generator() -> AgentRulesGenerator:
-    return AgentRulesGenerator(templates_dir=_TEMPLATES_DIR)
+    return AgentRulesGenerator(templates_dir=TEMPLATES_DIR / "agent-rules")
 
 
 # --- generate produces all 5 files ---

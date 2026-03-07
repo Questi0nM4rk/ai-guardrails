@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from ai_guardrails.infra.profile_loader import load_profile
+from tests.conftest import DATA_DIR
 
-_PROFILES_DIR = (
-    Path(__file__).parent.parent.parent / "src" / "ai_guardrails" / "_data" / "profiles"
-)
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_load_standard_profile_returns_profile():
-    profile = load_profile("standard", profiles_dir=_PROFILES_DIR)
+    profile = load_profile("standard", profiles_dir=DATA_DIR / "profiles")
     assert profile.name == "standard"
     assert profile.suppression_comments == "warn"
     assert profile.hold_the_line == "standard"
@@ -22,7 +22,7 @@ def test_load_standard_profile_returns_profile():
 
 
 def test_load_minimal_profile_returns_minimal_values():
-    profile = load_profile("minimal", profiles_dir=_PROFILES_DIR)
+    profile = load_profile("minimal", profiles_dir=DATA_DIR / "profiles")
     assert profile.name == "minimal"
     assert profile.suppression_comments == "allow"
     assert profile.hold_the_line == "off"
@@ -30,7 +30,7 @@ def test_load_minimal_profile_returns_minimal_values():
 
 
 def test_load_strict_profile_returns_strict_values():
-    profile = load_profile("strict", profiles_dir=_PROFILES_DIR)
+    profile = load_profile("strict", profiles_dir=DATA_DIR / "profiles")
     assert profile.name == "strict"
     assert profile.suppression_comments == "block"
     assert profile.hold_the_line == "strict"
@@ -40,8 +40,8 @@ def test_load_strict_profile_returns_strict_values():
 
 def test_strict_inherits_standard_as_base(tmp_path: Path):
     """strict.toml only overrides some fields — the rest come from standard."""
-    strict = load_profile("strict", profiles_dir=_PROFILES_DIR)
-    standard = load_profile("standard", profiles_dir=_PROFILES_DIR)
+    strict = load_profile("strict", profiles_dir=DATA_DIR / "profiles")
+    standard = load_profile("standard", profiles_dir=DATA_DIR / "profiles")
     # strict overrides these
     assert strict.suppression_comments == "block"
     assert strict.hold_the_line == "strict"
@@ -52,12 +52,12 @@ def test_strict_inherits_standard_as_base(tmp_path: Path):
 
 def test_unknown_profile_raises_value_error():
     with pytest.raises(ValueError, match="Unknown profile 'bogus'"):
-        load_profile("bogus", profiles_dir=_PROFILES_DIR)
+        load_profile("bogus", profiles_dir=DATA_DIR / "profiles")
 
 
 def test_unknown_profile_lists_available_profiles():
     with pytest.raises(ValueError, match="standard"):
-        load_profile("bogus", profiles_dir=_PROFILES_DIR)
+        load_profile("bogus", profiles_dir=DATA_DIR / "profiles")
 
 
 def test_circular_inheritance_raises_value_error(tmp_path: Path):

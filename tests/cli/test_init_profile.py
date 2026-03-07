@@ -2,19 +2,21 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 from ai_guardrails.pipelines.base import StepResult
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
+from tests.conftest import (
+    AGENT_TEMPLATE,
+    CI_TEMPLATE,
+    CONFIGS_DIR,
+    DATA_DIR,
+    REGISTRY_TEMPLATE,
+)
 
-_DATA_DIR = Path(__file__).parent.parent.parent / "src" / "ai_guardrails" / "_data"
-_CONFIGS_DIR = _DATA_DIR / "configs"
-_TEMPLATES_DIR = _DATA_DIR / "templates"
-_REGISTRY_TEMPLATE = _TEMPLATES_DIR / "guardrails-exceptions.toml"
-_CI_TEMPLATE = _TEMPLATES_DIR / "workflows" / "check.yml"
-_AGENT_TEMPLATE = _TEMPLATES_DIR / "CLAUDE.md.guardrails"
-
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _EMPTY_REGISTRY_TOML = "schema_version = 1\n"
 
@@ -29,11 +31,11 @@ def _run_init(tmp_path: Path, profile: str) -> list[StepResult]:
     )
     pipeline = InitPipeline(
         options=options,
-        data_dir=_DATA_DIR,
-        configs_dir=_CONFIGS_DIR,
-        registry_template=_REGISTRY_TEMPLATE,
-        ci_template=_CI_TEMPLATE,
-        agent_template=_AGENT_TEMPLATE,
+        data_dir=DATA_DIR,
+        configs_dir=CONFIGS_DIR,
+        registry_template=REGISTRY_TEMPLATE,
+        ci_template=CI_TEMPLATE,
+        agent_template=AGENT_TEMPLATE,
     )
     fm = MagicMock()
     fm.exists.return_value = True
@@ -91,11 +93,11 @@ def test_init_with_unknown_profile_returns_error(tmp_path: Path):
     options = InitOptions(profile="nonexistent", no_hooks=True, no_ci=True)
     pipeline = InitPipeline(
         options=options,
-        data_dir=_DATA_DIR,
-        configs_dir=_CONFIGS_DIR,
-        registry_template=_REGISTRY_TEMPLATE,
-        ci_template=_CI_TEMPLATE,
-        agent_template=_AGENT_TEMPLATE,
+        data_dir=DATA_DIR,
+        configs_dir=CONFIGS_DIR,
+        registry_template=REGISTRY_TEMPLATE,
+        ci_template=CI_TEMPLATE,
+        agent_template=AGENT_TEMPLATE,
     )
     results = pipeline.run(
         project_dir=tmp_path,
@@ -114,11 +116,11 @@ def test_init_with_unknown_profile_lists_available(tmp_path: Path):
     options = InitOptions(profile="bogus", no_hooks=True, no_ci=True)
     pipeline = InitPipeline(
         options=options,
-        data_dir=_DATA_DIR,
-        configs_dir=_CONFIGS_DIR,
-        registry_template=_REGISTRY_TEMPLATE,
-        ci_template=_CI_TEMPLATE,
-        agent_template=_AGENT_TEMPLATE,
+        data_dir=DATA_DIR,
+        configs_dir=CONFIGS_DIR,
+        registry_template=REGISTRY_TEMPLATE,
+        ci_template=CI_TEMPLATE,
+        agent_template=AGENT_TEMPLATE,
     )
     results = pipeline.run(
         project_dir=tmp_path,

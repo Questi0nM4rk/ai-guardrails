@@ -21,16 +21,15 @@ from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.infra.file_manager import FileManager
 from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GeneratePipeline
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
-from tests.conftest import FakeCommandRunner, FakeConsole
-
-_REPO_ROOT = Path(__file__).parents[2]
-_DATA_DIR = _REPO_ROOT / "src" / "ai_guardrails" / "_data"
-_CONFIGS_DIR = _DATA_DIR / "configs"
-_TEMPLATES_DIR = _DATA_DIR / "templates"
-_REGISTRY_TEMPLATE = _TEMPLATES_DIR / "guardrails-exceptions.toml"
-_CI_TEMPLATE = _TEMPLATES_DIR / "workflows" / "check.yml"
-_AGENT_TEMPLATE = _TEMPLATES_DIR / "CLAUDE.md.guardrails"
-
+from tests.conftest import (
+    AGENT_TEMPLATE,
+    CI_TEMPLATE,
+    CONFIGS_DIR,
+    DATA_DIR,
+    REGISTRY_TEMPLATE,
+    FakeCommandRunner,
+    FakeConsole,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -57,11 +56,11 @@ def _make_init_pipeline(
             no_ci=no_ci,
             no_agent_instructions=no_agent_instructions,
         ),
-        data_dir=_DATA_DIR,
-        configs_dir=_CONFIGS_DIR,
-        registry_template=_REGISTRY_TEMPLATE,
-        ci_template=_CI_TEMPLATE,
-        agent_template=_AGENT_TEMPLATE,
+        data_dir=DATA_DIR,
+        configs_dir=CONFIGS_DIR,
+        registry_template=REGISTRY_TEMPLATE,
+        ci_template=CI_TEMPLATE,
+        agent_template=AGENT_TEMPLATE,
     )
 
 
@@ -214,7 +213,7 @@ def test_generate_check_passes_after_init(tmp_path: Path) -> None:
 
     pipeline = GeneratePipeline(
         options=GenerateOptions(check=True),
-        data_dir=_DATA_DIR,
+        data_dir=DATA_DIR,
     )
     results = pipeline.run(
         project_dir=tmp_path,
@@ -328,7 +327,7 @@ def test_generate_check_fails_on_tampered_config(tmp_path: Path) -> None:
 
     pipeline = GeneratePipeline(
         options=GenerateOptions(check=True),
-        data_dir=_DATA_DIR,
+        data_dir=DATA_DIR,
     )
     results = pipeline.run(
         project_dir=tmp_path,
@@ -408,7 +407,7 @@ def test_generate_unknown_language_returns_error(tmp_path: Path) -> None:
 
     pipeline = GeneratePipeline(
         options=GenerateOptions(languages=["foobar"]),
-        data_dir=_DATA_DIR,
+        data_dir=DATA_DIR,
     )
     results = pipeline.run(
         project_dir=tmp_path,

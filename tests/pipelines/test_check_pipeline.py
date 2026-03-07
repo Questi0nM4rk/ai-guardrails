@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ai_guardrails.infra.config_loader import ConfigLoader
+from ai_guardrails.pipelines.check_pipeline import CheckOptions, CheckPipeline
 
 if TYPE_CHECKING:
-    import pytest
-from ai_guardrails.pipelines.check_pipeline import CheckOptions, CheckPipeline
-from tests.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+    from pathlib import Path
 
-_REPO_ROOT = Path(__file__).parents[2]
-_DATA_DIR = _REPO_ROOT / "src" / "ai_guardrails" / "_data"
+    import pytest
+from tests.conftest import DATA_DIR, FakeCommandRunner, FakeConsole, FakeFileManager
 
 
 def _make_pipeline(
@@ -24,7 +22,7 @@ def _make_pipeline(
 ) -> CheckPipeline:
     return CheckPipeline(
         options=CheckOptions(baseline_file=baseline, output_format=output_format),
-        data_dir=_DATA_DIR,
+        data_dir=DATA_DIR,
     )
 
 

@@ -7,15 +7,11 @@ from pathlib import Path
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.scaffold_registry import ScaffoldRegistryStep
-from tests.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
-
-_TEMPLATE = (
-    Path(__file__).parents[2]
-    / "src"
-    / "ai_guardrails"
-    / "_data"
-    / "templates"
-    / "guardrails-exceptions.toml"
+from tests.conftest import (
+    REGISTRY_TEMPLATE,
+    FakeCommandRunner,
+    FakeConsole,
+    FakeFileManager,
 )
 
 
@@ -40,7 +36,7 @@ def _make_context(
 
 
 def test_scaffold_registry_step_name() -> None:
-    step = ScaffoldRegistryStep(template_path=_TEMPLATE)
+    step = ScaffoldRegistryStep(template_path=REGISTRY_TEMPLATE)
     assert step.name == "scaffold-registry"
 
 
@@ -53,13 +49,13 @@ def test_scaffold_validate_fails_if_template_missing(tmp_path: Path) -> None:
 
 
 def test_scaffold_validate_passes_when_template_exists() -> None:
-    step = ScaffoldRegistryStep(template_path=_TEMPLATE)
+    step = ScaffoldRegistryStep(template_path=REGISTRY_TEMPLATE)
     ctx, _ = _make_context(Path("/project"))
     assert step.validate(ctx) == []
 
 
 def test_scaffold_creates_registry_when_missing(tmp_path: Path) -> None:
-    step = ScaffoldRegistryStep(template_path=_TEMPLATE)
+    step = ScaffoldRegistryStep(template_path=REGISTRY_TEMPLATE)
     ctx, fm = _make_context(tmp_path)
     result = step.execute(ctx)
     assert result.status == "ok"
@@ -72,7 +68,7 @@ def test_scaffold_skips_if_registry_exists(tmp_path: Path) -> None:
     target = tmp_path / ".guardrails-exceptions.toml"
     target.write_text("schema_version = 1\n")
 
-    step = ScaffoldRegistryStep(template_path=_TEMPLATE)
+    step = ScaffoldRegistryStep(template_path=REGISTRY_TEMPLATE)
     ctx, fm = _make_context(tmp_path)
     result = step.execute(ctx)
     assert result.status == "skip"
@@ -85,7 +81,7 @@ def test_scaffold_never_overwrites_even_with_force(tmp_path: Path) -> None:
     target = tmp_path / ".guardrails-exceptions.toml"
     target.write_text("schema_version = 1\n")
 
-    step = ScaffoldRegistryStep(template_path=_TEMPLATE)
+    step = ScaffoldRegistryStep(template_path=REGISTRY_TEMPLATE)
     ctx, fm = _make_context(tmp_path, force=True)
     result = step.execute(ctx)
     assert result.status == "skip"
@@ -93,7 +89,7 @@ def test_scaffold_never_overwrites_even_with_force(tmp_path: Path) -> None:
 
 
 def test_scaffold_copies_template_content(tmp_path: Path) -> None:
-    step = ScaffoldRegistryStep(template_path=_TEMPLATE)
+    step = ScaffoldRegistryStep(template_path=REGISTRY_TEMPLATE)
     ctx, fm = _make_context(tmp_path)
     step.execute(ctx)
 

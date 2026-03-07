@@ -9,17 +9,8 @@ import yaml
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.setup_ci import SetupCIStep
-from tests.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+from tests.conftest import CI_TEMPLATE, FakeCommandRunner, FakeConsole, FakeFileManager
 
-_CI_TEMPLATE = (
-    Path(__file__).parents[2]
-    / "src"
-    / "ai_guardrails"
-    / "_data"
-    / "templates"
-    / "workflows"
-    / "check.yml"
-)
 _CI_OUTPUT = Path(".github/workflows/check.yml")
 
 
@@ -42,7 +33,7 @@ def _make_context(
 
 
 def test_setup_ci_step_name() -> None:
-    step = SetupCIStep(template_path=_CI_TEMPLATE)
+    step = SetupCIStep(template_path=CI_TEMPLATE)
     assert step.name == "setup-ci"
 
 
@@ -55,13 +46,13 @@ def test_setup_ci_validate_fails_if_template_missing(tmp_path: Path) -> None:
 
 
 def test_setup_ci_validate_passes(tmp_path: Path) -> None:
-    step = SetupCIStep(template_path=_CI_TEMPLATE)
+    step = SetupCIStep(template_path=CI_TEMPLATE)
     ctx, _ = _make_context(tmp_path)
     assert step.validate(ctx) == []
 
 
 def test_setup_ci_creates_workflow_file(tmp_path: Path) -> None:
-    step = SetupCIStep(template_path=_CI_TEMPLATE)
+    step = SetupCIStep(template_path=CI_TEMPLATE)
     ctx, fm = _make_context(tmp_path)
     result = step.execute(ctx)
     assert result.status == "ok"
@@ -70,7 +61,7 @@ def test_setup_ci_creates_workflow_file(tmp_path: Path) -> None:
 
 
 def test_setup_ci_skips_if_exists_without_force(tmp_path: Path) -> None:
-    step = SetupCIStep(template_path=_CI_TEMPLATE)
+    step = SetupCIStep(template_path=CI_TEMPLATE)
     ctx, fm = _make_context(tmp_path)
     fm.seed(tmp_path / _CI_OUTPUT, "# existing\n")
     result = step.execute(ctx)
@@ -79,7 +70,7 @@ def test_setup_ci_skips_if_exists_without_force(tmp_path: Path) -> None:
 
 
 def test_setup_ci_overwrites_with_force(tmp_path: Path) -> None:
-    step = SetupCIStep(template_path=_CI_TEMPLATE)
+    step = SetupCIStep(template_path=CI_TEMPLATE)
     ctx, fm = _make_context(tmp_path, force=True)
     fm.seed(tmp_path / _CI_OUTPUT, "# old\n")
     result = step.execute(ctx)
@@ -88,7 +79,7 @@ def test_setup_ci_overwrites_with_force(tmp_path: Path) -> None:
 
 
 def test_setup_ci_content_comes_from_template(tmp_path: Path) -> None:
-    step = SetupCIStep(template_path=_CI_TEMPLATE)
+    step = SetupCIStep(template_path=CI_TEMPLATE)
     ctx, fm = _make_context(tmp_path)
     step.execute(ctx)
     written = dict(fm.written)
@@ -102,7 +93,7 @@ def test_setup_ci_content_comes_from_template(tmp_path: Path) -> None:
 
 def test_check_yml_template_contains_action_reference() -> None:
     """The CI workflow template includes the ai-guardrails action step."""
-    template = _CI_TEMPLATE.read_text()
+    template = CI_TEMPLATE.read_text()
     assert "Questi0nM4rk/ai-guardrails" in template
 
 

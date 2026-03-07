@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import subprocess
-from typing import TYPE_CHECKING, Any, ClassVar
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from typing import ClassVar
 
 import pytest
+
+# ---------------------------------------------------------------------------
+# Shared data-directory paths (single source of truth for all test files)
+# ---------------------------------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).parent.parent
+DATA_DIR = PROJECT_ROOT / "src" / "ai_guardrails" / "_data"
+CONFIGS_DIR = DATA_DIR / "configs"
+TEMPLATES_DIR = DATA_DIR / "templates"
+REGISTRY_TEMPLATE = TEMPLATES_DIR / "guardrails-exceptions.toml"
+CI_TEMPLATE = TEMPLATES_DIR / "workflows" / "check.yml"
+AGENT_TEMPLATE = TEMPLATES_DIR / "CLAUDE.md.guardrails"
 
 # ---------------------------------------------------------------------------
 # FakeFileManager
@@ -83,7 +93,7 @@ class FakeFileManager:
             return f"would append to {path}"
         existing = self._files.get(path, "")
         self._files[path] = existing + text
-        self.written.append((path, text))
+        self.written.append((path, self._files[path]))
         return None
 
     def seed(self, path: Path, content: str) -> None:
@@ -219,31 +229,3 @@ def fake_console() -> FakeConsole:
 @pytest.fixture()
 def fake_console_quiet() -> FakeConsole:
     return FakeConsole(quiet=True)
-
-
-@pytest.fixture()
-def sample_exceptions_toml() -> dict[str, Any]:
-    return {
-        "schema_version": 1,
-        "global_rules": {
-            "ruff": {"ignore": ["E501", "W503"]},
-        },
-        "exceptions": [
-            {
-                "tool": "ruff",
-                "rule": "T201",
-                "reason": "Print used in CLI entry points",
-                "scope": "src/cli.py",
-            },
-        ],
-        "file_exceptions": [
-            {
-                "glob": "tests/**/*.py",
-                "tool": "ruff",
-                "rules": ["S101", "PLR2004"],
-                "reason": "Assertions and magic values OK in tests",
-            },
-        ],
-        "custom": {},
-        "inline_suppressions": [],
-    }

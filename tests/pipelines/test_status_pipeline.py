@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.status_pipeline import StatusPipeline
-from tests.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+from tests.conftest import DATA_DIR, FakeCommandRunner, FakeConsole, FakeFileManager
 
-_DATA_DIR = Path(__file__).parents[2] / "src" / "ai_guardrails" / "_data"
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _MINIMAL_REGISTRY = """\
 schema_version = 1
@@ -27,7 +28,7 @@ def test_status_pipeline_runs_without_error(tmp_path: Path) -> None:
     fm = FakeFileManager()
     fm.seed(tmp_path / ".guardrails-exceptions.toml", _MINIMAL_REGISTRY)
 
-    pipeline = StatusPipeline(data_dir=_DATA_DIR)
+    pipeline = StatusPipeline(data_dir=DATA_DIR)
     results = pipeline.run(
         project_dir=tmp_path,
         file_manager=fm,

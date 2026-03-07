@@ -2,20 +2,25 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
 from ai_guardrails.steps.setup_hooks import SetupHooksStep
-from tests.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+from tests.conftest import (
+    AGENT_TEMPLATE,
+    CI_TEMPLATE,
+    CONFIGS_DIR,
+    DATA_DIR,
+    REGISTRY_TEMPLATE,
+    FakeCommandRunner,
+    FakeConsole,
+    FakeFileManager,
+)
 
-_REPO_ROOT = Path(__file__).parents[2]
-_DATA_DIR = _REPO_ROOT / "src" / "ai_guardrails" / "_data"
-_REGISTRY_TEMPLATE = _DATA_DIR / "templates" / "guardrails-exceptions.toml"
-_CI_TEMPLATE = _DATA_DIR / "templates" / "workflows" / "check.yml"
-_AGENT_TEMPLATE = _DATA_DIR / "templates" / "CLAUDE.md.guardrails"
-_CONFIGS_DIR = _DATA_DIR / "configs"
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_ctx(
@@ -40,11 +45,11 @@ def _run_init_pipeline(
 ) -> None:
     pipeline = InitPipeline(
         options=InitOptions(no_hooks=no_hooks),
-        data_dir=_DATA_DIR,
-        configs_dir=_CONFIGS_DIR,
-        registry_template=_REGISTRY_TEMPLATE,
-        ci_template=_CI_TEMPLATE,
-        agent_template=_AGENT_TEMPLATE,
+        data_dir=DATA_DIR,
+        configs_dir=CONFIGS_DIR,
+        registry_template=REGISTRY_TEMPLATE,
+        ci_template=CI_TEMPLATE,
+        agent_template=AGENT_TEMPLATE,
     )
     pipeline.run(
         project_dir=tmp_path,
