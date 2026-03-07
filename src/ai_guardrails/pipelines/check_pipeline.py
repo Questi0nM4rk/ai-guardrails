@@ -16,6 +16,7 @@ from ai_guardrails.languages._registry import discover_plugins
 from ai_guardrails.pipelines.base import Pipeline, PipelineContext
 from ai_guardrails.steps.check_step import CheckStep
 from ai_guardrails.steps.detect_languages import DetectLanguagesStep
+from ai_guardrails.writers.sarif import build_sarif
 
 if TYPE_CHECKING:
     from ai_guardrails.infra.command_runner import CommandRunner
@@ -32,6 +33,7 @@ class CheckOptions:
     """Options for the check command."""
 
     baseline_file: Path | None = None
+    output_format: str = "text"
 
 
 class CheckPipeline:
@@ -74,10 +76,16 @@ class CheckPipeline:
         )
 
         plugins = discover_plugins(self._data_dir, custom_dir=self._custom_plugins_dir)
+        check_step = CheckStep(baseline_file=baseline)
         steps = [
             DetectLanguagesStep(plugins=plugins),
-            CheckStep(baseline_file=baseline),
+            check_step,
         ]
 
         pipeline = Pipeline(steps=steps)
-        return pipeline.run(ctx)
+        results = pipeline.run(ctx)
+
+        if self._options.output_format == "sarif":
+            print(build_sarif(check_step.new_issues))
+
+        return results

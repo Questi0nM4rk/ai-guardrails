@@ -45,6 +45,7 @@ class CheckStep:
 
     def __init__(self, baseline_file: Path = _DEFAULT_BASELINE) -> None:
         self._baseline_file = baseline_file
+        self.new_issues: list[LintIssue] = []
 
     def validate(self, ctx: PipelineContext) -> list[str]:
         """No preconditions — baseline absence is handled gracefully in execute."""
@@ -64,6 +65,7 @@ class CheckStep:
         }
 
         new_issues = [i for i in issues if i.fingerprint not in active_fps]
+        self.new_issues = new_issues
         known_count = len(issues) - len(new_issues)
 
         if new_issues:

@@ -8,7 +8,15 @@ from unittest.mock import MagicMock, patch
 from cyclopts import App
 import pytest
 
-from ai_guardrails.cli import _print_results, app, generate, init, install, status
+from ai_guardrails.cli import (
+    _print_results,
+    app,
+    check,
+    generate,
+    init,
+    install,
+    status,
+)
 from ai_guardrails.infra.console import Console
 from ai_guardrails.pipelines.base import StepResult
 
@@ -296,3 +304,42 @@ def test_init_interactive_auto_detect_non_tty(tmp_path: Path) -> None:
         call_kwargs = mock_cls.call_args
         options = call_kwargs[1].get("options") or call_kwargs[0][0]
         assert options.interactive is False
+
+
+# ---------------------------------------------------------------------------
+# check command with --format flag
+# ---------------------------------------------------------------------------
+
+
+def test_check_command_exists() -> None:
+    assert callable(check)
+
+
+def test_check_passes_sarif_format_to_options(tmp_path: Path) -> None:
+    """check --format sarif passes output_format='sarif' to CheckOptions."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.CheckPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        check(project_dir=tmp_path, output_format="sarif")
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.output_format == "sarif"
+
+
+def test_check_default_format_is_text(tmp_path: Path) -> None:
+    """check without --format defaults to output_format='text'."""
+    (tmp_path / ".git").mkdir()
+
+    with patch("ai_guardrails.cli.CheckPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        check(project_dir=tmp_path)
+        call_kwargs = mock_cls.call_args
+        options = call_kwargs[1].get("options") or call_kwargs[0][0]
+        assert options.output_format == "text"

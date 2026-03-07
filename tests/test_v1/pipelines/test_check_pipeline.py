@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ai_guardrails.infra.config_loader import ConfigLoader
+
+if TYPE_CHECKING:
+    import pytest
 from ai_guardrails.pipelines.check_pipeline import CheckOptions, CheckPipeline
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
@@ -12,9 +17,13 @@ _REPO_ROOT = Path(__file__).parents[3]
 _DATA_DIR = _REPO_ROOT / "src" / "ai_guardrails" / "_data"
 
 
-def _make_pipeline(*, baseline: Path | None = None) -> CheckPipeline:
+def _make_pipeline(
+    *,
+    baseline: Path | None = None,
+    output_format: str = "text",
+) -> CheckPipeline:
     return CheckPipeline(
-        options=CheckOptions(baseline_file=baseline),
+        options=CheckOptions(baseline_file=baseline, output_format=output_format),
         data_dir=_DATA_DIR,
     )
 
@@ -22,6 +31,7 @@ def _make_pipeline(*, baseline: Path | None = None) -> CheckPipeline:
 def test_check_options_defaults() -> None:
     opts = CheckOptions()
     assert opts.baseline_file is None
+    assert opts.output_format == "text"
 
 
 def test_check_pipeline_can_be_constructed() -> None:
@@ -93,3 +103,53 @@ def test_check_pipeline_with_explicit_baseline(tmp_path: Path) -> None:
     )
 
     assert isinstance(results, list)
+
+
+def test_check_pipeline_sarif_output_is_valid_json(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """When output_format=sarif, pipeline prints valid SARIF JSON to stdout."""
+    runner = FakeCommandRunner()
+    runner.register(
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
+        returncode=0,
+        stdout="[]",
+    )
+
+    pipeline = _make_pipeline(output_format="sarif")
+    pipeline.run(
+        project_dir=tmp_path,
+        file_manager=FakeFileManager(),
+        command_runner=runner,
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+    )
+
+    captured = capsys.readouterr()
+    parsed = json.loads(captured.out)
+    assert parsed["version"] == "2.1.0"
+    assert "runs" in parsed
+
+
+def test_check_pipeline_text_format_does_not_print_json(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Default text format does not print SARIF JSON to stdout."""
+    runner = FakeCommandRunner()
+    runner.register(
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
+        returncode=0,
+        stdout="[]",
+    )
+
+    pipeline = _make_pipeline()  # output_format="text" by default
+    pipeline.run(
+        project_dir=tmp_path,
+        file_manager=FakeFileManager(),
+        command_runner=runner,
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+    )
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
