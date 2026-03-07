@@ -39,7 +39,7 @@ _CUSTOM_PLUGINS_DIR = _GLOBAL_CONFIG_DIR / "plugins"
 def _resolve_project_dir(project_dir: Path | None) -> Path:
     """Resolve and validate the project directory is a git repo."""
     resolved = (project_dir or Path.cwd()).resolve()
-    if not (resolved / ".git").is_dir():
+    if not (resolved / ".git").exists():
         raise SystemExit(
             f"Error: {resolved} is not a git repository. Run 'git init' first."
         )
