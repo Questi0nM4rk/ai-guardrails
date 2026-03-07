@@ -9,23 +9,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai_guardrails.generators.editorconfig import EditorconfigGenerator
-from ai_guardrails.generators.lefthook import LefthookGenerator
-from ai_guardrails.generators.markdownlint import MarkdownlintGenerator
-from ai_guardrails.generators.ruff import RuffGenerator
+from ai_guardrails.generators import DEFAULT_GENERATORS
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
     from ai_guardrails.generators.base import Generator
     from ai_guardrails.pipelines.base import PipelineContext
-
-
-_DEFAULT_GENERATORS: list[Generator] = [
-    RuffGenerator(),
-    MarkdownlintGenerator(),
-    EditorconfigGenerator(),
-    LefthookGenerator(),
-]
 
 
 class GenerateConfigsStep:
@@ -38,7 +27,7 @@ class GenerateConfigsStep:
         generators: list[Generator] | None = None,
     ) -> None:
         self.generators: list[Generator] = (
-            generators if generators is not None else list(_DEFAULT_GENERATORS)
+            generators if generators is not None else list(DEFAULT_GENERATORS)
         )
         self._gen_owned: set[str] = {
             f for gen in self.generators for f in gen.output_files

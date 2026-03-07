@@ -7,22 +7,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ai_guardrails.generators.editorconfig import EditorconfigGenerator
-from ai_guardrails.generators.lefthook import LefthookGenerator
-from ai_guardrails.generators.markdownlint import MarkdownlintGenerator
-from ai_guardrails.generators.ruff import RuffGenerator
+from ai_guardrails.generators import DEFAULT_GENERATORS
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
     from ai_guardrails.generators.base import Generator
     from ai_guardrails.pipelines.base import PipelineContext
-
-_DEFAULT_GENERATORS: list[Generator] = [
-    RuffGenerator(),
-    MarkdownlintGenerator(),
-    EditorconfigGenerator(),
-    LefthookGenerator(),
-]
 
 
 class StatusStep:
@@ -32,7 +22,7 @@ class StatusStep:
 
     def __init__(self, generators: list[Generator] | None = None) -> None:
         self._generators: list[Generator] = (
-            generators if generators is not None else list(_DEFAULT_GENERATORS)
+            generators if generators is not None else list(DEFAULT_GENERATORS)
         )
         self._gen_owned: set[str] = {
             f for gen in self._generators for f in gen.output_files
@@ -79,12 +69,7 @@ class StatusStep:
         for gen in self._generators:
             issues = gen.check(ctx.registry, ctx.project_dir, lang_keys)
             for filename in gen.output_files:
-                if issues:
-                    ctx.console.warning(
-                        f"  {filename:<24} STALE — run: ai-guardrails generate"
-                    )
-                else:
-                    ctx.console.info(f"  {filename:<24} fresh")
+                self._print_config_row(ctx, filename, stale=bool(issues))
 
         # Plugin-exclusive configs (not owned by any standalone generator).
         for plugin in ctx.languages:
@@ -95,12 +80,15 @@ class StatusStep:
                 continue
             issues = plugin.check(ctx.registry, ctx.project_dir)
             for filename in exclusive:
-                if issues:
-                    ctx.console.warning(
-                        f"  {filename:<24} STALE — run: ai-guardrails generate"
-                    )
-                else:
-                    ctx.console.info(f"  {filename:<24} fresh")
+                self._print_config_row(ctx, filename, stale=bool(issues))
+
+    def _print_config_row(
+        self, ctx: PipelineContext, filename: str, *, stale: bool
+    ) -> None:
+        if stale:
+            ctx.console.warning(f"  {filename:<24} STALE — run: ai-guardrails generate")
+        else:
+            ctx.console.info(f"  {filename:<24} fresh")
 
     def _print_hooks(self, ctx: PipelineContext) -> None:
         result = ctx.command_runner.run(["lefthook", "version"])
