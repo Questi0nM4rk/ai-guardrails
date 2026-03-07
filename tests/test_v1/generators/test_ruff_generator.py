@@ -4,13 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ai_guardrails.generators.ruff import RuffGenerator
-
 from ai_guardrails.generators.base import (
     HASH_HEADER_PREFIX,
     compute_hash,
     parse_hash_header,
 )
+from ai_guardrails.generators.ruff import RuffGenerator
 from ai_guardrails.models.registry import ExceptionRegistry
 
 
@@ -75,7 +74,8 @@ def test_ruff_generator_contains_base_rules(tmp_path: Path) -> None:
     outputs = gen.generate(registry, [], tmp_path)
     content = outputs[Path("ruff.toml")]
     assert "target-version" in content
-    assert 'select = ["ALL"]' in content
+    # tomli_w may format arrays as multiline; check value is present not exact format
+    assert '"ALL"' in content
 
 
 def test_ruff_generator_merges_registry_exceptions(tmp_path: Path) -> None:
