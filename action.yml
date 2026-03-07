@@ -39,12 +39,15 @@ runs:
     - name: Run ai-guardrails check
       id: check
       shell: bash
+      env:
+        UPLOAD_SARIF: ${{ inputs.upload-sarif }}
+        BASELINE_FILE: ${{ inputs.baseline }}
       run: |
-        if [ "${{ inputs.upload-sarif }}" = "true" ]; then
-          ai-guardrails check --baseline "${{ inputs.baseline }}" --output-format sarif > results.sarif
+        if [ "$UPLOAD_SARIF" = "true" ]; then
+          ai-guardrails check --baseline "$BASELINE_FILE" --output-format sarif > results.sarif
           echo "new-issues=$(jq '.runs[0].results | length' results.sarif)" >> "$GITHUB_OUTPUT"
         else
-          ai-guardrails check --baseline "${{ inputs.baseline }}"
+          ai-guardrails check --baseline "$BASELINE_FILE"
           echo "new-issues=0" >> "$GITHUB_OUTPUT"
         fi
 
