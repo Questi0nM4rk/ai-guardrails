@@ -2,10 +2,6 @@ name: 'AI Guardrails Check'
 description: 'Run ai-guardrails hold-the-line lint check. Fails if new issues are introduced.'
 
 inputs:
-  mode:
-    description: 'Check mode: check (default) or strict'
-    required: false
-    default: 'check'
   baseline:
     description: 'Path to baseline file'
     required: false
@@ -40,19 +36,13 @@ runs:
       id: check
       shell: bash
       env:
-        UPLOAD_SARIF: ${{ inputs.upload-sarif }}
         BASELINE_FILE: ${{ inputs.baseline }}
       run: |
-        if [ "$UPLOAD_SARIF" = "true" ]; then
-          ai-guardrails check --baseline "$BASELINE_FILE" --output-format sarif > results.sarif
-          echo "new-issues=$(jq '.runs[0].results | length' results.sarif)" >> "$GITHUB_OUTPUT"
-        else
-          ai-guardrails check --baseline "$BASELINE_FILE"
-          echo "new-issues=0" >> "$GITHUB_OUTPUT"
-        fi
+        ai-guardrails check --baseline "$BASELINE_FILE" --output-format sarif > results.sarif
+        echo "new-issues=$(jq '.runs[0].results | length' results.sarif)" >> "$GITHUB_OUTPUT"
 
     - name: Upload SARIF results
-      if: inputs.upload-sarif == 'true' && always()
+      if: ${{ inputs.upload-sarif == 'true' && always() }}
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: results.sarif

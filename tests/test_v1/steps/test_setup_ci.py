@@ -118,13 +118,14 @@ def test_action_yml_is_valid_yaml() -> None:
 def test_action_yml_defines_expected_inputs() -> None:
     """action.yml exposes the required inputs for CI integration.
 
-    Inputs: mode, baseline, upload-sarif, python-version.
+    Inputs: baseline, upload-sarif, python-version.
     """
     action = Path(__file__).parents[3] / "action.yml"
     data = yaml.safe_load(action.read_text())
     inputs = data.get("inputs", {})
-    for expected in ("mode", "baseline", "upload-sarif", "python-version"):
+    for expected in ("baseline", "upload-sarif", "python-version"):
         assert expected in inputs, f"Missing input: {expected}"
+    assert "mode" not in inputs, "mode was removed — strict not yet implemented"
 
 
 def test_action_yml_defines_new_issues_output() -> None:
