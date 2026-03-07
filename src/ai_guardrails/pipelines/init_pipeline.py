@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from ai_guardrails.infra.profile_loader import load_profile
+from ai_guardrails.infra.prompt_ui import ask_yes_no
 from ai_guardrails.languages._registry import discover_plugins
 from ai_guardrails.pipelines.base import Pipeline, PipelineContext, StepResult
 from ai_guardrails.steps.copy_configs import CopyConfigsStep
@@ -48,6 +49,7 @@ class InitOptions:
     no_agent_instructions: bool = False
     dry_run: bool = False
     profile: str = "standard"
+    interactive: bool = False
 
 
 class InitPipeline:
@@ -108,13 +110,25 @@ class InitPipeline:
             GenerateConfigsStep(),
         ]
 
-        if not self._options.no_hooks:
+        run_hooks = not self._options.no_hooks
+        run_ci = not self._options.no_ci
+        run_agent = not self._options.no_agent_instructions
+
+        if self._options.interactive:
+            if run_hooks:
+                run_hooks = ask_yes_no("Install lefthook hooks?")
+            if run_ci:
+                run_ci = ask_yes_no("Generate CI workflow?")
+            if run_agent:
+                run_agent = ask_yes_no("Install Claude Code agent instructions?")
+
+        if run_hooks:
             steps.append(SetupHooksStep())
 
-        if not self._options.no_ci:
+        if run_ci:
             steps.append(SetupCIStep(template_path=self._ci_template))
 
-        if not self._options.no_agent_instructions:
+        if run_agent:
             steps.append(SetupAgentInstructionsStep(template_path=self._agent_template))
             steps.append(GenerateAgentRulesStep())
 
