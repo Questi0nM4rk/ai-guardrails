@@ -142,14 +142,14 @@ class LefthookGenerator:
         self,
         registry: ExceptionRegistry,  # noqa: ARG002
         project_dir: Path,
+        languages: list[str] | None = None,
     ) -> list[str]:
         """Return stale/missing descriptions (empty list = fresh)."""
         target = project_dir / "lefthook.yml"
         if not target.exists():
             return ["lefthook.yml is missing — run: ai-guardrails generate"]
         existing = target.read_text(encoding="utf-8")
-        # check() has no language list — detect staleness against no-language base
-        body = self._build_body([])
+        body = self._build_body(languages or [])
         if not verify_hash(existing, body):
             return ["lefthook.yml is stale or tampered — run: ai-guardrails generate"]
         return []

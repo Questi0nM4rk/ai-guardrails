@@ -2,6 +2,8 @@
 
 For each active plugin, calls plugin.generate() to get {path: content} pairs.
 Assembles lefthook.yml from all active plugin hook_config() dicts.
+Also runs standalone Generator objects (ruff, markdownlint, editorconfig,
+lefthook) that are independent of language detection.
 """
 
 from __future__ import annotations
@@ -11,17 +13,55 @@ from typing import TYPE_CHECKING
 import yaml
 
 from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash, verify_hash
+from ai_guardrails.generators.editorconfig import EditorconfigGenerator
+from ai_guardrails.generators.lefthook import LefthookGenerator
+from ai_guardrails.generators.markdownlint import MarkdownlintGenerator
+from ai_guardrails.generators.ruff import RuffGenerator
 from ai_guardrails.infra.config_loader import deep_merge
 from ai_guardrails.pipelines.base import StepResult
 
 if TYPE_CHECKING:
+    from ai_guardrails.generators.base import Generator
     from ai_guardrails.pipelines.base import PipelineContext
+
+
+def _check_plugin_lefthook(ctx: PipelineContext) -> list[str]:
+    """Check lefthook.yml staleness built from language plugin hook_configs."""
+    lefthook_config: dict[str, object] = {}
+    for plugin in ctx.languages:
+        lefthook_config = deep_merge(lefthook_config, plugin.hook_config())
+    if not lefthook_config:
+        return []
+    lefthook_path = ctx.project_dir / "lefthook.yml"
+    if not lefthook_path.exists():
+        return ["lefthook.yml is missing — run: ai-guardrails generate"]
+    body = yaml.dump(lefthook_config, default_flow_style=False, sort_keys=False)
+    existing = lefthook_path.read_text()
+    if not verify_hash(existing, body):
+        return ["lefthook.yml is stale or tampered — run: ai-guardrails generate"]
+    return []
+
+
+_DEFAULT_GENERATORS: list[Generator] = [
+    RuffGenerator(),
+    MarkdownlintGenerator(),
+    EditorconfigGenerator(),
+    LefthookGenerator(),
+]
 
 
 class GenerateConfigsStep:
     """Runs all active plugins and writes their generated config files."""
 
     name = "generate-configs"
+
+    def __init__(
+        self,
+        generators: list[Generator] | None = None,
+    ) -> None:
+        self.generators: list[Generator] = (
+            generators if generators is not None else list(_DEFAULT_GENERATORS)
+        )
 
     def validate(self, ctx: PipelineContext) -> list[str]:
         if ctx.registry is None:
@@ -41,30 +81,22 @@ class GenerateConfigsStep:
         """Check mode: call plugin.check() and report issues without writing."""
         if ctx.registry is None:
             raise RuntimeError("registry must be loaded before generate-configs")
+
+        # Files owned by standalone generators — skip language plugin checks for these.
+        gen_owned: set[str] = {f for gen in self.generators for f in gen.output_files}
+
         all_issues: list[str] = []
         for plugin in ctx.languages:
-            all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
+            if not any(f in gen_owned for f in plugin.generated_configs):
+                all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
 
-        # Also check lefthook.yml staleness
-        lefthook_config: dict[str, object] = {}
-        for plugin in ctx.languages:
-            lefthook_config = deep_merge(lefthook_config, plugin.hook_config())
-        if lefthook_config:
-            lefthook_path = ctx.project_dir / "lefthook.yml"
-            if not lefthook_path.exists():
-                all_issues.append(
-                    "lefthook.yml is missing — run: ai-guardrails generate"
-                )
-            else:
-                body = yaml.dump(
-                    lefthook_config, default_flow_style=False, sort_keys=False
-                )
-                existing = lefthook_path.read_text()
-                if not verify_hash(existing, body):
-                    all_issues.append(
-                        "lefthook.yml is stale or tampered"
-                        " — run: ai-guardrails generate"
-                    )
+        # Check standalone generators
+        lang_keys = [p.key for p in ctx.languages]
+        for gen in self.generators:
+            all_issues.extend(gen.check(ctx.registry, ctx.project_dir, lang_keys))
+
+        # Also check lefthook.yml from language plugin hook_configs (legacy path)
+        all_issues.extend(_check_plugin_lefthook(ctx))
 
         if all_issues:
             for issue in all_issues:
@@ -81,15 +113,30 @@ class GenerateConfigsStep:
             raise RuntimeError("registry must be loaded before generate-configs")
         generated: list[str] = []
 
-        # 1. Generate per-plugin config files
+        # Files owned by standalone generators — language plugins must not overwrite.
+        gen_owned: set[str] = {f for gen in self.generators for f in gen.output_files}
+
+        # 1. Generate per-plugin config files (language plugins)
         for plugin in ctx.languages:
             outputs = plugin.generate(ctx.registry, ctx.project_dir)
             for path, content in outputs.items():
+                if path.name in gen_owned:
+                    continue  # standalone generator has final say
                 ctx.file_manager.mkdir(path.parent, parents=True, exist_ok=True)
                 ctx.file_manager.write_text(path, content)
                 generated.append(path.name)
 
-        # 2. Assemble lefthook.yml from all active hook_configs
+        # 2. Run standalone generators (ruff, markdownlint, editorconfig, lefthook)
+        lang_keys = [p.key for p in ctx.languages]
+        for gen in self.generators:
+            outputs = gen.generate(ctx.registry, lang_keys, ctx.project_dir)
+            for path, content in outputs.items():
+                abs_path = ctx.project_dir / path
+                ctx.file_manager.mkdir(abs_path.parent, parents=True, exist_ok=True)
+                ctx.file_manager.write_text(abs_path, content)
+                generated.append(path.name)
+
+        # 3. Assemble lefthook.yml from all active hook_configs (language plugins)
         lefthook_config: dict[str, object] = {}
         for plugin in ctx.languages:
             lefthook_config = deep_merge(lefthook_config, plugin.hook_config())

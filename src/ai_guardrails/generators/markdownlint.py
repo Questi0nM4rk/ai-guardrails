@@ -54,6 +54,7 @@ class MarkdownlintGenerator:
         self,
         registry: ExceptionRegistry,
         project_dir: Path,
+        languages: list[str] | None = None,  # noqa: ARG002
     ) -> list[str]:
         """Return stale/missing descriptions (empty list = fresh)."""
         target = project_dir / ".markdownlint.jsonc"

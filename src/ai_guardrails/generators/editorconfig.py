@@ -43,6 +43,7 @@ class EditorconfigGenerator:
         self,
         registry: ExceptionRegistry,  # noqa: ARG002
         project_dir: Path,
+        languages: list[str] | None = None,  # noqa: ARG002
     ) -> list[str]:
         """Return stale/missing descriptions (empty list = fresh)."""
         target = project_dir / ".editorconfig"
