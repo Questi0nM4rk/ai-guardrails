@@ -279,3 +279,20 @@ def test_init_pipeline_interactive_prompt_questions_are_descriptive(
     assert any("ci" in q or "workflow" in q for q in questions)
     # agent instructions question
     assert any("agent" in q or "claude" in q or "instruction" in q for q in questions)
+
+
+def test_init_pipeline_interactive_eof_falls_back_to_defaults(tmp_path: Path) -> None:
+    """If stdin closes (EOFError) during interactive prompts, fall back to defaults."""
+    options = InitOptions(interactive=True)
+    pipeline = _make_pipeline(options)
+
+    with patch(
+        "ai_guardrails.pipelines.init_pipeline.ask_yes_no", side_effect=EOFError
+    ):
+        results = _run(pipeline, tmp_path)
+
+    # Should not crash — falls back to running all steps
+    assert len(results) > 0
+    assert not any(
+        r.status == "error" and "EOFError" in (r.message or "") for r in results
+    )

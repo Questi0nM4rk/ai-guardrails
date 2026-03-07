@@ -115,12 +115,15 @@ class InitPipeline:
         run_agent = not self._options.no_agent_instructions
 
         if self._options.interactive:
-            if run_hooks:
-                run_hooks = ask_yes_no("Install lefthook hooks?")
-            if run_ci:
-                run_ci = ask_yes_no("Generate CI workflow?")
-            if run_agent:
-                run_agent = ask_yes_no("Install Claude Code agent instructions?")
+            try:
+                if run_hooks:
+                    run_hooks = ask_yes_no("Install lefthook hooks?")
+                if run_ci:
+                    run_ci = ask_yes_no("Generate CI workflow?")
+                if run_agent:
+                    run_agent = ask_yes_no("Install Claude Code agent instructions?")
+            except EOFError:
+                pass  # non-TTY pipe with --interactive: use defaults
 
         if run_hooks:
             steps.append(SetupHooksStep())
