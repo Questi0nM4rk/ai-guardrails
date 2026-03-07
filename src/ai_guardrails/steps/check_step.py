@@ -14,6 +14,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ai_guardrails.hooks.allow_comment import parse_allow_comment
 from ai_guardrails.models.baseline import BaselineEntry, BaselineStatus
 from ai_guardrails.models.lint_issue import LintIssue
 from ai_guardrails.pipelines.base import StepResult
@@ -53,9 +54,11 @@ class CheckStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         """Run configured linters; return error if new issues found."""
-        issues = self._collect_issues(ctx)
-        if issues is None:
+        collected = self._collect_issues(ctx)
+        if collected is None:
             return StepResult(status="skip", message="No supported languages detected")
+
+        issues, allow_count = collected
 
         baseline = self._load_baseline()
         active_fps = {
@@ -79,32 +82,38 @@ class CheckStep:
                 message=(f"{len(new_issues)} new issue(s) found: {summary}{suffix}"),
             )
 
-        return StepResult(
-            status="ok",
-            message=(
-                f"No new issues. {known_count} known baseline issue(s) suppressed."
-                if known_count
-                else "No issues found."
-            ),
-        )
+        parts: list[str] = []
+        if known_count:
+            parts.append(f"{known_count} known baseline issue(s) suppressed.")
+        if allow_count:
+            parts.append(f"{allow_count} suppressed by ai-guardrails-allow.")
+
+        if parts:
+            return StepResult(status="ok", message="No new issues. " + " ".join(parts))
+        return StepResult(status="ok", message="No issues found.")
 
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
 
-    def _collect_issues(self, ctx: PipelineContext) -> list[LintIssue] | None:
-        """Return lint issues for all detected languages, or None if unsupported."""
+    def _collect_issues(
+        self, ctx: PipelineContext
+    ) -> tuple[list[LintIssue], int] | None:
+        """Return lint issues and allow-suppressed count, or None if unsupported."""
         issues: list[LintIssue] = []
+        allow_count = 0
         supported = False
 
         for plugin in ctx.languages:
             if plugin.key == "python":
                 supported = True
-                issues.extend(self._run_ruff(ctx))
+                plugin_issues, plugin_allow_count = self._run_ruff(ctx)
+                issues.extend(plugin_issues)
+                allow_count += plugin_allow_count
 
-        return issues if supported else None
+        return (issues, allow_count) if supported else None
 
-    def _run_ruff(self, ctx: PipelineContext) -> list[LintIssue]:
+    def _run_ruff(self, ctx: PipelineContext) -> tuple[list[LintIssue], int]:
         """Invoke ruff and parse JSON output into LintIssue list."""
         result = ctx.command_runner.run(
             [
@@ -119,15 +128,16 @@ class CheckStep:
         )
 
         if not result.stdout.strip():
-            return []
+            return [], 0
 
         try:
             raw = json.loads(result.stdout)
         except json.JSONDecodeError:
             logger.warning("ruff produced non-JSON output: %s", result.stdout[:200])
-            return []
+            return [], 0
 
         issues: list[LintIssue] = []
+        allow_count = 0
         for item in raw:
             rule = item.get("code") or "unknown"
             file_path = item.get("filename", "")
@@ -151,6 +161,12 @@ class CheckStep:
                 context_before=context_before,
                 context_after=context_after,
             )
+
+            allowed = parse_allow_comment(line_content)
+            if rule in allowed:
+                allow_count += 1
+                continue
+
             issues.append(
                 LintIssue(
                     rule=rule,
@@ -163,7 +179,7 @@ class CheckStep:
                 )
             )
 
-        return issues
+        return issues, allow_count
 
     def _load_baseline(self) -> list[BaselineEntry]:
         """Load baseline entries from JSON file. Returns empty list if absent."""
