@@ -98,6 +98,7 @@ class Generator(Protocol):
         self,
         registry: ExceptionRegistry,
         project_dir: Path,
+        languages: list[str] | None = None,
     ) -> list[str]:
         """Return list of stale/missing config descriptions (empty = fresh)."""
         ...

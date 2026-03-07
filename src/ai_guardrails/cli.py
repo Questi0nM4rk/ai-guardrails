@@ -14,6 +14,7 @@ from ai_guardrails.infra.command_runner import CommandRunner
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.infra.console import Console
 from ai_guardrails.infra.file_manager import FileManager
+from ai_guardrails.infra.prompt_ui import is_tty
 from ai_guardrails.pipelines.check_pipeline import CheckOptions, CheckPipeline
 from ai_guardrails.pipelines.generate_pipeline import GenerateOptions, GeneratePipeline
 from ai_guardrails.pipelines.init_pipeline import InitOptions, InitPipeline
@@ -109,6 +110,7 @@ def init(
     no_agent_instructions: bool = False,
     dry_run: bool = False,
     profile: str = "standard",
+    interactive: bool | None = None,
 ) -> None:
     """Initialize ai-guardrails in the current project.
 
@@ -117,8 +119,11 @@ def init(
     optionally installs git hooks and CI workflow.
 
     Use --profile to select an enforcement posture: minimal, standard (default), strict.
+    Use --interactive / --no-interactive to force or suppress Y/N prompts.
+    When omitted, prompts appear only when running in an interactive terminal.
     """
     resolved = _resolve_project_dir(project_dir)
+    run_interactive = interactive if interactive is not None else is_tty()
     options = InitOptions(
         force=force,
         no_hooks=no_hooks,
@@ -126,6 +131,7 @@ def init(
         no_agent_instructions=no_agent_instructions,
         dry_run=dry_run,
         profile=profile,
+        interactive=run_interactive,
     )
     custom_dir = _CUSTOM_PLUGINS_DIR if _CUSTOM_PLUGINS_DIR.is_dir() else None
     pipeline = InitPipeline(
