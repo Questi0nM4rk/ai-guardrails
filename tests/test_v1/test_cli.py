@@ -157,6 +157,21 @@ def test_init_accepts_project_dir_flag(tmp_path: Path) -> None:
         assert run_kwargs["project_dir"] == tmp_path.resolve()
 
 
+def test_init_accepts_worktree_git_file(tmp_path: Path) -> None:
+    """init must accept a directory where .git is a FILE (git worktree)."""
+    # In a git worktree, .git is a text file pointing at the main .git dir
+    (tmp_path / ".git").write_text("gitdir: /some/main/repo/.git/worktrees/wt\n")
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        # Must NOT raise SystemExit — a worktree is a valid git repo
+        init(project_dir=tmp_path)
+        mock_pipeline.run.assert_called_once()
+
+
 def test_install_does_not_require_git(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
