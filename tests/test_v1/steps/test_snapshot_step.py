@@ -6,11 +6,11 @@ import datetime
 import json
 from pathlib import Path
 from typing import ClassVar
-
-from ai_guardrails.steps.snapshot_step import SnapshotStep
+from unittest.mock import patch
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.pipelines.base import PipelineContext
+from ai_guardrails.steps.snapshot_step import SnapshotStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
 
 # ---------------------------------------------------------------------------
@@ -429,3 +429,23 @@ def test_snapshot_step_corrupted_baseline_handled_gracefully(
 
     # Should not raise; corrupted baseline starts fresh
     assert result.status == "ok"
+
+
+def test_snapshot_step_write_error_returns_error_status(tmp_path: Path) -> None:
+    """OSError on write_text returns error StepResult instead of raising."""
+    baseline_path = tmp_path / ".guardrails-baseline.json"
+
+    runner = FakeCommandRunner()
+    runner.register(
+        ["uv", "run", "ruff", "check", "--output-format=json", str(tmp_path)],
+        stdout=_RUFF_JSON_NO_ISSUES,
+    )
+
+    step = SnapshotStep(baseline_file=baseline_path)
+    ctx = _make_context(tmp_path, runner)
+
+    with patch("pathlib.Path.write_text", side_effect=OSError("disk full")):
+        result = step.execute(ctx)
+
+    assert result.status == "error"
+    assert "disk full" in result.message

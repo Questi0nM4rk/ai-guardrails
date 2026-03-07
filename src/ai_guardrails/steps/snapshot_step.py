@@ -81,7 +81,13 @@ class SnapshotStep:
             )
 
         entries = [e.to_dict() for e in existing.values()]
-        self._baseline_file.write_text(json.dumps(entries, indent=2) + "\n")
+        try:
+            self._baseline_file.write_text(json.dumps(entries, indent=2) + "\n")
+        except OSError as exc:
+            return StepResult(
+                status="error",
+                message=f"Failed to write baseline {self._baseline_file}: {exc}",
+            )
 
         return StepResult(
             status="ok",
