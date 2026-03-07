@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import subprocess
-from typing import TYPE_CHECKING, Any
-
-import pytest
+from typing import TYPE_CHECKING, Any, ClassVar
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+import pytest
 
 # ---------------------------------------------------------------------------
 # FakeFileManager
@@ -165,6 +165,30 @@ class FakeConsole:
 
     def all_text(self) -> list[str]:
         return [txt for _, txt in self.messages]
+
+
+# ---------------------------------------------------------------------------
+# FakePythonPlugin
+# ---------------------------------------------------------------------------
+
+
+class FakePythonPlugin:
+    """Minimal stub satisfying LanguagePlugin protocol for Python."""
+
+    key = "python"
+    name = "Python"
+    linter = "ruff"
+    copy_files: ClassVar[list[str]] = []
+    generated_configs: ClassVar[list[str]] = []
+
+    def detect(self, project_dir: Path) -> bool:
+        return True
+
+    def generate(self, registry: object, project_dir: Path) -> dict[Path, str]:
+        return {}
+
+    def check(self, registry: object, project_dir: Path) -> list[str]:
+        return []
 
 
 # ---------------------------------------------------------------------------

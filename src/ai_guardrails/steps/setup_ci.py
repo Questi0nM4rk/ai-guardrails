@@ -36,7 +36,7 @@ class SetupCIStep:
                 status="skip",
                 message=f"{_CI_OUTPUT} already exists (use --force to overwrite)",
             )
-        content = self._template.read_text()
+        content = self._template.read_text(encoding="utf-8")
         ctx.file_manager.mkdir(target.parent, parents=True, exist_ok=True)
         ctx.file_manager.write_text(target, content)
         return StepResult(status="ok", message=f"Created {_CI_OUTPUT}")

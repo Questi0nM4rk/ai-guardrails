@@ -158,16 +158,6 @@ def test_detect_returns_false_when_directory_absent(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# hook_config() default
-# ---------------------------------------------------------------------------
-
-
-def test_hook_config_returns_empty_dict_by_default() -> None:
-    plugin = _PythonLike()
-    assert plugin.hook_config() == {}
-
-
-# ---------------------------------------------------------------------------
 # fixtures dir skip
 # ---------------------------------------------------------------------------
 

@@ -40,6 +40,6 @@ class ScaffoldRegistryStep:
                 status="skip",
                 message=f"{REGISTRY_FILENAME} already exists (never overwritten)",
             )
-        content = self._template.read_text()
+        content = self._template.read_text(encoding="utf-8")
         ctx.file_manager.write_text(target, content)
         return StepResult(status="ok", message=f"Created {REGISTRY_FILENAME}")

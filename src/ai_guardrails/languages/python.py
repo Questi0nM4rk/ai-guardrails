@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import tomllib  # type: ignore[no-redef]
+import tomllib
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import tomli_w
@@ -22,6 +22,7 @@ class PythonPlugin(BaseLanguagePlugin):
 
     key = "python"
     name = "Python"
+    linter = "ruff"
     detect_files: ClassVar[list[str]] = [
         "pyproject.toml",
         "setup.py",
@@ -63,14 +64,12 @@ class PythonPlugin(BaseLanguagePlugin):
 
         # Union all per-file-ignores: base + custom + registry (sorted per glob)
         pfi = lint.setdefault("per-file-ignores", {})
-        all_globs = (
-            set(base_pfi) | set(pfi) | set(registry.get_per_file_ignores("ruff"))
-        )
+        registry_pfi = registry.get_per_file_ignores("ruff")
+        all_globs = set(base_pfi) | set(pfi) | set(registry_pfi)
         for glob_pattern in sorted(all_globs):
             merged: set[str] = set(base_pfi.get(glob_pattern, []))
-            merged |= set(pfi.get(glob_pattern, []))
-            for rule in registry.get_per_file_ignores("ruff").get(glob_pattern, []):
-                merged.add(rule)
+            merged.update(pfi.get(glob_pattern, []))
+            merged.update(registry_pfi.get(glob_pattern, []))
             pfi[glob_pattern] = sorted(merged)
 
         return config
@@ -99,7 +98,7 @@ class PythonPlugin(BaseLanguagePlugin):
         target = project_dir / "ruff.toml"
         if not target.exists():
             return ["ruff.toml is missing — run: ai-guardrails generate"]
-        existing = target.read_text()
+        existing = target.read_text(encoding="utf-8")
         try:
             expected_body = self._build_body(registry)
         except FileNotFoundError:

@@ -40,6 +40,9 @@ class GenerateConfigsStep:
         self.generators: list[Generator] = (
             generators if generators is not None else list(_DEFAULT_GENERATORS)
         )
+        self._gen_owned: set[str] = {
+            f for gen in self.generators for f in gen.output_files
+        }
 
     def validate(self, ctx: PipelineContext) -> list[str]:
         if ctx.registry is None:
@@ -60,12 +63,9 @@ class GenerateConfigsStep:
         if ctx.registry is None:
             raise RuntimeError("registry must be loaded before generate-configs")
 
-        # Files owned by standalone generators — skip language plugin checks for these.
-        gen_owned: set[str] = {f for gen in self.generators for f in gen.output_files}
-
         all_issues: list[str] = []
         for plugin in ctx.languages:
-            if not any(f in gen_owned for f in plugin.generated_configs):
+            if not any(f in self._gen_owned for f in plugin.generated_configs):
                 all_issues.extend(plugin.check(ctx.registry, ctx.project_dir))
 
         # Check standalone generators
@@ -88,14 +88,11 @@ class GenerateConfigsStep:
             raise RuntimeError("registry must be loaded before generate-configs")
         generated: list[str] = []
 
-        # Files owned by standalone generators — language plugins must not overwrite.
-        gen_owned: set[str] = {f for gen in self.generators for f in gen.output_files}
-
         # 1. Generate per-plugin config files (language plugins)
         for plugin in ctx.languages:
             outputs = plugin.generate(ctx.registry, ctx.project_dir)
             for path, content in outputs.items():
-                if path.name in gen_owned:
+                if path.name in self._gen_owned:
                     continue  # standalone generator has final say
                 ctx.file_manager.mkdir(path.parent, parents=True, exist_ok=True)
                 ctx.file_manager.write_text(path, content)

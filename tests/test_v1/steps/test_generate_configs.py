@@ -4,10 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import yaml
-
-from ai_guardrails.generators.base import HASH_HEADER_PREFIX, compute_hash
-from ai_guardrails.infra.config_loader import ConfigLoader, deep_merge
+from ai_guardrails.generators.base import HASH_HEADER_PREFIX
+from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.languages._base import BaseLanguagePlugin
 from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.base import PipelineContext
@@ -34,20 +32,14 @@ def _empty_registry() -> ExceptionRegistry:
 
 
 class _FakePlugin(BaseLanguagePlugin):
-    """Minimal plugin: generates one file, no hooks."""
+    """Minimal plugin: generates one file."""
 
-    def __init__(
-        self,
-        key: str,
-        filenames: list[str],
-        hooks: dict | None = None,  # type: ignore[type-arg]
-    ) -> None:
+    def __init__(self, key: str, filenames: list[str]) -> None:
         self.key = key
         self.name = key.capitalize()
         self.copy_files: list[str] = []
         self.generated_configs = filenames
         self._filenames = filenames
-        self._hooks = hooks or {}
 
     def detect(self, _project_dir: Path) -> bool:
         return True
@@ -56,9 +48,6 @@ class _FakePlugin(BaseLanguagePlugin):
         self, registry: ExceptionRegistry, project_dir: Path
     ) -> dict[Path, str]:
         return {project_dir / fname: f"# {self.key}\n" for fname in self._filenames}
-
-    def hook_config(self) -> dict:  # type: ignore[type-arg]
-        return self._hooks
 
 
 def _make_context(
@@ -156,14 +145,7 @@ def test_generate_configs_no_plugins_returns_ok(tmp_path: Path) -> None:
 
 
 def test_generate_configs_assembles_lefthook_yml(tmp_path: Path) -> None:
-    hooks = {
-        "pre-commit": {
-            "commands": {
-                "codespell": {"run": "codespell {staged_files}", "priority": 2}
-            }
-        }
-    }
-    plugin = _FakePlugin("universal", [], hooks=hooks)
+    plugin = _FakePlugin("universal", [])
     step = GenerateConfigsStep()
     ctx, fm = _make_context(tmp_path, languages=[plugin])
     result = step.execute(ctx)
@@ -173,10 +155,7 @@ def test_generate_configs_assembles_lefthook_yml(tmp_path: Path) -> None:
 
 
 def test_generate_configs_lefthook_has_hash_header(tmp_path: Path) -> None:
-    hooks = {
-        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
-    }
-    plugin = _FakePlugin("universal", [], hooks=hooks)
+    plugin = _FakePlugin("universal", [])
     step = GenerateConfigsStep()
     ctx, fm = _make_context(tmp_path, languages=[plugin])
     step.execute(ctx)
@@ -195,8 +174,8 @@ def test_generate_configs_creates_parent_directories(tmp_path: Path) -> None:
 
 
 def test_generate_configs_no_hooks_no_lefthook(tmp_path: Path) -> None:
-    """If no plugin returns hook_config and no generators, lefthook.yml not written."""
-    plugin = _FakePlugin("python", ["ruff.toml"], hooks={})
+    """With no generators registered, lefthook.yml is not written."""
+    plugin = _FakePlugin("python", ["ruff.toml"])
     step = GenerateConfigsStep(generators=[])  # no standalone generators
     ctx, fm = _make_context(tmp_path, languages=[plugin])
     step.execute(ctx)
@@ -212,13 +191,8 @@ def test_generate_configs_no_hooks_no_lefthook(tmp_path: Path) -> None:
 class _CheckPlugin(_FakePlugin):
     """Plugin whose check() returns configurable issues."""
 
-    def __init__(
-        self,
-        key: str,
-        issues: list[str],
-        hooks: dict | None = None,  # type: ignore[type-arg]
-    ) -> None:
-        super().__init__(key, [], hooks=hooks)
+    def __init__(self, key: str, issues: list[str]) -> None:
+        super().__init__(key, [])
         self._issues = issues
 
     def check(self, registry: ExceptionRegistry, project_dir: Path) -> list[str]:
@@ -246,7 +220,7 @@ def _make_check_context(
 
 
 def test_generate_configs_check_mode_returns_ok_when_all_fresh(tmp_path: Path) -> None:
-    """check=True with no issues returns ok and message 'All configs are fresh'."""
+    """check=True with no plugin issues returns ok."""
     plugin = _CheckPlugin("python", issues=[])
     step = GenerateConfigsStep(generators=[])  # isolate from standalone generators
     ctx, _ = _make_check_context(tmp_path, languages=[plugin])
@@ -289,22 +263,9 @@ def test_generate_configs_check_mode_does_not_write_files(tmp_path: Path) -> Non
 # ---------------------------------------------------------------------------
 
 
-def _build_lefthook_content(plugins: list[_FakePlugin]) -> str:
-    """Build correct lefthook.yml content from plugins, matching _run_generate."""
-    config: dict[str, object] = {}
-    for plugin in plugins:
-        config = deep_merge(config, plugin.hook_config())
-    body = yaml.dump(config, default_flow_style=False, sort_keys=False)
-    header = f"{HASH_HEADER_PREFIX}{compute_hash(body)}"
-    return f"{header}\n{body}"
-
-
 def test_check_mode_detects_missing_lefthook_yml(tmp_path: Path) -> None:
-    """check=True reports missing lefthook.yml when plugins have hooks."""
-    hooks = {
-        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
-    }
-    plugin = _CheckPlugin("universal", issues=[], hooks=hooks)
+    """check=True reports missing lefthook.yml (detected by LefthookGenerator)."""
+    plugin = _CheckPlugin("universal", issues=[])
     step = GenerateConfigsStep()
     ctx, _ = _make_check_context(tmp_path, languages=[plugin])
     # No lefthook.yml on disk
@@ -317,10 +278,7 @@ def test_check_mode_detects_missing_lefthook_yml(tmp_path: Path) -> None:
 
 def test_check_mode_detects_stale_lefthook_yml(tmp_path: Path) -> None:
     """check=True reports stale lefthook.yml when hash does not match."""
-    hooks = {
-        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
-    }
-    plugin = _CheckPlugin("universal", issues=[], hooks=hooks)
+    plugin = _CheckPlugin("universal", issues=[])
     # Write a lefthook.yml with wrong hash
     (tmp_path / "lefthook.yml").write_text(
         f"{HASH_HEADER_PREFIX}deadbeef\nstale: content\n"
@@ -333,14 +291,8 @@ def test_check_mode_detects_stale_lefthook_yml(tmp_path: Path) -> None:
 
 
 def test_check_mode_passes_fresh_lefthook_yml(tmp_path: Path) -> None:
-    """check=True passes when lefthook.yml hash matches expected content."""
-    hooks = {
-        "pre-commit": {"commands": {"codespell": {"run": "codespell {staged_files}"}}}
-    }
-    plugin = _CheckPlugin("universal", issues=[], hooks=hooks)
-    # Write correct lefthook.yml
-    correct_content = _build_lefthook_content([plugin])
-    (tmp_path / "lefthook.yml").write_text(correct_content)
+    """check=True passes when all plugins and generators report no issues."""
+    plugin = _CheckPlugin("universal", issues=[])
     step = GenerateConfigsStep(generators=[])  # isolate from standalone generators
     ctx, _ = _make_check_context(tmp_path, languages=[plugin])
     result = step.execute(ctx)

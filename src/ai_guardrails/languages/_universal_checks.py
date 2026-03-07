@@ -27,7 +27,7 @@ def generate_editorconfig(configs_dir: Path, project_dir: Path) -> tuple[Path, s
     src = configs_dir / ".editorconfig"
     if not src.exists():
         raise FileNotFoundError(src)
-    base = src.read_text()
+    base = src.read_text(encoding="utf-8")
     header = make_hash_header(base)
     return project_dir / ".editorconfig", f"{header}\n{base}"
 
@@ -39,7 +39,7 @@ def generate_markdownlint(
     src = configs_dir / ".markdownlint.jsonc"
     if not src.exists():
         raise FileNotFoundError(src)
-    raw = src.read_text()
+    raw = src.read_text(encoding="utf-8")
     config = json.loads(strip_jsonc_comments(raw))
     for rule in registry.get_ignores("markdownlint"):
         config[rule] = False
@@ -136,12 +136,12 @@ def check_editorconfig(configs_dir: Path, project_dir: Path) -> list[str]:
         return [".editorconfig is missing — run: ai-guardrails generate"]
     try:
         src = configs_dir / ".editorconfig"
-        base = src.read_text() if src.exists() else None
+        base = src.read_text(encoding="utf-8") if src.exists() else None
     except OSError:
         base = None
     if base is None:
         return [".editorconfig base config not found in package data"]
-    existing = target.read_text()
+    existing = target.read_text(encoding="utf-8")
     if not verify_hash(existing, base):
         return [".editorconfig has been tampered with — run: ai-guardrails generate"]
     return []
@@ -155,7 +155,7 @@ def check_markdownlint(
     target = project_dir / ".markdownlint.jsonc"
     if not target.exists():
         return [".markdownlint.jsonc is missing — run: ai-guardrails generate"]
-    existing = target.read_text()
+    existing = target.read_text(encoding="utf-8")
     expected_body = _build_markdownlint_body(configs_dir, registry)
     if expected_body is None:
         return [".markdownlint.jsonc base config not found in package data"]
@@ -172,7 +172,7 @@ def _build_markdownlint_body(
         src = configs_dir / ".markdownlint.jsonc"
         if not src.exists():
             return None
-        raw = src.read_text()
+        raw = src.read_text(encoding="utf-8")
         config = json.loads(strip_jsonc_comments(raw))
         for rule in registry.get_ignores("markdownlint"):
             config[rule] = False
@@ -186,7 +186,7 @@ def check_codespellrc(registry: ExceptionRegistry, project_dir: Path) -> list[st
     target = project_dir / ".codespellrc"
     if not target.exists():
         return [".codespellrc is missing — run: ai-guardrails generate"]
-    existing = target.read_text()
+    existing = target.read_text(encoding="utf-8")
     expected_body = _build_codespellrc_body(registry)
     if not verify_hash(existing, expected_body):
         return [".codespellrc is stale or tampered — run: ai-guardrails generate"]
@@ -199,7 +199,7 @@ def check_claude_settings(project_dir: Path) -> list[str]:
     target = project_dir / ".claude" / "settings.json"
     if not target.exists():
         return [".claude/settings.json is missing — run: ai-guardrails generate"]
-    existing = target.read_text()
+    existing = target.read_text(encoding="utf-8")
     expected_body = _build_claude_settings_body()
     if not _verify_jsonc_hash(existing, expected_body):
         return [_stale]

@@ -104,7 +104,7 @@ def _run_precommit(files: list[str]) -> int:
         if not has_hash_header(filepath):
             continue
         # Hash header present — verify body matches stored hash
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         first_line, _, body = content.partition("\n")
         stored_hash = first_line.rsplit(":", 1)[-1].strip()
         actual_hash = compute_hash(body)

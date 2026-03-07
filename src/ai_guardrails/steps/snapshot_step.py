@@ -46,7 +46,7 @@ class SnapshotStep:
         existing: dict[str, BaselineEntry] = {}
         if self._baseline_file.exists():
             try:
-                raw = json.loads(self._baseline_file.read_text())
+                raw = json.loads(self._baseline_file.read_text(encoding="utf-8"))
                 for entry in raw:
                     e = BaselineEntry.from_dict(entry)
                     existing[e.fingerprint] = e
@@ -85,7 +85,8 @@ class SnapshotStep:
 
         entries = [e.to_dict() for e in existing.values()]
         try:
-            self._baseline_file.write_text(json.dumps(entries, indent=2) + "\n")
+            content = json.dumps(entries, indent=2) + "\n"
+            self._baseline_file.write_text(content, encoding="utf-8")
         except OSError as exc:
             return StepResult(
                 status="error",

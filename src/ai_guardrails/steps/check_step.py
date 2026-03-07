@@ -117,7 +117,7 @@ class CheckStep:
         supported = False
 
         for plugin in ctx.languages:
-            if plugin.key == "python":
+            if plugin.linter == "ruff":
                 supported = True
                 plugin_issues, plugin_allow_count = self._run_ruff(ctx)
                 issues.extend(plugin_issues)
@@ -227,7 +227,7 @@ class CheckStep:
             return []
 
         try:
-            raw = json.loads(self._baseline_file.read_text())
+            raw = json.loads(self._baseline_file.read_text(encoding="utf-8"))
             return [BaselineEntry.from_dict(entry) for entry in raw]
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             logger.warning("Failed to parse baseline %s: %s", self._baseline_file, exc)

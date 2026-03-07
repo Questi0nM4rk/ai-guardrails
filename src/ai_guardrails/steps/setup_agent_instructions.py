@@ -37,7 +37,7 @@ class SetupAgentInstructionsStep:
 
     def execute(self, ctx: PipelineContext) -> StepResult:
         claude_md = ctx.project_dir / _CLAUDE_MD
-        template_content = self._template.read_text()
+        template_content = self._template.read_text(encoding="utf-8")
 
         # Ensure AGENTS.md symlink exists regardless of CLAUDE.md state
         agents_md = ctx.project_dir / "AGENTS.md"

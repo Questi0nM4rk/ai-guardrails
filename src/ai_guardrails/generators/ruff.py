@@ -76,8 +76,10 @@ class RuffGenerator:
 
         # Merge per-file-ignores from registry
         per_file = lint.setdefault("per-file-ignores", {})
-        for glob_pat, rules in registry.get_per_file_ignores("ruff").items():
+        registry_pfi = registry.get_per_file_ignores("ruff")
+        for glob_pat, rules in registry_pfi.items():
             existing_rules = set(per_file.get(glob_pat, []))
-            per_file[glob_pat] = sorted(existing_rules | set(rules))
+            existing_rules.update(rules)
+            per_file[glob_pat] = sorted(existing_rules)
 
         return tomli_w.dumps(config)

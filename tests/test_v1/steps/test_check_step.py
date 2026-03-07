@@ -5,14 +5,18 @@ from __future__ import annotations
 import datetime
 import json
 from pathlib import Path
-from typing import ClassVar
 
 from ai_guardrails.infra.config_loader import ConfigLoader
 from ai_guardrails.models.baseline import BaselineEntry, BaselineStatus
 from ai_guardrails.models.lint_issue import LintIssue
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.check_step import CheckStep
-from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
+from tests.test_v1.conftest import (
+    FakeCommandRunner,
+    FakeConsole,
+    FakeFileManager,
+    FakePythonPlugin,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -60,34 +64,13 @@ def _baseline_entry(
     )
 
 
-class _FakePythonPlugin:
-    """Minimal stub that satisfies the LanguagePlugin protocol for Python."""
-
-    key = "python"
-    name = "Python"
-    copy_files: ClassVar[list[str]] = []
-    generated_configs: ClassVar[list[str]] = []
-
-    def detect(self, project_dir: Path) -> bool:
-        return True
-
-    def generate(self, registry: object, project_dir: Path) -> dict[Path, str]:
-        return {}
-
-    def hook_config(self) -> dict[str, object]:
-        return {}
-
-    def check(self, registry: object, project_dir: Path) -> list[str]:
-        return []
-
-
 def _make_context(
     tmp_path: Path,
     runner: FakeCommandRunner,
     *,
     python_detected: bool = True,
 ) -> PipelineContext:
-    languages: list[object] = [_FakePythonPlugin()] if python_detected else []
+    languages: list[object] = [FakePythonPlugin()] if python_detected else []
     return PipelineContext(
         project_dir=tmp_path,
         file_manager=FakeFileManager(),
