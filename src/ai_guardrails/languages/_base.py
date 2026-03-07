@@ -5,16 +5,16 @@ Each language plugin encapsulates:
 - Config files to copy (copy_files)
 - Config files to generate (generated_configs)
 - generate() — produces {path: content} for generated files
-- hook_config() — returns dict merged into lefthook.yml
 - check() — returns list of stale/missing descriptions
 """
 
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003  # used at runtime in glob and Protocol
 from typing import TYPE_CHECKING, ClassVar, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from ai_guardrails.models.registry import ExceptionRegistry
 
 _SKIP_DIRS: frozenset[str] = frozenset(
@@ -44,6 +44,7 @@ class LanguagePlugin(Protocol):
 
     key: str
     name: str
+    linter: str  # lint tool this plugin uses ("ruff", "eslint", …); "" = none
     copy_files: list[str]
     generated_configs: list[str]
 
@@ -57,10 +58,6 @@ class LanguagePlugin(Protocol):
         project_dir: Path,
     ) -> dict[Path, str]:
         """Return {path: content} for all files this plugin generates."""
-        ...
-
-    def hook_config(self) -> dict[str, object]:
-        """Return dict to be deep-merged into lefthook.yml."""
         ...
 
     def check(
@@ -85,11 +82,12 @@ class BaseLanguagePlugin:
     """Convenience base class providing standard detect() implementation.
 
     Subclasses set class attributes to configure detection and copy/generate
-    metadata. Override generate(), hook_config(), and check() as needed.
+    metadata. Override generate() and check() as needed.
     """
 
     key: ClassVar[str] = ""
     name: ClassVar[str] = ""
+    linter: ClassVar[str] = ""  # override in subclasses that run a lint tool
     detect_files: ClassVar[list[str]] = []
     detect_patterns: ClassVar[list[str]] = []
     detect_dirs: ClassVar[list[str]] = []
@@ -110,20 +108,16 @@ class BaseLanguagePlugin:
 
     def generate(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> dict[Path, str]:
         """Return empty dict — subclasses override to generate files."""
         return {}
 
-    def hook_config(self) -> dict[str, object]:
-        """Return empty dict — subclasses override to provide hook config."""
-        return {}
-
     def check(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> list[str]:
         """Return empty list — subclasses override to validate generated files."""
         return []

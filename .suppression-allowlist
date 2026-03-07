@@ -55,20 +55,20 @@ hooks/protect_configs\.py:\d+:def check_tool_input.*# noqa: PLR0911
 languages/_base\.py:\d+:from pathlib import Path.*# noqa: TC003
 languages/_base\.py:\d+:.*# noqa: ARG002
 
-# ---------------------------------------------------------------------------
-# languages/python.py
-# type: ignore[no-redef]: tomllib is in stdlib on Python 3.11+ and in tomli on 3.10.
-# The import guard pattern triggers no-redef because both branches define the same name.
-# ---------------------------------------------------------------------------
-languages/python\.py:\d+:import tomllib.*# type: ignore\[no-redef\]
 
 # ---------------------------------------------------------------------------
 # languages/_registry.py
 # BLE001: Loading arbitrary user-provided plugin modules requires broad Exception catch.
 # User plugins can raise literally any exception on import or instantiation.
 # The exception is logged with exc_info=True before being swallowed.
+# type: ignore[union-attr]: spec.loader is checked for None above, but pyright can't track it.
+# type: ignore[call-arg]: dynamic plugin instantiation — cls(data_dir) not known to type checker.
+# type: ignore[misc]: runtime_checkable Protocol isinstance check; pyright flags as redundant.
 # ---------------------------------------------------------------------------
 languages/_registry\.py:\d+:.*# noqa: BLE001
+languages/_registry\.py:\d+:.*# type: ignore\[union-attr\]
+languages/_registry\.py:\d+:.*# type: ignore\[call-arg\]
+languages/_registry\.py:\d+:.*# type: ignore\[misc\]
 
 # ---------------------------------------------------------------------------
 # tests/ — type: ignore in test files

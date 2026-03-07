@@ -22,13 +22,13 @@ class FileManager:
         """Read a file and return its text content."""
         if not path.exists():
             raise FileNotFoundError(path)
-        return path.read_text()
+        return path.read_text(encoding="utf-8")
 
     def write_text(self, path: Path, content: str) -> str | None:
         """Write text to a file. In dry-run, returns a description instead."""
         if self.dry_run:
             return f"would write {path}"
-        path.write_text(content)
+        path.write_text(content, encoding="utf-8")
         return None
 
     def copy(self, src: Path, dst: Path) -> str | None:

@@ -35,8 +35,8 @@ class RuffGenerator:
     def generate(
         self,
         registry: ExceptionRegistry,
-        languages: list[str],  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        languages: list[str],  # ai-guardrails-allow: ARG002 "unused in base"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> dict[Path, str]:
         """Return {Path("ruff.toml"): content} with hash header."""
         body = self._build_body(registry)
@@ -48,7 +48,7 @@ class RuffGenerator:
         self,
         registry: ExceptionRegistry,
         project_dir: Path,
-        languages: list[str] | None = None,  # noqa: ARG002
+        languages: list[str] | None = None,  # ai-guardrails-allow: ARG002 "unused"
     ) -> list[str]:
         """Return stale/missing descriptions (empty list = fresh)."""
         target = project_dir / "ruff.toml"
@@ -76,8 +76,10 @@ class RuffGenerator:
 
         # Merge per-file-ignores from registry
         per_file = lint.setdefault("per-file-ignores", {})
-        for glob_pat, rules in registry.get_per_file_ignores("ruff").items():
+        registry_pfi = registry.get_per_file_ignores("ruff")
+        for glob_pat, rules in registry_pfi.items():
             existing_rules = set(per_file.get(glob_pat, []))
-            per_file[glob_pat] = sorted(existing_rules | set(rules))
+            existing_rules.update(rules)
+            per_file[glob_pat] = sorted(existing_rules)
 
         return tomli_w.dumps(config)

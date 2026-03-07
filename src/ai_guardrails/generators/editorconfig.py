@@ -29,9 +29,9 @@ class EditorconfigGenerator:
 
     def generate(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
-        languages: list[str],  # noqa: ARG002
-        project_dir: Path,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
+        languages: list[str],  # ai-guardrails-allow: ARG002 "unused in base"
+        project_dir: Path,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
     ) -> dict[Path, str]:
         """Return {Path(".editorconfig"): content} with hash header."""
         body = _BASE_TEMPLATE.read_text(encoding="utf-8")
@@ -41,9 +41,9 @@ class EditorconfigGenerator:
 
     def check(
         self,
-        registry: ExceptionRegistry,  # noqa: ARG002
+        registry: ExceptionRegistry,  # ai-guardrails-allow: ARG002, E501 "LanguagePlugin protocol — unused in base implementation"
         project_dir: Path,
-        languages: list[str] | None = None,  # noqa: ARG002
+        languages: list[str] | None = None,  # ai-guardrails-allow: ARG002 "unused"
     ) -> list[str]:
         """Return stale/missing descriptions (empty list = fresh)."""
         target = project_dir / ".editorconfig"

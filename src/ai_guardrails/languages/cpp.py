@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-import yaml
-
 from ai_guardrails.languages._base import BaseLanguagePlugin
 
 if TYPE_CHECKING:
@@ -23,22 +21,5 @@ class CppPlugin(BaseLanguagePlugin):
     copy_files: ClassVar[list[str]] = [".clang-format", ".clang-tidy"]
     generated_configs: ClassVar[list[str]] = []
 
-    _HOOKS_YAML = """\
-pre-commit:
-  commands:
-    clang-format-and-stage:
-      glob: "*.{c,h,cpp,hpp,cc,cxx,hxx}"
-      run: clang-format -i {staged_files} && git add {staged_files}
-      stage_fixed: true
-      priority: 1
-    clang-tidy:
-      glob: "*.{c,h,cpp,hpp,cc,cxx,hxx}"
-      run: clang-tidy {staged_files} -- -Wall -Wextra
-      priority: 2
-"""
-
     def __init__(self, data_dir: Path) -> None:
         self._configs_dir = data_dir / "configs"
-
-    def hook_config(self) -> dict[str, object]:
-        return yaml.safe_load(self._HOOKS_YAML) or {}

@@ -1,4 +1,4 @@
-# ai-guardrails:hash:sha256:f4619f822b940bc13a9525ea15e761135c475c4f34a417dc6c27a485e0240835
+# ai-guardrails:hash:sha256:cf1f59cb2e0e391ce3c10c2d86ea418a2eede5dccf179df03cbca7b329934017
 pre-commit:
   commands:
     suppress-comments:
@@ -6,7 +6,7 @@ pre-commit:
       run: uv run python -m ai_guardrails.hooks.suppress_comments {staged_files}
       priority: 2
     protect-configs:
-      glob: ruff.toml|biome.json|lefthook.yml|.editorconfig|.markdownlint.jsonc|.codespellrc
+      glob: ruff.toml|lefthook.yml|.editorconfig|.markdownlint.jsonc|.codespellrc
       run: uv run python -m ai_guardrails.hooks.protect_configs {staged_files}
       priority: 2
     gitleaks:
@@ -29,22 +29,13 @@ pre-commit:
       priority: 2
     python-format-and-stage:
       glob: '*.py'
-      run: uv run ruff format {staged_files} && uv run ruff check --fix {staged_files}
-        && git add {staged_files}
+      run: uv run ruff format {staged_files} && uv run ruff check --fix --exit-zero
+        {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
-    ruff-check:
+    guardrails-check:
       glob: '*.py'
-      run: uv run ruff check {staged_files}
-      priority: 2
-    shell-format-and-stage:
-      glob: '*.{sh,bash,zsh}'
-      run: shfmt -i 2 -ci -bn -w {staged_files} && git add {staged_files}
-      stage_fixed: true
-      priority: 1
-    shellcheck:
-      glob: '*.{sh,bash,zsh}'
-      run: shellcheck --severity=info -x {staged_files}
+      run: uv run python -m ai_guardrails check
       priority: 2
 commit-msg:
   commands:
