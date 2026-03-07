@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
 
 import yaml
 
@@ -13,9 +13,6 @@ from ai_guardrails.models.registry import ExceptionRegistry
 from ai_guardrails.pipelines.base import PipelineContext
 from ai_guardrails.steps.generate_configs import GenerateConfigsStep
 from tests.test_v1.conftest import FakeCommandRunner, FakeConsole, FakeFileManager
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 def _empty_registry() -> ExceptionRegistry:
@@ -228,9 +225,9 @@ def test_generate_configs_creates_parent_directories(tmp_path: Path) -> None:
 
 
 def test_generate_configs_no_hooks_no_lefthook(tmp_path: Path) -> None:
-    """If no plugin returns hook_config, lefthook.yml is not written."""
+    """If no plugin returns hook_config and no generators, lefthook.yml not written."""
     plugin = _FakePlugin("python", ["ruff.toml"], hooks={})
-    step = GenerateConfigsStep()
+    step = GenerateConfigsStep(generators=[])  # no standalone generators
     ctx, fm = _make_context(tmp_path, languages=[plugin])
     step.execute(ctx)
     written_paths = {p.name for p, _ in fm.written}
@@ -281,7 +278,7 @@ def _make_check_context(
 def test_generate_configs_check_mode_returns_ok_when_all_fresh(tmp_path: Path) -> None:
     """check=True with no issues returns ok and message 'All configs are fresh'."""
     plugin = _CheckPlugin("python", issues=[])
-    step = GenerateConfigsStep()
+    step = GenerateConfigsStep(generators=[])  # isolate from standalone generators
     ctx, _ = _make_check_context(tmp_path, languages=[plugin])
     result = step.execute(ctx)
     assert result.status == "ok"
@@ -374,8 +371,99 @@ def test_check_mode_passes_fresh_lefthook_yml(tmp_path: Path) -> None:
     # Write correct lefthook.yml
     correct_content = _build_lefthook_content([plugin])
     (tmp_path / "lefthook.yml").write_text(correct_content)
-    step = GenerateConfigsStep()
+    step = GenerateConfigsStep(generators=[])  # isolate from standalone generators
     ctx, _ = _make_check_context(tmp_path, languages=[plugin])
     result = step.execute(ctx)
     assert result.status == "ok"
     assert "fresh" in result.message.lower()
+
+
+# ---------------------------------------------------------------------------
+# Generator registration tests
+# ---------------------------------------------------------------------------
+
+
+class _FakeGenerator:
+    """Minimal Generator stub for testing registration."""
+
+    def __init__(self, name: str, filename: str) -> None:
+        self.name = name
+        self.output_files = [filename]
+        self.generated = False
+        self.checked = False
+
+    def generate(
+        self,
+        registry: ExceptionRegistry,
+        languages: list[str],
+        project_dir: Path,
+    ) -> dict[Path, str]:
+        self.generated = True
+        return {Path(self.output_files[0]): f"# {self.name}\n"}
+
+    def check(
+        self,
+        registry: ExceptionRegistry,
+        project_dir: Path,
+        languages: list[str] | None = None,
+    ) -> list[str]:
+        self.checked = True
+        return []
+
+
+def test_generate_configs_calls_registered_generators(tmp_path: Path) -> None:
+    """GenerateConfigsStep must call generate() on all registered generators."""
+    fake_gen = _FakeGenerator("fake", "fake.toml")
+    step = GenerateConfigsStep(generators=[fake_gen])
+    ctx, fm = _make_context(tmp_path)
+    result = step.execute(ctx)
+    assert result.status == "ok"
+    assert fake_gen.generated is True
+    written_paths = {p for p, _ in fm.written}
+    assert tmp_path / "fake.toml" in written_paths
+
+
+def test_generate_configs_check_calls_generator_check(tmp_path: Path) -> None:
+    """In check mode, GenerateConfigsStep must call check() on all generators."""
+    fake_gen = _FakeGenerator("fake", "fake.toml")
+    step = GenerateConfigsStep(generators=[fake_gen])
+    fm = FakeFileManager()
+    ctx = PipelineContext(
+        project_dir=tmp_path,
+        file_manager=fm,
+        command_runner=FakeCommandRunner(),
+        config_loader=ConfigLoader(),
+        console=FakeConsole(),
+        languages=[],
+        registry=_empty_registry(),
+        dry_run=False,
+        force=False,
+        check=True,
+    )
+    step.execute(ctx)
+    assert fake_gen.checked is True
+
+
+def test_generate_configs_default_generators_include_ruff(tmp_path: Path) -> None:
+    """Default GenerateConfigsStep must include RuffGenerator."""
+    step = GenerateConfigsStep()
+    gen_names = [g.name for g in step.generators]
+    assert "ruff" in gen_names
+
+
+def test_generate_configs_default_gens_include_markdownlint(tmp_path: Path) -> None:
+    step = GenerateConfigsStep()
+    gen_names = [g.name for g in step.generators]
+    assert "markdownlint" in gen_names
+
+
+def test_generate_configs_default_gens_include_editorconfig(tmp_path: Path) -> None:
+    step = GenerateConfigsStep()
+    gen_names = [g.name for g in step.generators]
+    assert "editorconfig" in gen_names
+
+
+def test_generate_configs_default_generators_include_lefthook(tmp_path: Path) -> None:
+    step = GenerateConfigsStep()
+    gen_names = [g.name for g in step.generators]
+    assert "lefthook" in gen_names
