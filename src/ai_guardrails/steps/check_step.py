@@ -92,6 +92,12 @@ class CheckStep:
             return StepResult(status="ok", message="No new issues. " + " ".join(parts))
         return StepResult(status="ok", message="No issues found.")
 
+    def collect_issues(
+        self, ctx: PipelineContext
+    ) -> tuple[list[LintIssue], int] | None:
+        """Public wrapper — same as _collect_issues, callable without SLF001."""
+        return self._collect_issues(ctx)
+
     # ------------------------------------------------------------------
     # Private helpers
     # ------------------------------------------------------------------
