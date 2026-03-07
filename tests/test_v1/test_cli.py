@@ -143,6 +143,20 @@ def test_status_rejects_non_git_directory(tmp_path: Path) -> None:
         status(project_dir=tmp_path)
 
 
+def test_init_accepts_git_worktree(tmp_path: Path) -> None:
+    """init must accept a project_dir where .git is a file (git worktree)."""
+    # In a git worktree .git is a plain file, not a directory.
+    (tmp_path / ".git").write_text("gitdir: /some/real/repo/.git/worktrees/foo\n")
+
+    with patch("ai_guardrails.cli.InitPipeline") as mock_cls:
+        mock_pipeline = MagicMock()
+        mock_pipeline.run.return_value = []
+        mock_cls.return_value = mock_pipeline
+
+        init(project_dir=tmp_path)  # Must not raise
+        mock_pipeline.run.assert_called_once()
+
+
 def test_init_accepts_project_dir_flag(tmp_path: Path) -> None:
     """init --project-dir passes resolved path to the pipeline."""
     (tmp_path / ".git").mkdir()
