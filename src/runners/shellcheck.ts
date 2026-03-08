@@ -4,6 +4,7 @@ import type { FileManager } from "@/infra/file-manager";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { safeParseJson } from "@/utils/parse";
 
 /** Shape of a single comment in shellcheck --format=json1 output */
 interface ShellcheckComment {
@@ -25,12 +26,8 @@ interface ShellcheckOutput {
  * Returns [] on malformed/empty input.
  */
 export function parseShellcheckOutput(stdout: string, projectDir: string): LintIssue[] {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(stdout);
-    } catch {
-        return [];
-    }
+    const parsed = safeParseJson(stdout);
+    if (parsed === null) return [];
 
     if (!isShellcheckOutput(parsed)) return [];
 

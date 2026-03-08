@@ -1,7 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
-import { golangciLintRunner, parseGolangciOutput } from "@/runners/golangci-lint";
+import {
+    golangciLintRunner,
+    parseGolangciOutput,
+    resetVersionFlagCache,
+} from "@/runners/golangci-lint";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
@@ -69,6 +73,10 @@ describe("parseGolangciOutput", () => {
 });
 
 describe("golangciLintRunner.run", () => {
+    beforeEach(() => {
+        resetVersionFlagCache();
+    });
+
     test("uses --output.json.path=stdout flag for version >= 1.64", async () => {
         const runner = new FakeCommandRunner();
         runner.register(["golangci-lint", "--version"], {

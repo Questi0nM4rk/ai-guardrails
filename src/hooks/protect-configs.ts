@@ -48,7 +48,7 @@ export async function runProtectConfigs(): Promise<never> {
     const command = extractBashCommand(input.tool_input);
     const reason = protectsFile(command);
     if (reason !== null) {
-        deny(reason);
+        deny(`[protect-configs] ${reason}`);
     }
     allow();
 }
