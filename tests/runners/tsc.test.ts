@@ -1,9 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
 import { parseTscOutput, tscRunner } from "@/runners/tsc";
+import { clearResolveToolPathCache } from "@/utils/resolve-tool-path";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+
+beforeEach(() => clearResolveToolPathCache());
 
 const FIXTURE_PATH = resolve(import.meta.dir, "../fixtures/tsc-output.txt");
 const PROJECT_DIR = "/project";
