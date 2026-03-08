@@ -3,6 +3,7 @@ import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { safeParseJson } from "@/utils/parse";
 
 const BIOME_LINTER_ID = "biome";
 const BIOME_RULE_PREFIX = "biome/";
@@ -57,12 +58,8 @@ export function parseBiomeRdjsonOutput(
     stdout: string,
     projectDir: string
 ): LintIssue[] {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(stdout);
-    } catch {
-        return [];
-    }
+    const parsed = safeParseJson(stdout);
+    if (parsed === null) return [];
 
     if (!isRdjsonOutput(parsed)) {
         return [];
