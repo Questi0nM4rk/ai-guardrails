@@ -1,7 +1,20 @@
 import { describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
+import type { ResolvedConfig } from "@/config/schema";
 import { clippyRunner, parseClippyNdjson } from "@/runners/clippy";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
+import { FakeFileManager } from "../fakes/fake-file-manager";
+
+function makeConfig(): ResolvedConfig {
+    return {
+        profile: "standard",
+        ignore: [],
+        allow: [],
+        values: { line_length: 100, indent_width: 4 },
+        ignoredRules: new Set(),
+        isAllowed: () => false,
+    };
+}
 
 const FIXTURE_PATH = resolve(import.meta.dir, "../fixtures/clippy-output.ndjson");
 const PROJECT_DIR = "/project";
@@ -118,6 +131,58 @@ describe("parseClippyNdjson", () => {
         expect(errorIssue).toBeDefined();
         if (!errorIssue) return;
         expect(errorIssue.severity).toBe("error");
+    });
+});
+
+describe("clippyRunner.run", () => {
+    test("runs cargo clippy with correct args and returns issues", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register(
+            ["cargo", "clippy", "--message-format=json", "--", "-D", "warnings"],
+            {
+                stdout: FIXTURE_NDJSON,
+                stderr: "",
+                exitCode: 1, // cargo exits non-zero when clippy finds errors
+            }
+        );
+
+        const issues = await clippyRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: new FakeFileManager(),
+        });
+
+        expect(runner.calls).toContainEqual([
+            "cargo",
+            "clippy",
+            "--message-format=json",
+            "--",
+            "-D",
+            "warnings",
+        ]);
+        expect(issues).toHaveLength(2);
+    });
+
+    test("returns [] when no issues", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register(
+            ["cargo", "clippy", "--message-format=json", "--", "-D", "warnings"],
+            {
+                stdout: "",
+                stderr: "",
+                exitCode: 0,
+            }
+        );
+
+        const issues = await clippyRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: new FakeFileManager(),
+        });
+
+        expect(issues).toHaveLength(0);
     });
 });
 

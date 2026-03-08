@@ -136,7 +136,7 @@ Based on research (March 2026):
 | TOML write | `smol-toml` | v1.5.1+ | `stringify()` — do not use Bun built-in (no stringify) |
 | Config validation | `zod` | v3+ | smol-toml returns plain objects; Zod validates them |
 | Glob matching | `minimatch` | v10+ | For `isAllowed(rule, filePath)` in ResolvedConfig |
-| Hook runner (generated) | lefthook | v2.1.x | Still best for generated configs; `stage_fixed: true` replaces lint-staged |
+| Pre-commit hooks (target projects) | lefthook | v2.1.x | Runs generated hook scripts at commit time; `stage_fixed: true` replaces lint-staged |
 | Claude Code hooks runtime | `bun run hook.ts` | — | 8–15ms startup vs 200–400ms for `npx tsx` |
 | Hook target projects | `node script.js` | — | Cannot assume Bun in target projects |
 
@@ -149,6 +149,7 @@ all TOML write operations.
 ### Y/N prompts without deps
 
 For simple Y/N, Bun exposes `console` as an AsyncIterable — zero-dep fallback:
+
 ```typescript
 async function confirm(question: string, defaultValue = false): Promise<boolean> {
   const hint = defaultValue ? "[Y/n]" : "[y/N]";
@@ -160,6 +161,7 @@ async function confirm(question: string, defaultValue = false): Promise<boolean>
   return defaultValue;
 }
 ```
+
 Use `@clack/prompts select` when arrow-key navigation is needed.
 
 ---
@@ -375,9 +377,11 @@ responsibility using `Promise.all`.
 ### 6. Hash headers for tamper detection
 
 Every generated config file starts with:
+
 ```
 # ai-guardrails:sha256=<hex>
 ```
+
 The hash covers the file content below the header. `verify()` recomputes and
 compares. Any edit breaks the hash — detected by `generate --check` and CI.
 
@@ -405,6 +409,7 @@ tests/
 ```
 
 **Fakes (not mocks):**
+
 - `FakeFileManager` — in-memory tree, `seed(path, content)` for setup
 - `FakeCommandRunner` — register canned responses per args tuple
 - `FakeConsole` — captures messages for assertion
