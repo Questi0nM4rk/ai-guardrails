@@ -8,18 +8,8 @@ export const shellPlugin: LanguagePlugin = {
     name: "Shell",
 
     async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
-        const [shFiles, bashFiles, zshFiles, kshFiles] = await Promise.all([
-            fileManager.glob("**/*.sh", projectDir),
-            fileManager.glob("**/*.bash", projectDir),
-            fileManager.glob("**/*.zsh", projectDir),
-            fileManager.glob("**/*.ksh", projectDir),
-        ]);
-        return (
-            shFiles.length > 0 ||
-            bashFiles.length > 0 ||
-            zshFiles.length > 0 ||
-            kshFiles.length > 0
-        );
+        const files = await fileManager.glob("**/*.{sh,bash,zsh,ksh}", projectDir);
+        return files.length > 0;
     },
 
     runners(): LinterRunner[] {
