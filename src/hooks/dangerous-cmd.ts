@@ -2,29 +2,29 @@ import { allow, deny, readHookInput } from "@/hooks/runner";
 import { extractBashCommand } from "@/hooks/types";
 
 const BLOCKED_PATTERNS: RegExp[] = [
-  /rm\s+-rf?\s+[^/\s]*\/?\s*$|rm\s+-rf\s+\//,
-  /git\s+push\s+.*(?:--force(?!-with-lease)|-f\b)/,
-  /git\s+reset\s+--hard/,
-  /git\s+checkout\s+--/,
-  /git\s+clean\s+-[a-z]*f/,
-  /git\s+commit\s+.*--no-verify/,
+    /rm\s+-rf?\s+[^/\s]*\/?\s*$|rm\s+-rf\s+\//,
+    /git\s+push\s+.*(?:--force(?!-with-lease)|-f\b)/,
+    /git\s+reset\s+--hard/,
+    /git\s+checkout\s+--/,
+    /git\s+clean\s+-[a-z]*f/,
+    /git\s+commit\s+.*--no-verify/,
 ];
 
 export function isDangerous(command: string): string | null {
-  for (const pattern of BLOCKED_PATTERNS) {
-    if (pattern.test(command)) {
-      return `Blocked: command matches dangerous pattern: ${pattern.source}`;
+    for (const pattern of BLOCKED_PATTERNS) {
+        if (pattern.test(command)) {
+            return `Blocked: command matches dangerous pattern: ${pattern.source}`;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 export async function runDangerousCmd(): Promise<never> {
-  const input = await readHookInput();
-  const command = extractBashCommand(input.tool_input);
-  const reason = isDangerous(command);
-  if (reason !== null) {
-    deny(reason);
-  }
-  allow();
+    const input = await readHookInput();
+    const command = extractBashCommand(input.tool_input);
+    const reason = isDangerous(command);
+    if (reason !== null) {
+        deny(`[dangerous-cmd] ${reason}`);
+    }
+    allow();
 }
