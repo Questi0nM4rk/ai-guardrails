@@ -2,13 +2,13 @@ pre-commit:
   commands:
     ts-format-and-stage:
       glob: "*.{ts,tsx,js,jsx}"
-      run: biome check --write {staged_files} && git add {staged_files}
+      run: ./node_modules/.bin/biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 
     biome-lint:
       glob: "*.{ts,tsx,js,jsx}"
-      run: biome check {staged_files}
+      run: ./node_modules/.bin/biome check {staged_files}
       fail_text: "Biome lint/format errors found"
       priority: 2
 
