@@ -4,7 +4,7 @@ import { issuesToSarif } from "@/writers/sarif";
 
 function makeIssue(overrides: Partial<LintIssue> = {}): LintIssue {
     return {
-        rule: "E501",
+        rule: "ruff/E501",
         linter: "ruff",
         file: "/project/foo.py",
         line: 10,
@@ -43,7 +43,7 @@ describe("issuesToSarif", () => {
     });
 
     test("maps issue to SARIF result with correct ruleId", () => {
-        const issue = makeIssue({ linter: "ruff", rule: "E501" });
+        const issue = makeIssue({ linter: "ruff", rule: "ruff/E501" });
         const sarif = issuesToSarif([issue]);
         const result = sarif.runs[0]?.results[0];
         expect(result?.ruleId).toBe("ruff/E501");
@@ -81,9 +81,28 @@ describe("issuesToSarif", () => {
     test("handles multiple issues", () => {
         const issues = [
             makeIssue(),
-            makeIssue({ rule: "F401", message: "Unused import" }),
+            makeIssue({ rule: "ruff/F401", message: "Unused import" }),
         ];
         const sarif = issuesToSarif(issues);
         expect(sarif.runs[0]?.results).toHaveLength(2);
+    });
+
+    test("does not double-prefix ruleId when rule already contains linter prefix", () => {
+        // Runners store rule with prefix: ruff → "ruff/E501", biome → "biome/lint/..."
+        // SARIF writer must use issue.rule directly, not "${linter}/${rule}"
+        const issue = makeIssue({ linter: "ruff", rule: "ruff/E501" });
+        const sarif = issuesToSarif([issue]);
+        expect(sarif.runs[0]?.results[0]?.ruleId).toBe("ruff/E501");
+    });
+
+    test("uses issue.rule directly as ruleId for biome prefixed rule", () => {
+        const issue = makeIssue({
+            linter: "biome",
+            rule: "biome/lint/correctness/noUnusedVariables",
+        });
+        const sarif = issuesToSarif([issue]);
+        expect(sarif.runs[0]?.results[0]?.ruleId).toBe(
+            "biome/lint/correctness/noUnusedVariables"
+        );
     });
 });

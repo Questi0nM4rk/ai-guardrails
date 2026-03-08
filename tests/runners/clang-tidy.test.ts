@@ -95,8 +95,8 @@ describe("clangTidyRunner.run", () => {
         fm.seed("src/lib.cpp", "void foo() {}");
 
         runner.register(["clang-tidy", "--quiet", "src/main.cpp", "src/lib.cpp"], {
-            stdout: FIXTURE_TEXT,
-            stderr: "",
+            stdout: "",
+            stderr: FIXTURE_TEXT,
             exitCode: 1,
         });
 
@@ -109,6 +109,52 @@ describe("clangTidyRunner.run", () => {
 
         expect(runner.calls).toHaveLength(1);
         expect(issues).toHaveLength(3);
+    });
+});
+
+describe("clangTidyRunner.run uses stderr for diagnostics", () => {
+    test("parses diagnostics from stderr, not stdout", async () => {
+        const runner = new FakeCommandRunner();
+        const fm = new FakeFileManager();
+        fm.seed("src/main.cpp", "int main() {}");
+
+        // clang-tidy writes diagnostics to stderr; stdout is empty
+        runner.register(["clang-tidy", "--quiet", "src/main.cpp"], {
+            stdout: "",
+            stderr: FIXTURE_TEXT,
+            exitCode: 1,
+        });
+
+        const issues = await clangTidyRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: fm,
+        });
+
+        expect(issues).toHaveLength(3);
+    });
+
+    test("returns [] when diagnostics are only in stdout (ignored)", async () => {
+        const runner = new FakeCommandRunner();
+        const fm = new FakeFileManager();
+        fm.seed("src/main.cpp", "int main() {}");
+
+        // clang-tidy writes to stderr; stdout output is not parsed
+        runner.register(["clang-tidy", "--quiet", "src/main.cpp"], {
+            stdout: FIXTURE_TEXT,
+            stderr: "",
+            exitCode: 1,
+        });
+
+        const issues = await clangTidyRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: fm,
+        });
+
+        expect(issues).toHaveLength(0);
     });
 });
 

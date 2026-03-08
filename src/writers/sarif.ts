@@ -34,7 +34,7 @@ function severityToLevel(severity: LintIssue["severity"]): SarifResult["level"] 
  */
 export function issuesToSarif(issues: LintIssue[]): SarifLog {
     const results: SarifResult[] = issues.map((issue) => ({
-        ruleId: `${issue.linter}/${issue.rule}`,
+        ruleId: issue.rule,
         level: severityToLevel(issue.severity),
         message: { text: issue.message },
         locations: [

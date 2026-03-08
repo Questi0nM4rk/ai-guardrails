@@ -60,6 +60,26 @@ describe("lefthookGenerator", () => {
     });
 });
 
+describe("no-commits-to-main hook", () => {
+    test("blocks commits to main branch", () => {
+        const output = generateLefthookConfig(makeConfig(), []);
+        expect(output).toContain('"main"');
+    });
+
+    test("also blocks commits to master branch", () => {
+        const output = generateLefthookConfig(makeConfig(), []);
+        expect(output).toContain('"master"');
+    });
+
+    test("check script uses OR condition for main and master", () => {
+        const output = generateLefthookConfig(makeConfig(), []);
+        // Should contain: if [ "$branch" = "main" ] || [ "$branch" = "master" ]
+        expect(output).toMatch(
+            /"\$branch"\s*=\s*"main"\s*\]\s*\|\|\s*\[.*"\$branch"\s*=\s*"master"/
+        );
+    });
+});
+
 describe("generateLefthookConfig", () => {
     test("includes python section when python plugin active", () => {
         const plugins = [makePlugin("python")];

@@ -39,7 +39,7 @@ export interface LinterRunner {
     /** Install instructions for this tool */
     readonly installHint: InstallHint;
     /** Check if the tool binary is reachable */
-    isAvailable(commandRunner: CommandRunner): Promise<boolean>;
+    isAvailable(commandRunner: CommandRunner, projectDir?: string): Promise<boolean>;
     /** Run the linter, return normalized issues */
     run(opts: RunOptions): Promise<LintIssue[]>;
 }
