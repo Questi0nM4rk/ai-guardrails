@@ -106,3 +106,50 @@ No systematic false positives identified. CodeRabbit findings have been accurate
 ## Gemini
 
 No systematic false positives identified. Gemini findings have been accurate.
+
+---
+
+## guardrails-review (inline code annotations, PR #95, 2026-03-08)
+
+The inline code annotation comments (as opposed to the fullbody round reviews) on PR #95
+were largely false positives. The bot scans the full cumulative diff from `main` to HEAD,
+so it re-reviews files from commits that were already addressed in earlier rounds.
+
+### SPEC-001 library table row duplication
+
+- **Finding:** "Lefthook vs node script distinction unclear in library table"
+- **Why false positive:** The table had already been split into three separate rows
+  (`Pre-commit hooks`, `Claude Code hooks runtime`, `Hook target projects`) in an earlier
+  round before the bot ran. The bot was reviewing an older commit's diff hunk.
+
+### CLAUDE.md build description
+
+- **Finding:** "Binary requires Bun runtime — document it"
+- **Why false positive:** The build command uses `bun build --compile`, which embeds the
+  Bun runtime into a standalone binary. The binary does NOT require Bun on target machines.
+  The bot confused `--compile` (standalone) with a plain `bun run` invocation.
+
+### SPEC-003 `isAvailable` parameter name
+
+- **Finding:** "`isAvailable(runner)` should be `isAvailable(commandRunner)` for consistency"
+- **Why false positive:** The parameter was already named `commandRunner` in the actual
+  implementation. The bot was reviewing a spec example from an older commit.
+
+### `ruff.toml` missing `exclude` array
+
+- **Finding:** "`exclude = [\"tests/fixtures\"]` was removed, restore it"
+- **Why false positive:** The `exclude` array was already present in `ruff.toml` at the
+  time the bot ran. The bot was diffing against a state that predated the current file.
+
+### `tests/runners/clippy.test.ts` missing `clippyRunner.run` test
+
+- **Finding:** "Add a test for `clippyRunner.run`"
+- **Why false positive:** The test already existed at `describe("clippyRunner.run")` in
+  the same file. The bot reviewed a diff hunk that showed an older file state.
+
+### Pattern
+
+All five false positives share the same root cause: the bot performs a cumulative diff
+from `main` to HEAD and posts inline comments anchored to diff hunks, some of which
+represent intermediate states that were already fixed. The fullbody round review comments
+(written separately) were accurate and addressed real issues.

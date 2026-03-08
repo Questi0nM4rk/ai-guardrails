@@ -56,6 +56,12 @@ export async function checkStep(
             (issue) => !config.isAllowed(issue.rule, issue.file)
         );
 
+        // TODO(baseline): Load .ai-guardrails/baseline.json and call
+        // classifyFingerprint() to filter out "existing" issues from the
+        // failure set — only "new" issues since the last snapshot should
+        // cause the check to fail ("hold-the-line" enforcement).
+        // See docs/bugs/baseline-fingerprint-gap.md for full details and fix outline.
+
         const msg =
             filtered.length === 0
                 ? "No new issues found"
