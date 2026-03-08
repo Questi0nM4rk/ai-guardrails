@@ -1,5 +1,4 @@
 import { resolve } from "node:path";
-import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
@@ -50,14 +49,6 @@ export function parseMarkdownlintOutput(
     return issues;
 }
 
-const MARKDOWNLINT_CONFIG = `{
-  // markdownlint-cli2 config
-  "MD013": { "line_length": 120 },
-  "MD033": false,
-  "MD041": false
-}
-`;
-
 export const markdownlintRunner: LinterRunner = {
     id: MARKDOWNLINT_LINTER_ID,
     name: "markdownlint",
@@ -89,9 +80,5 @@ export const markdownlintRunner: LinterRunner = {
         );
         // markdownlint-cli2 exits non-zero on issues — parse stdout regardless
         return parseMarkdownlintOutput(result.stdout, projectDir);
-    },
-
-    generateConfig(_config: ResolvedConfig): string {
-        return MARKDOWNLINT_CONFIG;
     },
 };

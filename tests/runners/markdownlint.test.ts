@@ -118,17 +118,6 @@ describe("markdownlintRunner.run", () => {
     });
 });
 
-describe("markdownlintRunner.generateConfig", () => {
-    test("returns .markdownlint.jsonc string", () => {
-        const output = markdownlintRunner.generateConfig(makeConfig());
-        expect(output).not.toBeNull();
-        expect(typeof output).toBe("string");
-        expect(output).toContain("MD013");
-        expect(output).toContain("MD033");
-        expect(output).toContain("MD041");
-    });
-});
-
 describe("markdownlintRunner.isAvailable", () => {
     test("returns true when markdownlint-cli2 --version exits 0", async () => {
         const runner = new FakeCommandRunner();
