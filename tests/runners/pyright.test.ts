@@ -1,8 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import type { ResolvedConfig } from "@/config/schema";
 import { parsePyrightOutput, pyrightRunner } from "@/runners/pyright";
+import { clearResolveToolPathCache } from "@/utils/resolve-tool-path";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+
+beforeEach(() => clearResolveToolPathCache());
 
 const FIXTURE_PATH = new URL("../fixtures/pyright-output.json", import.meta.url)
     .pathname;
