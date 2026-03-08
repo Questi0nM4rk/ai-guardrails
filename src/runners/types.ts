@@ -11,10 +11,16 @@ export interface RunOptions {
 }
 
 export interface LinterRunner {
+  /** Stable identifier: "ruff", "pyright", "shellcheck", etc. */
   readonly id: string;
+  /** Human-readable name */
   readonly name: string;
+  /** Config file this runner manages, relative to project root. null = no config. */
   readonly configFile: string | null;
+  /** Check if the tool binary is reachable */
   isAvailable(commandRunner: CommandRunner): Promise<boolean>;
+  /** Run the linter, return normalized issues */
   run(opts: RunOptions): Promise<LintIssue[]>;
+  /** Generate config file content. null = runner has no managed config. */
   generateConfig(config: ResolvedConfig): string | null;
 }
