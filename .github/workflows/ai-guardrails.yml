@@ -17,3 +17,5 @@ jobs:
         run: bun run build
       - name: Run ai-guardrails check
         run: ./dist/ai-guardrails check
+        env:
+          PATH: ${{ github.workspace }}/node_modules/.bin:${{ env.PATH }}
