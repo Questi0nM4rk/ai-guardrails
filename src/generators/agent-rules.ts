@@ -18,21 +18,31 @@ export async function detectAgentTools(
   fileManager: FileManager,
 ): Promise<DetectedAgentTools> {
   // Run all existence checks and the cursor-rules glob in parallel
-  const [claudeSettings, claudeMd, cursorRules, windsurf, copilot, cline, aider, cursorRulesFiles] =
-    await Promise.all([
-      fileManager.exists(`${projectDir}/.claude/settings.json`),
-      fileManager.exists(`${projectDir}/.claude/CLAUDE.md`),
-      fileManager.exists(`${projectDir}/.cursorrules`),
-      fileManager.exists(`${projectDir}/.windsurfrules`),
-      fileManager.exists(`${projectDir}/.github/copilot-instructions.md`),
-      fileManager.exists(`${projectDir}/.clinerules`),
-      fileManager.exists(`${projectDir}/.aider.conf.yml`),
-      fileManager.glob("**/.cursor/rules/**", projectDir),
-    ]);
+  const [
+    claudeSettings,
+    claudeMd,
+    cursorRules,
+    cursorDir,
+    windsurf,
+    copilot,
+    cline,
+    aider,
+    cursorRulesFiles,
+  ] = await Promise.all([
+    fileManager.exists(`${projectDir}/.claude/settings.json`),
+    fileManager.exists(`${projectDir}/.claude/CLAUDE.md`),
+    fileManager.exists(`${projectDir}/.cursorrules`),
+    fileManager.exists(`${projectDir}/.cursor/rules`),
+    fileManager.exists(`${projectDir}/.windsurfrules`),
+    fileManager.exists(`${projectDir}/.github/copilot-instructions.md`),
+    fileManager.exists(`${projectDir}/.clinerules`),
+    fileManager.exists(`${projectDir}/.aider.conf.yml`),
+    fileManager.glob("**/.cursor/rules/**", projectDir),
+  ]);
 
   return {
     claude: claudeSettings || claudeMd,
-    cursor: cursorRules || cursorRulesFiles.length > 0,
+    cursor: cursorRules || cursorDir || cursorRulesFiles.length > 0,
     windsurf,
     copilot,
     cline,
