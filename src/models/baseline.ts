@@ -1,6 +1,6 @@
 /**
  * A single entry in the baseline snapshot.
- * Stored in .guardrails-baseline.json as an array.
+ * Stored in .ai-guardrails/baseline.json as an array.
  */
 export interface BaselineEntry {
     readonly fingerprint: string;

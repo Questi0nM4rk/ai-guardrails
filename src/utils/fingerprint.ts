@@ -5,7 +5,7 @@ const CONTEXT_LINES = 2;
 
 /**
  * Compute a stable fingerprint for a lint issue using surrounding source lines.
- * The fingerprint does not include the file path so it survives file moves.
+ * The fingerprint includes the file path to avoid collisions across files.
  */
 export function fingerprintIssue(
     issue: Omit<LintIssue, "fingerprint">,

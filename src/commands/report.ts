@@ -1,7 +1,18 @@
 import { join } from "node:path";
+import { z } from "zod";
 import { buildContext } from "@/commands/context";
 import type { AuditRecord } from "@/models/audit-record";
 import { AUDIT_PATH } from "@/models/paths";
+
+const auditRecordSchema = z.object({
+    timestamp: z.string(),
+    command: z.string(),
+    projectDir: z.string(),
+    durationMs: z.number(),
+    issueCount: z.number(),
+    newIssueCount: z.number(),
+    exitCode: z.number(),
+});
 
 function formatRecord(r: AuditRecord): string {
     const date = r.timestamp.slice(0, 16).replace("T", " ");
@@ -26,10 +37,17 @@ export async function runReport(
         return;
     }
 
-    const records: AuditRecord[] = text
-        .split("\n")
-        .filter((l) => l.trim().length > 0)
-        .map((l) => JSON.parse(l) as AuditRecord);
+    const records: AuditRecord[] = [];
+    for (const l of text.split("\n")) {
+        const trimmed = l.trim();
+        if (!trimmed) continue;
+        try {
+            const parsed = auditRecordSchema.parse(JSON.parse(trimmed));
+            records.push(parsed);
+        } catch {
+            // skip malformed lines
+        }
+    }
 
     const recent = records.slice(-last);
     if (recent.length === 0) {

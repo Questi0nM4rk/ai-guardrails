@@ -39,7 +39,7 @@ describe("computeFingerprint", () => {
         expect(a).not.toBe(b);
     });
 
-    test("file path does not affect fingerprint", () => {
+    test("different file produces different fingerprint", () => {
         const base = {
             rule: "ruff/E501",
             lineContent: "  x = 1",
@@ -48,7 +48,7 @@ describe("computeFingerprint", () => {
         };
         const a = computeFingerprint({ ...base, file: "src/foo.py" });
         const b = computeFingerprint({ ...base, file: "src/bar.py" });
-        expect(a).toBe(b);
+        expect(a).not.toBe(b);
     });
 
     test("handles empty context arrays", () => {
