@@ -9,10 +9,11 @@ export const typescriptPlugin: LanguagePlugin = {
 
     async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
         if (await fileManager.exists(`${projectDir}/package.json`)) return true;
-        const tsFiles = await fileManager.glob("**/*.ts", projectDir);
-        if (tsFiles.length > 0) return true;
-        const jsFiles = await fileManager.glob("**/*.js", projectDir);
-        return jsFiles.length > 0;
+        const [tsFiles, jsFiles] = await Promise.all([
+            fileManager.glob("**/*.ts", projectDir),
+            fileManager.glob("**/*.js", projectDir),
+        ]);
+        return tsFiles.length > 0 || jsFiles.length > 0;
     },
 
     runners(): LinterRunner[] {

@@ -3,6 +3,7 @@ import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { safeParseJson } from "@/utils/parse";
 
 interface GolangciIssue {
     FromLinter: string;
@@ -27,12 +28,8 @@ function isGolangciOutput(value: unknown): value is GolangciOutput {
  * Handles null Issues array (no issues found).
  */
 export function parseGolangciOutput(json: string, projectDir: string): LintIssue[] {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(json);
-    } catch {
-        return [];
-    }
+    const parsed = safeParseJson(json);
+    if (parsed === null) return [];
 
     if (!isGolangciOutput(parsed)) return [];
 
@@ -67,7 +64,7 @@ export function parseGolangciOutput(json: string, projectDir: string): LintIssue
  * Detect golangci-lint version and choose the appropriate JSON output flag.
  * v1.64+ uses --output.json.path=stdout; older versions use --out-format=json.
  */
-async function detectJsonFlag(
+async function detectVersionFlag(
     commandRunner: CommandRunner,
     cwd: string
 ): Promise<string> {
@@ -77,6 +74,23 @@ async function detectJsonFlag(
     const minor = Number.parseInt(match?.[2] ?? "0", 10);
     const isV164Plus = major > 1 || (major === 1 && minor >= 64);
     return isV164Plus ? "--output.json.path=stdout" : "--out-format=json";
+}
+
+let cachedVersionFlagPromise: Promise<string> | undefined;
+
+async function getVersionFlag(
+    commandRunner: CommandRunner,
+    cwd: string
+): Promise<string> {
+    if (cachedVersionFlagPromise === undefined) {
+        cachedVersionFlagPromise = detectVersionFlag(commandRunner, cwd);
+    }
+    return cachedVersionFlagPromise;
+}
+
+/** Reset the version flag cache. Exported for test isolation. */
+export function resetVersionFlagCache(): void {
+    cachedVersionFlagPromise = undefined;
 }
 
 export const golangciLintRunner: LinterRunner = {
@@ -96,7 +110,7 @@ export const golangciLintRunner: LinterRunner = {
 
     async run(opts: RunOptions): Promise<LintIssue[]> {
         const { projectDir, commandRunner } = opts;
-        const jsonFlag = await detectJsonFlag(commandRunner, projectDir);
+        const jsonFlag = await getVersionFlag(commandRunner, projectDir);
         const result = await commandRunner.run(
             ["golangci-lint", "run", jsonFlag, "./..."],
             {

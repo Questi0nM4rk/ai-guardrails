@@ -2,6 +2,7 @@ import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { safeParseJson } from "@/utils/parse";
 
 interface PyrightRange {
     start: { line: number; character: number };
@@ -57,12 +58,8 @@ function isPyrightOutput(value: unknown): value is PyrightOutput {
 export function parsePyrightOutput(stdout: string): LintIssue[] {
     if (!stdout.trim()) return [];
 
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(stdout);
-    } catch {
-        return [];
-    }
+    const parsed = safeParseJson(stdout);
+    if (parsed === null) return [];
 
     if (!isPyrightOutput(parsed)) return [];
 

@@ -16,7 +16,7 @@ export async function runDangerousCmd(): Promise<never> {
     const command = extractBashCommand(input.tool_input);
     const reason = isDangerous(command);
     if (reason !== null) {
-        deny(reason);
+        deny(`[dangerous-cmd] ${reason}`);
     }
     allow();
 }

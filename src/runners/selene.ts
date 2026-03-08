@@ -3,6 +3,7 @@ import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { safeParseJson } from "@/utils/parse";
 
 const SELENE_LINTER_ID = "selene";
 const SELENE_RULE_PREFIX = "selene/";
@@ -35,13 +36,7 @@ function isSeleneEntry(value: unknown): value is SeleneEntry {
  * Returns [] on malformed or empty input.
  */
 export function parseSeleneOutput(stdout: string, projectDir: string): LintIssue[] {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(stdout);
-    } catch {
-        return [];
-    }
-
+    const parsed = safeParseJson(stdout);
     if (!Array.isArray(parsed)) return [];
 
     const issues: LintIssue[] = [];

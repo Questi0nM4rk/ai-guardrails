@@ -3,6 +3,7 @@ import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { safeParseJson } from "@/utils/parse";
 
 // Codes starting with E or F are errors; everything else is a warning.
 const ERROR_PREFIXES = ["E", "F"] as const;
@@ -40,13 +41,7 @@ function isRuffItem(value: unknown): value is RuffItem {
 export function parseRuffOutput(stdout: string, _config: ResolvedConfig): LintIssue[] {
     if (!stdout.trim()) return [];
 
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(stdout);
-    } catch {
-        return [];
-    }
-
+    const parsed = safeParseJson(stdout);
     if (!Array.isArray(parsed)) return [];
 
     const issues: LintIssue[] = [];

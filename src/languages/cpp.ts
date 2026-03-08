@@ -8,10 +8,11 @@ export const cppPlugin: LanguagePlugin = {
 
     async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
         if (await fileManager.exists(`${projectDir}/CMakeLists.txt`)) return true;
-        const cppFiles = await fileManager.glob("**/*.cpp", projectDir);
-        if (cppFiles.length > 0) return true;
-        const cFiles = await fileManager.glob("**/*.c", projectDir);
-        return cFiles.length > 0;
+        const [cppFiles, cFiles] = await Promise.all([
+            fileManager.glob("**/*.cpp", projectDir),
+            fileManager.glob("**/*.c", projectDir),
+        ]);
+        return cppFiles.length > 0 || cFiles.length > 0;
     },
 
     runners(): LinterRunner[] {
