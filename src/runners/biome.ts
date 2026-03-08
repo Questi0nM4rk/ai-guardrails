@@ -100,7 +100,7 @@ export function parseBiomeRdjsonOutput(
 export const biomeRunner: LinterRunner = {
     id: BIOME_LINTER_ID,
     name: "Biome",
-    configFile: "biome.json",
+    configFile: "biome.jsonc",
     installHint: {
         description: "TypeScript/JS linter and formatter",
         npm: "npm install -D @biomejs/biome",

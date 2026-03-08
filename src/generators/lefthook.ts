@@ -99,8 +99,10 @@ export function generateLefthookConfig(
     return withHashHeader(renderLefthookYml(ids));
 }
 
+export const LEFTHOOK_GENERATOR_ID = "lefthook";
+
 export const lefthookGenerator: ConfigGenerator = {
-    id: "lefthook",
+    id: LEFTHOOK_GENERATOR_ID,
     configFile: "lefthook.yml",
     generate(_config: ResolvedConfig): string {
         throw new Error(

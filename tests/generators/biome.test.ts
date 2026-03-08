@@ -19,8 +19,8 @@ describe("biomeGenerator", () => {
         expect(biomeGenerator.id).toBe("biome");
     });
 
-    test("configFile is biome.json", () => {
-        expect(biomeGenerator.configFile).toBe("biome.json");
+    test("configFile is biome.jsonc", () => {
+        expect(biomeGenerator.configFile).toBe("biome.jsonc");
     });
 
     test("output matches snapshot", () => {
