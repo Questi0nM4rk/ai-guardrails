@@ -33,5 +33,13 @@
       "quoteStyle": "double",
       "trailingCommas": "all"
     }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "off"
+      }
+    }
   }
 }
