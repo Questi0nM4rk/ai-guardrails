@@ -69,9 +69,10 @@ export async function statusStep(
         );
 
         const currentFingerprints = new Set(filtered.map((i) => i.fingerprint));
-        const fixedCount = [...baselineMap.keys()].filter(
-            (fp) => !currentFingerprints.has(fp)
-        ).length;
+        let fixedCount = 0;
+        for (const fp of baselineMap.keys()) {
+            if (!currentFingerprints.has(fp)) fixedCount++;
+        }
         const baselineCount = baselineMap.size;
 
         const msg = `Status: ${newIssues.length} new, ${fixedCount} fixed, ${baselineCount} baseline`;

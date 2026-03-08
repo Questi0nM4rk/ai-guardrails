@@ -51,9 +51,17 @@ export class FakeFileManager implements FileManager {
     }
 }
 
-/** Simple glob matching for fake: supports * and ** wildcards */
+/** Simple glob matching for fake: supports *, **, and {a,b,c} brace expansion */
 function matchesGlob(path: string, pattern: string): boolean {
-    // Convert glob pattern to regex
+    // Expand {a,b,c} into alternation before converting to regex.
+    // Only handles a single brace group per pattern (sufficient for our usage).
+    const braceMatch = /\{([^}]+)\}/.exec(pattern);
+    if (braceMatch) {
+        const alternatives = braceMatch[1].split(",");
+        return alternatives.some((alt) =>
+            matchesGlob(path, pattern.replace(braceMatch[0], alt))
+        );
+    }
     const escaped = pattern
         .replace(/[.+^${}()|[\]\\]/g, "\\$&")
         .replace(/\*\*/g, "__DOUBLE_STAR__")

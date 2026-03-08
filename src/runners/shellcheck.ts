@@ -70,13 +70,7 @@ export async function findShellFiles(
     fileManager: FileManager,
     projectDir: string
 ): Promise<string[]> {
-    const [sh, bash, zsh, ksh] = await Promise.all([
-        fileManager.glob("**/*.sh", projectDir),
-        fileManager.glob("**/*.bash", projectDir),
-        fileManager.glob("**/*.zsh", projectDir),
-        fileManager.glob("**/*.ksh", projectDir),
-    ]);
-    return [...sh, ...bash, ...zsh, ...ksh];
+    return fileManager.glob("**/*.{sh,bash,zsh,ksh}", projectDir);
 }
 
 export const shellcheckRunner: LinterRunner = {
