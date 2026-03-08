@@ -13,8 +13,9 @@ export const DANGEROUS_REGEX_PATTERNS: RegExp[] = [
     /git\s+restore\s+--\s/,
     // match both -f (short) and --force (long)
     /git\s+clean\s+(?:-[a-z]*f|--force)/,
-    // match --no-verify and -n short alias; \b prevents matching -n inside commit message text
-    /git\s+commit\s+.*(?:--no-verify|-[a-z]*n\b)/,
+    // match --no-verify and -n short alias (and combined like -nm/-an);
+    // (?<=\s) ensures the flag starts after whitespace, not inside a quoted message
+    /git\s+commit\s+.*(?:--no-verify|(?<=\s)-[a-z]*n[a-z]*(?:\s|$))/,
     // force-delete branch: -D (shorthand), long forms, or mixed -d/--delete with --force
     /git\s+branch\s+(?:-[a-z]*D|--delete\s+--force|--force\s+--delete|-d\s+--force|--force\s+-d)/,
 ];

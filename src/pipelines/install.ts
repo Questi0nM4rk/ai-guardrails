@@ -44,7 +44,11 @@ export const installPipeline: Pipeline = {
         cons.success(genResult.message);
 
         cons.step("Validating configs...");
-        const validateResult = await validateConfigsStep(projectDir, fileManager);
+        const validateResult = await validateConfigsStep(
+            projectDir,
+            fileManager,
+            config
+        );
         if (validateResult.status === "error") {
             return { status: "error", message: validateResult.message };
         }

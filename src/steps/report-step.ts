@@ -24,8 +24,10 @@ export async function reportStep(
         }
     }
 
-    const text = formatIssues(issues);
-    if (text) console.error(text);
+    if (format === "text") {
+        const text = formatIssues(issues);
+        if (text) console.error(text);
+    }
 
     return ok(`Reported ${issues.length} issue(s) in ${format} format`);
 }
