@@ -4,7 +4,7 @@ import { FakeFileManager } from "../fakes/fake-file-manager";
 describe("FakeFileManager", () => {
   test("readText throws for missing file", async () => {
     const fm = new FakeFileManager();
-    expect(fm.readText("/missing.txt")).rejects.toThrow("File not found: /missing.txt");
+    expect(fm.readText("/missing.txt")).rejects.toThrow("ENOENT");
   });
 
   test("readText returns seeded content", async () => {

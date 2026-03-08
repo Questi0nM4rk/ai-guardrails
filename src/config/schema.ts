@@ -1,13 +1,17 @@
-import { minimatch } from "minimatch";
+import { Minimatch } from "minimatch";
 import { z } from "zod";
+import { RULE_PATTERN } from "@/utils/patterns";
+
+export const PROFILES = ["strict", "standard", "minimal"] as const;
+export type Profile = (typeof PROFILES)[number];
 
 const IgnoreEntrySchema = z.object({
-  rule: z.string().regex(/^[\w-]+\/[\w\-.]+$/, "Format: linter/RULE_CODE"),
+  rule: z.string().regex(RULE_PATTERN, "Format: linter/RULE_CODE"),
   reason: z.string().min(1, "Reason is required"),
 });
 
 const MachineConfigSchema = z.object({
-  profile: z.enum(["strict", "standard", "minimal"]).default("standard"),
+  profile: z.enum(PROFILES).default("standard"),
   ignore: z.array(IgnoreEntrySchema).default([]),
 });
 
@@ -33,13 +37,13 @@ const ConfigValuesSchema = z
   .passthrough();
 
 const AllowEntrySchema = z.object({
-  rule: z.string().regex(/^[\w-]+\/[\w\-.]+$/),
+  rule: z.string().regex(RULE_PATTERN),
   glob: z.string().min(1),
   reason: z.string().min(1),
 });
 
 const ProjectConfigSchema = z.object({
-  profile: z.enum(["strict", "standard", "minimal"]).optional(),
+  profile: z.enum(PROFILES).optional(),
   config: ConfigValuesSchema.default({}),
   ignore: z.array(IgnoreEntrySchema).default([]),
   allow: z.array(AllowEntrySchema).default([]),
@@ -50,7 +54,7 @@ export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
 export { ProjectConfigSchema };
 
 export interface ResolvedConfig {
-  profile: "strict" | "standard" | "minimal";
+  profile: Profile;
   ignore: ReadonlyArray<{ rule: string; reason: string }>;
   allow: ReadonlyArray<{ rule: string; glob: string; reason: string }>;
   values: {
@@ -74,12 +78,13 @@ export function buildResolvedConfig(
   for (const entry of [...machine.ignore, ...project.ignore]) {
     ignoreMap.set(entry.rule, entry.reason);
   }
-  const ignore = Array.from(ignoreMap.entries()).map(([rule, reason]) => ({
-    rule,
-    reason,
-  }));
+  const ignore = Array.from(ignoreMap, ([rule, reason]) => ({ rule, reason }));
   const ignoredRules = new Set(ignore.map((e) => e.rule));
   const allow = project.allow;
+  const compiledAllow = allow.map((entry) => ({
+    ...entry,
+    matcher: new Minimatch(entry.glob),
+  }));
   // Cast via unknown: Zod adds `| undefined` to optional fields but
   // exactOptionalPropertyTypes treats `python_version?: string` as absent-or-string.
   // The runtime values are compatible; the type mismatch is a Zod inference quirk.
@@ -93,7 +98,7 @@ export function buildResolvedConfig(
     ignoredRules,
     isAllowed(rule: string, filePath: string): boolean {
       if (ignoredRules.has(rule)) return true;
-      return allow.some((entry) => entry.rule === rule && minimatch(filePath, entry.glob));
+      return compiledAllow.some((entry) => entry.rule === rule && entry.matcher.match(filePath));
     },
   };
 }

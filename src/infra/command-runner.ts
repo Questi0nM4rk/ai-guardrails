@@ -15,26 +15,31 @@ export class RealCommandRunner implements CommandRunner {
       return { stdout: "", stderr: "No command provided", exitCode: 1 };
     }
 
-    const cwd = opts?.cwd;
     const proc =
-      cwd !== undefined
-        ? Bun.spawn([cmd, ...rest], { cwd, stdout: "pipe", stderr: "pipe" })
+      opts?.cwd !== undefined
+        ? Bun.spawn([cmd, ...rest], { cwd: opts.cwd, stdout: "pipe", stderr: "pipe" })
         : Bun.spawn([cmd, ...rest], { stdout: "pipe", stderr: "pipe" });
 
-    const [stdout, stderr] = await Promise.all([
-      new Response(proc.stdout).text(),
-      new Response(proc.stderr).text(),
-    ]);
+    const execute = async (): Promise<RunResult> => {
+      const [stdout, stderr] = await Promise.all([
+        new Response(proc.stdout).text(),
+        new Response(proc.stderr).text(),
+      ]);
+      const exitCode = await proc.exited;
+      return { stdout, stderr, exitCode };
+    };
 
     if (opts?.timeout !== undefined) {
-      const timeoutPromise = new Promise<number>((_, reject) =>
-        setTimeout(() => reject(new Error("Command timed out")), opts.timeout),
+      const timeout = opts.timeout;
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => {
+          proc.kill();
+          reject(new Error(`Command timed out after ${timeout}ms: ${args.join(" ")}`));
+        }, timeout),
       );
-      const exitCode = await Promise.race([proc.exited, timeoutPromise]);
-      return { stdout, stderr, exitCode };
+      return Promise.race([execute(), timeoutPromise]);
     }
 
-    const exitCode = await proc.exited;
-    return { stdout, stderr, exitCode };
+    return execute();
   }
 }

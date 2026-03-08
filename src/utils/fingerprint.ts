@@ -11,19 +11,19 @@ export function fingerprintIssue(
   issue: Omit<LintIssue, "fingerprint">,
   sourceLines: string[],
 ): string {
+  if (issue.line < 1) {
+    throw new Error(`fingerprintIssue: invalid line number ${issue.line} (must be >= 1)`);
+  }
+
   // line is 1-indexed; convert to 0-indexed for array access
   const lineIdx = issue.line - 1;
   const lineContent = sourceLines[lineIdx] ?? "";
 
-  const contextBefore: string[] = [];
-  for (let i = Math.max(0, lineIdx - CONTEXT_LINES); i < lineIdx; i++) {
-    contextBefore.push(sourceLines[i] ?? "");
-  }
-
-  const contextAfter: string[] = [];
-  for (let i = lineIdx + 1; i <= Math.min(sourceLines.length - 1, lineIdx + CONTEXT_LINES); i++) {
-    contextAfter.push(sourceLines[i] ?? "");
-  }
+  const contextBefore = sourceLines.slice(Math.max(0, lineIdx - CONTEXT_LINES), lineIdx);
+  const contextAfter = sourceLines.slice(
+    lineIdx + 1,
+    Math.min(sourceLines.length, lineIdx + CONTEXT_LINES + 1),
+  );
 
   return computeFingerprint({
     rule: issue.rule,

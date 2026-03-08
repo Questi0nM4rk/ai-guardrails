@@ -2,13 +2,16 @@ import { createHash } from "node:crypto";
 
 export const HASH_PREFIX = "# ai-guardrails:sha256=";
 
+export function sha256hex(input: string): string {
+  return createHash("sha256").update(input).digest("hex");
+}
+
 /**
  * Compute a SHA-256 hash header for the given file body content.
  * The hash covers the body text below the header line.
  */
 export function makeHashHeader(content: string): string {
-  const hash = createHash("sha256").update(content).digest("hex");
-  return `${HASH_PREFIX}${hash}`;
+  return `${HASH_PREFIX}${sha256hex(content)}`;
 }
 
 /**
@@ -25,7 +28,6 @@ export function verifyHash(fileContent: string): boolean {
 
   const storedHash = headerLine.slice(HASH_PREFIX.length);
   const body = fileContent.slice(newlineIndex + 1);
-  const expectedHash = createHash("sha256").update(body).digest("hex");
 
-  return storedHash === expectedHash;
+  return storedHash === sha256hex(body);
 }

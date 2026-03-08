@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { sha256hex } from "@/utils/hash";
 
 export interface LintIssue {
   readonly rule: string; // "E501", "no-unused-vars", "S1481"
@@ -31,5 +31,5 @@ export function computeFingerprint(opts: FingerprintOpts): string {
     ...contextBefore.map((l) => l.trim()),
     ...contextAfter.map((l) => l.trim()),
   ].join("\n");
-  return createHash("sha256").update(input).digest("hex");
+  return sha256hex(input);
 }

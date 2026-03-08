@@ -7,7 +7,8 @@ export interface AllowComment {
 // Matches: # ... ai-guardrails-allow: RULE "reason"
 //          // ... ai-guardrails-allow: RULE "reason"
 //          -- ... ai-guardrails-allow: RULE "reason"
-const ALLOW_PATTERN = /(?:#|\/\/|--)[ \t]*ai-guardrails-allow:[ \t]*([\w/-]+)[ \t]+"([^"]+)"/;
+const ALLOW_PATTERN =
+  /(?:#|\/\/|--)[ \t]*ai-guardrails-allow:[ \t]*([\w-]+\/[\w\-./]+)[ \t]+"([^"]+)"/;
 
 /**
  * Parse all inline allow comments from source lines.

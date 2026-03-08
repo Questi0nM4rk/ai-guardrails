@@ -8,8 +8,6 @@ export interface Console {
 
 const RESET = "\x1b[0m";
 const GREEN = "\x1b[32m";
-const YELLOW = "\x1b[33m";
-const RED = "\x1b[31m";
 const CYAN = "\x1b[36m";
 
 export class RealConsole implements Console {
@@ -22,11 +20,11 @@ export class RealConsole implements Console {
   }
 
   warning(msg: string): void {
-    process.stdout.write(`${YELLOW}${msg}${RESET}\n`);
+    process.stderr.write(`\x1b[33m⚠ ${msg}\x1b[0m\n`);
   }
 
   error(msg: string): void {
-    process.stdout.write(`${RED}${msg}${RESET}\n`);
+    process.stderr.write(`\x1b[31m✖ ${msg}\x1b[0m\n`);
   }
 
   step(msg: string): void {
