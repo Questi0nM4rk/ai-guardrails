@@ -1,0 +1,102 @@
+import type { ResolvedConfig } from "@/config/schema";
+import type { ConfigGenerator } from "@/generators/types";
+import type { LanguagePlugin } from "@/languages/types";
+
+function renderLefthookYml(activePluginIds: ReadonlySet<string>): string {
+  const hasPython = activePluginIds.has("python");
+  const hasTs = activePluginIds.has("typescript");
+
+  const formatAndStageGlob = buildFormatGlob(hasPython, hasTs);
+
+  const pythonSection = hasPython
+    ? `
+    ruff-fix:
+      glob: "*.py"
+      run: ruff check --fix {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+`
+    : "";
+
+  const tsSection = hasTs
+    ? `
+    biome-fix:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: biome check --write {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+`
+    : "";
+
+  return `pre-commit:
+  commands:
+${formatAndStageGlob}${pythonSection}${tsSection}
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+      fail_text: "Potential secrets detected"
+      priority: 2
+
+    codespell:
+      glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
+      exclude: "tests/fixtures/.*"
+      run: codespell --check-filenames {staged_files}
+      fail_text: "Spell errors found"
+      priority: 2
+
+    markdownlint:
+      glob: "*.md"
+      run: markdownlint-cli2 {staged_files}
+      fail_text: "Markdown lint errors found"
+      priority: 2
+
+    no-commits-to-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$branch" = "main" ]; then
+          echo "Direct commits to main are not allowed"
+          exit 1
+        fi
+      fail_text: "Do not commit directly to main"
+      priority: 2
+
+commit-msg:
+  commands:
+    conventional:
+      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:" {1}
+      fail_text: "Commit message must follow Conventional Commits format"
+`;
+}
+
+function buildFormatGlob(hasPython: boolean, hasTs: boolean): string {
+  if (!hasPython && !hasTs) return "";
+  const exts: string[] = [];
+  if (hasTs) exts.push("ts", "tsx", "js", "jsx");
+  if (hasPython) exts.push("py");
+  const glob = exts.length === 1 ? `*.${exts[0]}` : `*.{${exts.join(",")}}`;
+  return `    format-and-stage:
+      glob: "${glob}"
+      run: echo "Format step — configure per language above"
+      priority: 1
+`;
+}
+
+/**
+ * Generate a lefthook.yml tailored to the active language plugins.
+ * Callers must pass active plugin ids resolved from detectLanguages().
+ */
+export function generateLefthookConfig(
+  _config: ResolvedConfig,
+  activePlugins: readonly LanguagePlugin[],
+): string {
+  const ids = new Set(activePlugins.map((p) => p.id));
+  return renderLefthookYml(ids);
+}
+
+export const lefthookGenerator: ConfigGenerator = {
+  id: "lefthook",
+  configFile: "lefthook.yml",
+  generate(_config: ResolvedConfig): string {
+    // Default: no language awareness — use generateLefthookConfig for language-aware output
+    return renderLefthookYml(new Set());
+  },
+};
