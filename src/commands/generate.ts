@@ -9,6 +9,6 @@ export async function runGenerate(
     const result = await generatePipeline.run(ctx);
     if (result.status === "error") {
         process.stderr.write(`Error: ${result.message ?? "generate failed"}\n`);
-        process.exit(2);
+        process.exit(1);
     }
 }

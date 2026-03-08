@@ -25,6 +25,7 @@ ai-guardrails install [--upgrade]
 **Purpose:** One-time machine setup. Run once after installing the binary.
 
 **What it does:**
+
 1. Scaffolds `~/.ai-guardrails/config.toml` with default profile (skip if exists, overwrite if `--upgrade`)
 2. Merges Claude Code PreToolUse hooks into `~/.claude/settings.json`:
    - `ai-guardrails hook dangerous-cmd`
@@ -41,12 +42,13 @@ merges hooks without duplicating.
 ```
 ai-guardrails init [--profile <profile>] [--force] [--upgrade]
                    [--no-hooks] [--no-ci] [--no-agent-rules]
-                   [--dry-run] [--interactive]
+                   [--interactive]
 ```
 
 **Purpose:** Per-project setup. Run once per repo.
 
 **Pipeline steps:**
+
 1. `detect-languages` — find which languages are present
 2. `load-config` — load + merge machine + existing project config (if any)
 3. `scaffold-config` — write `.ai-guardrails/config.toml` with detected languages pre-populated
@@ -57,13 +59,13 @@ ai-guardrails init [--profile <profile>] [--force] [--upgrade]
 8. `setup-hooks` — run `lefthook install`
 
 **Flags:**
+
 - `--profile` — override profile for this project (`strict` | `standard` | `minimal`)
 - `--force` — overwrite existing managed files (except `.ai-guardrails/config.toml`)
 - `--upgrade` — refresh all generated files, preserve `.ai-guardrails/config.toml`
 - `--no-hooks` — skip lefthook install
 - `--no-ci` — skip CI workflow generation
 - `--no-agent-rules` — skip AGENTS.md and IDE rule files
-- `--dry-run` — print what would happen, write nothing
 - `--interactive` — Y/N prompt for each optional step (default: auto-detect TTY)
 
 **Guard:** If `.ai-guardrails/config.toml` exists and `--force`/`--upgrade` not set,
@@ -74,36 +76,37 @@ abort with a clear message explaining the flags.
 ## `generate`
 
 ```
-ai-guardrails generate [--check] [--dry-run]
+ai-guardrails generate [--check]
 ```
 
 **Purpose:** Regenerate all managed config files from `.ai-guardrails/config.toml`.
 
 **Pipeline steps:**
+
 1. `detect-languages`
 2. `load-config`
 3. `generate-configs` — (re)write ruff.toml, mypy.ini, biome.json, etc. with hash headers
 4. `generate-agent-rules` — (re)write AGENTS.md and IDE files
 
 **`--check` mode (CI use):**
+
 - Does NOT write any files
 - Verifies each managed file exists and its hash header matches current generation
 - Exits 1 if any file is stale, missing, or tampered
 - Used in CI: `ai-guardrails generate --check`
-
-**`--dry-run`:** Print what would be written without writing.
 
 ---
 
 ## `snapshot`
 
 ```
-ai-guardrails snapshot [--baseline <path>] [--dry-run]
+ai-guardrails snapshot [--baseline <path>]
 ```
 
 **Purpose:** Capture current lint state as a baseline for hold-the-line enforcement.
 
 **What it does:**
+
 1. Detects languages, loads config
 2. Runs all active runners across the project
 3. Applies config-level ignores (but NOT baseline suppression — captures everything)
@@ -113,8 +116,6 @@ ai-guardrails snapshot [--baseline <path>] [--dry-run]
 fingerprint is NOT in the baseline — new issues only.
 
 **`--baseline <path>`:** Custom output path (default: `.ai-guardrails/baseline.json`)
-
-**`--dry-run`:** Print issue count without writing baseline.
 
 ---
 
@@ -127,6 +128,7 @@ ai-guardrails check [--baseline <path>] [--format text|sarif] [--strict]
 **Purpose:** Hold-the-line enforcement. Fails if new issues found since baseline.
 
 **Pipeline steps:**
+
 1. `detect-languages`
 2. `load-config`
 3. `check-step`:
@@ -139,6 +141,7 @@ ai-guardrails check [--baseline <path>] [--format text|sarif] [--strict]
    g. Return error if any new issues
 
 **Exit codes:**
+
 - `0` — no new issues
 - `1` — new issues found
 
@@ -151,6 +154,7 @@ AI-authored commits (agent cannot claim baseline exemption).
 **`--baseline <path>`:** Custom baseline path.
 
 **Inline allow comment flow:**
+
 ```
 For each issue at (file, line):
   1. Read that source line
@@ -161,6 +165,7 @@ For each issue at (file, line):
 ```
 
 **Audit record written per run:**
+
 ```jsonl
 {"timestamp":"2026-03-08T12:00:00Z","command":"check","new_issues":0,"suppressed_baseline":12,"suppressed_allow":3,"status":"ok"}
 ```
@@ -176,6 +181,7 @@ ai-guardrails status
 **Purpose:** Project health dashboard. Informational only — never exits 1.
 
 **Output format:**
+
 ```
 Languages:    python, shell
 Profile:      standard
@@ -193,6 +199,7 @@ Last check:   2026-03-08 09:14  — ok (0 new issues)
 ```
 
 **What it checks:**
+
 - Active language plugins (from detection)
 - Each managed config: call `generator.verify()` → fresh/stale
 - Hooks: `lefthook version` → installed/not installed
@@ -212,6 +219,7 @@ ai-guardrails report [--last <n>]
 **Default:** Last 10 runs.
 
 **Output:**
+
 ```
 Recent check history:
   2026-03-08 09:14  ok       0 new,  12 baseline,  3 allowed
@@ -240,6 +248,7 @@ Claude Code — not intended for direct user use.
 | `format-stage` | lefthook pre-commit | Run formatters + re-stage |
 
 **Exit codes for hook subcommands:**
+
 - `0` — allow / pass
 - `1` — block / fail (with message to stderr)
 
