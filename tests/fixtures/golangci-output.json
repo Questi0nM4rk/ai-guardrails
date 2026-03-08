@@ -1,22 +1,22 @@
 {
-  "Issues": [
-    {
-      "FromLinter": "unused",
-      "Text": "func `foo` is unused",
-      "Pos": {
-        "Filename": "main.go",
-        "Line": 10,
-        "Column": 1
-      }
-    },
-    {
-      "FromLinter": "errcheck",
-      "Text": "Error return value of `os.Remove` is not checked",
-      "Pos": {
-        "Filename": "util/helper.go",
-        "Line": 42,
-        "Column": 2
-      }
-    }
-  ]
+    "Issues": [
+        {
+            "FromLinter": "unused",
+            "Text": "func `foo` is unused",
+            "Pos": {
+                "Filename": "main.go",
+                "Line": 10,
+                "Column": 1
+            }
+        },
+        {
+            "FromLinter": "errcheck",
+            "Text": "Error return value of `os.Remove` is not checked",
+            "Pos": {
+                "Filename": "util/helper.go",
+                "Line": 42,
+                "Column": 2
+            }
+        }
+    ]
 }

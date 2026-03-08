@@ -1,24 +1,24 @@
 {
-  "comments": [
-    {
-      "file": "script.sh",
-      "line": 3,
-      "endLine": 3,
-      "column": 1,
-      "endColumn": 6,
-      "level": "error",
-      "code": 2086,
-      "message": "Double quote to prevent globbing and word splitting."
-    },
-    {
-      "file": "script.sh",
-      "line": 7,
-      "endLine": 7,
-      "column": 5,
-      "endColumn": 8,
-      "level": "warning",
-      "code": 2034,
-      "message": "var appears unused. Verify it or export it."
-    }
-  ]
+    "comments": [
+        {
+            "file": "script.sh",
+            "line": 3,
+            "endLine": 3,
+            "column": 1,
+            "endColumn": 6,
+            "level": "error",
+            "code": 2086,
+            "message": "Double quote to prevent globbing and word splitting."
+        },
+        {
+            "file": "script.sh",
+            "line": 7,
+            "endLine": 7,
+            "column": 5,
+            "endColumn": 8,
+            "level": "warning",
+            "code": 2034,
+            "message": "var appears unused. Verify it or export it."
+        }
+    ]
 }

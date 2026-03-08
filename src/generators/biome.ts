@@ -7,7 +7,6 @@ function renderBiomeJson(config: ResolvedConfig): string {
     return JSON.stringify(
         {
             $schema: "https://biomejs.dev/schemas/2.3.15/schema.json",
-            assist: { actions: { source: { organizeImports: "on" } } },
             linter: {
                 enabled: true,
                 rules: {
@@ -23,7 +22,6 @@ function renderBiomeJson(config: ResolvedConfig): string {
                     suspicious: {
                         noExplicitAny: "error",
                         noConsole: "warn",
-                        noVar: "error",
                     },
                 },
             },

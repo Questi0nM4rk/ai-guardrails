@@ -1,40 +1,40 @@
 {
-  "diagnostics": [
-    {
-      "location": {
-        "path": { "text": "src/foo.ts" },
-        "range": {
-          "start": { "line": 9, "character": 3 },
-          "end": { "line": 9, "character": 14 }
+    "diagnostics": [
+        {
+            "location": {
+                "path": { "text": "src/foo.ts" },
+                "range": {
+                    "start": { "line": 9, "character": 3 },
+                    "end": { "line": 9, "character": 14 }
+                }
+            },
+            "severity": "ERROR",
+            "code": { "value": "lint/correctness/noUnusedVariables" },
+            "message": "This variable is unused."
+        },
+        {
+            "location": {
+                "path": { "text": "src/bar.ts" },
+                "range": {
+                    "start": { "line": 2, "character": 0 },
+                    "end": { "line": 2, "character": 25 }
+                }
+            },
+            "severity": "WARNING",
+            "code": { "value": "lint/suspicious/noExplicitAny" },
+            "message": "Unexpected any. Specify a different type."
+        },
+        {
+            "location": {
+                "path": { "text": "src/baz.ts" },
+                "range": {
+                    "start": { "line": 14, "character": 11 },
+                    "end": { "line": 14, "character": 14 }
+                }
+            },
+            "severity": "ERROR",
+            "code": { "value": "lint/style/noVar" },
+            "message": "Use const or let instead of var."
         }
-      },
-      "severity": "ERROR",
-      "code": { "value": "lint/correctness/noUnusedVariables" },
-      "message": "This variable is unused."
-    },
-    {
-      "location": {
-        "path": { "text": "src/bar.ts" },
-        "range": {
-          "start": { "line": 2, "character": 0 },
-          "end": { "line": 2, "character": 25 }
-        }
-      },
-      "severity": "WARNING",
-      "code": { "value": "lint/suspicious/noExplicitAny" },
-      "message": "Unexpected any. Specify a different type."
-    },
-    {
-      "location": {
-        "path": { "text": "src/baz.ts" },
-        "range": {
-          "start": { "line": 14, "character": 11 },
-          "end": { "line": 14, "character": 14 }
-        }
-      },
-      "severity": "ERROR",
-      "code": { "value": "lint/style/noVar" },
-      "message": "Use const or let instead of var."
-    }
-  ]
+    ]
 }
