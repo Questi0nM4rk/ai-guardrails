@@ -79,14 +79,15 @@ describe("shfmtRunner.run", () => {
 
   test("calls shfmt -l with found shell files", async () => {
     const runner = new FakeCommandRunner();
-    runner.register(["shfmt", "-l", "script.sh"], {
-      stdout: "script.sh\n",
+    // Seed with subdirectory path: FakeFileManager **/* glob requires a "/" before the filename
+    runner.register(["shfmt", "-l", "scripts/script.sh"], {
+      stdout: "scripts/script.sh\n",
       stderr: "",
       exitCode: 1,
     });
 
     const fm = new FakeFileManager();
-    fm.seed("script.sh", "#!/bin/bash\necho 'unformatted'");
+    fm.seed("scripts/script.sh", "#!/bin/bash\necho 'unformatted'");
 
     const issues = await shfmtRunner.run({
       projectDir: PROJECT_DIR,
@@ -101,20 +102,21 @@ describe("shfmtRunner.run", () => {
     if (!call) return;
     expect(call[0]).toBe("shfmt");
     expect(call[1]).toBe("-l");
-    expect(call).toContain("script.sh");
+    expect(call).toContain("scripts/script.sh");
     expect(issues).toHaveLength(1);
   });
 
   test("returns [] when all files are already formatted (empty stdout)", async () => {
     const runner = new FakeCommandRunner();
-    runner.register(["shfmt", "-l", "script.sh"], {
+    // Seed with subdirectory path: FakeFileManager **/* glob requires a "/" before the filename
+    runner.register(["shfmt", "-l", "scripts/script.sh"], {
       stdout: "",
       stderr: "",
       exitCode: 0,
     });
 
     const fm = new FakeFileManager();
-    fm.seed("script.sh", "#!/bin/bash\necho 'formatted'\n");
+    fm.seed("scripts/script.sh", "#!/bin/bash\necho 'formatted'\n");
 
     const issues = await shfmtRunner.run({
       projectDir: PROJECT_DIR,

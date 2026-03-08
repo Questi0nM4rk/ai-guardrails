@@ -97,15 +97,16 @@ describe("shellcheckRunner.run", () => {
 
   test("calls shellcheck with all found shell files", async () => {
     const runner = new FakeCommandRunner();
-    runner.register(["shellcheck", "--format=json1", "script.sh", "other.bash"], {
+    // Seed with subdirectory path: FakeFileManager **/* glob requires a "/" before the filename
+    runner.register(["shellcheck", "--format=json1", "scripts/script.sh", "scripts/other.bash"], {
       stdout: FIXTURE_JSON,
       stderr: "",
       exitCode: 1,
     });
 
     const fm = new FakeFileManager();
-    fm.seed("script.sh", "#!/bin/bash\necho $foo\n");
-    fm.seed("other.bash", "#!/bin/bash\nvar=unused\n");
+    fm.seed("scripts/script.sh", "#!/bin/bash\necho $foo\n");
+    fm.seed("scripts/other.bash", "#!/bin/bash\nvar=unused\n");
 
     const issues = await shellcheckRunner.run({
       projectDir: PROJECT_DIR,
@@ -120,8 +121,8 @@ describe("shellcheckRunner.run", () => {
     if (!call) return;
     expect(call[0]).toBe("shellcheck");
     expect(call[1]).toBe("--format=json1");
-    expect(call).toContain("script.sh");
-    expect(call).toContain("other.bash");
+    expect(call).toContain("scripts/script.sh");
+    expect(call).toContain("scripts/other.bash");
     expect(issues).toHaveLength(2);
   });
 });
