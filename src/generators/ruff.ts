@@ -1,11 +1,11 @@
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
-import { makeHashHeader } from "@/utils/hash";
+import { withHashHeader } from "@/utils/hash";
 
 function renderRuffToml(config: ResolvedConfig): string {
-  const lineLength = config.values.line_length ?? 88;
-  const indentWidth = config.values.indent_width ?? 4;
-  const content = `target-version = "py311"
+    const lineLength = config.values.line_length ?? 88;
+    const indentWidth = config.values.indent_width ?? 4;
+    const content = `target-version = "py311"
 line-length = ${lineLength}
 indent-width = ${indentWidth}
 fix = false
@@ -67,14 +67,13 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
 `;
-  const header = makeHashHeader(content);
-  return `${header}\n${content}`;
+    return withHashHeader(content);
 }
 
 export const ruffGenerator: ConfigGenerator = {
-  id: "ruff",
-  configFile: "ruff.toml",
-  generate(config: ResolvedConfig): string {
-    return renderRuffToml(config);
-  },
+    id: "ruff",
+    configFile: "ruff.toml",
+    generate(config: ResolvedConfig): string {
+        return renderRuffToml(config);
+    },
 };
