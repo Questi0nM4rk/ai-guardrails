@@ -7,6 +7,10 @@ export async function runCheck(projectDir: string, flags: Record<string, unknown
   if (result.status === "error") {
     // Exit 1 = issues found, exit 2 = config/tool error
     const issueCount = result.issueCount ?? 0;
-    process.exit(issueCount > 0 ? 1 : 2);
+    if (issueCount === 0) {
+      process.stderr.write(`Error: ${result.message ?? "unknown error"}\n`);
+      process.exit(2);
+    }
+    process.exit(1);
   }
 }
