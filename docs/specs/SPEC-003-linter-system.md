@@ -98,8 +98,8 @@ export const ruffRunner: LinterRunner = {
   name: "Ruff",
   configFile: "ruff.toml",
 
-  async isAvailable(runner) {
-    const r = await runner.run(["ruff", "--version"]);
+  async isAvailable(commandRunner) {
+    const r = await commandRunner.run(["ruff", "--version"]);
     return r.exitCode === 0;
   },
 

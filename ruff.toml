@@ -1,9 +1,12 @@
-# ai-guardrails:sha256=1ce2b923697e986833cd9f6c09ab23a57b2fca946fc223bd0b27187bb1007007
+# ai-guardrails:sha256=a365ad734fe1b0fe470d6eb5112461b6d3938acee6e6ed556d447935f5e28382
 target-version = "py311"
 line-length = 88
 indent-width = 4
 fix = false
 unsafe-fixes = false
+exclude = [
+    "tests/fixtures",
+]
 
 [lint]
 select = ["ALL"]
