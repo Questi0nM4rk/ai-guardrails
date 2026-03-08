@@ -32,7 +32,11 @@ export const generatePipeline: Pipeline = {
 
         if (checkMode) {
             cons.step("Validating configs...");
-            const validateResult = await validateConfigsStep(projectDir, fileManager);
+            const validateResult = await validateConfigsStep(
+                projectDir,
+                fileManager,
+                config
+            );
             if (validateResult.status === "error") {
                 return { status: "error", message: validateResult.message };
             }

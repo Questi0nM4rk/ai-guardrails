@@ -151,7 +151,13 @@ export const initPipeline: Pipeline = {
         cons.step("Checking prerequisites...");
         const { report } = await checkPrerequisites(cons, commandRunner, languages);
 
-        await installPrerequisites(cons, commandRunner, report, projectDir);
+        await installPrerequisites(
+            cons,
+            commandRunner,
+            report,
+            projectDir,
+            isInteractive
+        );
 
         return installPipeline.run(ctx);
     },

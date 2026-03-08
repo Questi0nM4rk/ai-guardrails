@@ -1,7 +1,6 @@
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 import { DANGEROUS_DENY_GLOBS } from "@/hooks/dangerous-patterns";
-import { withJsoncHashHeader } from "@/utils/hash";
 
 interface ClaudeSettings {
     permissions: {
@@ -10,6 +9,9 @@ interface ClaudeSettings {
 }
 
 function renderClaudeSettings(_config: ResolvedConfig): string {
+    // settings.json must be strict JSON (no comments) for all JSON parsers.
+    // Staleness/tamper detection is handled by validate-configs comparing
+    // regenerated content against on-disk content directly.
     const settings: ClaudeSettings = {
         permissions: {
             deny: DANGEROUS_DENY_GLOBS,
@@ -22,6 +24,6 @@ export const claudeSettingsGenerator: ConfigGenerator = {
     id: "claude-settings",
     configFile: ".claude/settings.json",
     generate(config: ResolvedConfig): string {
-        return withJsoncHashHeader(renderClaudeSettings(config));
+        return renderClaudeSettings(config);
     },
 };

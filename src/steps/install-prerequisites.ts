@@ -54,7 +54,8 @@ export async function installPrerequisites(
     cons: Console,
     commandRunner: CommandRunner,
     report: PrereqReport,
-    projectDir: string
+    projectDir: string,
+    interactive = false
 ): Promise<StepResult> {
     if (report.missing.length === 0) {
         return ok("No missing prerequisites");
@@ -62,7 +63,7 @@ export async function installPrerequisites(
 
     printMissingTools(cons, report.missing);
 
-    const isTTY = process.stdin.isTTY === true;
+    const isTTY = process.stdin.isTTY === true || interactive;
 
     if (!isTTY) {
         cons.warning("\nRun the commands above, then re-run `ai-guardrails init`.");

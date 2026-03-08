@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`generateLefthookConfig output matches snapshot for python + typescript 1`] = `
-"# ai-guardrails:sha256=ebe619f436f37a09294c232240f1666c279f7f9d7cbef395177e702f96bca740
+"# ai-guardrails:sha256=d5c4570f1e7873dddc50f3b8ee71dfc49f0cedd862ff5242082fbeead588272e
 pre-commit:
   commands:
     format-and-stage:
@@ -39,6 +39,12 @@ pre-commit:
       fail_text: "Markdown lint errors found"
       priority: 2
 
+    check-suppress-comments:
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
+      priority: 2
+
     no-commits-to-main:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)
@@ -58,7 +64,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot for empty plugins 1`] = `
-"# ai-guardrails:sha256=4834cb988680dcaec7a5cd0710d9b3791067e5f316fe42d844e40fdb1fd190a4
+"# ai-guardrails:sha256=ed6a227d87b58c1b5dea6650679a83c644c0088344710ea1cdcfd1187b0f7d31
 pre-commit:
   commands:
 
@@ -78,6 +84,12 @@ pre-commit:
       glob: "*.md"
       run: markdownlint-cli2 {staged_files}
       fail_text: "Markdown lint errors found"
+      priority: 2
+
+    check-suppress-comments:
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
       priority: 2
 
     no-commits-to-main:

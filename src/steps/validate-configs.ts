@@ -1,5 +1,7 @@
 import { join } from "node:path";
+import type { ResolvedConfig } from "@/config/schema";
 import { ALL_GENERATORS } from "@/generators/registry";
+import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
@@ -25,31 +27,51 @@ function hasHashHeader(content: string): boolean {
 }
 
 async function validateOne(
-    dest: string,
-    configFile: string,
-    fileManager: FileManager
+    generator: ConfigGenerator,
+    projectDir: string,
+    fileManager: FileManager,
+    config: ResolvedConfig | null
 ): Promise<string | null> {
+    let content: string;
     try {
-        const content = await fileManager.readText(dest);
-        if (!content.trim()) return `empty: ${configFile}`;
-        if (hasHashHeader(content) && !hasValidHash(content)) {
-            return `tampered: ${configFile}`;
-        }
-        return null;
+        content = await fileManager.readText(join(projectDir, generator.configFile));
     } catch {
-        return `missing: ${configFile}`;
+        return `missing: ${generator.configFile}`;
     }
+
+    if (!content.trim()) return `empty: ${generator.configFile}`;
+
+    // Tamper check: verify hash header matches body.
+    if (hasHashHeader(content) && !hasValidHash(content)) {
+        return `tampered: ${generator.configFile}`;
+    }
+
+    // Staleness check (--check mode): regenerate and compare against on-disk content.
+    // Generators that require extra context (e.g. lefthook needs active plugins) throw —
+    // those fall back to tamper-only detection.
+    if (config !== null) {
+        let expected: string | null = null;
+        try {
+            expected = generator.generate(config);
+        } catch {
+            // Generator cannot run with config alone — skip staleness check.
+        }
+        if (expected !== null && expected !== content) {
+            return `stale: ${generator.configFile}`;
+        }
+    }
+
+    return null;
 }
 
 export async function validateConfigsStep(
     projectDir: string,
-    fileManager: FileManager
+    fileManager: FileManager,
+    config: ResolvedConfig | null = null
 ): Promise<StepResult> {
     const problems = (
         await Promise.all(
-            ALL_GENERATORS.map((g) =>
-                validateOne(join(projectDir, g.configFile), g.configFile, fileManager)
-            )
+            ALL_GENERATORS.map((g) => validateOne(g, projectDir, fileManager, config))
         )
     ).filter((p): p is string => p !== null);
 
