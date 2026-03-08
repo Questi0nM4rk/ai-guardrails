@@ -46,7 +46,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
 
 export const biomeGenerator: ConfigGenerator = {
     id: "biome",
-    configFile: "biome.json",
+    configFile: "biome.jsonc",
     generate(config: ResolvedConfig): string {
         return withJsoncHashHeader(renderBiomeJson(config));
     },

@@ -1,5 +1,6 @@
 import { join } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
+import { LEFTHOOK_GENERATOR_ID } from "@/generators/lefthook";
 import { ALL_GENERATORS } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
@@ -47,14 +48,16 @@ async function validateOne(
     }
 
     // Staleness check (--check mode): regenerate and compare against on-disk content.
-    // Generators that require extra context (e.g. lefthook needs active plugins) throw —
-    // those fall back to tamper-only detection.
+    // lefthookGenerator.generate() intentionally throws (requires active plugins) —
+    // that falls back to tamper-only detection. All other generator errors are real.
     if (config !== null) {
         let expected: string | null = null;
         try {
             expected = generator.generate(config);
-        } catch {
-            // Generator cannot run with config alone — skip staleness check.
+        } catch (err) {
+            if (generator.id !== LEFTHOOK_GENERATOR_ID) {
+                throw err;
+            }
         }
         if (expected !== null && expected !== content) {
             return `stale: ${generator.configFile}`;

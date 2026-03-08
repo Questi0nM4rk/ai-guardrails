@@ -26,8 +26,8 @@ describe("protectsFile", () => {
         expect(protectsFile("cat ruff.toml")).toBeNull();
     });
 
-    test("allows grep on biome.json", () => {
-        expect(protectsFile("grep 'line' biome.json")).toBeNull();
+    test("allows grep on biome.jsonc", () => {
+        expect(protectsFile("grep 'line' biome.jsonc")).toBeNull();
     });
 
     test("allows reading AGENTS.md", () => {

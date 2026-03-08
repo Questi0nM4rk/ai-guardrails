@@ -4,7 +4,7 @@ import { extractBashCommand } from "@/hooks/types";
 export const MANAGED_FILES: readonly string[] = [
     "ruff.toml",
     "mypy.ini",
-    "biome.json",
+    "biome.jsonc",
     ".editorconfig",
     ".markdownlint.jsonc",
     ".codespellrc",
