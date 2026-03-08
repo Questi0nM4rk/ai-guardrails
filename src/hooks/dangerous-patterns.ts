@@ -3,7 +3,7 @@
  * both use to block destructive operations.
  */
 export const DANGEROUS_REGEX_PATTERNS: RegExp[] = [
-    /rm\s+-rf?\s+[^/\s]*\/?\s*$|rm\s+-rf\s+\//,
+    /rm\s+-rf\s+[^/\s]*\/?\s*$|rm\s+-rf\s+\//,
     /git\s+push\s+.*(?:--force(?!-with-lease)|-f\b)/,
     /git\s+reset\s+--hard/,
     /git\s+checkout\s+--/,

@@ -13,9 +13,9 @@ export const FORMATTERS: Array<{
     { glob: "**/*.{c,cpp,cc,h,hpp}", cmd: (f) => ["clang-format", "-i", ...f] },
 ];
 
-function tryRun(args: string[]): void {
+function tryRun(args: string[]): boolean {
     const [cmd, ...rest] = args;
-    if (!cmd) return;
+    if (!cmd) return false;
     const result = spawnSync(cmd, rest, { stdio: "inherit" });
     if (result.error) {
         // Formatter not installed or failed to spawn — lefthook will report exit status.
@@ -23,7 +23,15 @@ function tryRun(args: string[]): void {
         process.stderr.write(
             `[format-stage] failed to run ${cmd}: ${result.error.message}\n`
         );
+        return false;
     }
+    if (result.status !== 0) {
+        process.stderr.write(
+            `[format-stage] ${cmd} exited with status ${String(result.status)}\n`
+        );
+        return false;
+    }
+    return true;
 }
 
 export function getStagedFiles(): string[] {
@@ -44,9 +52,11 @@ export async function runFormatStage(): Promise<never> {
         const g = new Glob(pattern);
         const matching = stagedFiles.filter((f) => g.match(f));
         if (matching.length > 0) {
-            tryRun(cmd(matching));
+            const ok = tryRun(cmd(matching));
             // Re-stage formatted files so the commit contains the formatted code.
-            spawnSync("git", ["add", ...matching], { stdio: "inherit" });
+            // Only re-stage if the formatter succeeded — failed runs leave the staged
+            // version intact, which is safer than staging potentially half-formatted files.
+            if (ok) spawnSync("git", ["add", ...matching], { stdio: "inherit" });
         }
     }
     process.exit(0);

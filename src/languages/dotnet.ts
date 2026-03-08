@@ -14,7 +14,8 @@ export const dotnetPlugin: LanguagePlugin = {
     },
 
     runners(): LinterRunner[] {
-        // dotnet-build runner is a stub — no implementation yet
+        // TODO: implement dotnet-build + dotnet-format runners per SPEC-008
+        // Deferred past v1 MVP — requires MSBuild JSON log parsing.
         return [];
     },
 };

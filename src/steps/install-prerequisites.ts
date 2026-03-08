@@ -70,12 +70,16 @@ export async function installPrerequisites(
     }
 
     const rl = createInterface({ input: process.stdin, output: process.stdout });
-    const answer = await new Promise<string>((resolve) => {
-        rl.question("\nInstall missing tools now? [Y/n]: ", resolve);
-    });
-    rl.close();
+    let input: string;
+    try {
+        const answer = await new Promise<string>((resolve) => {
+            rl.question("\nInstall missing tools now? [Y/n]: ", resolve);
+        });
+        input = answer.trim().toLowerCase();
+    } finally {
+        rl.close();
+    }
 
-    const input = answer.trim().toLowerCase();
     if (input === "" || input === "y" || input === "yes") {
         await runInstalls(cons, commandRunner, report.missing, projectDir);
     } else {

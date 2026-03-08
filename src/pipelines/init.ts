@@ -30,29 +30,37 @@ async function askQuestion(
 
 async function promptProfile(): Promise<Profile> {
     const rl = createStdinReader();
-    const input = await askQuestion(
-        rl,
-        "Select profile [strict/standard/minimal] (default: standard): "
-    );
-    rl.close();
-    const trimmed = input.trim().toLowerCase();
-    if (trimmed === "" || isProfile(trimmed)) return (trimmed || "standard") as Profile;
-    return "standard";
+    try {
+        let prompt = "Select profile [strict/standard/minimal] (default: standard): ";
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            const input = await askQuestion(rl, prompt);
+            const trimmed = input.trim().toLowerCase();
+            if (trimmed === "") return "standard";
+            if (isProfile(trimmed)) return trimmed;
+            prompt = "Invalid. Choose strict/standard/minimal (default: standard): ";
+        }
+    } finally {
+        rl.close();
+    }
 }
 
 async function promptIgnoreRules(): Promise<string[]> {
     const rl = createStdinReader();
-    const input = await askQuestion(
-        rl,
-        "Rules to ignore (comma-separated linter/RULE, or press Enter to skip): "
-    );
-    rl.close();
-    const trimmed = input.trim();
-    if (!trimmed) return [];
-    return trimmed
-        .split(",")
-        .map((r) => r.trim())
-        .filter((r) => r.length > 0);
+    try {
+        const input = await askQuestion(
+            rl,
+            "Rules to ignore (comma-separated linter/RULE, or press Enter to skip): "
+        );
+        const trimmed = input.trim();
+        if (!trimmed) return [];
+        return trimmed
+            .split(",")
+            .map((r) => r.trim())
+            .filter((r) => r.length > 0);
+    } finally {
+        rl.close();
+    }
 }
 
 async function writeProjectConfig(
@@ -109,7 +117,8 @@ export const initPipeline: Pipeline = {
             };
         }
 
-        const isInteractive = process.stdin.isTTY === true;
+        const isInteractive =
+            process.stdin.isTTY === true || ctx.flags.interactive === true;
         logInitStart(cons, isInteractive);
 
         let profile: Profile = "standard";
