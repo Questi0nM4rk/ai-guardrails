@@ -3,6 +3,9 @@ import type { FileManager } from "@/infra/file-manager";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { installPipeline } from "@/pipelines/install";
+import { checkPrerequisites } from "@/steps/check-prerequisites";
+import { detectLanguagesStep } from "@/steps/detect-languages";
+import { installPrerequisites } from "@/steps/install-prerequisites";
 import { dirname, join } from "node:path";
 import { stringify as stringifyToml } from "smol-toml";
 
@@ -76,7 +79,7 @@ function logInitStart(cons: Console, interactive: boolean): void {
 
 export const initPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
-    const { projectDir, fileManager, console: cons } = ctx;
+    const { projectDir, fileManager, commandRunner, console: cons } = ctx;
 
     const force = ctx.flags.force === true;
     const upgrade = ctx.flags.upgrade === true;
@@ -109,6 +112,18 @@ export const initPipeline: Pipeline = {
     cons.step(`Writing config: profile=${profile}...`);
     await writeProjectConfig(projectDir, profile, ignoreRules, fileManager);
     cons.success("Config written to .ai-guardrails/config.toml");
+
+    cons.step("Detecting languages...");
+    const { result: detectResult, languages } = await detectLanguagesStep(projectDir, fileManager);
+    if (detectResult.status === "error") {
+      return { status: "error", message: detectResult.message };
+    }
+    cons.success(detectResult.message);
+
+    cons.step("Checking prerequisites...");
+    const { report } = await checkPrerequisites(cons, commandRunner, languages);
+
+    await installPrerequisites(cons, commandRunner, report, projectDir);
 
     return installPipeline.run(ctx);
   },

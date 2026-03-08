@@ -81,6 +81,11 @@ export const golangciLintRunner: LinterRunner = {
   id: "golangci-lint",
   name: "golangci-lint",
   configFile: ".golangci.yml",
+  installHint: {
+    description: "Go meta-linter",
+    brew: "brew install golangci-lint",
+    go: "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["golangci-lint", "--version"]);

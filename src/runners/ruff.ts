@@ -198,6 +198,10 @@ export const ruffRunner: LinterRunner = {
   id: "ruff",
   name: "Ruff",
   configFile: "ruff.toml",
+  installHint: {
+    description: "Python linter and formatter",
+    pip: "pip install ruff",
+  },
 
   async isAvailable(runner: CommandRunner): Promise<boolean> {
     const result = await runner.run(["ruff", "--version"]);

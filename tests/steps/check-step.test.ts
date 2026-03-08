@@ -27,13 +27,16 @@ function makeIssue(overrides: Partial<LintIssue> = {}): LintIssue {
   };
 }
 
-function makeRunner(issues: LintIssue[]): LinterRunner {
+function makeRunner(issues: LintIssue[], available = true): LinterRunner {
   return {
     id: "test-runner",
     name: "Test Runner",
     configFile: null,
+    installHint: {
+      description: "Test tool",
+    },
     async isAvailable() {
-      return true;
+      return available;
     },
     async run(_opts: RunOptions): Promise<LintIssue[]> {
       return issues;
@@ -44,7 +47,7 @@ function makeRunner(issues: LintIssue[]): LinterRunner {
   };
 }
 
-function makePlugin(issues: LintIssue[]): LanguagePlugin {
+function makePlugin(issues: LintIssue[], available = true): LanguagePlugin {
   return {
     id: "test",
     name: "Test",
@@ -52,7 +55,7 @@ function makePlugin(issues: LintIssue[]): LanguagePlugin {
       return true;
     },
     runners() {
-      return [makeRunner(issues)];
+      return [makeRunner(issues, available)];
     },
   };
 }

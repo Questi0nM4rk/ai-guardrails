@@ -74,6 +74,11 @@ export const clangTidyRunner: LinterRunner = {
   id: "clang-tidy",
   name: "clang-tidy",
   configFile: ".clang-tidy",
+  installHint: {
+    description: "C/C++ linter",
+    brew: "brew install llvm",
+    apt: "sudo apt install clang-tidy",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["clang-tidy", "--version"]);
