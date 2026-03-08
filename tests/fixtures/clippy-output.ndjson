@@ -1,0 +1,5 @@
+{"reason":"compiler-artifact","target":{"name":"mylib","kind":["lib"]}}
+{"reason":"compiler-message","message":{"code":{"code":"clippy::needless_return"},"level":"warning","message":"unneeded `return` statement","spans":[{"file_name":"src/main.rs","line_start":5,"column_start":5,"is_primary":true},{"file_name":"src/main.rs","line_start":3,"column_start":1,"is_primary":false}]}}
+{"reason":"compiler-message","message":{"code":null,"level":"note","message":"some build note","spans":[{"file_name":"src/lib.rs","line_start":1,"column_start":1,"is_primary":true}]}}
+{"reason":"compiler-message","message":{"code":{"code":"clippy::unwrap_used"},"level":"error","message":"used `unwrap()` on an `Option` value","spans":[{"file_name":"src/lib.rs","line_start":12,"column_start":10,"is_primary":false},{"file_name":"src/lib.rs","line_start":12,"column_start":10,"is_primary":true}]}}
+{"reason":"build-finished","success":true}
