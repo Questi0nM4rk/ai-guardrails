@@ -1,6 +1,7 @@
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 import { DANGEROUS_DENY_GLOBS } from "@/hooks/dangerous-patterns";
+import { withJsoncHashHeader } from "@/utils/hash";
 
 interface ClaudeSettings {
     permissions: {
@@ -21,6 +22,6 @@ export const claudeSettingsGenerator: ConfigGenerator = {
     id: "claude-settings",
     configFile: ".claude/settings.json",
     generate(config: ResolvedConfig): string {
-        return renderClaudeSettings(config);
+        return withJsoncHashHeader(renderClaudeSettings(config));
     },
 };

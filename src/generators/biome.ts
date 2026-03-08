@@ -1,5 +1,6 @@
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
+import { withJsoncHashHeader } from "@/utils/hash";
 
 function renderBiomeJson(config: ResolvedConfig): string {
     const lineWidth = config.values.line_length ?? 100;
@@ -47,6 +48,6 @@ export const biomeGenerator: ConfigGenerator = {
     id: "biome",
     configFile: "biome.json",
     generate(config: ResolvedConfig): string {
-        return renderBiomeJson(config);
+        return withJsoncHashHeader(renderBiomeJson(config));
     },
 };

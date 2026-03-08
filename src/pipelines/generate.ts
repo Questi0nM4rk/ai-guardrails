@@ -28,19 +28,8 @@ export const generatePipeline: Pipeline = {
         }
         cons.success(configResult.message);
 
-        cons.step("Generating configs...");
-        const genResult = await generateConfigsStep(
-            projectDir,
-            languages,
-            config,
-            fileManager
-        );
-        if (genResult.status === "error") {
-            return { status: "error", message: genResult.message };
-        }
-        cons.success(genResult.message);
-
         const checkMode = ctx.flags.check === true;
+
         if (checkMode) {
             cons.step("Validating configs...");
             const validateResult = await validateConfigsStep(projectDir, fileManager);
@@ -48,6 +37,18 @@ export const generatePipeline: Pipeline = {
                 return { status: "error", message: validateResult.message };
             }
             cons.success(validateResult.message);
+        } else {
+            cons.step("Generating configs...");
+            const genResult = await generateConfigsStep(
+                projectDir,
+                languages,
+                config,
+                fileManager
+            );
+            if (genResult.status === "error") {
+                return { status: "error", message: genResult.message };
+            }
+            cons.success(genResult.message);
         }
 
         return { status: "ok" };

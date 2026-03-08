@@ -28,17 +28,16 @@ describe("biomeGenerator", () => {
         expect(output).toMatchSnapshot();
     });
 
-    test("output is valid JSON", () => {
+    test("output starts with JSONC hash header", () => {
         const output = biomeGenerator.generate(makeConfig());
-        expect(() => JSON.parse(output)).not.toThrow();
+        expect(output).toMatch(/^\/\/ ai-guardrails:sha256=[0-9a-f]{64}\n/);
     });
 
     test("output contains lineWidth from config", () => {
         const output = biomeGenerator.generate(
             makeConfig({ values: { line_length: 120, indent_width: 2 } })
         );
-        const parsed = JSON.parse(output) as { formatter: { lineWidth: number } };
-        expect(parsed.formatter.lineWidth).toBe(120);
+        expect(output).toContain('"lineWidth": 120');
     });
 
     test("output has schema reference", () => {
@@ -48,9 +47,6 @@ describe("biomeGenerator", () => {
 
     test("noExplicitAny is error", () => {
         const output = biomeGenerator.generate(makeConfig());
-        const parsed = JSON.parse(output) as {
-            linter: { rules: { suspicious: { noExplicitAny: string } } };
-        };
-        expect(parsed.linter.rules.suspicious.noExplicitAny).toBe("error");
+        expect(output).toContain('"noExplicitAny": "error"');
     });
 });

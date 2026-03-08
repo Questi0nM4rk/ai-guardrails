@@ -1,7 +1,7 @@
 import { execSync, spawnSync } from "node:child_process";
 import { Glob } from "bun";
 
-const FORMATTERS: Array<{
+export const FORMATTERS: Array<{
     glob: string;
     cmd: (files: string[]) => string[];
 }> = [
@@ -26,7 +26,7 @@ function tryRun(args: string[]): void {
     }
 }
 
-function getStagedFiles(): string[] {
+export function getStagedFiles(): string[] {
     try {
         const output = execSync("git diff --cached --name-only", { encoding: "utf8" });
         return output.split("\n").filter(Boolean);

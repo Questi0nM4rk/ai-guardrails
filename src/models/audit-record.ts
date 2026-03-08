@@ -1,5 +1,5 @@
 /**
- * One line in .guardrails-audit.jsonl.
+ * One line in .ai-guardrails/audit.jsonl.
  * Append-only log of every check run.
  */
 export interface AuditRecord {

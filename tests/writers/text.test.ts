@@ -27,8 +27,8 @@ describe("formatIssues", () => {
         expect(output).toContain("/project/foo.py:42:5");
     });
 
-    test("includes linter and rule in output", () => {
-        const issue = makeIssue({ linter: "ruff", rule: "E501" });
+    test("includes rule in output", () => {
+        const issue = makeIssue({ linter: "ruff", rule: "ruff/E501" });
         const output = formatIssues([issue]);
         expect(output).toContain("ruff/E501");
     });
@@ -68,7 +68,7 @@ describe("formatIssue", () => {
             file: "/foo.py",
             line: 5,
             col: 3,
-            rule: "E501",
+            rule: "ruff/E501",
             linter: "ruff",
         });
         const output = formatIssue(issue);

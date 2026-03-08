@@ -1,7 +1,8 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`generateLefthookConfig output matches snapshot for python + typescript 1`] = `
-"pre-commit:
+"# ai-guardrails:sha256=ebe619f436f37a09294c232240f1666c279f7f9d7cbef395177e702f96bca740
+pre-commit:
   commands:
     format-and-stage:
       glob: "*.{ts,tsx,js,jsx,py}"
@@ -57,7 +58,8 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot for empty plugins 1`] = `
-"pre-commit:
+"# ai-guardrails:sha256=4834cb988680dcaec7a5cd0710d9b3791067e5f316fe42d844e40fdb1fd190a4
+pre-commit:
   commands:
 
     gitleaks:

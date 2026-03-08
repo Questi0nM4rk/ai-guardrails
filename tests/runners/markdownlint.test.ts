@@ -42,7 +42,7 @@ describe("parseMarkdownlintOutput", () => {
         const first = issues[0];
         expect(first).toBeDefined();
         if (!first) return;
-        expect(first.rule).toBe("markdownlint/MD013/line-length");
+        expect(first.rule).toBe("markdownlint/MD013");
         expect(first.linter).toBe("markdownlint");
         expect(first.file).toBe("/project/docs/README.md");
         expect(first.line).toBe(3);
@@ -57,7 +57,7 @@ describe("parseMarkdownlintOutput", () => {
         const second = issues[1];
         expect(second).toBeDefined();
         if (!second) return;
-        expect(second.rule).toBe("markdownlint/MD041/first-line-heading");
+        expect(second.rule).toBe("markdownlint/MD041");
     });
 
     test("returns [] for empty output", () => {

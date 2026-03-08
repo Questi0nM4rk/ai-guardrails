@@ -23,7 +23,7 @@ interface RdjsonDiagnostic {
         range: RdjsonRange;
     };
     severity: string;
-    code: { value: string };
+    code?: { value: string };
     message: unknown; // may be string or object with content field
 }
 
@@ -66,7 +66,8 @@ export function parseBiomeRdjsonOutput(
         return [];
     }
 
-    return parsed.diagnostics.map((diag) => {
+    return parsed.diagnostics.flatMap((diag) => {
+        if (!diag.code) return [];
         const filePath = resolve(projectDir, diag.location.path.text);
         const line = diag.location.range.start.line + 1;
         const col = diag.location.range.start.character + 1;
@@ -81,16 +82,18 @@ export function parseBiomeRdjsonOutput(
             contextBefore: [],
             contextAfter: [],
         });
-        return {
-            rule,
-            linter: BIOME_LINTER_ID,
-            file: filePath,
-            line,
-            col,
-            message,
-            severity,
-            fingerprint,
-        };
+        return [
+            {
+                rule,
+                linter: BIOME_LINTER_ID,
+                file: filePath,
+                line,
+                col,
+                message,
+                severity,
+                fingerprint,
+            },
+        ];
     });
 }
 

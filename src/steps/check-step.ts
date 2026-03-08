@@ -29,7 +29,10 @@ export async function checkStep(
         const runnerResults = await Promise.all(
             languages.flatMap((plugin) =>
                 plugin.runners().map(async (runner) => {
-                    const available = await runner.isAvailable(commandRunner);
+                    const available = await runner.isAvailable(
+                        commandRunner,
+                        projectDir
+                    );
                     if (!available) {
                         cons?.warning(
                             `  ${runner.name} not found — skipping (${runner.installHint.description})`
