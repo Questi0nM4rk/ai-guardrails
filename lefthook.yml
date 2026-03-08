@@ -26,6 +26,7 @@ pre-commit:
 
     codespell:
       glob: "*.{ts,md,txt,yaml,yml,toml,json}"
+      exclude: "tests/fixtures/.*"
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
       priority: 2
