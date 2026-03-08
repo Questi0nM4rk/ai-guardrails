@@ -3,32 +3,32 @@ import type { ConfigGenerator } from "@/generators/types";
 import type { LanguagePlugin } from "@/languages/types";
 
 function renderLefthookYml(activePluginIds: ReadonlySet<string>): string {
-  const hasPython = activePluginIds.has("python");
-  const hasTs = activePluginIds.has("typescript");
+    const hasPython = activePluginIds.has("python");
+    const hasTs = activePluginIds.has("typescript");
 
-  const formatAndStageGlob = buildFormatGlob(hasPython, hasTs);
+    const formatAndStageGlob = buildFormatGlob(hasPython, hasTs);
 
-  const pythonSection = hasPython
-    ? `
+    const pythonSection = hasPython
+        ? `
     ruff-fix:
       glob: "*.py"
       run: ruff check --fix {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 `
-    : "";
+        : "";
 
-  const tsSection = hasTs
-    ? `
+    const tsSection = hasTs
+        ? `
     biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
       run: biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 `
-    : "";
+        : "";
 
-  return `pre-commit:
+    return `pre-commit:
   commands:
 ${formatAndStageGlob}${pythonSection}${tsSection}
     gitleaks:
@@ -68,12 +68,12 @@ commit-msg:
 }
 
 function buildFormatGlob(hasPython: boolean, hasTs: boolean): string {
-  if (!hasPython && !hasTs) return "";
-  const exts: string[] = [];
-  if (hasTs) exts.push("ts", "tsx", "js", "jsx");
-  if (hasPython) exts.push("py");
-  const glob = exts.length === 1 ? `*.${exts[0]}` : `*.{${exts.join(",")}}`;
-  return `    format-and-stage:
+    if (!hasPython && !hasTs) return "";
+    const exts: string[] = [];
+    if (hasTs) exts.push("ts", "tsx", "js", "jsx");
+    if (hasPython) exts.push("py");
+    const glob = exts.length === 1 ? `*.${exts[0]}` : `*.{${exts.join(",")}}`;
+    return `    format-and-stage:
       glob: "${glob}"
       run: echo "Format step — configure per language above"
       priority: 1
@@ -85,18 +85,19 @@ function buildFormatGlob(hasPython: boolean, hasTs: boolean): string {
  * Callers must pass active plugin ids resolved from detectLanguages().
  */
 export function generateLefthookConfig(
-  _config: ResolvedConfig,
-  activePlugins: readonly LanguagePlugin[],
+    _config: ResolvedConfig,
+    activePlugins: readonly LanguagePlugin[]
 ): string {
-  const ids = new Set(activePlugins.map((p) => p.id));
-  return renderLefthookYml(ids);
+    const ids = new Set(activePlugins.map((p) => p.id));
+    return renderLefthookYml(ids);
 }
 
 export const lefthookGenerator: ConfigGenerator = {
-  id: "lefthook",
-  configFile: "lefthook.yml",
-  generate(_config: ResolvedConfig): string {
-    // Default: no language awareness — use generateLefthookConfig for language-aware output
-    return renderLefthookYml(new Set());
-  },
+    id: "lefthook",
+    configFile: "lefthook.yml",
+    generate(_config: ResolvedConfig): string {
+        throw new Error(
+            "lefthookGenerator.generate() must not be called directly — use generateLefthookConfig(config, languages) instead"
+        );
+    },
 };
