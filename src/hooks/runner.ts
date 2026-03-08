@@ -1,11 +1,23 @@
+import { z } from "zod";
 import type { HookInput } from "@/hooks/types";
+
+const hookInputSchema = z.object({
+    session_id: z.string(),
+    transcript_path: z.string(),
+    cwd: z.string(),
+    hook_event_name: z.string(),
+    tool_name: z.string(),
+    tool_input: z.record(z.unknown()),
+});
 
 export async function readHookInput(): Promise<HookInput> {
     const chunks: Buffer[] = [];
     for await (const chunk of process.stdin) {
         chunks.push(chunk as Buffer);
     }
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as HookInput;
+    return hookInputSchema.parse(
+        JSON.parse(Buffer.concat(chunks).toString("utf8"))
+    ) as HookInput;
 }
 
 export function allow(): never {

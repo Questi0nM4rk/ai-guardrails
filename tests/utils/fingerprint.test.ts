@@ -25,7 +25,7 @@ describe("fingerprintIssue", () => {
         expect(a).toBe(b);
     });
 
-    test("different file but same content produces same fingerprint", () => {
+    test("different file produces different fingerprint", () => {
         const base = {
             rule: "ruff/E501",
             linter: "ruff",
@@ -36,7 +36,7 @@ describe("fingerprintIssue", () => {
         };
         const a = fingerprintIssue({ ...base, file: "src/foo.py" }, sourceLines);
         const b = fingerprintIssue({ ...base, file: "src/bar.py" }, sourceLines);
-        expect(a).toBe(b);
+        expect(a).not.toBe(b);
     });
 
     test("different rule produces different fingerprint", () => {

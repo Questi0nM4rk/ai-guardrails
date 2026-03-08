@@ -20,13 +20,15 @@ export interface FingerprintOpts {
 }
 
 /**
- * Compute a fingerprint that survives file moves and minor reformats.
- * Hashes rule + trimmed line content + surrounding context.
+ * Compute a fingerprint for a lint issue.
+ * Hashes rule + file path + trimmed line content + surrounding context.
+ * File path is included so identical issues in different files produce distinct fingerprints.
  */
 export function computeFingerprint(opts: FingerprintOpts): string {
-    const { rule, file: _file, lineContent, contextBefore, contextAfter } = opts;
+    const { rule, file, lineContent, contextBefore, contextAfter } = opts;
     const input = [
         rule,
+        file,
         lineContent.trim(),
         ...contextBefore.map((l) => l.trim()),
         ...contextAfter.map((l) => l.trim()),
