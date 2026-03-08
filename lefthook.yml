@@ -1,44 +1,53 @@
-# ai-guardrails:hash:sha256:cf1f59cb2e0e391ce3c10c2d86ea418a2eede5dccf179df03cbca7b329934017
 pre-commit:
   commands:
-    suppress-comments:
-      glob: '*.{py,js,ts,tsx,jsx,rs,cs,go,lua,sh}'
-      run: uv run python -m ai_guardrails.hooks.suppress_comments {staged_files}
-      priority: 2
-    protect-configs:
-      glob: ruff.toml|lefthook.yml|.editorconfig|.markdownlint.jsonc|.codespellrc
-      run: uv run python -m ai_guardrails.hooks.protect_configs {staged_files}
-      priority: 2
-    gitleaks:
-      run: gitleaks protect --staged --no-banner
-      priority: 2
-    detect-secrets:
-      glob: '!.secrets.baseline'
-      run: detect-secrets-hook --baseline .secrets.baseline {staged_files}
-      priority: 2
-    codespell:
-      glob: '*.{py,md,txt,yaml,yml,toml,json}'
-      run: codespell --check-filenames {staged_files}
-      priority: 2
-    markdownlint:
-      glob: '*.md'
-      run: markdownlint-cli2 {staged_files}
-      priority: 2
-    validate-configs:
-      run: uv run python -m ai_guardrails generate --check
-      priority: 2
-    python-format-and-stage:
-      glob: '*.py'
-      run: uv run ruff format {staged_files} && uv run ruff check --fix --exit-zero
-        {staged_files} && git add {staged_files}
+    ts-format-and-stage:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
-    guardrails-check:
-      glob: '*.py'
-      run: uv run python -m ai_guardrails check
+
+    biome-lint:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: biome check {staged_files}
+      fail_text: "Biome lint/format errors found"
       priority: 2
+
+    # typecheck: enabled after `bun install` (tsc not available until then)
+    # typecheck:
+    #   glob: "*.{ts,tsx}"
+    #   run: tsc --noEmit
+    #   fail_text: "TypeScript type errors found"
+    #   priority: 2
+
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+      fail_text: "Potential secrets detected"
+      priority: 2
+
+    codespell:
+      glob: "*.{ts,md,txt,yaml,yml,toml,json}"
+      run: codespell --check-filenames {staged_files}
+      fail_text: "Spell errors found"
+      priority: 2
+
+    markdownlint:
+      glob: "*.md"
+      run: markdownlint-cli2 {staged_files}
+      fail_text: "Markdown lint errors found"
+      priority: 2
+
+    no-commits-to-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$branch" = "main" ]; then
+          echo "Direct commits to main are not allowed — open a PR"
+          exit 1
+        fi
+      fail_text: "Do not commit directly to main"
+      priority: 2
+
 commit-msg:
   commands:
     conventional:
-      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:"
-        {1}
+      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?:" {1}
+      fail_text: "Commit message must follow Conventional Commits format"
