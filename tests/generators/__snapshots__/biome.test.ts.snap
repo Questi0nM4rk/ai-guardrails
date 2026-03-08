@@ -3,13 +3,6 @@
 exports[`biomeGenerator output matches snapshot 1`] = `
 "{
   "$schema": "https://biomejs.dev/schemas/2.3.15/schema.json",
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
-  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -24,8 +17,7 @@ exports[`biomeGenerator output matches snapshot 1`] = `
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "warn",
-        "noVar": "error"
+        "noConsole": "warn"
       }
     }
   },
