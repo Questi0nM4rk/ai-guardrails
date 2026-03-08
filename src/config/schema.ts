@@ -87,10 +87,13 @@ export function buildResolvedConfig(
     }));
     const ignoredRules = new Set(ignore.map((e) => e.rule));
     const allow = project.allow;
-    // Cast via unknown: Zod adds `| undefined` to optional fields but
-    // exactOptionalPropertyTypes treats `python_version?: string` as absent-or-string.
-    // The runtime values are compatible; the type mismatch is a Zod inference quirk.
-    const values = project.config as unknown as ResolvedConfig["values"];
+    const values: ResolvedConfig["values"] = {
+        line_length: project.config.line_length,
+        indent_width: project.config.indent_width,
+        ...(project.config.python_version !== undefined && {
+            python_version: project.config.python_version,
+        }),
+    };
 
     return {
         profile,

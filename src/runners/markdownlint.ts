@@ -8,7 +8,7 @@ const MARKDOWNLINT_LINTER_ID = "markdownlint";
 const MARKDOWNLINT_RULE_PREFIX = "markdownlint/";
 
 // Matches lines like: docs/README.md:3 MD013/line-length Line length [...]
-const MARKDOWNLINT_LINE_PATTERN = /^(.+):(\d+)\s+(MD\d+\/[\w-]+)\s+(.+)$/;
+const MARKDOWNLINT_LINE_PATTERN = /^(.+):(\d+)\s+(MD\d+)(?:\/[\w-]+)?\s+(.+)$/;
 
 /**
  * Parse markdownlint-cli2 stdout into LintIssue[].

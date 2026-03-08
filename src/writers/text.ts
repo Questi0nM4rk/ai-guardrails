@@ -11,9 +11,7 @@ export function formatIssues(issues: LintIssue[]): string {
     for (const issue of issues) {
         const location = `${issue.file}:${issue.line}:${issue.col}`;
         const severity = issue.severity.toUpperCase();
-        lines.push(
-            `${location}: [${severity}] ${issue.linter}/${issue.rule}: ${issue.message}`
-        );
+        lines.push(`${location}: [${severity}] ${issue.rule}: ${issue.message}`);
     }
     lines.push("");
     lines.push(`${issues.length} issue(s) found`);
@@ -26,5 +24,5 @@ export function formatIssues(issues: LintIssue[]): string {
 export function formatIssue(issue: LintIssue): string {
     const location = `${issue.file}:${issue.line}:${issue.col}`;
     const severity = issue.severity.toUpperCase();
-    return `${location}: [${severity}] ${issue.linter}/${issue.rule}: ${issue.message}`;
+    return `${location}: [${severity}] ${issue.rule}: ${issue.message}`;
 }

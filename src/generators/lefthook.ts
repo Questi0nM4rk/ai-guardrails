@@ -1,6 +1,7 @@
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 import type { LanguagePlugin } from "@/languages/types";
+import { withHashHeader } from "@/utils/hash";
 
 function renderLefthookYml(activePluginIds: ReadonlySet<string>): string {
     const hasPython = activePluginIds.has("python");
@@ -89,7 +90,7 @@ export function generateLefthookConfig(
     activePlugins: readonly LanguagePlugin[]
 ): string {
     const ids = new Set(activePlugins.map((p) => p.id));
-    return renderLefthookYml(ids);
+    return withHashHeader(renderLefthookYml(ids));
 }
 
 export const lefthookGenerator: ConfigGenerator = {

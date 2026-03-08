@@ -68,7 +68,10 @@ export async function statusStep(
             (issue) => classifyFingerprint(issue.fingerprint, baselineMap) === "new"
         );
 
-        const fixedCount = Math.max(0, baselineMap.size - filtered.length);
+        const currentFingerprints = new Set(filtered.map((i) => i.fingerprint));
+        const fixedCount = [...baselineMap.keys()].filter(
+            (fp) => !currentFingerprints.has(fp)
+        ).length;
         const baselineCount = baselineMap.size;
 
         const msg = `Status: ${newIssues.length} new, ${fixedCount} fixed, ${baselineCount} baseline`;
