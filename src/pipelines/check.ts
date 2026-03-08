@@ -51,6 +51,6 @@ export const checkPipeline: Pipeline = {
         }
 
         cons.success(checkResult.message);
-        return { status: "ok", issueCount: 0 };
+        return { status: "ok", issueCount: issues.length };
     },
 };

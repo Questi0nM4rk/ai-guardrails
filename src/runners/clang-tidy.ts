@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
@@ -10,17 +11,18 @@ const CLANG_TIDY_PATTERN =
  * Parse clang-tidy text output into LintIssue[].
  * Skips note-level diagnostics — only warning and error are actionable.
  */
-export function parseClangTidyOutput(text: string): LintIssue[] {
+export function parseClangTidyOutput(text: string, projectDir = ""): LintIssue[] {
     const issues: LintIssue[] = [];
 
     for (const line of text.split("\n")) {
         const match = CLANG_TIDY_PATTERN.exec(line);
         if (!match) continue;
 
-        const level = match[4];
+        const level = match[4] ?? "";
         if (level === "note") continue;
 
-        const file = match[1] ?? "";
+        const rawFile = match[1] ?? "";
+        const file = resolve(projectDir, rawFile);
         const lineNum = Number.parseInt(match[2] ?? "0", 10);
         const col = Number.parseInt(match[3] ?? "0", 10);
         const message = match[5] ?? "";
@@ -30,7 +32,7 @@ export function parseClangTidyOutput(text: string): LintIssue[] {
         const fingerprint = computeFingerprint({
             rule,
             file,
-            lineContent: "",
+            lineContent: message,
             contextBefore: [],
             contextAfter: [],
         });
@@ -95,6 +97,6 @@ export const clangTidyRunner: LinterRunner = {
         const result = await commandRunner.run(["clang-tidy", "--quiet", ...files], {
             cwd: projectDir,
         });
-        return parseClangTidyOutput(result.stderr);
+        return parseClangTidyOutput(result.stderr, projectDir);
     },
 };
