@@ -1,12 +1,10 @@
-# AI Guardrails - CI Check Workflow
-# Runs ruff lint + format check (static analysis without git hooks context)
 name: Check
 
 on:
   push:
-    branches: [main, master, feat/v2]
+    branches: [main, ts-rewrite]
   pull_request:
-    branches: [main, master, feat/v2]
+    branches: [main, ts-rewrite]
 
 jobs:
   lint:
@@ -15,21 +13,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: oven-sh/setup-bun@v2
         with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
+          bun-version: latest
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: bun install --frozen-lockfile
 
-      - name: Lint (ai-guardrails check)
-        run: uv run python -m ai_guardrails check
+      - name: Typecheck
+        run: bun run typecheck
 
-      - name: Ruff format check
-        run: uv run ruff format --check src/ai_guardrails/
+      - name: Lint (biome)
+        run: bun run lint
 
   semgrep:
     name: Semgrep
@@ -41,12 +36,9 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
       - name: Run semgrep
         run: |
-          uv tool install semgrep
+          pip install semgrep
           semgrep --config auto --error --exclude tests/
 
   test:
@@ -55,24 +47,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
+      - uses: oven-sh/setup-bun@v2
         with:
-          python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
+          bun-version: latest
 
       - name: Install dependencies
-        run: uv sync --all-extras
+        run: bun install --frozen-lockfile
 
-      - name: Run tests with coverage
-        run: |
-          uv run pytest tests/ \
-            --cov \
-            --cov-branch \
-            --cov-report=term-missing \
-            --cov-report=xml \
-            --cov-fail-under=85
-
-      - name: Run type checker
-        run: uv run pyright
+      - name: Run tests
+        run: bun test
