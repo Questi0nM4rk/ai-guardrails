@@ -12,8 +12,10 @@ export const DANGEROUS_REGEX_PATTERNS: RegExp[] = [
 ];
 
 /**
- * Claude settings permissions.deny glob patterns corresponding to DANGEROUS_REGEX_PATTERNS.
- * These are used in .claude/settings.json to block dangerous bash commands.
+ * Claude settings permissions.deny glob patterns used in .claude/settings.json
+ * to block dangerous bash commands at the Claude tool-use layer.
+ * These cover overlapping but distinct operations from DANGEROUS_REGEX_PATTERNS,
+ * which operates at hook runtime.
  */
 export const DANGEROUS_DENY_GLOBS: string[] = [
     "Bash(git push*)",

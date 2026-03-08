@@ -2,10 +2,8 @@ import { DANGEROUS_REGEX_PATTERNS } from "@/hooks/dangerous-patterns";
 import { allow, deny, readHookInput } from "@/hooks/runner";
 import { extractBashCommand } from "@/hooks/types";
 
-const BLOCKED_PATTERNS: RegExp[] = DANGEROUS_REGEX_PATTERNS;
-
 export function isDangerous(command: string): string | null {
-    for (const pattern of BLOCKED_PATTERNS) {
+    for (const pattern of DANGEROUS_REGEX_PATTERNS) {
         if (pattern.test(command)) {
             return `Blocked: command matches dangerous pattern: ${pattern.source}`;
         }

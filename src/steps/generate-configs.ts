@@ -9,19 +9,20 @@ import { error, ok } from "@/models/step-result";
 
 async function runGenerator(
     projectDir: string,
-    config: ResolvedConfig,
     fileManager: FileManager,
-    generator: (typeof ALL_GENERATORS)[number]
+    id: string,
+    configFile: string,
+    generate: () => string
 ): Promise<{ file: string } | { error: string }> {
     try {
-        const content = generator.generate(config);
-        const dest = join(projectDir, generator.configFile);
+        const content = generate();
+        const dest = join(projectDir, configFile);
         await fileManager.mkdir(dirname(dest), { parents: true });
         await fileManager.writeText(dest, content);
-        return { file: generator.configFile };
+        return { file: configFile };
     } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        return { error: `${generator.id}: ${message}` };
+        return { error: `${id}: ${message}` };
     }
 }
 
@@ -31,23 +32,15 @@ export async function generateConfigsStep(
     config: ResolvedConfig,
     fileManager: FileManager
 ): Promise<StepResult> {
-    // Run all generators except lefthook (which requires language awareness).
-    const otherGenerators = ALL_GENERATORS.filter((g) => g.id !== lefthookGenerator.id);
-    const results = await Promise.all([
-        ...otherGenerators.map((g) => runGenerator(projectDir, config, fileManager, g)),
-        (async (): Promise<{ file: string } | { error: string }> => {
-            try {
-                const content = generateLefthookConfig(config, languages);
-                const dest = join(projectDir, lefthookGenerator.configFile);
-                await fileManager.mkdir(dirname(dest), { parents: true });
-                await fileManager.writeText(dest, content);
-                return { file: lefthookGenerator.configFile };
-            } catch (err) {
-                const message = err instanceof Error ? err.message : String(err);
-                return { error: `${lefthookGenerator.id}: ${message}` };
-            }
-        })(),
-    ]);
+    const results = await Promise.all(
+        ALL_GENERATORS.map((g) => {
+            const generate =
+                g.id === lefthookGenerator.id
+                    ? () => generateLefthookConfig(config, languages)
+                    : () => g.generate(config);
+            return runGenerator(projectDir, fileManager, g.id, g.configFile, generate);
+        })
+    );
 
     const written: string[] = [];
     const errors: string[] = [];
