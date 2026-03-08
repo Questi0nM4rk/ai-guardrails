@@ -60,31 +60,31 @@ export function parseGolangciOutput(json: string, projectDir: string): LintIssue
     });
 }
 
-// Module-level cache — detected once per process
-let cachedVersionFlag: string | undefined;
+// Module-level cache — Promise cached so concurrent callers share one subprocess call
+let cachedVersionFlagPromise: Promise<string> | undefined;
 
 /** Reset the version flag cache. Exposed for test isolation only. */
 export function resetVersionFlagCache(): void {
-    cachedVersionFlag = undefined;
+    cachedVersionFlagPromise = undefined;
 }
 
 /**
  * Detect golangci-lint version and choose the appropriate JSON output flag.
  * v1.64+ uses --output.json.path=stdout; older versions use --out-format=json.
- * Result is cached for the lifetime of the process.
+ * Result is cached for the lifetime of the process; concurrent callers share one call.
  */
-async function getVersionFlag(
-    commandRunner: CommandRunner,
-    cwd: string
-): Promise<string> {
-    if (cachedVersionFlag !== undefined) return cachedVersionFlag;
-    const result = await commandRunner.run(["golangci-lint", "--version"], { cwd });
-    const match = /(\d+)\.(\d+)/.exec(result.stdout);
-    const major = Number.parseInt(match?.[1] ?? "0", 10);
-    const minor = Number.parseInt(match?.[2] ?? "0", 10);
-    const isV164Plus = major > 1 || (major === 1 && minor >= 64);
-    cachedVersionFlag = isV164Plus ? "--output.json.path=stdout" : "--out-format=json";
-    return cachedVersionFlag;
+function getVersionFlag(commandRunner: CommandRunner, cwd: string): Promise<string> {
+    if (cachedVersionFlagPromise !== undefined) return cachedVersionFlagPromise;
+    cachedVersionFlagPromise = commandRunner
+        .run(["golangci-lint", "--version"], { cwd })
+        .then((result) => {
+            const match = /(\d+)\.(\d+)/.exec(result.stdout);
+            const major = Number.parseInt(match?.[1] ?? "0", 10);
+            const minor = Number.parseInt(match?.[2] ?? "0", 10);
+            const isV164Plus = major > 1 || (major === 1 && minor >= 64);
+            return isV164Plus ? "--output.json.path=stdout" : "--out-format=json";
+        });
+    return cachedVersionFlagPromise;
 }
 
 export const golangciLintRunner: LinterRunner = {
