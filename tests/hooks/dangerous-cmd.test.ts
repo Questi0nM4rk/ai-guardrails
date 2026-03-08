@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { isDangerous } from "@/hooks/dangerous-cmd";
+import { DANGEROUS_DENY_GLOBS } from "@/hooks/dangerous-patterns";
 
 describe("isDangerous", () => {
     // -----------------------------------------------------------------------
@@ -85,5 +86,25 @@ describe("isDangerous", () => {
         const reason = isDangerous("git reset --hard");
         expect(typeof reason).toBe("string");
         expect((reason ?? "").length).toBeGreaterThan(0);
+    });
+});
+
+describe("DANGEROUS_DENY_GLOBS", () => {
+    test("contains entry blocking bare --force", () => {
+        expect(DANGEROUS_DENY_GLOBS).toContain("Bash(git push --force)");
+    });
+
+    test("contains entry blocking --force with branch arg", () => {
+        expect(DANGEROUS_DENY_GLOBS).toContain("Bash(git push --force *)");
+    });
+
+    test("does not contain the old glob that matched --force-with-lease", () => {
+        // The old "Bash(git push --force*)" glob (no space) matched --force-with-lease.
+        // It must be replaced by the two precise entries above.
+        expect(DANGEROUS_DENY_GLOBS).not.toContain("Bash(git push --force*)");
+    });
+
+    test("contains entry blocking -f shorthand with args", () => {
+        expect(DANGEROUS_DENY_GLOBS).toContain("Bash(git push -f *)");
     });
 });

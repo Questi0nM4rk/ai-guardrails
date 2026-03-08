@@ -57,7 +57,9 @@ function matchesGlob(path: string, pattern: string): boolean {
     // Only handles a single brace group per pattern (sufficient for our usage).
     const braceMatch = /\{([^}]+)\}/.exec(pattern);
     if (braceMatch) {
-        const alternatives = braceMatch[1].split(",");
+        const group = braceMatch[1];
+        if (!group) return false; // malformed pattern
+        const alternatives = group.split(",");
         return alternatives.some((alt) =>
             matchesGlob(path, pattern.replace(braceMatch[0], alt))
         );

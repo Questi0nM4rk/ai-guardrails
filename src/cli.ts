@@ -49,7 +49,6 @@ program
     .option("--no-hooks", "Skip lefthook install")
     .option("--no-ci", "Skip CI workflow generation")
     .option("--no-agent-rules", "Skip AGENTS.md and IDE rule files")
-    .option("--dry-run", "Print what would happen, write nothing")
     .option("--interactive", "Prompt for each optional step")
     .action(async (opts) => {
         await runInit(getProjectDir(), { ...opts });
@@ -62,7 +61,6 @@ program
     .command("generate")
     .description("Regenerate all managed config files")
     .option("--check", "Verify files are up-to-date (CI mode)")
-    .option("--dry-run", "Print what would be written without writing")
     .action(async (opts) => {
         await runGenerate(getProjectDir(), { ...opts });
     });
@@ -87,7 +85,6 @@ program
     .command("snapshot")
     .description("Capture current lint state as baseline")
     .option("--baseline <path>", "Custom output path")
-    .option("--dry-run", "Print issue count without writing")
     .action(async (opts) => {
         await runSnapshot(getProjectDir(), { ...opts });
     });

@@ -1,4 +1,5 @@
 import { dirname, join } from "node:path";
+import { createInterface } from "node:readline";
 import { stringify as stringifyToml } from "smol-toml";
 import { PROFILES, type Profile } from "@/config/schema";
 import type { Console } from "@/infra/console";
@@ -14,33 +15,44 @@ function isProfile(value: string): value is Profile {
     return (PROFILES as readonly string[]).includes(value);
 }
 
+function createStdinReader(): ReturnType<typeof createInterface> {
+    return createInterface({ input: process.stdin, output: process.stdout });
+}
+
+async function askQuestion(
+    rl: ReturnType<typeof createInterface>,
+    question: string
+): Promise<string> {
+    return new Promise((resolve) => {
+        rl.question(question, resolve);
+    });
+}
+
 async function promptProfile(): Promise<Profile> {
-    process.stdout.write(
+    const rl = createStdinReader();
+    const input = await askQuestion(
+        rl,
         "Select profile [strict/standard/minimal] (default: standard): "
     );
-    for await (const line of console) {
-        const input = line.trim().toLowerCase();
-        if (input === "" || isProfile(input)) {
-            return (input || "standard") as Profile;
-        }
-        process.stdout.write("Invalid. Choose strict/standard/minimal: ");
-    }
+    rl.close();
+    const trimmed = input.trim().toLowerCase();
+    if (trimmed === "" || isProfile(trimmed)) return (trimmed || "standard") as Profile;
     return "standard";
 }
 
 async function promptIgnoreRules(): Promise<string[]> {
-    process.stdout.write(
+    const rl = createStdinReader();
+    const input = await askQuestion(
+        rl,
         "Rules to ignore (comma-separated linter/RULE, or press Enter to skip): "
     );
-    for await (const line of console) {
-        const input = line.trim();
-        if (!input) return [];
-        return input
-            .split(",")
-            .map((r) => r.trim())
-            .filter((r) => r.length > 0);
-    }
-    return [];
+    rl.close();
+    const trimmed = input.trim();
+    if (!trimmed) return [];
+    return trimmed
+        .split(",")
+        .map((r) => r.trim())
+        .filter((r) => r.length > 0);
 }
 
 async function writeProjectConfig(

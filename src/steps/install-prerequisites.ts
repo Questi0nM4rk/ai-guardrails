@@ -1,3 +1,4 @@
+import { createInterface } from "node:readline";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { StepResult } from "@/models/step-result";
@@ -68,16 +69,17 @@ export async function installPrerequisites(
         return ok("Missing tools listed — install manually and re-run init");
     }
 
-    process.stdout.write("\nInstall missing tools now? [Y/n]: ");
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await new Promise<string>((resolve) => {
+        rl.question("\nInstall missing tools now? [Y/n]: ", resolve);
+    });
+    rl.close();
 
-    for await (const line of console) {
-        const input = line.trim().toLowerCase();
-        if (input === "" || input === "y" || input === "yes") {
-            await runInstalls(cons, commandRunner, report.missing, projectDir);
-        } else {
-            cons.warning("Skipping install. Some checks will be unavailable.");
-        }
-        break;
+    const input = answer.trim().toLowerCase();
+    if (input === "" || input === "y" || input === "yes") {
+        await runInstalls(cons, commandRunner, report.missing, projectDir);
+    } else {
+        cons.warning("Skipping install. Some checks will be unavailable.");
     }
 
     return ok("Prerequisite install step complete");

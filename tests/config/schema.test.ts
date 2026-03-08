@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import { ZodError } from "zod";
-import { MachineConfigSchema, ProjectConfigSchema } from "@/config/schema";
+import {
+    buildResolvedConfig,
+    MachineConfigSchema,
+    ProjectConfigSchema,
+} from "@/config/schema";
 
 describe("MachineConfigSchema", () => {
     test("parses valid machine config", () => {
@@ -149,5 +153,88 @@ describe("ProjectConfigSchema", () => {
         expect((result.config as Record<string, unknown>).unknown_tool_setting).toBe(
             42
         );
+    });
+});
+
+describe("buildResolvedConfig", () => {
+    function makeMachine(overrides?: object) {
+        return MachineConfigSchema.parse({ profile: "standard", ...overrides });
+    }
+
+    function makeProject(overrides?: object) {
+        return ProjectConfigSchema.parse(overrides ?? {});
+    }
+
+    test("uses project profile when set", () => {
+        const resolved = buildResolvedConfig(
+            makeMachine(),
+            makeProject({ profile: "strict" })
+        );
+        expect(resolved.profile).toBe("strict");
+    });
+
+    test("falls back to machine profile when project profile is absent", () => {
+        const resolved = buildResolvedConfig(
+            makeMachine({ profile: "minimal" }),
+            makeProject()
+        );
+        expect(resolved.profile).toBe("minimal");
+    });
+
+    test("merges machine and project ignore lists, deduped by rule", () => {
+        const machine = makeMachine({
+            ignore: [{ rule: "ruff/E501", reason: "machine" }],
+        });
+        const project = makeProject({
+            ignore: [
+                { rule: "ruff/E501", reason: "project override" },
+                { rule: "ruff/W291", reason: "trailing whitespace" },
+            ],
+        });
+        const resolved = buildResolvedConfig(machine, project);
+        // ruff/E501 deduped — project reason wins (last write)
+        expect(resolved.ignore).toHaveLength(2);
+        const e501 = resolved.ignore.find((e) => e.rule === "ruff/E501");
+        expect(e501?.reason).toBe("project override");
+    });
+
+    test("isAllowed returns true for ignored rule", () => {
+        const machine = makeMachine({
+            ignore: [{ rule: "ruff/E501", reason: "test" }],
+        });
+        const resolved = buildResolvedConfig(machine, makeProject());
+        expect(resolved.isAllowed("ruff/E501", "any/file.py")).toBe(true);
+    });
+
+    test("isAllowed returns false for non-ignored rule", () => {
+        const resolved = buildResolvedConfig(makeMachine(), makeProject());
+        expect(resolved.isAllowed("ruff/E501", "any/file.py")).toBe(false);
+    });
+
+    test("resolved values include typed fields", () => {
+        const project = makeProject({ config: { line_length: 100, indent_width: 2 } });
+        const resolved = buildResolvedConfig(makeMachine(), project);
+        expect(resolved.values.line_length).toBe(100);
+        expect(resolved.values.indent_width).toBe(2);
+    });
+
+    test("resolved values preserve passthrough (unknown) config keys", () => {
+        // Fix 8: passthrough keys were dropped by the previous explicit-copy approach
+        const project = makeProject({ config: { custom_tool_option: "hello" } });
+        const resolved = buildResolvedConfig(makeMachine(), project);
+        expect((resolved.values as Record<string, unknown>).custom_tool_option).toBe(
+            "hello"
+        );
+    });
+
+    test("resolved values include python_version when set", () => {
+        const project = makeProject({ config: { python_version: "3.11" } });
+        const resolved = buildResolvedConfig(makeMachine(), project);
+        expect(resolved.values.python_version).toBe("3.11");
+    });
+
+    test("resolved values omit python_version when not set", () => {
+        const resolved = buildResolvedConfig(makeMachine(), makeProject());
+        expect(resolved.values.python_version).toBeUndefined();
     });
 });
