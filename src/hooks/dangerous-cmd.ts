@@ -1,5 +1,5 @@
-import type { BashToolInput } from "@/hooks/types";
 import { allow, deny, readHookInput } from "@/hooks/runner";
+import { extractBashCommand } from "@/hooks/types";
 
 const BLOCKED_PATTERNS: RegExp[] = [
   /rm\s+-rf?\s+[^/\s]*\/?\s*$|rm\s+-rf\s+\//,
@@ -21,8 +21,8 @@ export function isDangerous(command: string): string | null {
 
 export async function runDangerousCmd(): Promise<never> {
   const input = await readHookInput();
-  const bash = input.tool_input as unknown as BashToolInput;
-  const reason = isDangerous(bash.command ?? "");
+  const command = extractBashCommand(input.tool_input);
+  const reason = isDangerous(command);
   if (reason !== null) {
     deny(reason);
   }

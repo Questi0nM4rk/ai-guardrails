@@ -27,3 +27,12 @@ export interface WriteToolInput {
   old_str?: string;
   new_str?: string;
 }
+
+/**
+ * Extracts the `command` field from a Bash tool_input record.
+ * Returns an empty string when the field is absent or not a string.
+ */
+export function extractBashCommand(toolInput: Record<string, unknown>): string {
+  const cmd = toolInput.command;
+  return typeof cmd === "string" ? cmd : "";
+}

@@ -18,8 +18,11 @@ function tryRun(args: string[]): void {
   if (!cmd) return;
   try {
     spawnSync(cmd, rest, { stdio: "inherit" });
-  } catch {
-    // formatter not installed or failed — lefthook will report
+  } catch (err) {
+    // Formatter not installed or failed to spawn — lefthook will report exit status.
+    // Log the raw error so the cause is visible in hook output.
+    const message = err instanceof Error ? err.message : String(err);
+    process.stderr.write(`[format-stage] failed to run ${cmd}: ${message}\n`);
   }
 }
 
