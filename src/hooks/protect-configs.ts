@@ -1,5 +1,5 @@
-import type { BashToolInput } from "@/hooks/types";
 import { allow, deny, readHookInput } from "@/hooks/runner";
+import { extractBashCommand } from "@/hooks/types";
 
 export const MANAGED_FILES: readonly string[] = [
   "ruff.toml",
@@ -45,8 +45,8 @@ export function protectsFile(command: string): string | null {
 
 export async function runProtectConfigs(): Promise<never> {
   const input = await readHookInput();
-  const bash = input.tool_input as unknown as BashToolInput;
-  const reason = protectsFile(bash.command ?? "");
+  const command = extractBashCommand(input.tool_input);
+  const reason = protectsFile(command);
   if (reason !== null) {
     deny(reason);
   }
