@@ -59,6 +59,10 @@ export const markdownlintRunner: LinterRunner = {
   id: MARKDOWNLINT_LINTER_ID,
   name: "markdownlint",
   configFile: ".markdownlint.jsonc",
+  installHint: {
+    description: "Markdown linter",
+    npm: "npm install -g markdownlint-cli2",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["markdownlint-cli2", "--version"]);

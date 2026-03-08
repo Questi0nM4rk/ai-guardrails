@@ -46,6 +46,11 @@ export const shfmtRunner: LinterRunner = {
   id: "shfmt",
   name: "shfmt",
   configFile: null,
+  installHint: {
+    description: "Shell script formatter",
+    brew: "brew install shfmt",
+    go: "go install mvdan.cc/sh/v3/cmd/shfmt@latest",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["shfmt", "--version"]);

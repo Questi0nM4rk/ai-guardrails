@@ -30,6 +30,7 @@ export const checkPipeline: Pipeline = {
       config,
       commandRunner,
       fileManager,
+      cons,
     );
 
     const format = (ctx.flags.format as ReportFormat | undefined) ?? "text";

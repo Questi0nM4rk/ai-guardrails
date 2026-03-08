@@ -34,6 +34,9 @@ function makeRunner(issues: LintIssue[]): LinterRunner {
     id: "test-runner",
     name: "Test Runner",
     configFile: null,
+    installHint: {
+      description: "Test tool",
+    },
     async isAvailable() {
       return true;
     },

@@ -112,6 +112,11 @@ export const pyrightRunner: LinterRunner = {
   id: "pyright",
   name: "Pyright",
   configFile: "pyrightconfig.json",
+  installHint: {
+    description: "Python type checker",
+    npm: "npm install -D pyright",
+    pip: "pip install pyright",
+  },
 
   async isAvailable(runner: CommandRunner): Promise<boolean> {
     const result = await runner.run(["pyright", "--version"]);

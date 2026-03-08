@@ -58,6 +58,10 @@ export const codespellRunner: LinterRunner = {
   id: CODESPELL_LINTER_ID,
   name: "Codespell",
   configFile: ".codespellrc",
+  installHint: {
+    description: "Spell checker",
+    pip: "pip install codespell",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["codespell", "--version"]);
