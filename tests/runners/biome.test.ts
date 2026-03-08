@@ -120,8 +120,6 @@ describe("parseBiomeRdjsonOutput", () => {
     });
 });
 
-// Helper: register local biome probe to fail so tests exercise global fallback
-const _LOCAL_BIOME_CWD = "./node_modules/.bin/biome";
 const LOCAL_BIOME_PROJECT = `${PROJECT_DIR}/node_modules/.bin/biome`;
 
 describe("biomeRunner.run", () => {
@@ -189,9 +187,27 @@ describe("biomeRunner.run", () => {
     });
 });
 
+const LOCAL_BIOME_CWD = "node_modules/.bin/biome";
+
 describe("biomeRunner.isAvailable", () => {
-    test("returns true when biome --version exits 0", async () => {
+    test("returns true when local biome exits 0", async () => {
         const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME_CWD, "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await biomeRunner.isAvailable(runner);
+        expect(result).toBe(true);
+    });
+
+    test("returns true when global biome exits 0 (local absent)", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME_CWD, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
         runner.register(["biome", "--version"], {
             stdout: "biome 2.0.0",
             stderr: "",
@@ -201,8 +217,13 @@ describe("biomeRunner.isAvailable", () => {
         expect(result).toBe(true);
     });
 
-    test("returns false when biome --version exits non-zero", async () => {
+    test("returns false when both local and global are absent", async () => {
         const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME_CWD, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
         runner.register(["biome", "--version"], {
             stdout: "",
             stderr: "not found",
