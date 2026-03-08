@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { execSync, spawnSync } from "node:child_process";
 import { Glob } from "bun";
 
 const FORMATTERS: Array<{
@@ -26,25 +26,24 @@ function tryRun(args: string[]): void {
     }
 }
 
-async function findFiles(pattern: string, cwd: string): Promise<string[]> {
-    const g = new Glob(pattern);
-    const results: string[] = [];
-    for await (const file of g.scan({ cwd, absolute: true })) {
-        results.push(file);
+function getStagedFiles(): string[] {
+    try {
+        const output = execSync("git diff --cached --name-only", { encoding: "utf8" });
+        return output.split("\n").filter(Boolean);
+    } catch {
+        return [];
     }
-    return results;
 }
 
 export async function runFormatStage(): Promise<never> {
     const cwd = process.cwd();
-    const discovered = await Promise.all(
-        FORMATTERS.map(async ({ glob: pattern, cmd }) => ({
-            files: await findFiles(pattern, cwd),
-            cmd,
-        }))
-    );
-    for (const { files, cmd } of discovered) {
-        if (files.length > 0) tryRun(cmd(files));
+    const stagedFiles = getStagedFiles().map((f) => `${cwd}/${f}`);
+    if (stagedFiles.length === 0) process.exit(0);
+
+    for (const { glob: pattern, cmd } of FORMATTERS) {
+        const g = new Glob(pattern);
+        const matching = stagedFiles.filter((f) => g.match(f));
+        if (matching.length > 0) tryRun(cmd(matching));
     }
     process.exit(0);
 }
