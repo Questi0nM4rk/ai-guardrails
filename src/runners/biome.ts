@@ -137,6 +137,10 @@ export const biomeRunner: LinterRunner = {
   id: BIOME_LINTER_ID,
   name: "Biome",
   configFile: "biome.json",
+  installHint: {
+    description: "TypeScript/JS linter and formatter",
+    npm: "npm install -D @biomejs/biome",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["biome", "--version"]);

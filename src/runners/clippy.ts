@@ -82,6 +82,10 @@ export const clippyRunner: LinterRunner = {
   id: "clippy",
   name: "Clippy",
   configFile: null,
+  installHint: {
+    description: "Rust linter",
+    rustup: "rustup component add clippy",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["cargo", "clippy", "--version"]);

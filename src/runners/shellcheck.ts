@@ -86,6 +86,11 @@ export const shellcheckRunner: LinterRunner = {
   id: "shellcheck",
   name: "ShellCheck",
   configFile: null,
+  installHint: {
+    description: "Shell script linter",
+    brew: "brew install shellcheck",
+    apt: "sudo apt install shellcheck",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["shellcheck", "--version"]);

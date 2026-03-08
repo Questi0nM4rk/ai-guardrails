@@ -81,6 +81,10 @@ export const tscRunner: LinterRunner = {
   id: TSC_LINTER_ID,
   name: "TypeScript Compiler",
   configFile: null,
+  installHint: {
+    description: "TypeScript type checker",
+    npm: "npm install -D typescript",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     // Use cwd (".") as projectDir — callers don't supply it via the interface.

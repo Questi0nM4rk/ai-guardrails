@@ -80,6 +80,11 @@ export const seleneRunner: LinterRunner = {
   id: SELENE_LINTER_ID,
   name: "Selene",
   configFile: "selene.toml",
+  installHint: {
+    description: "Lua linter",
+    cargo: "cargo install selene",
+    brew: "brew install selene",
+  },
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
     const result = await commandRunner.run(["selene", "--version"]);
