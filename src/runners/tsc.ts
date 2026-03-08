@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
@@ -61,18 +61,36 @@ export function parseTscOutput(output: string, projectDir: string): LintIssue[] 
   return issues;
 }
 
+// Returns the tsc executable path to use for the given project directory.
+// Prefers local node_modules/.bin/tsc so compiled binaries (which don't add
+// node_modules/.bin to PATH) still work. Falls back to "tsc" (global) when local
+// is absent. Returns null when neither is available.
+async function resolveTscPath(
+  projectDir: string,
+  commandRunner: CommandRunner,
+): Promise<string | null> {
+  const localTsc = join(projectDir, "node_modules", ".bin", "tsc");
+  const localResult = await commandRunner.run([localTsc, "--version"], { cwd: projectDir });
+  if (localResult.exitCode === 0) return localTsc;
+  const globalResult = await commandRunner.run(["tsc", "--version"]);
+  if (globalResult.exitCode === 0) return "tsc";
+  return null;
+}
+
 export const tscRunner: LinterRunner = {
   id: TSC_LINTER_ID,
   name: "TypeScript Compiler",
   configFile: null,
 
   async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
-    const result = await commandRunner.run(["tsc", "--version"]);
-    return result.exitCode === 0;
+    // Use cwd (".") as projectDir — callers don't supply it via the interface.
+    const tsc = await resolveTscPath(".", commandRunner);
+    return tsc !== null;
   },
 
   async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
-    const result = await commandRunner.run(["tsc", "--noEmit", "--pretty", "false"], {
+    const tsc = (await resolveTscPath(projectDir, commandRunner)) ?? "tsc";
+    const result = await commandRunner.run([tsc, "--noEmit", "--pretty", "false"], {
       cwd: projectDir,
     });
     // tsc exits non-zero when errors exist — parse stdout+stderr

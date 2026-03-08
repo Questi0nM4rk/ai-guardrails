@@ -80,10 +80,14 @@ describe("parseTscOutput", () => {
   });
 });
 
+const LOCAL_TSC = `${PROJECT_DIR}/node_modules/.bin/tsc`;
+
 describe("tscRunner.run", () => {
-  test("uses --noEmit --pretty false flags", async () => {
+  test("prefers local node_modules/.bin/tsc over global", async () => {
     const runner = new FakeCommandRunner();
-    runner.register(["tsc", "--noEmit", "--pretty", "false"], {
+    // resolveTscPath probes local tsc first
+    runner.register([LOCAL_TSC, "--version"], { stdout: "Version 5.8.0", stderr: "", exitCode: 0 });
+    runner.register([LOCAL_TSC, "--noEmit", "--pretty", "false"], {
       stdout: FIXTURE_TEXT,
       stderr: "",
       exitCode: 1, // tsc exits non-zero on errors
@@ -96,13 +100,36 @@ describe("tscRunner.run", () => {
       fileManager: new FakeFileManager(),
     });
 
-    expect(runner.calls[0]).toEqual(["tsc", "--noEmit", "--pretty", "false"]);
     expect(issues).toHaveLength(3);
+    // The run call uses the local tsc path
+    expect(runner.calls).toContainEqual([LOCAL_TSC, "--noEmit", "--pretty", "false"]);
+  });
+
+  test("falls back to global tsc when local is not found", async () => {
+    const runner = new FakeCommandRunner();
+    // Local tsc not available (exitCode 127)
+    runner.register([LOCAL_TSC, "--version"], { stdout: "", stderr: "not found", exitCode: 127 });
+    runner.register(["tsc", "--noEmit", "--pretty", "false"], {
+      stdout: FIXTURE_TEXT,
+      stderr: "",
+      exitCode: 1,
+    });
+
+    const issues = await tscRunner.run({
+      projectDir: PROJECT_DIR,
+      config: makeConfig(),
+      commandRunner: runner,
+      fileManager: new FakeFileManager(),
+    });
+
+    expect(issues).toHaveLength(3);
+    expect(runner.calls).toContainEqual(["tsc", "--noEmit", "--pretty", "false"]);
   });
 
   test("parses stdout and stderr combined for error lines", async () => {
     const runner = new FakeCommandRunner();
-    runner.register(["tsc", "--noEmit", "--pretty", "false"], {
+    runner.register([LOCAL_TSC, "--version"], { stdout: "Version 5.8.0", stderr: "", exitCode: 0 });
+    runner.register([LOCAL_TSC, "--noEmit", "--pretty", "false"], {
       stdout: "",
       stderr: FIXTURE_TEXT,
       exitCode: 1,
@@ -120,7 +147,8 @@ describe("tscRunner.run", () => {
 
   test("returns [] when no errors", async () => {
     const runner = new FakeCommandRunner();
-    runner.register(["tsc", "--noEmit", "--pretty", "false"], {
+    runner.register([LOCAL_TSC, "--version"], { stdout: "Version 5.8.0", stderr: "", exitCode: 0 });
+    runner.register([LOCAL_TSC, "--noEmit", "--pretty", "false"], {
       stdout: "",
       stderr: "",
       exitCode: 0,
@@ -137,16 +165,40 @@ describe("tscRunner.run", () => {
   });
 });
 
+// isAvailable uses cwd-relative path when no projectDir is supplied
+const LOCAL_TSC_CWD = "node_modules/.bin/tsc";
+
 describe("tscRunner.isAvailable", () => {
-  test("returns true when tsc --version exits 0", async () => {
+  test("returns true when local tsc exits 0", async () => {
     const runner = new FakeCommandRunner();
+    runner.register([LOCAL_TSC_CWD, "--version"], {
+      stdout: "Version 5.8.0",
+      stderr: "",
+      exitCode: 0,
+    });
+    const result = await tscRunner.isAvailable(runner);
+    expect(result).toBe(true);
+  });
+
+  test("returns true when global tsc exits 0 and local is absent", async () => {
+    const runner = new FakeCommandRunner();
+    runner.register([LOCAL_TSC_CWD, "--version"], {
+      stdout: "",
+      stderr: "not found",
+      exitCode: 127,
+    });
     runner.register(["tsc", "--version"], { stdout: "Version 5.8.0", stderr: "", exitCode: 0 });
     const result = await tscRunner.isAvailable(runner);
     expect(result).toBe(true);
   });
 
-  test("returns false when tsc --version exits non-zero", async () => {
+  test("returns false when both local and global tsc are absent", async () => {
     const runner = new FakeCommandRunner();
+    runner.register([LOCAL_TSC_CWD, "--version"], {
+      stdout: "",
+      stderr: "not found",
+      exitCode: 127,
+    });
     runner.register(["tsc", "--version"], { stdout: "", stderr: "not found", exitCode: 127 });
     const result = await tscRunner.isAvailable(runner);
     expect(result).toBe(false);
