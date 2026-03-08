@@ -222,3 +222,58 @@ describe("pyrightRunner", () => {
         expect(pyrightRunner.configFile).toBe("pyrightconfig.json");
     });
 });
+
+describe("pyrightRunner node_modules/.bin resolution", () => {
+    const PROJECT_DIR = "/home/user/project";
+    const LOCAL_PYRIGHT = `${PROJECT_DIR}/node_modules/.bin/pyright`;
+
+    test("isAvailable uses local node_modules/.bin/pyright when present", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_PYRIGHT, "--version"], {
+            stdout: "pyright 1.1.385",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await pyrightRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+        expect(runner.calls[0]).toContain(LOCAL_PYRIGHT);
+    });
+
+    test("isAvailable falls back to global pyright when local absent", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_PYRIGHT, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        runner.register(["pyright", "--version"], {
+            stdout: "pyright 1.1.385",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await pyrightRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+    });
+
+    test("run uses local node_modules/.bin/pyright when present", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_PYRIGHT, "--outputjson", PROJECT_DIR], {
+            stdout: JSON.stringify({
+                generalDiagnostics: [],
+                summary: { errorCount: 0, warningCount: 0, informationCount: 0 },
+            }),
+            stderr: "",
+            exitCode: 0,
+        });
+
+        const issues = await pyrightRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: new FakeFileManager(),
+        });
+
+        expect(runner.calls[0]).toContain(LOCAL_PYRIGHT);
+        expect(issues).toHaveLength(0);
+    });
+});

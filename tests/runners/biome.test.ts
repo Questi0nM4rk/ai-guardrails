@@ -187,3 +187,54 @@ describe("biomeRunner.isAvailable", () => {
         expect(result).toBe(false);
     });
 });
+
+describe("biomeRunner node_modules/.bin resolution", () => {
+    const LOCAL_BIOME = `${PROJECT_DIR}/node_modules/.bin/biome`;
+
+    test("isAvailable uses local node_modules/.bin/biome when present", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME, "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await biomeRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+        expect(runner.calls[0]).toContain(LOCAL_BIOME);
+    });
+
+    test("isAvailable falls back to global biome when local absent", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        runner.register(["biome", "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await biomeRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+    });
+
+    test("run uses local node_modules/.bin/biome when present", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME, "ci", "--reporter=rdjson", PROJECT_DIR], {
+            stdout: FIXTURE_JSON,
+            stderr: "",
+            exitCode: 1,
+        });
+
+        const issues = await biomeRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: new FakeFileManager(),
+        });
+
+        expect(runner.calls[0]).toContain(LOCAL_BIOME);
+        expect(issues).toHaveLength(3);
+    });
+});

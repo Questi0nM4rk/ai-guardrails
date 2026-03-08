@@ -56,11 +56,18 @@ describe("parseTscOutput", () => {
         expect(issues).toHaveLength(2);
     });
 
-    test("maps all tsc errors to error severity", () => {
+    test("maps error lines to error severity", () => {
         const issues = parseTscOutput(FIXTURE_TEXT, PROJECT_DIR);
-        for (const issue of issues) {
-            expect(issue.severity).toBe("error");
-        }
+        const errorIssue = issues[0];
+        expect(errorIssue?.severity).toBe("error");
+    });
+
+    test("maps warning lines to warning severity", () => {
+        const text =
+            "src/foo.ts(5,3): warning TS6133: 'x' is declared but its value is never read.";
+        const issues = parseTscOutput(text, PROJECT_DIR);
+        expect(issues).toHaveLength(1);
+        expect(issues[0]?.severity).toBe("warning");
     });
 
     test("prefixes rule with tsc/TS", () => {
@@ -188,6 +195,38 @@ describe("tscRunner.run", () => {
 
 // isAvailable uses cwd-relative path when no projectDir is supplied
 const LOCAL_TSC_CWD = "node_modules/.bin/tsc";
+
+describe("tscRunner.isAvailable with projectDir", () => {
+    test("uses projectDir when provided to find local tsc", async () => {
+        const runner = new FakeCommandRunner();
+        const projectDirLocal = `${PROJECT_DIR}/node_modules/.bin/tsc`;
+        runner.register([projectDirLocal, "--version"], {
+            stdout: "Version 5.8.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await tscRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+        expect(runner.calls[0]).toContain(projectDirLocal);
+    });
+
+    test("falls back to global tsc when local not found given projectDir", async () => {
+        const runner = new FakeCommandRunner();
+        const projectDirLocal = `${PROJECT_DIR}/node_modules/.bin/tsc`;
+        runner.register([projectDirLocal, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        runner.register(["tsc", "--version"], {
+            stdout: "Version 5.8.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await tscRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+    });
+});
 
 describe("tscRunner.isAvailable", () => {
     test("returns true when local tsc exits 0", async () => {
