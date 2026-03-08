@@ -390,7 +390,7 @@ created_at = "2026-03-01"
 
 [global]
 # Exceptions applied to ALL tools
-codespell_ignore_words = ["brin", "crate"]
+codespell_ignore_words = ["uint", "crate"]
 
 [[exceptions]]
 tool = "ruff"

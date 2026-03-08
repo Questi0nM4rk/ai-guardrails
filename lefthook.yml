@@ -1,23 +1,15 @@
 pre-commit:
   commands:
-    ts-format-and-stage:
+    format-and-stage:
       glob: "*.{ts,tsx,js,jsx}"
-      run: ./node_modules/.bin/biome check --write {staged_files} && git add {staged_files}
-      stage_fixed: true
+      run: echo "Format step — configure per language above"
       priority: 1
 
-    biome-lint:
+    biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
-      run: ./node_modules/.bin/biome check {staged_files}
-      fail_text: "Biome lint/format errors found"
-      priority: 2
-
-    # typecheck: enabled after `bun install` (tsc not available until then)
-    # typecheck:
-    #   glob: "*.{ts,tsx}"
-    #   run: tsc --noEmit
-    #   fail_text: "TypeScript type errors found"
-    #   priority: 2
+      run: biome check --write {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
 
     gitleaks:
       run: gitleaks protect --staged --no-banner
@@ -25,7 +17,7 @@ pre-commit:
       priority: 2
 
     codespell:
-      glob: "*.{ts,md,txt,yaml,yml,toml,json}"
+      glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
       exclude: "tests/fixtures/.*"
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
@@ -41,7 +33,7 @@ pre-commit:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)
         if [ "$branch" = "main" ]; then
-          echo "Direct commits to main are not allowed — open a PR"
+          echo "Direct commits to main are not allowed"
           exit 1
         fi
       fail_text: "Do not commit directly to main"
