@@ -17,25 +17,22 @@ export async function detectAgentTools(
   projectDir: string,
   fileManager: FileManager,
 ): Promise<DetectedAgentTools> {
-  // Check for files known to exist within each tool's directory, or the config file directly
-  const [claudeSettings, claudeMd, cursorRules, cursorDir, windsurf, copilot, cline, aider] =
+  // Run all existence checks and the cursor-rules glob in parallel
+  const [claudeSettings, claudeMd, cursorRules, windsurf, copilot, cline, aider, cursorRulesFiles] =
     await Promise.all([
       fileManager.exists(`${projectDir}/.claude/settings.json`),
       fileManager.exists(`${projectDir}/.claude/CLAUDE.md`),
       fileManager.exists(`${projectDir}/.cursorrules`),
-      fileManager.exists(`${projectDir}/.cursor/rules`),
       fileManager.exists(`${projectDir}/.windsurfrules`),
       fileManager.exists(`${projectDir}/.github/copilot-instructions.md`),
       fileManager.exists(`${projectDir}/.clinerules`),
       fileManager.exists(`${projectDir}/.aider.conf.yml`),
+      fileManager.glob("**/.cursor/rules/**", projectDir),
     ]);
-
-  // Check for any file under .cursor/rules/ — glob against absolute paths
-  const cursorRulesFiles = await fileManager.glob("**/.cursor/rules/**", projectDir);
 
   return {
     claude: claudeSettings || claudeMd,
-    cursor: cursorRules || cursorDir || cursorRulesFiles.length > 0,
+    cursor: cursorRules || cursorRulesFiles.length > 0,
     windsurf,
     copilot,
     cline,
@@ -130,18 +127,18 @@ export const AGENT_SYMLINKS: Readonly<Record<string, string>> = {
   cline: ".clinerules",
 } as const;
 
+const TOOL_ADDITIONS: Partial<Record<keyof DetectedAgentTools, string>> = {
+  claude: CLAUDE_ADDITIONS,
+  cursor: CURSOR_ADDITIONS,
+  windsurf: WINDSURF_ADDITIONS,
+  copilot: COPILOT_ADDITIONS,
+  cline: CLINE_ADDITIONS,
+  aider: AIDER_ADDITIONS,
+};
+
 /** Build the combined rules content for a specific agent tool */
 export function buildAgentRules(tool: keyof DetectedAgentTools): string {
-  const additions: Partial<Record<keyof DetectedAgentTools, string>> = {
-    claude: CLAUDE_ADDITIONS,
-    cursor: CURSOR_ADDITIONS,
-    windsurf: WINDSURF_ADDITIONS,
-    copilot: COPILOT_ADDITIONS,
-    cline: CLINE_ADDITIONS,
-    aider: AIDER_ADDITIONS,
-  };
-  const extra = additions[tool] ?? "";
-  return BASE_RULES + extra;
+  return BASE_RULES + (TOOL_ADDITIONS[tool] ?? "");
 }
 
 export const agentRulesGenerator: ConfigGenerator = {
