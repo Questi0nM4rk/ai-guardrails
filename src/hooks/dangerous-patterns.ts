@@ -3,12 +3,19 @@
  * both use to block destructive operations.
  */
 export const DANGEROUS_REGEX_PATTERNS: RegExp[] = [
-    /rm\s+-rf\s+[^/\s]*\/?\s*$|rm\s+-rf\s+\//,
+    // rm with both -r and -f in any order (combined -rf/-fr, or split -r -f/-f -r)
+    /rm\s+(?:-[a-z]*[rf][a-z]*[rf][a-z]*|-[a-z]*r[a-z]*\s+-[a-z]*f|-[a-z]*f[a-z]*\s+-[a-z]*r)\s+(?:[^/\s]*\/?\s*$|\/)/,
     /git\s+push\s+.*(?:--force(?!-with-lease)|-f\b)/,
     /git\s+reset\s+--hard/,
-    /git\s+checkout\s+--/,
-    /git\s+clean\s+-[a-z]*f/,
-    /git\s+commit\s+.*--no-verify/,
+    // require space after -- to avoid false positive on --ours/--theirs
+    /git\s+checkout\s+--\s/,
+    /git\s+restore\s+--\s/,
+    // match both -f (short) and --force (long)
+    /git\s+clean\s+(?:-[a-z]*f|--force)/,
+    // match --no-verify and -n short alias (and combined like -nm)
+    /git\s+commit\s+.*(?:--no-verify|-[a-z]*n)/,
+    // force-delete branch: -D (shorthand for --delete --force)
+    /git\s+branch\s+(?:-[a-z]*D|--delete\s+--force|--force\s+--delete)/,
 ];
 
 /**
@@ -21,11 +28,18 @@ export const DANGEROUS_DENY_GLOBS: string[] = [
     "Bash(git push --force)",
     "Bash(git push --force *)",
     "Bash(git push -f *)",
+    "Bash(git reset --hard*)",
+    "Bash(git clean -f*)",
+    "Bash(git branch -D *)",
     "Bash(rm -rf /*)",
+    "Bash(rm -fr /*)",
     "Bash(sudo rm -rf*)",
+    "Bash(sudo rm -fr*)",
     "Bash(chmod -R 777*)",
     "Bash(curl * | bash)",
+    "Bash(curl * | sh)",
     "Bash(wget * | bash)",
+    "Bash(wget * | sh)",
     "Bash(eval $(*))",
     "Bash(python -c*import os*system*)",
 ];

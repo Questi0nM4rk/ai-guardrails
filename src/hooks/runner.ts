@@ -13,11 +13,10 @@ const hookInputSchema = z.object({
 export async function readHookInput(): Promise<HookInput> {
     const chunks: Buffer[] = [];
     for await (const chunk of process.stdin) {
-        chunks.push(chunk as Buffer);
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
     }
-    return hookInputSchema.parse(
-        JSON.parse(Buffer.concat(chunks).toString("utf8"))
-    ) as HookInput;
+    // Zod.parse() already returns the validated type; no cast needed.
+    return hookInputSchema.parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
 }
 
 export function allow(): never {

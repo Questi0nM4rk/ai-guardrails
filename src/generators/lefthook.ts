@@ -50,6 +50,12 @@ ${formatAndStageGlob}${pythonSection}${tsSection}
       fail_text: "Markdown lint errors found"
       priority: 2
 
+    check-suppress-comments:
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
+      priority: 2
+
     no-commits-to-main:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)
