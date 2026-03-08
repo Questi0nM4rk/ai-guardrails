@@ -1,0 +1,2 @@
+docs/README.md:3 MD013/line-length Line length [Expected: 80; Actual: 120]
+docs/guide.md:1 MD041/first-line-heading First line in a file should be a top-level heading [Context: "## Guide"]

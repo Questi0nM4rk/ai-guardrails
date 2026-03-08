@@ -1,0 +1,2 @@
+./src/utils.py:5: recieve ==> receive
+./docs/guide.md:12: teh ==> the
