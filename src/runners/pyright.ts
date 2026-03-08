@@ -1,9 +1,9 @@
-import { join } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
 import { safeParseJson } from "@/utils/parse";
+import { resolveToolPath } from "@/utils/resolve-tool-path";
 
 interface PyrightRange {
     start: { line: number; character: number };
@@ -96,23 +96,6 @@ export function parsePyrightOutput(stdout: string): LintIssue[] {
     return issues;
 }
 
-// Returns the pyright executable path to use for the given project directory.
-// Prefers local node_modules/.bin/pyright so compiled binaries work correctly.
-// Falls back to "pyright" (global). Returns null when neither is available.
-async function resolvePyrightPath(
-    projectDir: string,
-    commandRunner: CommandRunner
-): Promise<string | null> {
-    const localPyright = join(projectDir, "node_modules", ".bin", "pyright");
-    const localResult = await commandRunner.run([localPyright, "--version"], {
-        cwd: projectDir,
-    });
-    if (localResult.exitCode === 0) return localPyright;
-    const globalResult = await commandRunner.run(["pyright", "--version"]);
-    if (globalResult.exitCode === 0) return "pyright";
-    return null;
-}
-
 export const pyrightRunner: LinterRunner = {
     id: "pyright",
     name: "Pyright",
@@ -124,17 +107,13 @@ export const pyrightRunner: LinterRunner = {
     },
 
     async isAvailable(runner: CommandRunner, projectDir?: string): Promise<boolean> {
-        if (projectDir !== undefined) {
-            const cmd = await resolvePyrightPath(projectDir, runner);
-            return cmd !== null;
-        }
-        const result = await runner.run(["pyright", "--version"]);
-        return result.exitCode === 0;
+        return (await resolveToolPath("pyright", projectDir ?? ".", runner)) !== null;
     },
 
     async run(opts: RunOptions): Promise<LintIssue[]> {
         const { projectDir, commandRunner } = opts;
-        const cmd = (await resolvePyrightPath(projectDir, commandRunner)) ?? "pyright";
+        const cmd =
+            (await resolveToolPath("pyright", projectDir, commandRunner)) ?? "pyright";
         const result = await commandRunner.run([cmd, "--outputjson", projectDir], {
             cwd: projectDir,
         });

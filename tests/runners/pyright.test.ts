@@ -133,7 +133,7 @@ describe("parsePyrightOutput", () => {
 });
 
 // Local pyright path when isAvailable is called without projectDir (uses ".")
-const LOCAL_PYRIGHT_CWD = "./node_modules/.bin/pyright";
+const LOCAL_PYRIGHT_CWD = "node_modules/.bin/pyright";
 
 describe("pyrightRunner", () => {
     test("isAvailable returns true when local pyright exits 0", async () => {

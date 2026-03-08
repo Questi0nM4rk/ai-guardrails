@@ -1,9 +1,10 @@
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
 import { safeParseJson } from "@/utils/parse";
+import { resolveToolPath } from "@/utils/resolve-tool-path";
 
 const BIOME_LINTER_ID = "biome";
 const BIOME_RULE_PREFIX = "biome/";
@@ -93,23 +94,6 @@ export function parseBiomeRdjsonOutput(
     });
 }
 
-// Returns the biome executable path to use for the given project directory.
-// Prefers local node_modules/.bin/biome so compiled binaries work correctly.
-// Falls back to "biome" (global). Returns null when neither is available.
-async function resolveBiomePath(
-    projectDir: string,
-    commandRunner: CommandRunner
-): Promise<string | null> {
-    const localBiome = join(projectDir, "node_modules", ".bin", "biome");
-    const localResult = await commandRunner.run([localBiome, "--version"], {
-        cwd: projectDir,
-    });
-    if (localResult.exitCode === 0) return localBiome;
-    const globalResult = await commandRunner.run(["biome", "--version"]);
-    if (globalResult.exitCode === 0) return "biome";
-    return null;
-}
-
 export const biomeRunner: LinterRunner = {
     id: BIOME_LINTER_ID,
     name: "Biome",
@@ -123,16 +107,14 @@ export const biomeRunner: LinterRunner = {
         commandRunner: CommandRunner,
         projectDir?: string
     ): Promise<boolean> {
-        if (projectDir !== undefined) {
-            const cmd = await resolveBiomePath(projectDir, commandRunner);
-            return cmd !== null;
-        }
-        const result = await commandRunner.run(["biome", "--version"]);
-        return result.exitCode === 0;
+        return (
+            (await resolveToolPath("biome", projectDir ?? ".", commandRunner)) !== null
+        );
     },
 
     async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
-        const cmd = (await resolveBiomePath(projectDir, commandRunner)) ?? "biome";
+        const cmd =
+            (await resolveToolPath("biome", projectDir, commandRunner)) ?? "biome";
         const result = await commandRunner.run(
             [cmd, "ci", "--reporter=rdjson", projectDir],
             {

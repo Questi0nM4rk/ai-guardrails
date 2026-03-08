@@ -1,8 +1,9 @@
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { resolveToolPath } from "@/utils/resolve-tool-path";
 
 const TSC_LINTER_ID = "tsc";
 const TSC_RULE_PREFIX = "tsc/";
@@ -63,24 +64,6 @@ export function parseTscOutput(output: string, projectDir: string): LintIssue[] 
     return issues;
 }
 
-// Returns the tsc executable path to use for the given project directory.
-// Prefers local node_modules/.bin/tsc so compiled binaries (which don't add
-// node_modules/.bin to PATH) still work. Falls back to "tsc" (global) when local
-// is absent. Returns null when neither is available.
-async function resolveTscPath(
-    projectDir: string,
-    commandRunner: CommandRunner
-): Promise<string | null> {
-    const localTsc = join(projectDir, "node_modules", ".bin", "tsc");
-    const localResult = await commandRunner.run([localTsc, "--version"], {
-        cwd: projectDir,
-    });
-    if (localResult.exitCode === 0) return localTsc;
-    const globalResult = await commandRunner.run(["tsc", "--version"]);
-    if (globalResult.exitCode === 0) return "tsc";
-    return null;
-}
-
 export const tscRunner: LinterRunner = {
     id: TSC_LINTER_ID,
     name: "TypeScript Compiler",
@@ -94,12 +77,13 @@ export const tscRunner: LinterRunner = {
         commandRunner: CommandRunner,
         projectDir?: string
     ): Promise<boolean> {
-        const tsc = await resolveTscPath(projectDir ?? ".", commandRunner);
-        return tsc !== null;
+        return (
+            (await resolveToolPath("tsc", projectDir ?? ".", commandRunner)) !== null
+        );
     },
 
     async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
-        const tsc = (await resolveTscPath(projectDir, commandRunner)) ?? "tsc";
+        const tsc = (await resolveToolPath("tsc", projectDir, commandRunner)) ?? "tsc";
         const result = await commandRunner.run([tsc, "--noEmit", "--pretty", "false"], {
             cwd: projectDir,
         });
