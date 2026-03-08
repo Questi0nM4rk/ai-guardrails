@@ -52,7 +52,7 @@ ${formatAndStageGlob}${pythonSection}${tsSection}
     no-commits-to-main:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)
-        if [ "$branch" = "main" ]; then
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
         fi

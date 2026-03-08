@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
@@ -93,6 +93,23 @@ export function parseBiomeRdjsonOutput(
     });
 }
 
+// Returns the biome executable path to use for the given project directory.
+// Prefers local node_modules/.bin/biome so compiled binaries work correctly.
+// Falls back to "biome" (global). Returns null when neither is available.
+async function resolveBiomePath(
+    projectDir: string,
+    commandRunner: CommandRunner
+): Promise<string | null> {
+    const localBiome = join(projectDir, "node_modules", ".bin", "biome");
+    const localResult = await commandRunner.run([localBiome, "--version"], {
+        cwd: projectDir,
+    });
+    if (localResult.exitCode === 0) return localBiome;
+    const globalResult = await commandRunner.run(["biome", "--version"]);
+    if (globalResult.exitCode === 0) return "biome";
+    return null;
+}
+
 export const biomeRunner: LinterRunner = {
     id: BIOME_LINTER_ID,
     name: "Biome",
@@ -102,14 +119,22 @@ export const biomeRunner: LinterRunner = {
         npm: "npm install -D @biomejs/biome",
     },
 
-    async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
+    async isAvailable(
+        commandRunner: CommandRunner,
+        projectDir?: string
+    ): Promise<boolean> {
+        if (projectDir !== undefined) {
+            const cmd = await resolveBiomePath(projectDir, commandRunner);
+            return cmd !== null;
+        }
         const result = await commandRunner.run(["biome", "--version"]);
         return result.exitCode === 0;
     },
 
     async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
+        const cmd = (await resolveBiomePath(projectDir, commandRunner)) ?? "biome";
         const result = await commandRunner.run(
-            ["biome", "ci", "--reporter=rdjson", projectDir],
+            [cmd, "ci", "--reporter=rdjson", projectDir],
             {
                 cwd: projectDir,
             }

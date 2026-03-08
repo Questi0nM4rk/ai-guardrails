@@ -95,6 +95,6 @@ export const clangTidyRunner: LinterRunner = {
         const result = await commandRunner.run(["clang-tidy", "--quiet", ...files], {
             cwd: projectDir,
         });
-        return parseClangTidyOutput(result.stdout);
+        return parseClangTidyOutput(result.stderr);
     },
 };

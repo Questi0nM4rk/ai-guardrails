@@ -120,9 +120,24 @@ describe("parseBiomeRdjsonOutput", () => {
     });
 });
 
+// Helper: register local biome probe to fail so tests exercise global fallback
+const _LOCAL_BIOME_CWD = "./node_modules/.bin/biome";
+const LOCAL_BIOME_PROJECT = `${PROJECT_DIR}/node_modules/.bin/biome`;
+
 describe("biomeRunner.run", () => {
-    test("uses --reporter=rdjson flag", async () => {
+    test("uses --reporter=rdjson flag (falls back to global when local absent)", async () => {
         const runner = new FakeCommandRunner();
+        // Local biome not available — fall back to global
+        runner.register([LOCAL_BIOME_PROJECT, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        runner.register(["biome", "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
         runner.register(["biome", "ci", "--reporter=rdjson", PROJECT_DIR], {
             stdout: FIXTURE_JSON,
             stderr: "",
@@ -136,7 +151,7 @@ describe("biomeRunner.run", () => {
             fileManager: new FakeFileManager(),
         });
 
-        expect(runner.calls[0]).toEqual([
+        expect(runner.calls).toContainEqual([
             "biome",
             "ci",
             "--reporter=rdjson",
@@ -147,6 +162,16 @@ describe("biomeRunner.run", () => {
 
     test("parses stdout regardless of non-zero exit code", async () => {
         const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME_PROJECT, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        runner.register(["biome", "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
         runner.register(["biome", "ci", "--reporter=rdjson", PROJECT_DIR], {
             stdout: FIXTURE_JSON,
             stderr: "some stderr",
@@ -185,5 +210,67 @@ describe("biomeRunner.isAvailable", () => {
         });
         const result = await biomeRunner.isAvailable(runner);
         expect(result).toBe(false);
+    });
+});
+
+describe("biomeRunner node_modules/.bin resolution", () => {
+    const LOCAL_BIOME = `${PROJECT_DIR}/node_modules/.bin/biome`;
+
+    test("isAvailable uses local node_modules/.bin/biome when present", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME, "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await biomeRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+        expect(runner.calls[0]).toContain(LOCAL_BIOME);
+    });
+
+    test("isAvailable falls back to global biome when local absent", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_BIOME, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        runner.register(["biome", "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await biomeRunner.isAvailable(runner, PROJECT_DIR);
+        expect(result).toBe(true);
+    });
+
+    test("run uses local node_modules/.bin/biome when present", async () => {
+        const runner = new FakeCommandRunner();
+        // resolveBiomePath probes local first
+        runner.register([LOCAL_BIOME, "--version"], {
+            stdout: "biome 2.0.0",
+            stderr: "",
+            exitCode: 0,
+        });
+        runner.register([LOCAL_BIOME, "ci", "--reporter=rdjson", PROJECT_DIR], {
+            stdout: FIXTURE_JSON,
+            stderr: "",
+            exitCode: 1,
+        });
+
+        const issues = await biomeRunner.run({
+            projectDir: PROJECT_DIR,
+            config: makeConfig(),
+            commandRunner: runner,
+            fileManager: new FakeFileManager(),
+        });
+
+        expect(runner.calls).toContainEqual([
+            LOCAL_BIOME,
+            "ci",
+            "--reporter=rdjson",
+            PROJECT_DIR,
+        ]);
+        expect(issues).toHaveLength(3);
     });
 });
