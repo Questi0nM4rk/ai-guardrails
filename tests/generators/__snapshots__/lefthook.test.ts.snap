@@ -41,7 +41,7 @@ exports[`generateLefthookConfig output matches snapshot for python + typescript 
     no-commits-to-main:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)
-        if [ "$branch" = "main" ]; then
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
         fi
@@ -81,7 +81,7 @@ exports[`generateLefthookConfig output matches snapshot for empty plugins 1`] = 
     no-commits-to-main:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)
-        if [ "$branch" = "main" ]; then
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
         fi

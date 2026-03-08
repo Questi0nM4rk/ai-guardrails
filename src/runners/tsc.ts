@@ -14,6 +14,7 @@ interface TscMatch {
     file: string;
     line: number;
     col: number;
+    severity: "error" | "warning";
     tsCode: string;
     message: string;
 }
@@ -21,12 +22,14 @@ interface TscMatch {
 function parseTscLine(line: string): TscMatch | null {
     const match = TSC_LINE_PATTERN.exec(line);
     if (!match) return null;
-    const [, file, lineStr, colStr, , tsCode, message] = match;
-    if (!file || !lineStr || !colStr || !tsCode || !message) return null;
+    const [, file, lineStr, colStr, rawSeverity, tsCode, message] = match;
+    if (!file || !lineStr || !colStr || !rawSeverity || !tsCode || !message)
+        return null;
     return {
         file,
         line: Number.parseInt(lineStr, 10),
         col: Number.parseInt(colStr, 10),
+        severity: rawSeverity === "warning" ? "warning" : "error",
         tsCode,
         message,
     };
@@ -53,7 +56,7 @@ export function parseTscOutput(output: string, projectDir: string): LintIssue[] 
             line: parsed.line,
             col: parsed.col,
             message: parsed.message,
-            severity: "error",
+            severity: parsed.severity,
             fingerprint,
         });
     }
@@ -87,9 +90,11 @@ export const tscRunner: LinterRunner = {
         npm: "npm install -D typescript",
     },
 
-    async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
-        // Use cwd (".") as projectDir — callers don't supply it via the interface.
-        const tsc = await resolveTscPath(".", commandRunner);
+    async isAvailable(
+        commandRunner: CommandRunner,
+        projectDir?: string
+    ): Promise<boolean> {
+        const tsc = await resolveTscPath(projectDir ?? ".", commandRunner);
         return tsc !== null;
     },
 

@@ -132,9 +132,28 @@ describe("parsePyrightOutput", () => {
     });
 });
 
+// Local pyright path when isAvailable is called without projectDir (uses ".")
+const LOCAL_PYRIGHT_CWD = "./node_modules/.bin/pyright";
+
 describe("pyrightRunner", () => {
-    test("isAvailable returns true when pyright exits 0", async () => {
+    test("isAvailable returns true when local pyright exits 0", async () => {
         const runner = new FakeCommandRunner();
+        runner.register([LOCAL_PYRIGHT_CWD, "--version"], {
+            stdout: "pyright 1.1.385",
+            stderr: "",
+            exitCode: 0,
+        });
+        const result = await pyrightRunner.isAvailable(runner);
+        expect(result).toBe(true);
+    });
+
+    test("isAvailable returns true when global pyright exits 0 (local absent)", async () => {
+        const runner = new FakeCommandRunner();
+        runner.register([LOCAL_PYRIGHT_CWD, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
         runner.register(["pyright", "--version"], {
             stdout: "pyright 1.1.385",
             stderr: "",
@@ -144,8 +163,13 @@ describe("pyrightRunner", () => {
         expect(result).toBe(true);
     });
 
-    test("isAvailable returns false when pyright exits non-zero", async () => {
+    test("isAvailable returns false when both local and global are absent", async () => {
         const runner = new FakeCommandRunner();
+        runner.register([LOCAL_PYRIGHT_CWD, "--version"], {
+            stdout: "",
+            stderr: "pyright: command not found",
+            exitCode: 127,
+        });
         runner.register(["pyright", "--version"], {
             stdout: "",
             stderr: "pyright: command not found",
@@ -155,9 +179,21 @@ describe("pyrightRunner", () => {
         expect(result).toBe(false);
     });
 
-    test("run calls pyright with --outputjson", async () => {
+    test("run calls pyright with --outputjson (falls back to global)", async () => {
         const commandRunner = new FakeCommandRunner();
         const projectDir = "/home/user/project";
+        const localPyright = `${projectDir}/node_modules/.bin/pyright`;
+        // Local not available
+        commandRunner.register([localPyright, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        commandRunner.register(["pyright", "--version"], {
+            stdout: "pyright 1.1.385",
+            stderr: "",
+            exitCode: 0,
+        });
         commandRunner.register(["pyright", "--outputjson", projectDir], {
             stdout: JSON.stringify({
                 generalDiagnostics: [],
@@ -185,6 +221,17 @@ describe("pyrightRunner", () => {
     test("run returns issues even when exitCode is non-zero", async () => {
         const commandRunner = new FakeCommandRunner();
         const projectDir = "/home/user/project";
+        const localPyright = `${projectDir}/node_modules/.bin/pyright`;
+        commandRunner.register([localPyright, "--version"], {
+            stdout: "",
+            stderr: "not found",
+            exitCode: 127,
+        });
+        commandRunner.register(["pyright", "--version"], {
+            stdout: "pyright 1.1.385",
+            stderr: "",
+            exitCode: 0,
+        });
         commandRunner.register(["pyright", "--outputjson", projectDir], {
             stdout: JSON.stringify({
                 generalDiagnostics: [
@@ -257,6 +304,12 @@ describe("pyrightRunner node_modules/.bin resolution", () => {
 
     test("run uses local node_modules/.bin/pyright when present", async () => {
         const runner = new FakeCommandRunner();
+        // resolvePyrightPath probes local first
+        runner.register([LOCAL_PYRIGHT, "--version"], {
+            stdout: "pyright 1.1.385",
+            stderr: "",
+            exitCode: 0,
+        });
         runner.register([LOCAL_PYRIGHT, "--outputjson", PROJECT_DIR], {
             stdout: JSON.stringify({
                 generalDiagnostics: [],
@@ -273,7 +326,11 @@ describe("pyrightRunner node_modules/.bin resolution", () => {
             fileManager: new FakeFileManager(),
         });
 
-        expect(runner.calls[0]).toContain(LOCAL_PYRIGHT);
+        expect(runner.calls).toContainEqual([
+            LOCAL_PYRIGHT,
+            "--outputjson",
+            PROJECT_DIR,
+        ]);
         expect(issues).toHaveLength(0);
     });
 });
