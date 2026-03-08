@@ -8,6 +8,21 @@ export interface CommandRunner {
     run(args: string[], opts?: { cwd?: string; timeout?: number }): Promise<RunResult>;
 }
 
+function spawnOrNull(
+    cmd: string,
+    rest: string[],
+    cwd: string | undefined
+): Bun.Subprocess<"ignore", "pipe", "pipe"> | null {
+    const opts = { stdout: "pipe" as const, stderr: "pipe" as const };
+    try {
+        return cwd !== undefined
+            ? Bun.spawn([cmd, ...rest], { ...opts, cwd })
+            : Bun.spawn([cmd, ...rest], opts);
+    } catch {
+        return null;
+    }
+}
+
 export class RealCommandRunner implements CommandRunner {
     async run(
         args: string[],
@@ -18,11 +33,14 @@ export class RealCommandRunner implements CommandRunner {
             return { stdout: "", stderr: "No command provided", exitCode: 1 };
         }
 
-        const cwd = opts?.cwd;
-        const proc =
-            cwd !== undefined
-                ? Bun.spawn([cmd, ...rest], { cwd, stdout: "pipe", stderr: "pipe" })
-                : Bun.spawn([cmd, ...rest], { stdout: "pipe", stderr: "pipe" });
+        const proc = spawnOrNull(cmd, rest, opts?.cwd);
+        if (proc === null) {
+            return {
+                stdout: "",
+                stderr: `Executable not found in $PATH: "${cmd}"`,
+                exitCode: 127,
+            };
+        }
 
         let killTimer: ReturnType<typeof setTimeout> | undefined;
         if (opts?.timeout !== undefined) {
