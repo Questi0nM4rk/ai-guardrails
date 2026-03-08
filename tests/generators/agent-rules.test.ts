@@ -5,6 +5,7 @@ import {
     buildAgentRules,
     detectAgentTools,
 } from "@/generators/agent-rules";
+import { HASH_PREFIX } from "@/utils/hash";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
 const PROJECT_DIR = "/project";
@@ -124,5 +125,18 @@ describe("agentRulesGenerator", () => {
         };
         const output = agentRulesGenerator.generate(config);
         expect(output).toContain("Core Principles");
+    });
+
+    test("output starts with hash header", () => {
+        const config = {
+            profile: "standard" as const,
+            ignore: [],
+            allow: [],
+            values: { line_length: 88, indent_width: 4 },
+            ignoredRules: new Set<string>(),
+            isAllowed: () => false,
+        };
+        const output = agentRulesGenerator.generate(config);
+        expect(output.startsWith(HASH_PREFIX)).toBe(true);
     });
 });

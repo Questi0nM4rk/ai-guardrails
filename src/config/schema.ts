@@ -87,12 +87,13 @@ export function buildResolvedConfig(
     }));
     const ignoredRules = new Set(ignore.map((e) => e.rule));
     const allow = project.allow;
+    const { line_length, indent_width, python_version, ...passthroughRest } =
+        project.config;
     const values: ResolvedConfig["values"] = {
-        line_length: project.config.line_length,
-        indent_width: project.config.indent_width,
-        ...(project.config.python_version !== undefined && {
-            python_version: project.config.python_version,
-        }),
+        ...passthroughRest,
+        line_length,
+        indent_width,
+        ...(python_version !== undefined && { python_version }),
     };
 
     return {

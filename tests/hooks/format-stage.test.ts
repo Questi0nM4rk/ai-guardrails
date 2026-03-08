@@ -68,3 +68,14 @@ describe("getStagedFiles", () => {
         }
     });
 });
+
+describe("tryRun error handling", () => {
+    test("FORMATTERS cmd entries return non-empty arrays", () => {
+        // Verify each formatter produces a non-empty command array that tryRun can use
+        for (const formatter of FORMATTERS) {
+            const cmd = formatter.cmd(["test-file.py"]);
+            expect(cmd.length).toBeGreaterThan(0);
+            expect(cmd[0]).toBeTruthy(); // first element (the binary name) must be defined
+        }
+    });
+});

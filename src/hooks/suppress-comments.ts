@@ -38,6 +38,7 @@ const EXT_TO_LANG: Record<string, string> = {
     ".sh": "shell",
     ".bash": "shell",
     ".zsh": "shell",
+    ".ksh": "shell",
     ".c": "cpp",
     ".cpp": "cpp",
     ".cc": "cpp",

@@ -18,7 +18,8 @@ export const DANGEROUS_REGEX_PATTERNS: RegExp[] = [
  * which operates at hook runtime.
  */
 export const DANGEROUS_DENY_GLOBS: string[] = [
-    "Bash(git push --force*)",
+    "Bash(git push --force)",
+    "Bash(git push --force *)",
     "Bash(git push -f *)",
     "Bash(rm -rf /*)",
     "Bash(sudo rm -rf*)",
