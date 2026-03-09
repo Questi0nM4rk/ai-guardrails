@@ -64,7 +64,7 @@ jobs:
           PR_NUMBER="${{ steps.extract.outputs.pr_number }}"
 
           claude -p \
-            --max-turns 25 \
+            --max-turns 30 \
             --model claude-sonnet-4-6 \
             --allowedTools "Bash(gh:*),Bash(git:*),Read,Glob,Grep,Agent" \
             "You are a code review bot for ${{ github.repository }}. Review PR #${PR_NUMBER}. Read .claude/commands/review-pr.md first, then follow those instructions. The PR number is ${PR_NUMBER}."
