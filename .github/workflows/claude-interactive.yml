@@ -1,4 +1,4 @@
-name: Claude Interactive (@claude mentions)
+name: Claude Reviewer Bot (@cc-review mentions)
 
 on:
   issue_comment:
@@ -7,13 +7,13 @@ on:
     types: [created]
 
 jobs:
-  claude-respond:
+  cc-review-respond:
     runs-on: ubuntu-latest
-    if: contains(github.event.comment.body, '@claude')
+    if: contains(github.event.comment.body, '@cc-review')
     timeout-minutes: 15
 
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
       issues: write
 
@@ -38,7 +38,7 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
-          trigger_phrase: "@claude"
+          trigger_phrase: "@cc-review"
           claude_args: >-
             --max-turns 10
             --model claude-sonnet-4-6
