@@ -64,27 +64,44 @@ Apply `.cc-review.yaml` overrides:
 
 ## Step 6: Post the Review
 
-Post exactly ONE review using a SINGLE `gh api` call. Build `/tmp/review-payload.json`:
+CRITICAL: Post exactly ONE review using a SINGLE `gh api` call. ALL findings go in this ONE call.
+
+### Building the payload
+
+1. Collect ALL findings from Step 5 into a flat list — no severity labels, no ranking
+2. For each finding that maps to a specific line in the diff:
+   - Verify the line exists in the diff output (NEW file side, the `+` lines)
+   - Add to `comments` array with `path`, `line`, `body`
+   - The `body` is just the issue description + fix suggestion — no "Bug (MED):" prefix
+3. For findings that CANNOT map to a valid diff line (e.g. missing functionality, cross-file issues, or lines you can't verify):
+   - Put them in the review `body` as bullet points — NOT as inline comments
+   - NEVER use `line: null` — that creates broken separate comments
+4. If any findings exist → `"event": "REQUEST_CHANGES"`. If zero → `"event": "APPROVE"`
+
+### Payload format
 
 ```json
 {
-  "body": "Review summary",
-  "event": "APPROVE or REQUEST_CHANGES",
+  "body": "Summary of findings.\n\n- Finding without a diff line: description here",
+  "event": "REQUEST_CHANGES",
   "comments": [
-    {"path": "src/file.ts", "line": 42, "body": "Issue description and fix."}
+    {"path": "src/file.ts", "line": 42, "body": "Issue description and suggested fix."}
   ]
 }
 ```
 
-Submit:
+### Submit
+
 ```bash
 gh api repos/{owner}/{repo}/pulls/$ARGUMENTS/reviews --method POST --input /tmp/review-payload.json
 ```
 
-Rules for comments array:
-- `line` must exist in the diff (NEW file side)
-- `path` must match exactly the diff file path
-- Findings outside the diff go in the review `body`
+### Verification before submitting
+
+- Count findings in your list. Count comments in the JSON. Count body bullet points. They MUST add up.
+- Every `line` value must be a real line number from the diff. If unsure, put it in the body.
+- Every `path` must match the diff exactly.
+- The `body` should list any findings that aren't inline. If all findings are inline, body is just a short summary.
 
 ## Step 7: Update Memory
 
@@ -93,7 +110,10 @@ If you learned new patterns, false positives, or conventions — save via memory
 ## Rules
 
 - Post ONE review via ONE `gh api` call — never multiple calls
-- ALL inline comments inside the `comments` array — never separate
+- ALL inline comments inside the `comments` array — never separate API calls
 - NEVER use `gh pr review` — always `gh api repos/{owner}/{repo}/pulls/N/reviews`
+- NEVER use severity labels (Critical, High, Medium, Low) — every finding is a requested change, no ranking
+- NEVER post a comment with `line: null` — put those findings in the review body instead
+- If you found N issues, ALL N must appear in the review (inline + body). Do not drop findings.
 - Be concise — no filler, no padding
 - Trivial diffs → approve immediately
