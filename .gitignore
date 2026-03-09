@@ -31,10 +31,5 @@ Thumbs.db
 # Legacy v0 runtime directory (created by old ai-guardrails init, not used by v1+)
 .ai-guardrails/
 .claude/*
-!.claude/CLAUDE.md
 !.claude/rules/
-!.claude/commands/
-!.claude/skills/
-!.claude/agents/
-!.claude/hooks/
 .coverage

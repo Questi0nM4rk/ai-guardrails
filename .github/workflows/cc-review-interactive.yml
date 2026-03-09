@@ -23,6 +23,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch bot intelligence
+        run: |
+          git clone --depth 1 https://github.com/Questi0nM4rk/cc-review.git /tmp/cc-review-bot
+          mkdir -p .claude
+          cp -r /tmp/cc-review-bot/.claude/commands .claude/
+          cp -r /tmp/cc-review-bot/.claude/agents .claude/
+          cp -r /tmp/cc-review-bot/.claude/skills .claude/
+          cp -r /tmp/cc-review-bot/.claude/hooks .claude/
+          cp /tmp/cc-review-bot/.claude/CLAUDE.md .claude/CLAUDE.md
+
       - name: Fetch memory branch
         run: git fetch origin claude-reviewer/memory:claude-reviewer/memory 2>/dev/null || true
 
@@ -41,7 +51,6 @@ jobs:
           PR_NUMBER="${{ github.event.issue.number }}"
           echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
 
-          # Extract text after @cc-review
           USER_MSG="${COMMENT_BODY#*@cc-review}"
           USER_MSG="${USER_MSG## }"
           if [ -z "$USER_MSG" ] || [ "$USER_MSG" = "$COMMENT_BODY" ]; then
