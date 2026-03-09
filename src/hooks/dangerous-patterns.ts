@@ -41,8 +41,19 @@ function splitSubCmds(tokens: ParseEntry[]): string[][] {
     return result;
 }
 
+const PIPE_SHELLS = new Set([
+    "bash",
+    "sh",
+    "dash",
+    "zsh",
+    "ksh",
+    "csh",
+    "tcsh",
+    "fish",
+]);
+
 /**
- * Detect dangerous pipe sequences: curl/wget piped directly into bash/sh.
+ * Detect dangerous pipe sequences: curl/wget piped directly into any shell.
  * Returns a reason string or null.
  */
 function checkPipes(tokens: ParseEntry[]): string | null {
@@ -52,7 +63,7 @@ function checkPipes(tokens: ParseEntry[]): string | null {
         if (typeof tok === "object" && "op" in tok) {
             prevWasPipe = tok.op === "|";
         } else if (typeof tok === "string") {
-            if (prevWasPipe && (tok === "bash" || tok === "sh")) {
+            if (prevWasPipe && PIPE_SHELLS.has(tok)) {
                 return `${prevCmd} | ${tok} (remote code execution)`;
             }
             prevCmd = tok;
@@ -178,8 +189,14 @@ export const DANGEROUS_DENY_GLOBS: string[] = [
     "Bash(chmod -R 777*)",
     "Bash(curl * | bash)",
     "Bash(curl * | sh)",
+    "Bash(curl * | zsh)",
+    "Bash(curl * | dash)",
+    "Bash(curl * | ksh)",
     "Bash(wget * | bash)",
     "Bash(wget * | sh)",
+    "Bash(wget * | zsh)",
+    "Bash(wget * | dash)",
+    "Bash(wget * | ksh)",
     "Bash(eval $(*))",
     "Bash(python -c*import os*system*)",
 ];
