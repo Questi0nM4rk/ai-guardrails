@@ -38,6 +38,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch bot intelligence
+        run: |
+          git clone --depth 1 https://github.com/Questi0nM4rk/cc-review.git /tmp/cc-review-bot
+          mkdir -p .claude
+          cp -r /tmp/cc-review-bot/.claude/commands .claude/
+          cp -r /tmp/cc-review-bot/.claude/agents .claude/
+          cp -r /tmp/cc-review-bot/.claude/skills .claude/
+          cp -r /tmp/cc-review-bot/.claude/hooks .claude/
+          cp /tmp/cc-review-bot/.claude/CLAUDE.md .claude/CLAUDE.md
+
       - name: Fetch memory branch
         run: git fetch origin claude-reviewer/memory:claude-reviewer/memory 2>/dev/null || true
 
@@ -51,26 +61,22 @@ jobs:
       - name: Determine PR number and review mode
         id: config
         run: |
-          # PR number
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "pr_number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
           else
             echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           fi
 
-          # Review mode
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             MODE="${{ github.event.inputs.mode }}"
           elif [ "${{ github.event.action }}" = "labeled" ]; then
             MODE="${{ github.event.label.name }}"
           else
-            # Auto-review: read mode from .cc-review.yaml, default to standard
             MODE=$(grep -oP '(?<=^mode:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "standard")
             [ -z "$MODE" ] && MODE="standard"
           fi
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
 
-          # Check auto_review setting (only matters for PR opened)
           if [ "${{ github.event.action }}" = "opened" ]; then
             AUTO=$(grep -oP '(?<=^auto_review:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "true")
             if [ "$AUTO" = "false" ]; then
@@ -95,7 +101,6 @@ jobs:
           REPO="${{ github.repository }}"
           MODE="${{ steps.config.outputs.mode }}"
 
-          # Map mode to command
           case "$MODE" in
             strict)
               COMMAND="review-pr"
