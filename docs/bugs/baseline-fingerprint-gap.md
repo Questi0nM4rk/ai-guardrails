@@ -143,6 +143,47 @@ for (const [file, group] of byFile) {
 
 ---
 
+## Issue 3: Fingerprints include absolute paths — baselines are not portable
+
+**Discovered:** cc-review bot (PR #95, 2026-03-09)
+
+`computeFingerprint()` hashes the `file` field of `FingerprintOpts`, which runners
+populate with the raw absolute path from linter output (e.g. `/home/dev/project/src/main.py`).
+When `ai-guardrails snapshot` is run locally and `ai-guardrails check` runs in CI at a
+different checkout root (e.g. `/home/runner/work/project/src/main.py`), every fingerprint
+mismatches and every issue is classified as "new", causing all checks to fail.
+
+This also creates an inconsistency: `LintIssue.file` is documented as absolute (correct —
+useful for display and file reads), while `BaselineEntry.file` in `snapshot-step.ts` is
+documented as project-relative (correct for portability). The fingerprint should use the
+project-relative path but currently uses the absolute path.
+
+### Issue 3: Relevant files
+
+| File | Role |
+|------|------|
+| `src/models/lint-issue.ts` | `computeFingerprint()` hashes `file` — the absolute path |
+| `src/runners/*.ts` | Pass absolute paths via `LintIssue.file` (correct for display) |
+| `src/steps/snapshot-step.ts` | `BaselineEntry.file` — project-relative |
+
+### Issue 3: Fix outline
+
+In each runner's `run()` method, compute a relative path for fingerprinting:
+
+```typescript
+import { relative } from "node:path";
+
+// When building the fingerprint input:
+const relFile = relative(opts.projectDir, absoluteFile);
+computeFingerprint({ rule, file: relFile, lineContent, contextBefore, contextAfter });
+// Keep LintIssue.file as absolute for display/file reads
+```
+
+This fix should be applied alongside the Issue 1 and Issue 2 fixes since they all
+require touching the runner `run()` methods.
+
+---
+
 ## Why deferred
 
 Both fixes require non-trivial changes across multiple files:

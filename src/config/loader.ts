@@ -16,13 +16,15 @@ async function readTomlSafe(
     path: string,
     fm: FileManager
 ): Promise<Record<string, unknown>> {
+    let text: string;
     try {
-        const text = await fm.readText(path);
-        if (!text.trim()) return {};
-        return parseToml(text) as Record<string, unknown>;
+        text = await fm.readText(path);
     } catch {
-        return {};
+        return {}; // file not found — expected when no config exists
     }
+    if (!text.trim()) return {};
+    // Let parse errors propagate so callers surface malformed config to the user
+    return parseToml(text) as Record<string, unknown>;
 }
 
 export async function loadMachineConfig(

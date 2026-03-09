@@ -4,8 +4,10 @@
  */
 export const DANGEROUS_REGEX_PATTERNS: RegExp[] = [
     // rm with both -r and -f in any order:
-    // combined short flags (-rf/-fr), split short flags (-r -f), or long GNU flags
-    /rm\s+(?:-[a-z]*[rf][a-z]*[rf][a-z]*|-[a-z]*r[a-z]*\s+-[a-z]*f|-[a-z]*f[a-z]*\s+-[a-z]*r|--recursive\s+--force|--force\s+--recursive)\s+(?:[^/\s]*\/?\s*$|\/)/,
+    // combined short flags (-rf/-fr), split short flags (-r -f), or long GNU flags.
+    // No trailing path anchor — rm -rf with multiple non-slash targets (e.g. "node_modules dist")
+    // would bypass an anchor check, and any rm -rf is dangerous regardless of target.
+    /rm\s+(?:-[a-z]*[rf][a-z]*[rf][a-z]*|-[a-z]*r[a-z]*\s+-[a-z]*f|-[a-z]*f[a-z]*\s+-[a-z]*r|--recursive\s+--force|--force\s+--recursive)/,
     /git\s+push\s+.*(?:--force(?!-with-lease)|-f\b)/,
     /git\s+reset\s+--hard/,
     // require space after -- to avoid false positive on --ours/--theirs
