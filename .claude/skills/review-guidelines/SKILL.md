@@ -1,37 +1,49 @@
 ---
-description: Review guidelines and quality standards for automated PR reviews
+description: "Code review guidelines, language-specific patterns, and quality standards for the cc-review bot. Covers C#/.NET, TypeScript, and Python review patterns with severity classification."
 globs: "**/*"
 alwaysApply: true
 ---
 
 # Review Guidelines
 
-## Severity Classification
+## Read When
 
-When reviewing code, classify findings by severity:
+| File | Read When |
+|------|-----------|
+| `references/csharp-patterns.md` | PR contains `.cs`, `.csproj`, `.sln` files |
+| `references/typescript-patterns.md` | PR contains `.ts`, `.tsx`, `.js`, `.jsx` files |
+| `references/python-patterns.md` | PR contains `.py` files |
 
-| Severity | Action | Examples |
-|----------|--------|----------|
-| Critical | Request changes | Security vulnerabilities, data loss, crashes |
-| High | Request changes | Logic bugs, race conditions, broken functionality |
-| Medium | Approve + comment | Performance issues, missing validation on boundaries |
-| Low | Approve silently | Style preferences, naming, formatting |
+Load only the references matching the PR's languages. Do not load all three.
 
-## Language-Specific Patterns
+## Review Iron Laws
 
-### C# / .NET
-- Check for `IDisposable` not being disposed (especially `HttpClient`, `DbContext`)
-- Flag `async void` methods (except event handlers)
-- Watch for LINQ materializing large collections (`.ToList()` in hot paths)
-- Verify `ConfigureAwait` is used appropriately in library code
+1. **Single review block** — ONE `gh api` call with all comments in the `comments` array
+2. **Every finding needs a failure scenario** — "When X happens, Y breaks because..."
+3. **Verify before reporting** — Read surrounding code, check if issue is handled elsewhere
+4. **No false positives from config** — Check `.cc-review.yaml` `known_patterns` and project memory
+5. **In-diff comments only** — If a finding can't map to a diff line, put it in the review body
+6. **No severity labels in strict mode** — Every finding is a required change
 
-### TypeScript / JavaScript
-- Check for unhandled promise rejections
-- Flag `any` types that hide real bugs
-- Watch for missing `await` on async calls
+## Review Classification (Standard Mode)
 
-### General
-- SQL injection via string concatenation
-- Secrets or credentials in code
-- Missing authorization checks on endpoints
-- Unbounded queries without pagination
+| Action | When |
+|--------|------|
+| Request changes | Bugs, security vulnerabilities, data loss, breaking changes, AI slop |
+| Approve + comment | Performance in hot paths, missing validation on external input |
+| Approve silently | No issues found, or only style/preference differences |
+
+## What to Ignore (All Modes)
+
+- Formatting, whitespace, naming style
+- Missing comments or docs
+- "I would have done it differently" opinions
+- Test coverage (unless tests are actively broken)
+- Patterns listed as known false positives
+
+## DON'Ts
+
+- Do NOT dump every pattern from references — only flag patterns you actually see in the diff
+- Do NOT use generic descriptions ("this could be improved") — be specific
+- Do NOT report the same issue on multiple lines — pick the most representative line
+- Do NOT pad reviews with praise ("great PR overall") — get to the point

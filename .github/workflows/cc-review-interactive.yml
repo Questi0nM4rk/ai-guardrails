@@ -1,4 +1,4 @@
-name: Claude Reviewer Bot (@cc-review mentions)
+name: cc-review interactive (@cc-review mentions)
 
 on:
   issue_comment:
@@ -7,7 +7,7 @@ on:
     types: [created]
 
 jobs:
-  cc-review-respond:
+  respond:
     runs-on: ubuntu-latest
     if: contains(github.event.comment.body, '@cc-review')
     timeout-minutes: 15
@@ -47,7 +47,6 @@ jobs:
           if [ -z "$USER_MSG" ] || [ "$USER_MSG" = "$COMMENT_BODY" ]; then
             USER_MSG="Review this PR for bugs, security, and logic issues."
           fi
-          # Use delimiter for multiline output
           echo "user_msg<<ENDOFMSG" >> "$GITHUB_OUTPUT"
           echo "$USER_MSG" >> "$GITHUB_OUTPUT"
           echo "ENDOFMSG" >> "$GITHUB_OUTPUT"
@@ -59,7 +58,7 @@ jobs:
         run: |
           COMMENT_ID=$(gh api repos/${{ github.repository }}/issues/${{ steps.extract.outputs.pr_number }}/comments \
             --method POST \
-            -f body="> **cc-review** is reviewing PR #${{ steps.extract.outputs.pr_number }}... ⏳" \
+            -f body="> **cc-review** is reviewing PR #${{ steps.extract.outputs.pr_number }}... :hourglass_flowing_sand:" \
             --jq '.id')
           echo "comment_id=$COMMENT_ID" >> "$GITHUB_OUTPUT"
 
@@ -83,19 +82,23 @@ jobs:
           )
 
           cat > /tmp/prompt.txt <<EOF
-          You are a code review bot for ${REPO}, working on PR #${PR_NUMBER}.
-          The user asked: ${USER_MSG}
+          You are the cc-review bot for ${REPO}, working on PR #${PR_NUMBER}.
 
-          Read .claude/CLAUDE.md and .claude/commands/review-pr.md for your instructions.
-          The PR number is ${PR_NUMBER}. Follow the user's request.
-          If the user just asked for a review, follow review-pr.md instructions.
-          If the user asked something else (list tools, explain findings, etc.), respond to that directly.
+          Read .claude/CLAUDE.md first for your identity and rules.
+          Read .cc-review.yaml for project-specific configuration.
+          The PR number is: ${PR_NUMBER}
+
+          User Message: ${USER_MSG}
+
+          If the user asked for a review (or just pinged without specifics), follow .claude/commands/review-pr.md.
+          If the user asked for a specific mode (bug-hunt, simplify, strict), follow that command.
+          If the user asked something else (list tools, explain, etc.), respond directly.
           EOF
 
           cat /tmp/prompt.txt | claude -p \
             --max-turns 30 \
             --model claude-sonnet-4-6 \
-            --allowedTools "Bash(gh:*),Bash(git:*),Read,Glob,Grep,Agent"
+            --allowedTools "Bash(gh:*),Bash(git:*),Bash(cat:*),Bash(npx:*),Read,Glob,Grep,Agent"
 
       - name: Update status comment
         if: always()
