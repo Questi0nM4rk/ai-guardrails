@@ -28,6 +28,12 @@ describe("loadMachineConfig", () => {
         const config = await loadMachineConfig("/empty.toml", fm);
         expect(config.profile).toBe("standard");
     });
+
+    test("throws on malformed TOML so the user sees the error", async () => {
+        const fm = new FakeFileManager();
+        fm.seed("/bad.toml", "profile = [unclosed");
+        await expect(loadMachineConfig("/bad.toml", fm)).rejects.toThrow();
+    });
 });
 
 describe("loadProjectConfig", () => {
