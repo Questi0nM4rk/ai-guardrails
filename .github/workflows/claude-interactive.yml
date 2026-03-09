@@ -42,3 +42,4 @@ jobs:
           claude_args: >-
             --max-turns 10
             --model claude-sonnet-4-6
+            --allowedTools "Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr review:*),Bash(gh api:*),Bash(git show:*),Bash(git fetch:*),Bash(git checkout:*),Bash(git add:*),Bash(git commit:*),Bash(git push:*),Bash(git rev-parse:*),Bash(git reset:*),Read,Glob,Grep,Agent"
