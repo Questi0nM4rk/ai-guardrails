@@ -15,8 +15,21 @@ export async function readHookInput(): Promise<HookInput> {
     for await (const chunk of process.stdin) {
         chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
     }
-    // Zod.parse() already returns the validated type; no cast needed.
-    return hookInputSchema.parse(JSON.parse(Buffer.concat(chunks).toString("utf8")));
+    const raw = Buffer.concat(chunks).toString("utf8");
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        process.stderr.write("ai-guardrails hook: invalid JSON on stdin\n");
+        process.exit(2);
+    }
+    try {
+        // Zod.parse() already returns the validated type; no cast needed.
+        return hookInputSchema.parse(parsed);
+    } catch {
+        process.stderr.write("ai-guardrails hook: unexpected hook input shape\n");
+        process.exit(2);
+    }
 }
 
 export function allow(): never {

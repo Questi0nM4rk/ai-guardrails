@@ -56,7 +56,9 @@ export async function runFormatStage(): Promise<never> {
             // Re-stage formatted files so the commit contains the formatted code.
             // Only re-stage if the formatter succeeded — failed runs leave the staged
             // version intact, which is safer than staging potentially half-formatted files.
-            if (ok) spawnSync("git", ["add", ...matching], { stdio: "inherit" });
+            if (ok && !tryRun(["git", "add", ...matching])) {
+                process.exit(1);
+            }
         }
     }
     process.exit(0);

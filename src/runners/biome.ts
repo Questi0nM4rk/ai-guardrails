@@ -18,9 +18,10 @@ interface RdjsonRange {
 }
 
 interface RdjsonDiagnostic {
-    location: {
-        path: { text: string };
-        range: RdjsonRange;
+    // location is absent for config-error diagnostics
+    location?: {
+        path?: { text: string };
+        range?: RdjsonRange;
     };
     severity: string;
     code?: { value: string };
@@ -67,7 +68,9 @@ export function parseBiomeRdjsonOutput(
     }
 
     return parsed.diagnostics.flatMap((diag) => {
-        if (!diag.code) return [];
+        // location is absent for config-error diagnostics (e.g. invalid biome.json)
+        if (!diag.code || !diag.location?.path?.text || !diag.location?.range)
+            return [];
         const filePath = resolve(projectDir, diag.location.path.text);
         const line = diag.location.range.start.line + 1;
         const col = diag.location.range.start.character + 1;

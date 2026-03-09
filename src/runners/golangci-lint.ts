@@ -36,28 +36,30 @@ export function parseGolangciOutput(json: string, projectDir: string): LintIssue
     const rawIssues = parsed.Issues;
     if (!rawIssues) return [];
 
-    return rawIssues.map((issue) => {
-        const rule = `golangci-lint/${issue.FromLinter}`;
-        const file = resolve(projectDir, issue.Pos.Filename);
-        const fingerprint = computeFingerprint({
-            rule,
-            file,
-            lineContent: "",
-            contextBefore: [],
-            contextAfter: [],
-        });
+    return rawIssues
+        .filter((issue) => issue.Pos?.Filename)
+        .map((issue) => {
+            const rule = `golangci-lint/${issue.FromLinter}`;
+            const file = resolve(projectDir, issue.Pos.Filename);
+            const fingerprint = computeFingerprint({
+                rule,
+                file,
+                lineContent: "",
+                contextBefore: [],
+                contextAfter: [],
+            });
 
-        return {
-            rule,
-            linter: "golangci-lint",
-            file,
-            line: issue.Pos.Line,
-            col: issue.Pos.Column,
-            message: issue.Text,
-            severity: "error" as const,
-            fingerprint,
-        };
-    });
+            return {
+                rule,
+                linter: "golangci-lint",
+                file,
+                line: issue.Pos.Line,
+                col: issue.Pos.Column,
+                message: issue.Text,
+                severity: "error" as const,
+                fingerprint,
+            };
+        });
 }
 
 /**

@@ -48,6 +48,7 @@ export function parseClippyNdjson(ndjson: string, projectDir: string): LintIssue
         const msg = entry.message;
         if (!msg) continue;
         if (msg.code === null) continue;
+        if (!msg.spans) continue;
 
         const primarySpan = msg.spans.find((s) => s.is_primary);
         if (!primarySpan) continue;
