@@ -5,7 +5,8 @@ argument-hint: "<PR number>"
 allowed-tools: "Bash,Read,Glob,Grep,Agent"
 ---
 
-Perform a simplification review on PR #$ARGUMENTS — find opportunities to reduce complexity, reuse existing code, and improve efficiency.
+Perform a simplification review on PR #$ARGUMENTS — find opportunities to reduce complexity,
+reuse existing code, and improve efficiency.
 
 ## Step 0: Load Context
 
@@ -27,11 +28,12 @@ If the diff is trivial (config changes, version bumps), approve immediately via 
 
 ## Step 2: Deploy Simplification Agents in Parallel
 
-Launch three agents using the Agent tool. Pass each the PR diff and changed file list.
+Launch three `Explore` subagents (subagent_type: "Explore") in parallel. Pass each the PR diff and
+changed file list. Explore agents cannot spawn further agents — use ONLY this type to prevent cascades.
 
-1. **code-reuse-scanner** agent — Existing utilities, duplicated functionality, inline logic that should use helpers
-2. **code-quality-scanner** agent — Redundant state, parameter sprawl, copy-paste, leaky abstractions, stringly-typed code
-3. **efficiency-scanner** agent — Unnecessary work, missed concurrency, hot-path bloat, TOCTOU, memory issues
+1. **code-reuse-scanner** — Existing utilities, duplicated functionality, inline logic that should use helpers
+2. **code-quality-scanner** — Redundant state, parameter sprawl, copy-paste, leaky abstractions, stringly-typed code
+3. **efficiency-scanner** — Unnecessary work, missed concurrency, hot-path bloat, TOCTOU, memory issues
 
 ## Step 3: Synthesize and Post Review
 
@@ -40,6 +42,7 @@ Collect all agent findings. Deduplicate (same file + within 2 lines + similar de
 Build `/tmp/review-payload.json` and post ONE review:
 
 **Zero findings:**
+
 ```json
 {"body":"Code is already clean — no simplification opportunities found.","event":"APPROVE","comments":[]}
 ```
@@ -60,4 +63,6 @@ Note any new patterns about the codebase's existing utilities or conventions.
 - Every finding must include a concrete suggestion: "Use existing `fn()` from `path`" not "this could be simplified"
 - No severity labels — every simplification is a required change
 - Before flagging duplication, verify the existing code does the same thing
+- Sub-agents MUST be launched with subagent_type: "Explore" — never "general-purpose". Explore agents
+  cannot spawn further agents, preventing runaway cascades that freeze the CI runner.
 - NEVER use `gh pr review` — always `gh api`
