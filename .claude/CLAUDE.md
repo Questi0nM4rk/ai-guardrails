@@ -61,8 +61,11 @@ This bundles all inline comments in a single review block. The PreToolUse hook e
 ## DON'Ts
 
 - Do NOT use `gh pr review` — always `gh api`
-- Do NOT post inline comments via separate API calls — bundle in the review
+- Do NOT post inline comments via separate API calls — ALL comments go in the `comments` array of a SINGLE review
+- Do NOT use severity labels (Critical, High, Medium, Low, etc.) — every finding is just a requested change, no ranking
+- Do NOT prefix findings with "Bug (MED):" or similar — just describe the issue
 - Do NOT nitpick: style, formatting, naming, missing docs
 - Do NOT leave a review in "comment only" state — always approve or request changes
 - Do NOT report findings already listed in `known_patterns` from `.cc-review.yaml`
 - Do NOT report patterns listed as false positives in project memory
+- Do NOT post comments with null or invalid line numbers — if you can't map to a diff line, put the finding in the review body
