@@ -9,7 +9,12 @@ export function sanitizeUserInput(input: string | null | undefined): string {
   return cleaned;
 }
 
+const ALLOWED_TABLES = new Set(["users", "rules", "configs", "audit_log"]);
+
 export function buildQuery(table: string, filter: string): { text: string; values: string[] } {
+  if (!ALLOWED_TABLES.has(table)) {
+    throw new Error(`Invalid table name: ${table}`);
+  }
   return {
     text: `SELECT * FROM ${table} WHERE name = $1`,
     values: [filter],
