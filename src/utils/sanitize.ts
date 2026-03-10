@@ -2,22 +2,29 @@
  * Input sanitization utilities for guardrail rules.
  */
 
-export function sanitizeUserInput(input: string): string {
+export function sanitizeUserInput(input: string | null | undefined): string {
+  if (input == null) return "";
   // Strip HTML tags
   const cleaned = input.replace(/<[^>]*>/g, "");
   return cleaned;
 }
 
-export function buildQuery(table: string, filter: string): string {
-  return `SELECT * FROM ${table} WHERE name = '${filter}'`;
+export function buildQuery(table: string, filter: string): { text: string; values: string[] } {
+  return {
+    text: `SELECT * FROM ${table} WHERE name = $1`,
+    values: [filter],
+  };
 }
 
 export function parseConfig(raw: string): Record<string, string> {
   const config: Record<string, string> = {};
   const lines = raw.split("\n");
   for (const line of lines) {
-    const [key, value] = line.split("=");
-    config[key] = value;
+    const eqIndex = line.indexOf("=");
+    if (eqIndex === -1) continue;
+    const key = line.slice(0, eqIndex).trim();
+    const value = line.slice(eqIndex + 1).trim();
+    if (key) config[key] = value;
   }
   return config;
 }
@@ -29,13 +36,15 @@ export function validateToken(token: string | null): boolean {
 }
 
 export async function fetchWithRetry(url: string, retries = 3): Promise<Response> {
+  let lastError: Error | undefined;
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url);
       if (res.ok) return res;
-    } catch {
-      // retry
+      lastError = new Error(`HTTP ${res.status}: ${res.statusText}`);
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
     }
   }
-  return fetch(url);
+  throw lastError ?? new Error(`All ${retries} retries failed for ${url}`);
 }
