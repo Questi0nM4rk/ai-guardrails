@@ -66,41 +66,25 @@ Old code. Being replaced by v1. Don't add new features here.
 - 434 v1 tests + 597 legacy tests, all passing
 - Package configured: `uv run python -c "from ai_guardrails.cli import app"` works
 - Branch: `refactor/extract-lang-config`, PR #53 open
-- Review bot: `minimax/minimax-m2.5` via `.guardrails-review.toml`
-- Sibling project: `guardrails-review` at `~/Projects/guardrails-review/`
+- Review bot: cc-review (Claude Code) — auto-reviews on PR open
 
 
 ## AI Guardrails - Code Standards
 
 This project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails) for pedantic code enforcement.
 Pre-commit hooks auto-fix formatting, then run security scans, linting, and type checks.
-guardrails-review auto-reviews every PR push. CodeRabbit is optional (off by default).
+cc-review auto-reviews every PR on open. Interactive via `@cc-review` comments.
 
-### Tools
+### Review Bot (cc-review)
 
-```bash
-ai-guardrails comments --pr <N>                                    # List unresolved review threads
-ai-guardrails comments --pr <N> --bot claude                       # Filter by bot
-ai-guardrails comments --pr <N> --resolve <THREAD_ID> "Fixed."     # Resolve a thread with reply
-ai-guardrails comments --pr <N> --resolve-all --bot <BOT>          # Batch resolve by bot
-guardrails-review context --pr <N>                                    # Structured review state for AI agents
-```
-
-Use `ai-guardrails comments` to check PR status instead of raw `gh api` calls — the tool
-handles pagination, filtering, and formatting.
-
-### Review Bot Rules for AI Agents
-
-guardrails-review auto-reviews on every push. It posts REQUEST_CHANGES with inline
-defect comments, auto-resolves stale threads on new pushes, and sets commit status
-for branch protection. CodeRabbit is optional and triggered manually.
+cc-review auto-reviews on PR open. It posts REQUEST_CHANGES with inline comments
+for bugs, security issues, and logic errors. Supports 4 modes: standard, strict,
+bug-hunt, simplify (via labels or workflow_dispatch). Interactive via `@cc-review`.
 
 **Fix every review comment that is not a false positive. Even nitpicks. Even style.**
 
-- Use `ai-guardrails comments` to check and resolve threads.
 - Fix ALL findings locally, then push once. One push per review round.
 - Ask the human before pushing. Explain what changed.
-- Wait for all bots (~5 min) before acting on feedback.
 
 **Do not:**
 
