@@ -1,0 +1,24 @@
+{
+  "body": "CLI-posted review via `post-review.ts` — validating REQUEST_CHANGES with inline comments.\n\n### Outside Diff\n\n- Missing input validation on `sanitizeUserInput` — the function doesn't handle `null` or `undefined` inputs, which would crash with `Cannot read properties of null`.",
+  "event": "REQUEST_CHANGES",
+  "comments": [
+    {
+      "path": "src/utils/sanitize.ts",
+      "line": 12,
+      "side": "RIGHT",
+      "body": "**SQL injection** — `table` and `filter` are interpolated directly into the query. Use parameterized queries."
+    },
+    {
+      "path": "src/utils/sanitize.ts",
+      "line": 19,
+      "side": "RIGHT",
+      "body": "**Config values with `=` get truncated** — `split(\"=\")` drops everything after the first `=` in values. Use `indexOf(\"=\")` to split on first occurrence only."
+    },
+    {
+      "path": "src/utils/sanitize.ts",
+      "line": 40,
+      "side": "RIGHT",
+      "body": "**Unhandled final fetch** — if all retries fail, this final `fetch(url)` throws an uncaught exception. Wrap in try/catch or return a rejected promise with context."
+    }
+  ]
+}
