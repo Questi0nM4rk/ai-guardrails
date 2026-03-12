@@ -1,4 +1,5 @@
 import { extname } from "node:path";
+import { parseAllowComments } from "@/hooks/allow-comment";
 
 const SUPPRESSION_PATTERNS: Record<string, RegExp[]> = {
     python: [
@@ -10,7 +11,7 @@ const SUPPRESSION_PATTERNS: Record<string, RegExp[]> = {
     typescript: [
         /\/\/\s*@ts-ignore/,
         /\/\/\s*@ts-nocheck/,
-        /eslint-disable/,
+        /eslint-disable/, // ai-guardrails-allow: suppress-comments/eslint-disable "pattern definition — not an active suppression"
         /\/\*\s*tslint:disable/,
     ],
     rust: [/#\[allow\(/, /#!\[allow\(/],
@@ -60,10 +61,11 @@ export function scanFile(filePath: string, content: string): Finding[] {
     const patterns = SUPPRESSION_PATTERNS[lang] ?? [];
     const findings: Finding[] = [];
     const lines = content.split("\n");
+    const allowedLines = new Set(parseAllowComments(lines).map((c) => c.line));
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i] ?? "";
-        if (line.includes("ai-guardrails-allow")) continue;
+        if (allowedLines.has(i + 1)) continue;
         for (const pattern of patterns) {
             if (pattern.test(line)) {
                 findings.push({ file: filePath, line: i + 1, pattern: pattern.source });

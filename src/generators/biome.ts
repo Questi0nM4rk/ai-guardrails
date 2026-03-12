@@ -7,7 +7,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
     const indentWidth = config.values.indent_width ?? 2;
     return JSON.stringify(
         {
-            $schema: "https://biomejs.dev/schemas/2.3.15/schema.json",
+            $schema: "https://biomejs.dev/schemas/2.4.6/schema.json",
             linter: {
                 enabled: true,
                 rules: {

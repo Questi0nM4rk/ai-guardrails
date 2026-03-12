@@ -25,6 +25,12 @@ pre-commit:
       fail_text: "Markdown lint errors found"
       priority: 2
 
+    check-suppress-comments:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: ./dist/ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
+      priority: 2
+
     no-commits-to-main:
       run: |
         branch=$(git rev-parse --abbrev-ref HEAD)

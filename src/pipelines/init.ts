@@ -32,8 +32,7 @@ async function promptProfile(): Promise<Profile> {
     const rl = createStdinReader();
     try {
         let prompt = "Select profile [strict/standard/minimal] (default: standard): ";
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
+        for (;;) {
             const input = await askQuestion(rl, prompt);
             const trimmed = input.trim().toLowerCase();
             if (trimmed === "") return "standard";

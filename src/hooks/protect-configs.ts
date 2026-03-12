@@ -15,6 +15,7 @@ export const MANAGED_FILES: readonly string[] = [
     "AGENTS.md",
     ".cursorrules",
     ".windsurfrules",
+    ".claude/settings.json",
     ".github/copilot-instructions.md",
     ".github/workflows/guardrails-check.yml",
 ];
