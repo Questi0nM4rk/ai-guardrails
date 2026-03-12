@@ -15,7 +15,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.3.10"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -38,7 +38,7 @@ jobs:
 
       - name: Run semgrep
         run: |
-          pip install semgrep==1.117.0
+          pip install --break-system-packages semgrep==1.117.0
           semgrep --config auto --error --exclude tests/
 
   test:
@@ -49,7 +49,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: "1.3.10"
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
