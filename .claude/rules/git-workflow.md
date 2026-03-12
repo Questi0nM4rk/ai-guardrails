@@ -6,12 +6,14 @@
 - Complete ALL changes locally before pushing (all files, tests passing, lint clean)
 - Batch related changes into logical commits — push all at once
 
-## Review Bots
+## Review Bot
 
 | Bot | Focus | Trigger |
 |-----|-------|---------|
-| guardrails-review | Pedantic defect detection, auto-resolve, commit status gate | **Auto** on PR open + every push |
-| CodeRabbit | Static analysis, security, language conventions | **Optional** (`@coderabbitai review`) |
+| cc-review | Bugs, security, logic errors, AI slop detection | **Auto** on PR open |
+
+Interactive: comment `@cc-review <request>` on any PR.
+Modes: `standard` (default), `strict`, `bug-hunt`, `simplify` (via labels or workflow_dispatch).
 
 - Address ALL review feedback before pushing again — fix every comment, push once
 
