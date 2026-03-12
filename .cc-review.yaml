@@ -1,45 +1,23 @@
-# cc-review bot configuration
-# Place this file in your repository root to customize review behavior.
-# All fields are optional — defaults are shown below.
-
 version: 1
-
-# Review mode on PR open: standard | strict | bug-hunt | simplify
 mode: standard
-
-# Automatically review when PRs are opened
 auto_review: true
 
-# Primary languages in this project (focuses review patterns)
-languages: []
-#  - python
-#  - csharp
-#  - typescript
+languages:
+  - python
 
-# Paths to skip during review (glob patterns)
-ignore_paths: []
-#  - "docs/**"
-#  - "*.md"
-#  - "**/*.test.*"
-#  - "**/__snapshots__/**"
-#  - "vendor/**"
+ignore_paths:
+  - "docs/**"
+  - "**/*.md"
 
-# Custom review instructions (appended to the review prompt)
-# Use this for project-specific conventions the reviewer should know.
-instructions: ""
-#  instructions: |
-#    This is a Python FastAPI project using SQLAlchemy.
-#    Pay special attention to async/await patterns.
-#    All database operations must use transactions.
+instructions: |
+  Python CLI tool using cyclopts + pipeline architecture with DI.
+  Generated configs are hash-protected — never edit them directly.
+  All lint suppressions go through .guardrails-exceptions.toml, not inline.
+  All subprocess calls must use `uv run` — never bare `python` or `ruff`.
+  Max 200 lines per module. No unparameterized dict/list in public APIs.
 
-# Known patterns to skip (prevents false positives)
-# Add patterns the reviewer keeps flagging that are intentional in your project.
-known_patterns: []
-#  - "We intentionally use broad exception handlers in middleware"
-#  - "Task.Run is used for CPU-bound work in this project"
+known_patterns:
+  - "ARG002 on ctx parameter in pipeline steps — required by protocol"
 
-# Slop detection — scan for AI-generated code patterns
 slop_detection: true
-
-# Persistent memory across reviews (uses orphan git branch)
 memory: true
