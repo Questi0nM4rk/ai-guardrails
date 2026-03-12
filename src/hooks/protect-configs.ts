@@ -19,8 +19,9 @@ export const MANAGED_FILES: readonly string[] = [
     ".github/workflows/guardrails-check.yml",
 ];
 
+// Non-redirect write patterns — these don't need file-position anchoring
+// because the operation name itself implies a write (tee, sed -i, cp dest, mv dest).
 const WRITE_PATTERNS: RegExp[] = [
-    />/,
     /\btee\b/,
     /\bsed\s+-i/,
     /\bawk\b.*>|>\s*\bawk\b/,
@@ -31,9 +32,24 @@ const WRITE_PATTERNS: RegExp[] = [
     /\bmv\b/,
 ];
 
+function escapeRegex(s: string): string {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function protectsFile(command: string): string | null {
     for (const managed of MANAGED_FILES) {
         if (!command.includes(managed)) continue;
+
+        // For redirect operators, anchor to the managed file being the write target.
+        // Bare />/ matched any > in the command (e.g. reading ruff.toml on the left
+        // side of a redirect, or ruff.toml appearing only in a commit message).
+        const redirectToManaged = new RegExp(
+            String.raw`>>?\s*(?:\S+\/)*${escapeRegex(managed)}\b`
+        );
+        if (redirectToManaged.test(command)) {
+            return `Blocked: attempt to write managed config file: ${managed}`;
+        }
+
         for (const pattern of WRITE_PATTERNS) {
             if (pattern.test(command)) {
                 return `Blocked: attempt to write managed config file: ${managed}`;

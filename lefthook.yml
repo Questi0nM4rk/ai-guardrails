@@ -1,11 +1,6 @@
 # ai-guardrails:hash:sha256:dfac25cfa7842301182c7432a7c9800880b049110a7c14f65d742c4d2659ab37
 pre-commit:
   commands:
-    format-and-stage:
-      glob: "*.{ts,tsx,js,jsx}"
-      run: echo "Format step — configure per language above"
-      priority: 1
-
     biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
       run: biome check --write {staged_files} && git add {staged_files}
