@@ -27,8 +27,13 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{ts,tsx,js,jsx}"
-      run: ./dist/ai-guardrails hook suppress-comments {staged_files}
-      fail_text: "Inline suppression comments require a reason"
+      run: |
+        if [ ! -f ./dist/ai-guardrails ]; then
+          echo "Binary not found — run: bun run build"
+          exit 1
+        fi
+        ./dist/ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Suppression comment found (or binary missing — run: bun run build)"
       priority: 2
 
     no-commits-to-main:

@@ -18,19 +18,19 @@ jobs:
 `;
 
 export async function setupCiStep(
-    projectDir: string,
-    fileManager: FileManager
+  projectDir: string,
+  fileManager: FileManager
 ): Promise<StepResult> {
-    try {
-        const workflowDir = join(projectDir, ".github", "workflows");
-        await fileManager.mkdir(workflowDir, { parents: true });
+  try {
+    const workflowDir = join(projectDir, ".github", "workflows");
+    await fileManager.mkdir(workflowDir, { parents: true });
 
-        const dest = join(workflowDir, "ai-guardrails.yml");
-        await fileManager.writeText(dest, CI_WORKFLOW);
+    const dest = join(workflowDir, "ai-guardrails.yml");
+    await fileManager.writeText(dest, CI_WORKFLOW);
 
-        return ok("CI workflow written to .github/workflows/ai-guardrails.yml");
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return error(`CI setup failed: ${message}`);
-    }
+    return ok("CI workflow written to .github/workflows/ai-guardrails.yml");
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return error(`CI setup failed: ${message}`);
+  }
 }

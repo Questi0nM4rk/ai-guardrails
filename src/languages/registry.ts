@@ -12,15 +12,15 @@ import { universalPlugin } from "@/languages/universal";
 
 /** All built-in language plugins, in detection priority order. Universal is always last. */
 export const ALL_PLUGINS: readonly LanguagePlugin[] = [
-    pythonPlugin,
-    typescriptPlugin,
-    rustPlugin,
-    goPlugin,
-    shellPlugin,
-    cppPlugin,
-    dotnetPlugin,
-    luaPlugin,
-    universalPlugin,
+  pythonPlugin,
+  typescriptPlugin,
+  rustPlugin,
+  goPlugin,
+  shellPlugin,
+  cppPlugin,
+  dotnetPlugin,
+  luaPlugin,
+  universalPlugin,
 ];
 
 /**
@@ -29,14 +29,14 @@ export const ALL_PLUGINS: readonly LanguagePlugin[] = [
  * Universal plugin is always included.
  */
 export async function detectLanguages(
-    projectDir: string,
-    fileManager: FileManager
+  projectDir: string,
+  fileManager: FileManager
 ): Promise<LanguagePlugin[]> {
-    const results = await Promise.all(
-        ALL_PLUGINS.map(async (plugin) => ({
-            plugin,
-            active: await plugin.detect({ projectDir, fileManager }),
-        }))
-    );
-    return results.filter((r) => r.active).map((r) => r.plugin);
+  const results = await Promise.all(
+    ALL_PLUGINS.map(async (plugin) => ({
+      plugin,
+      active: await plugin.detect({ projectDir, fileManager }),
+    }))
+  );
+  return results.filter((r) => r.active).map((r) => r.plugin);
 }

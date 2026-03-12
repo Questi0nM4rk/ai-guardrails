@@ -4,16 +4,16 @@ import { ruffRunner } from "@/runners/ruff";
 import type { LinterRunner } from "@/runners/types";
 
 export const pythonPlugin: LanguagePlugin = {
-    id: "python",
-    name: "Python",
+  id: "python",
+  name: "Python",
 
-    async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
-        if (await fileManager.exists(`${projectDir}/pyproject.toml`)) return true;
-        const pyFiles = await fileManager.glob("**/*.py", projectDir);
-        return pyFiles.length > 0;
-    },
+  async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
+    if (await fileManager.exists(`${projectDir}/pyproject.toml`)) return true;
+    const pyFiles = await fileManager.glob("**/*.py", projectDir);
+    return pyFiles.length > 0;
+  },
 
-    runners(): LinterRunner[] {
-        return [ruffRunner, pyrightRunner];
-    },
+  runners(): LinterRunner[] {
+    return [ruffRunner, pyrightRunner];
+  },
 };

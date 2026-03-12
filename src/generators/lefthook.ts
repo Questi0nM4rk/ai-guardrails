@@ -4,30 +4,30 @@ import type { LanguagePlugin } from "@/languages/types";
 import { withHashHeader } from "@/utils/hash";
 
 function renderLefthookYml(activePluginIds: ReadonlySet<string>): string {
-    const hasPython = activePluginIds.has("python");
-    const hasTs = activePluginIds.has("typescript");
+  const hasPython = activePluginIds.has("python");
+  const hasTs = activePluginIds.has("typescript");
 
-    const pythonSection = hasPython
-        ? `
+  const pythonSection = hasPython
+    ? `
     ruff-fix:
       glob: "*.py"
       run: ruff check --fix {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 `
-        : "";
+    : "";
 
-    const tsSection = hasTs
-        ? `
+  const tsSection = hasTs
+    ? `
     biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
       run: biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 `
-        : "";
+    : "";
 
-    return `pre-commit:
+  return `pre-commit:
   commands:
 ${pythonSection}${tsSection}
     gitleaks:
@@ -77,21 +77,21 @@ commit-msg:
  * Callers must pass active plugin ids resolved from detectLanguages().
  */
 export function generateLefthookConfig(
-    _config: ResolvedConfig,
-    activePlugins: readonly LanguagePlugin[]
+  _config: ResolvedConfig,
+  activePlugins: readonly LanguagePlugin[]
 ): string {
-    const ids = new Set(activePlugins.map((p) => p.id));
-    return withHashHeader(renderLefthookYml(ids));
+  const ids = new Set(activePlugins.map((p) => p.id));
+  return withHashHeader(renderLefthookYml(ids));
 }
 
 export const LEFTHOOK_GENERATOR_ID = "lefthook";
 
 export const lefthookGenerator: ConfigGenerator = {
-    id: LEFTHOOK_GENERATOR_ID,
-    configFile: "lefthook.yml",
-    generate(_config: ResolvedConfig): string {
-        throw new Error(
-            "lefthookGenerator.generate() must not be called directly — use generateLefthookConfig(config, languages) instead"
-        );
-    },
+  id: LEFTHOOK_GENERATOR_ID,
+  configFile: "lefthook.yml",
+  generate(_config: ResolvedConfig): string {
+    throw new Error(
+      "lefthookGenerator.generate() must not be called directly — use generateLefthookConfig(config, languages) instead"
+    );
+  },
 };

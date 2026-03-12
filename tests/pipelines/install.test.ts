@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
-    buildResolvedConfig,
-    MachineConfigSchema,
-    ProjectConfigSchema,
+  buildResolvedConfig,
+  MachineConfigSchema,
+  ProjectConfigSchema,
 } from "@/config/schema";
 import { ALL_GENERATORS } from "@/generators/registry";
 import { installPipeline } from "@/pipelines/install";
@@ -12,104 +12,96 @@ import { FakeConsole } from "../fakes/fake-console";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
 function makeCtx(overrides: Partial<PipelineContext> = {}): PipelineContext {
-    const machine = MachineConfigSchema.parse({});
-    const project = ProjectConfigSchema.parse({});
-    const config = buildResolvedConfig(machine, project);
-    const fm = new FakeFileManager();
-    fm.seed("/project/pyproject.toml", "[tool.ruff]");
+  const machine = MachineConfigSchema.parse({});
+  const project = ProjectConfigSchema.parse({});
+  const config = buildResolvedConfig(machine, project);
+  const fm = new FakeFileManager();
+  fm.seed("/project/pyproject.toml", "[tool.ruff]");
 
-    return {
-        projectDir: "/project",
-        config,
-        fileManager: fm,
-        commandRunner: new FakeCommandRunner(),
-        console: new FakeConsole(),
-        flags: {},
-        ...overrides,
-    };
+  return {
+    projectDir: "/project",
+    config,
+    fileManager: fm,
+    commandRunner: new FakeCommandRunner(),
+    console: new FakeConsole(),
+    flags: {},
+    ...overrides,
+  };
 }
 
 describe("installPipeline", () => {
-    test("returns ok and writes all config files", async () => {
-        const ctx = makeCtx();
+  test("returns ok and writes all config files", async () => {
+    const ctx = makeCtx();
 
-        const result = await installPipeline.run(ctx);
+    const result = await installPipeline.run(ctx);
 
-        expect(result.status).toBe("ok");
-        const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(
-            ([p]) => p
-        );
-        // At minimum all generators should have written files
-        expect(writtenPaths.length).toBeGreaterThanOrEqual(ALL_GENERATORS.length);
-    });
+    expect(result.status).toBe("ok");
+    const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(([p]) => p);
+    // At minimum all generators should have written files
+    expect(writtenPaths.length).toBeGreaterThanOrEqual(ALL_GENERATORS.length);
+  });
 
-    test("writes lefthook.yml", async () => {
-        const ctx = makeCtx();
+  test("writes lefthook.yml", async () => {
+    const ctx = makeCtx();
 
-        await installPipeline.run(ctx);
+    await installPipeline.run(ctx);
 
-        const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(
-            ([p]) => p
-        );
-        const hasLefthook = writtenPaths.some((p) => p.endsWith("lefthook.yml"));
-        expect(hasLefthook).toBe(true);
-    });
+    const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(([p]) => p);
+    const hasLefthook = writtenPaths.some((p) => p.endsWith("lefthook.yml"));
+    expect(hasLefthook).toBe(true);
+  });
 
-    test("runs lefthook install", async () => {
-        const ctx = makeCtx();
-        const cr = ctx.commandRunner as FakeCommandRunner;
+  test("runs lefthook install", async () => {
+    const ctx = makeCtx();
+    const cr = ctx.commandRunner as FakeCommandRunner;
 
-        await installPipeline.run(ctx);
+    await installPipeline.run(ctx);
 
-        const hasLefthookInstall = cr.calls.some(
-            (args) => args[0] === "lefthook" && args[1] === "install"
-        );
-        expect(hasLefthookInstall).toBe(true);
-    });
+    const hasLefthookInstall = cr.calls.some(
+      (args) => args[0] === "lefthook" && args[1] === "install"
+    );
+    expect(hasLefthookInstall).toBe(true);
+  });
 
-    test("writes CI workflow file", async () => {
-        const ctx = makeCtx();
+  test("writes CI workflow file", async () => {
+    const ctx = makeCtx();
 
-        await installPipeline.run(ctx);
+    await installPipeline.run(ctx);
 
-        const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(
-            ([p]) => p
-        );
-        const hasCi = writtenPaths.some((p) => p.includes("ai-guardrails.yml"));
-        expect(hasCi).toBe(true);
-    });
+    const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(([p]) => p);
+    const hasCi = writtenPaths.some((p) => p.includes("ai-guardrails.yml"));
+    expect(hasCi).toBe(true);
+  });
 
-    test("skips hooks when noHooks flag is set", async () => {
-        const ctx = makeCtx({ flags: { noHooks: true } });
-        const cr = ctx.commandRunner as FakeCommandRunner;
+  test("skips hooks when noHooks flag is set", async () => {
+    const ctx = makeCtx({ flags: { noHooks: true } });
+    const cr = ctx.commandRunner as FakeCommandRunner;
 
-        await installPipeline.run(ctx);
+    await installPipeline.run(ctx);
 
-        const hasLefthookInstall = cr.calls.some(
-            (args) => args[0] === "lefthook" && args[1] === "install"
-        );
-        expect(hasLefthookInstall).toBe(false);
-    });
+    const hasLefthookInstall = cr.calls.some(
+      (args) => args[0] === "lefthook" && args[1] === "install"
+    );
+    expect(hasLefthookInstall).toBe(false);
+  });
 
-    test("skips CI when noCi flag is set", async () => {
-        const ctx = makeCtx({ flags: { noCi: true } });
+  test("skips CI when noCi flag is set", async () => {
+    const ctx = makeCtx({ flags: { noCi: true } });
 
-        await installPipeline.run(ctx);
+    await installPipeline.run(ctx);
 
-        const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(
-            ([p]) => p
-        );
-        const hasCi = writtenPaths.some((p) => p.includes("ai-guardrails.yml"));
-        expect(hasCi).toBe(false);
-    });
+    const writtenPaths = (ctx.fileManager as FakeFileManager).written.map(([p]) => p);
+    const hasCi = writtenPaths.some((p) => p.includes("ai-guardrails.yml"));
+    expect(hasCi).toBe(false);
+  });
 
-    test("reports progress steps to console", async () => {
-        const ctx = makeCtx();
-        const cons = ctx.console as FakeConsole;
+  test("reports progress steps to console", async () => {
+    const ctx = makeCtx();
+    const cons = ctx.console as FakeConsole;
 
-        await installPipeline.run(ctx);
+    await installPipeline.run(ctx);
 
-        expect(cons.steps.length).toBeGreaterThan(0);
-        expect(cons.successes.length).toBeGreaterThan(0);
-    });
+    expect(cons.steps.length).toBeGreaterThan(0);
+    expect(cons.successes.length).toBeGreaterThan(0);
+  });
 });

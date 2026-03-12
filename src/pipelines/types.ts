@@ -4,20 +4,20 @@ import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 
 export interface PipelineContext {
-    projectDir: string;
-    config: ResolvedConfig;
-    fileManager: FileManager;
-    commandRunner: CommandRunner;
-    console: Console;
-    flags: Record<string, unknown>;
+  projectDir: string;
+  config: ResolvedConfig;
+  fileManager: FileManager;
+  commandRunner: CommandRunner;
+  console: Console;
+  flags: Record<string, unknown>;
 }
 
 export interface PipelineResult {
-    status: "ok" | "error";
-    message?: string;
-    issueCount?: number;
+  status: "ok" | "error";
+  message?: string;
+  issueCount?: number;
 }
 
 export interface Pipeline {
-    run(ctx: PipelineContext): Promise<PipelineResult>;
+  run(ctx: PipelineContext): Promise<PipelineResult>;
 }

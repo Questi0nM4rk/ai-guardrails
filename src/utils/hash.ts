@@ -7,7 +7,7 @@ export const MD_HASH_SUFFIX = " -->";
 
 /** Compute a hex SHA-256 digest of a string. */
 export function computeHash(content: string): string {
-    return createHash("sha256").update(content).digest("hex");
+  return createHash("sha256").update(content).digest("hex");
 }
 
 /**
@@ -15,7 +15,7 @@ export function computeHash(content: string): string {
  * The hash covers the body text below the header line.
  */
 export function makeHashHeader(content: string): string {
-    return `${HASH_PREFIX}${computeHash(content)}`;
+  return `${HASH_PREFIX}${computeHash(content)}`;
 }
 
 /**
@@ -23,7 +23,7 @@ export function makeHashHeader(content: string): string {
  * The hash covers the body text below the header line.
  */
 export function makeJsoncHashHeader(content: string): string {
-    return `${JSONC_HASH_PREFIX}${computeHash(content)}`;
+  return `${JSONC_HASH_PREFIX}${computeHash(content)}`;
 }
 
 /**
@@ -31,7 +31,7 @@ export function makeJsoncHashHeader(content: string): string {
  * The format is: `<header line>\n<content>`.
  */
 export function withHashHeader(content: string): string {
-    return `${makeHashHeader(content)}\n${content}`;
+  return `${makeHashHeader(content)}\n${content}`;
 }
 
 /**
@@ -39,7 +39,7 @@ export function withHashHeader(content: string): string {
  * The format is: `<header line>\n<content>`.
  */
 export function withJsoncHashHeader(content: string): string {
-    return `${makeJsoncHashHeader(content)}\n${content}`;
+  return `${makeJsoncHashHeader(content)}\n${content}`;
 }
 
 /**
@@ -47,5 +47,5 @@ export function withJsoncHashHeader(content: string): string {
  * The format is: `<!-- ai-guardrails:sha256=<hash> -->\n<content>`.
  */
 export function withMarkdownHashHeader(content: string): string {
-    return `${MD_HASH_PREFIX}${computeHash(content)}${MD_HASH_SUFFIX}\n${content}`;
+  return `${MD_HASH_PREFIX}${computeHash(content)}${MD_HASH_SUFFIX}\n${content}`;
 }

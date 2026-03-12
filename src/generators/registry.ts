@@ -10,12 +10,12 @@ import type { ConfigGenerator } from "@/generators/types";
 
 /** All built-in config generators */
 export const ALL_GENERATORS: readonly ConfigGenerator[] = [
-    ruffGenerator,
-    biomeGenerator,
-    editorconfigGenerator,
-    markdownlintGenerator,
-    codespellGenerator,
-    lefthookGenerator,
-    claudeSettingsGenerator,
-    agentRulesGenerator,
+  ruffGenerator,
+  biomeGenerator,
+  editorconfigGenerator,
+  markdownlintGenerator,
+  codespellGenerator,
+  lefthookGenerator,
+  claudeSettingsGenerator,
+  agentRulesGenerator,
 ];
