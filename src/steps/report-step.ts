@@ -9,25 +9,25 @@ import { formatIssues } from "@/writers/text";
 export type ReportFormat = "text" | "sarif";
 
 export async function reportStep(
-    issues: LintIssue[],
-    format: ReportFormat,
-    console: Console,
-    fileManager: FileManager,
-    sarifOutputPath?: string
+  issues: LintIssue[],
+  format: ReportFormat,
+  console: Console,
+  fileManager: FileManager,
+  sarifOutputPath?: string
 ): Promise<StepResult> {
-    if (format === "sarif") {
-        const sarifJson = JSON.stringify(issuesToSarif(issues), null, 2);
-        if (sarifOutputPath) {
-            await fileManager.writeText(sarifOutputPath, sarifJson);
-        } else {
-            process.stdout.write(`${sarifJson}\n`);
-        }
+  if (format === "sarif") {
+    const sarifJson = JSON.stringify(issuesToSarif(issues), null, 2);
+    if (sarifOutputPath) {
+      await fileManager.writeText(sarifOutputPath, sarifJson);
+    } else {
+      process.stdout.write(`${sarifJson}\n`);
     }
+  }
 
-    if (format === "text") {
-        const text = formatIssues(issues);
-        if (text) console.error(text);
-    }
+  if (format === "text") {
+    const text = formatIssues(issues);
+    if (text) console.error(text);
+  }
 
-    return ok(`Reported ${issues.length} issue(s) in ${format} format`);
+  return ok(`Reported ${issues.length} issue(s) in ${format} format`);
 }

@@ -8,17 +8,17 @@ import { safeParseJson } from "@/utils/parse";
 
 /** Shape of a single comment in shellcheck --format=json1 output */
 interface ShellcheckComment {
-    file: string;
-    line: number;
-    column: number;
-    level: string;
-    code: number;
-    message: string;
+  file: string;
+  line: number;
+  column: number;
+  level: string;
+  code: number;
+  message: string;
 }
 
 /** Shape of the top-level shellcheck --format=json1 output */
 interface ShellcheckOutput {
-    comments: ShellcheckComment[];
+  comments: ShellcheckComment[];
 }
 
 /**
@@ -26,83 +26,80 @@ interface ShellcheckOutput {
  * Returns [] on malformed/empty input.
  */
 export function parseShellcheckOutput(stdout: string, projectDir: string): LintIssue[] {
-    const parsed = safeParseJson(stdout);
-    if (parsed === null) return [];
+  const parsed = safeParseJson(stdout);
+  if (parsed === null) return [];
 
-    if (!isShellcheckOutput(parsed)) return [];
+  if (!isShellcheckOutput(parsed)) return [];
 
-    return parsed.comments.map((comment) => {
-        const rule = `shellcheck/SC${comment.code}`;
-        const file = resolve(projectDir, comment.file);
-        const severity = comment.level === "error" ? "error" : "warning";
-        const fingerprint = computeFingerprint({
-            rule,
-            file,
-            lineContent: comment.message,
-            contextBefore: [],
-            contextAfter: [],
-        });
-
-        return {
-            rule,
-            linter: "shellcheck",
-            file,
-            line: comment.line,
-            col: comment.column,
-            message: comment.message,
-            severity,
-            fingerprint,
-        } satisfies LintIssue;
+  return parsed.comments.map((comment) => {
+    const rule = `shellcheck/SC${comment.code}`;
+    const file = resolve(projectDir, comment.file);
+    const severity = comment.level === "error" ? "error" : "warning";
+    const fingerprint = computeFingerprint({
+      rule,
+      file,
+      lineContent: comment.message,
+      contextBefore: [],
+      contextAfter: [],
     });
+
+    return {
+      rule,
+      linter: "shellcheck",
+      file,
+      line: comment.line,
+      col: comment.column,
+      message: comment.message,
+      severity,
+      fingerprint,
+    } satisfies LintIssue;
+  });
 }
 
 function isShellcheckOutput(value: unknown): value is ShellcheckOutput {
-    return (
-        typeof value === "object" &&
-        value !== null &&
-        "comments" in value &&
-        Array.isArray((value as ShellcheckOutput).comments)
-    );
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "comments" in value &&
+    Array.isArray((value as ShellcheckOutput).comments)
+  );
 }
 
 /** Glob for all shell script files across supported extensions. */
 export async function findShellFiles(
-    fileManager: FileManager,
-    projectDir: string
+  fileManager: FileManager,
+  projectDir: string
 ): Promise<string[]> {
-    return fileManager.glob("**/*.{sh,bash,zsh,ksh}", projectDir);
+  return fileManager.glob("**/*.{sh,bash,zsh,ksh}", projectDir);
 }
 
 export const shellcheckRunner: LinterRunner = {
-    id: "shellcheck",
-    name: "ShellCheck",
-    configFile: null,
-    installHint: {
-        description: "Shell script linter",
-        brew: "brew install shellcheck",
-        apt: "sudo apt install shellcheck",
-    },
+  id: "shellcheck",
+  name: "ShellCheck",
+  configFile: null,
+  installHint: {
+    description: "Shell script linter",
+    brew: "brew install shellcheck",
+    apt: "sudo apt install shellcheck",
+  },
 
-    async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
-        const result = await commandRunner.run(["shellcheck", "--version"]);
-        return result.exitCode === 0;
-    },
+  async isAvailable(commandRunner: CommandRunner): Promise<boolean> {
+    const result = await commandRunner.run(["shellcheck", "--version"]);
+    return result.exitCode === 0;
+  },
 
-    async run({
-        projectDir,
-        commandRunner,
-        fileManager,
-    }: RunOptions): Promise<LintIssue[]> {
-        const files = await findShellFiles(fileManager, projectDir);
-        if (files.length === 0) return [];
+  async run({
+    projectDir,
+    commandRunner,
+    fileManager,
+  }: RunOptions): Promise<LintIssue[]> {
+    const files = await findShellFiles(fileManager, projectDir);
+    if (files.length === 0) return [];
 
-        const result = await commandRunner.run(
-            ["shellcheck", "--format=json1", ...files],
-            {
-                cwd: projectDir,
-            }
-        );
+    const result = await commandRunner.run(["shellcheck", "--format=json1", ...files], {
+      cwd: projectDir,
+    });
 
-        return parseShellcheckOutput(result.stdout, projectDir);
-    },
+    return parseShellcheckOutput(result.stdout, projectDir);
+  },
 };

@@ -3,7 +3,7 @@ import type { ConfigGenerator } from "@/generators/types";
 import { withJsoncHashHeader } from "@/utils/hash";
 
 function renderMarkdownlintJsonc(_config: ResolvedConfig): string {
-    const body = `{
+  const body = `{
   "default": true,
   "MD013": { "line_length": 120, "tables": false, "code_blocks": false },
   "MD033": false,
@@ -12,13 +12,13 @@ function renderMarkdownlintJsonc(_config: ResolvedConfig): string {
   "MD060": false
 }
 `;
-    return withJsoncHashHeader(body);
+  return withJsoncHashHeader(body);
 }
 
 export const markdownlintGenerator: ConfigGenerator = {
-    id: "markdownlint",
-    configFile: ".markdownlint.jsonc",
-    generate(config: ResolvedConfig): string {
-        return renderMarkdownlintJsonc(config);
-    },
+  id: "markdownlint",
+  configFile: ".markdownlint.jsonc",
+  generate(config: ResolvedConfig): string {
+    return renderMarkdownlintJsonc(config);
+  },
 };

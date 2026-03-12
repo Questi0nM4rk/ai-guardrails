@@ -5,50 +5,50 @@ import { withMarkdownHashHeader } from "@/utils/hash";
 
 /** AI tool detection results */
 export interface DetectedAgentTools {
-    claude: boolean;
-    cursor: boolean;
-    windsurf: boolean;
-    copilot: boolean;
-    cline: boolean;
-    aider: boolean;
+  claude: boolean;
+  cursor: boolean;
+  windsurf: boolean;
+  copilot: boolean;
+  cline: boolean;
+  aider: boolean;
 }
 
 /** Detect which AI agent tools are configured in the project */
 export async function detectAgentTools(
-    projectDir: string,
-    fileManager: FileManager
+  projectDir: string,
+  fileManager: FileManager
 ): Promise<DetectedAgentTools> {
-    // Run all existence checks and the cursor-rules glob in parallel
-    const [
-        claudeSettings,
-        claudeMd,
-        cursorRules,
-        cursorDir,
-        windsurf,
-        copilot,
-        cline,
-        aider,
-        cursorRulesFiles,
-    ] = await Promise.all([
-        fileManager.exists(`${projectDir}/.claude/settings.json`),
-        fileManager.exists(`${projectDir}/.claude/CLAUDE.md`),
-        fileManager.exists(`${projectDir}/.cursorrules`),
-        fileManager.exists(`${projectDir}/.cursor/rules`),
-        fileManager.exists(`${projectDir}/.windsurfrules`),
-        fileManager.exists(`${projectDir}/.github/copilot-instructions.md`),
-        fileManager.exists(`${projectDir}/.clinerules`),
-        fileManager.exists(`${projectDir}/.aider.conf.yml`),
-        fileManager.glob("**/.cursor/rules/**", projectDir),
-    ]);
+  // Run all existence checks and the cursor-rules glob in parallel
+  const [
+    claudeSettings,
+    claudeMd,
+    cursorRules,
+    cursorDir,
+    windsurf,
+    copilot,
+    cline,
+    aider,
+    cursorRulesFiles,
+  ] = await Promise.all([
+    fileManager.exists(`${projectDir}/.claude/settings.json`),
+    fileManager.exists(`${projectDir}/.claude/CLAUDE.md`),
+    fileManager.exists(`${projectDir}/.cursorrules`),
+    fileManager.exists(`${projectDir}/.cursor/rules`),
+    fileManager.exists(`${projectDir}/.windsurfrules`),
+    fileManager.exists(`${projectDir}/.github/copilot-instructions.md`),
+    fileManager.exists(`${projectDir}/.clinerules`),
+    fileManager.exists(`${projectDir}/.aider.conf.yml`),
+    fileManager.glob("**/.cursor/rules/**", projectDir),
+  ]);
 
-    return {
-        claude: claudeSettings || claudeMd,
-        cursor: cursorRules || cursorDir || cursorRulesFiles.length > 0,
-        windsurf,
-        copilot,
-        cline,
-        aider,
-    };
+  return {
+    claude: claudeSettings || claudeMd,
+    cursor: cursorRules || cursorDir || cursorRulesFiles.length > 0,
+    windsurf,
+    copilot,
+    cline,
+    aider,
+  };
 }
 
 const BASE_RULES = `# AI Agent Rules
@@ -132,30 +132,30 @@ const AIDER_ADDITIONS = `
 
 /** Symlink targets for each AI tool's rules file */
 export const AGENT_SYMLINKS: Readonly<Record<string, string>> = {
-    cursor: ".cursorrules",
-    windsurf: ".windsurfrules",
-    copilot: ".github/copilot-instructions.md",
-    cline: ".clinerules",
+  cursor: ".cursorrules",
+  windsurf: ".windsurfrules",
+  copilot: ".github/copilot-instructions.md",
+  cline: ".clinerules",
 } as const;
 
 const TOOL_ADDITIONS: Partial<Record<keyof DetectedAgentTools, string>> = {
-    claude: CLAUDE_ADDITIONS,
-    cursor: CURSOR_ADDITIONS,
-    windsurf: WINDSURF_ADDITIONS,
-    copilot: COPILOT_ADDITIONS,
-    cline: CLINE_ADDITIONS,
-    aider: AIDER_ADDITIONS,
+  claude: CLAUDE_ADDITIONS,
+  cursor: CURSOR_ADDITIONS,
+  windsurf: WINDSURF_ADDITIONS,
+  copilot: COPILOT_ADDITIONS,
+  cline: CLINE_ADDITIONS,
+  aider: AIDER_ADDITIONS,
 };
 
 /** Build the combined rules content for a specific agent tool */
 export function buildAgentRules(tool: keyof DetectedAgentTools): string {
-    return BASE_RULES + (TOOL_ADDITIONS[tool] ?? "");
+  return BASE_RULES + (TOOL_ADDITIONS[tool] ?? "");
 }
 
 export const agentRulesGenerator: ConfigGenerator = {
-    id: "agent-rules",
-    configFile: ".ai-guardrails/agent-rules/base.md",
-    generate(_config: ResolvedConfig): string {
-        return withMarkdownHashHeader(BASE_RULES);
-    },
+  id: "agent-rules",
+  configFile: ".ai-guardrails/agent-rules/base.md",
+  generate(_config: ResolvedConfig): string {
+    return withMarkdownHashHeader(BASE_RULES);
+  },
 };

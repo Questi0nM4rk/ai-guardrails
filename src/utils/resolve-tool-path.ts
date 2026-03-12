@@ -6,18 +6,18 @@ import type { CommandRunner } from "@/infra/command-runner";
 const resolveCache = new Map<string, Promise<string | null>>();
 
 async function performResolve(
-    toolName: string,
-    projectDir: string,
-    commandRunner: CommandRunner
+  toolName: string,
+  projectDir: string,
+  commandRunner: CommandRunner
 ): Promise<string | null> {
-    const localPath = join(projectDir, "node_modules", ".bin", toolName);
-    const localResult = await commandRunner.run([localPath, "--version"], {
-        cwd: projectDir,
-    });
-    if (localResult.exitCode === 0) return localPath;
-    const globalResult = await commandRunner.run([toolName, "--version"]);
-    if (globalResult.exitCode === 0) return toolName;
-    return null;
+  const localPath = join(projectDir, "node_modules", ".bin", toolName);
+  const localResult = await commandRunner.run([localPath, "--version"], {
+    cwd: projectDir,
+  });
+  if (localResult.exitCode === 0) return localPath;
+  const globalResult = await commandRunner.run([toolName, "--version"]);
+  if (globalResult.exitCode === 0) return toolName;
+  return null;
 }
 
 /**
@@ -32,20 +32,20 @@ async function performResolve(
  * (e.g. isAvailable() followed by run()) do not re-spawn --version probes.
  */
 export async function resolveToolPath(
-    toolName: string,
-    projectDir: string,
-    commandRunner: CommandRunner
+  toolName: string,
+  projectDir: string,
+  commandRunner: CommandRunner
 ): Promise<string | null> {
-    const key = `${toolName}:${projectDir}`;
-    let pending = resolveCache.get(key);
-    if (pending === undefined) {
-        pending = performResolve(toolName, projectDir, commandRunner);
-        resolveCache.set(key, pending);
-    }
-    return pending;
+  const key = `${toolName}:${projectDir}`;
+  let pending = resolveCache.get(key);
+  if (pending === undefined) {
+    pending = performResolve(toolName, projectDir, commandRunner);
+    resolveCache.set(key, pending);
+  }
+  return pending;
 }
 
 /** Clear the resolve cache — intended for test isolation only. */
 export function clearResolveToolPathCache(): void {
-    resolveCache.clear();
+  resolveCache.clear();
 }

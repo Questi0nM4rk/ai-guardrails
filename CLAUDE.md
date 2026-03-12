@@ -29,8 +29,7 @@ Pipeline + Plugin with DI. Full spec: `docs/specs/` — read before implementing
 
 ## Branch Strategy
 
-- `ts-rewrite` — integration branch (treat as main for this rewrite)
-- Feature PRs target `ts-rewrite`, NOT `main`
+- `main` — default branch; all PRs target `main`
 - Each feature maps to one or more spec sections
 
 ## Module Layout (`src/`)
@@ -66,7 +65,7 @@ src/
 
 ## DONTs
 
-- NEVER push directly to `ts-rewrite` or `main` — open a PR
+- NEVER push directly to `main` — open a PR
 - NEVER use `any` — `unknown` + Zod at boundaries
 - NEVER non-null assert (`!`) — handle undefined explicitly
 - NEVER import infra directly in domain code — inject via context

@@ -3,7 +3,7 @@ import type { ConfigGenerator } from "@/generators/types";
 import { withHashHeader } from "@/utils/hash";
 
 function renderEditorconfig(_config: ResolvedConfig): string {
-    const content = `root = true
+  const content = `root = true
 
 [*]
 charset = utf-8
@@ -23,13 +23,13 @@ indent_style = tab
 [*.go]
 indent_style = tab
 `;
-    return withHashHeader(content);
+  return withHashHeader(content);
 }
 
 export const editorconfigGenerator: ConfigGenerator = {
-    id: "editorconfig",
-    configFile: ".editorconfig",
-    generate(config: ResolvedConfig): string {
-        return renderEditorconfig(config);
-    },
+  id: "editorconfig",
+  configFile: ".editorconfig",
+  generate(config: ResolvedConfig): string {
+    return renderEditorconfig(config);
+  },
 };

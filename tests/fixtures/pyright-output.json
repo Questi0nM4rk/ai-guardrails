@@ -1,43 +1,43 @@
 {
-    "version": "1.1.385",
-    "time": "1709904000000",
-    "generalDiagnostics": [
-        {
-            "file": "/home/user/project/src/services/auth.py",
-            "severity": "error",
-            "message": "Type \"str\" is not assignable to type \"int\"",
-            "range": {
-                "start": { "line": 24, "character": 15 },
-                "end": { "line": 24, "character": 28 }
-            },
-            "rule": "reportArgumentType"
-        },
-        {
-            "file": "/home/user/project/src/models/user.py",
-            "severity": "warning",
-            "message": "Return type is unknown",
-            "range": {
-                "start": { "line": 9, "character": 4 },
-                "end": { "line": 9, "character": 16 }
-            },
-            "rule": "reportUnknownVariableType"
-        },
-        {
-            "file": "/home/user/project/src/utils.py",
-            "severity": "information",
-            "message": "Import could be stubbed",
-            "range": {
-                "start": { "line": 1, "character": 0 },
-                "end": { "line": 1, "character": 12 }
-            },
-            "rule": "reportMissingTypeStubs"
-        }
-    ],
-    "summary": {
-        "filesAnalyzed": 12,
-        "errorCount": 1,
-        "warningCount": 1,
-        "informationCount": 1,
-        "timeInSec": 0.842
+  "version": "1.1.385",
+  "time": "1709904000000",
+  "generalDiagnostics": [
+    {
+      "file": "/home/user/project/src/services/auth.py",
+      "severity": "error",
+      "message": "Type \"str\" is not assignable to type \"int\"",
+      "range": {
+        "start": { "line": 24, "character": 15 },
+        "end": { "line": 24, "character": 28 }
+      },
+      "rule": "reportArgumentType"
+    },
+    {
+      "file": "/home/user/project/src/models/user.py",
+      "severity": "warning",
+      "message": "Return type is unknown",
+      "range": {
+        "start": { "line": 9, "character": 4 },
+        "end": { "line": 9, "character": 16 }
+      },
+      "rule": "reportUnknownVariableType"
+    },
+    {
+      "file": "/home/user/project/src/utils.py",
+      "severity": "information",
+      "message": "Import could be stubbed",
+      "range": {
+        "start": { "line": 1, "character": 0 },
+        "end": { "line": 1, "character": 12 }
+      },
+      "rule": "reportMissingTypeStubs"
     }
+  ],
+  "summary": {
+    "filesAnalyzed": 12,
+    "errorCount": 1,
+    "warningCount": 1,
+    "informationCount": 1,
+    "timeInSec": 0.842
+  }
 }

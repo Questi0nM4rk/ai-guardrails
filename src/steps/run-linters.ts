@@ -9,21 +9,21 @@ import type { LintIssue } from "@/models/lint-issue";
  * Runners that report themselves unavailable are skipped.
  */
 export async function runLinterCollection(
-    projectDir: string,
-    languages: readonly LanguagePlugin[],
-    config: ResolvedConfig,
-    commandRunner: CommandRunner,
-    fileManager: FileManager
+  projectDir: string,
+  languages: readonly LanguagePlugin[],
+  config: ResolvedConfig,
+  commandRunner: CommandRunner,
+  fileManager: FileManager
 ): Promise<LintIssue[]> {
-    const opts = { projectDir, config, commandRunner, fileManager };
-    const results = await Promise.all(
-        languages.flatMap((plugin) =>
-            plugin.runners().map(async (runner) => {
-                const available = await runner.isAvailable(commandRunner, projectDir);
-                if (!available) return [] as LintIssue[];
-                return runner.run(opts);
-            })
-        )
-    );
-    return results.flat();
+  const opts = { projectDir, config, commandRunner, fileManager };
+  const results = await Promise.all(
+    languages.flatMap((plugin) =>
+      plugin.runners().map(async (runner) => {
+        const available = await runner.isAvailable(commandRunner, projectDir);
+        if (!available) return [] as LintIssue[];
+        return runner.run(opts);
+      })
+    )
+  );
+  return results.flat();
 }
