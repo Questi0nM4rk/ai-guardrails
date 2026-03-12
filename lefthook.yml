@@ -1,4 +1,4 @@
-# ai-guardrails:hash:sha256:cf1f59cb2e0e391ce3c10c2d86ea418a2eede5dccf179df03cbca7b329934017
+# ai-guardrails:hash:sha256:dfac25cfa7842301182c7432a7c9800880b049110a7c14f65d742c4d2659ab37
 pre-commit:
   commands:
     suppress-comments:
@@ -36,6 +36,15 @@ pre-commit:
     guardrails-check:
       glob: '*.py'
       run: uv run python -m ai_guardrails check
+      priority: 2
+    node-format-and-stage:
+      glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
+      run: biome check --apply {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+    biome-check:
+      glob: '*.{js,jsx,ts,tsx,mjs,cjs}'
+      run: biome check --error-on-warnings {staged_files}
       priority: 2
 commit-msg:
   commands:
