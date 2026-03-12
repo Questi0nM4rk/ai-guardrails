@@ -8,7 +8,8 @@ import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { computeHash } from "@/utils/hash";
 
-const HASH_HEADER_PATTERN = /^(?:\/\/|#) ai-guardrails:sha256=([0-9a-f]{64})$/;
+const HASH_HEADER_PATTERN =
+    /^(?:\/\/|#) ai-guardrails:sha256=([0-9a-f]{64})$|^<!-- ai-guardrails:sha256=([0-9a-f]{64}) -->$/;
 
 function hasValidHash(content: string): boolean {
     const firstNewline = content.indexOf("\n");
@@ -16,8 +17,9 @@ function hasValidHash(content: string): boolean {
     const headerLine = content.slice(0, firstNewline);
     const rest = content.slice(firstNewline + 1);
     const match = HASH_HEADER_PATTERN.exec(headerLine);
-    if (!match || !match[1]) return false;
-    return computeHash(rest) === match[1];
+    const storedHash = match?.[1] ?? match?.[2];
+    if (!storedHash) return false;
+    return computeHash(rest) === storedHash;
 }
 
 function hasHashHeader(content: string): boolean {
