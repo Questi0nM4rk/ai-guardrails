@@ -38,7 +38,7 @@ jobs:
 
       - name: Run semgrep
         run: |
-          pip install --break-system-packages semgrep==1.117.0
+          pip install semgrep==1.117.0
           semgrep --config auto --error --exclude tests/
 
   test:
