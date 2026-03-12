@@ -64,24 +64,30 @@ jobs:
 
       - name: Determine PR number and review mode
         id: config
+        env:
+          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
+          PR_NUMBER_FROM_EVENT: ${{ github.event.pull_request.number }}
+          INPUT_MODE: ${{ github.event.inputs.mode }}
+          EVENT_ACTION: ${{ github.event.action }}
+          LABEL_NAME: ${{ github.event.label.name }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "pr_number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "pr_number=$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
           else
-            echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$PR_NUMBER_FROM_EVENT" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            MODE="${{ github.event.inputs.mode }}"
-          elif [ "${{ github.event.action }}" = "labeled" ]; then
-            MODE="${{ github.event.label.name }}"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            MODE="$INPUT_MODE"
+          elif [ "$EVENT_ACTION" = "labeled" ]; then
+            MODE="$LABEL_NAME"
           else
             MODE=$(grep -oP '(?<=^mode:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "standard")
             [ -z "$MODE" ] && MODE="standard"
           fi
           echo "mode=$MODE" >> "$GITHUB_OUTPUT"
 
-          if [ "${{ github.event.action }}" = "opened" ]; then
+          if [ "$EVENT_ACTION" = "opened" ]; then
             AUTO=$(grep -oP '(?<=^auto_review:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "true")
             if [ "$AUTO" = "false" ]; then
               echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -127,7 +133,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           PR_NUMBER="${{ steps.config.outputs.pr_number }}"
-          REPO="${{ github.repository }}"
+          REPO="$GITHUB_REPOSITORY"
           MODE="${{ steps.config.outputs.mode }}"
 
           case "$MODE" in

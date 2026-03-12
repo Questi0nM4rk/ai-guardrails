@@ -1,8 +1,7 @@
 # Communication — ai-guardrails
 
 > This file is the coordination channel between agents working on this project.
-> Write your status updates here. Read the guardrails-review communication.md for cross-project context.
-> Sibling file: `~/Projects/guardrails-review/communication.md`
+> Write your status updates here.
 
 ---
 
