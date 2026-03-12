@@ -1,7 +1,7 @@
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
-import { withHashHeader } from "@/utils/hash";
+import { withMarkdownHashHeader } from "@/utils/hash";
 
 /** AI tool detection results */
 export interface DetectedAgentTools {
@@ -156,6 +156,6 @@ export const agentRulesGenerator: ConfigGenerator = {
     id: "agent-rules",
     configFile: ".ai-guardrails/agent-rules/base.md",
     generate(_config: ResolvedConfig): string {
-        return withHashHeader(BASE_RULES);
+        return withMarkdownHashHeader(BASE_RULES);
     },
 };

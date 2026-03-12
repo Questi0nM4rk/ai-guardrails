@@ -5,7 +5,6 @@ import {
     buildAgentRules,
     detectAgentTools,
 } from "@/generators/agent-rules";
-import { HASH_PREFIX } from "@/utils/hash";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
 const PROJECT_DIR = "/project";
@@ -137,6 +136,6 @@ describe("agentRulesGenerator", () => {
             isAllowed: () => false,
         };
         const output = agentRulesGenerator.generate(config);
-        expect(output.startsWith(HASH_PREFIX)).toBe(true);
+        expect(output.startsWith("<!-- ai-guardrails:sha256=")).toBe(true);
     });
 });

@@ -7,8 +7,6 @@ function renderLefthookYml(activePluginIds: ReadonlySet<string>): string {
     const hasPython = activePluginIds.has("python");
     const hasTs = activePluginIds.has("typescript");
 
-    const formatAndStageGlob = buildFormatGlob(hasPython, hasTs);
-
     const pythonSection = hasPython
         ? `
     ruff-fix:
@@ -31,7 +29,7 @@ function renderLefthookYml(activePluginIds: ReadonlySet<string>): string {
 
     return `pre-commit:
   commands:
-${formatAndStageGlob}${pythonSection}${tsSection}
+${pythonSection}${tsSection}
     gitleaks:
       run: gitleaks protect --staged --no-banner
       fail_text: "Potential secrets detected"
@@ -58,7 +56,7 @@ ${formatAndStageGlob}${pythonSection}${tsSection}
 
     no-commits-to-main:
       run: |
-        branch=$(git rev-parse --abbrev-ref HEAD)
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
@@ -71,19 +69,6 @@ commit-msg:
     conventional:
       run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:" {1}
       fail_text: "Commit message must follow Conventional Commits format"
-`;
-}
-
-function buildFormatGlob(hasPython: boolean, hasTs: boolean): string {
-    if (!hasPython && !hasTs) return "";
-    const exts: string[] = [];
-    if (hasTs) exts.push("ts", "tsx", "js", "jsx");
-    if (hasPython) exts.push("py");
-    const glob = exts.length === 1 ? `*.${exts[0]}` : `*.{${exts.join(",")}}`;
-    return `    format-and-stage:
-      glob: "${glob}"
-      run: echo "Format step — configure per language above"
-      priority: 1
 `;
 }
 

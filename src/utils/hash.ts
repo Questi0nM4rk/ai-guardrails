@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 export const HASH_PREFIX = "# ai-guardrails:sha256=";
 export const JSONC_HASH_PREFIX = "// ai-guardrails:sha256=";
+export const MD_HASH_PREFIX = "<!-- ai-guardrails:sha256=";
+export const MD_HASH_SUFFIX = " -->";
 
 /** Compute a hex SHA-256 digest of a string. */
 export function computeHash(content: string): string {
@@ -38,4 +40,12 @@ export function withHashHeader(content: string): string {
  */
 export function withJsoncHashHeader(content: string): string {
     return `${makeJsoncHashHeader(content)}\n${content}`;
+}
+
+/**
+ * Prepend a Markdown-safe hash header (using HTML comment syntax) to the given content.
+ * The format is: `<!-- ai-guardrails:sha256=<hash> -->\n<content>`.
+ */
+export function withMarkdownHashHeader(content: string): string {
+    return `${MD_HASH_PREFIX}${computeHash(content)}${MD_HASH_SUFFIX}\n${content}`;
 }

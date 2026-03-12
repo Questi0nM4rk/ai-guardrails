@@ -1,13 +1,9 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`generateLefthookConfig output matches snapshot for python + typescript 1`] = `
-"# ai-guardrails:sha256=d5c4570f1e7873dddc50f3b8ee71dfc49f0cedd862ff5242082fbeead588272e
+"# ai-guardrails:sha256=f0ca65797568513532fbdaf83c6629de53be101fbceae098d2382467d825329f
 pre-commit:
   commands:
-    format-and-stage:
-      glob: "*.{ts,tsx,js,jsx,py}"
-      run: echo "Format step — configure per language above"
-      priority: 1
 
     ruff-fix:
       glob: "*.py"
@@ -47,7 +43,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
-        branch=$(git rev-parse --abbrev-ref HEAD)
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
@@ -64,7 +60,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot for empty plugins 1`] = `
-"# ai-guardrails:sha256=ed6a227d87b58c1b5dea6650679a83c644c0088344710ea1cdcfd1187b0f7d31
+"# ai-guardrails:sha256=a804e958af16ea699be688c8a04e6f60a2874af6ba13eba796ff8ec2e985ba29
 pre-commit:
   commands:
 
@@ -94,7 +90,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
-        branch=$(git rev-parse --abbrev-ref HEAD)
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
