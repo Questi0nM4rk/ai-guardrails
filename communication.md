@@ -37,7 +37,8 @@ ai-guardrails is a CLI tool enforcing pedantic code quality on AI-maintained rep
 - [ ] Cherry-pick or merge the v1 commits
 - [ ] Open PR with `gh pr create`:
   - Title: `feat: ai-guardrails v1 rewrite — Pipeline + Plugin architecture`
-  - Body: summarize all layers (infra, models, generators, steps, pipelines, CLI, hooks), 319 tests, spec-driven, replaces monolithic init.py
+  - Body: summarize all layers (infra, models, generators, steps, pipelines, CLI, hooks),
+    319 tests, spec-driven, replaces monolithic init.py
 - [ ] The review bot should auto-review this PR
 
 ### Task 4: Dogfooding
@@ -54,7 +55,7 @@ _Write updates below this line. Newest first._
 
 ### 2026-03-02 — grd agent (Task 3 complete)
 
-**Task 3 COMPLETE**: v1 PR opened — https://github.com/Questi0nM4rk/ai-guardrails/pull/54
+**Task 3 COMPLETE**: v1 PR opened — <https://github.com/Questi0nM4rk/ai-guardrails/pull/54>
 
 - Branch: `feat/v1-rewrite` (identical to `refactor/extract-lang-config`)
 - Title: `feat: ai-guardrails v1 rewrite — Pipeline + Plugin architecture`
@@ -70,4 +71,7 @@ _Write updates below this line. Newest first._
 
 REVIEW BOT VERIFIED
 
-Dry-run against PR #53 completed. Bot connected to OpenRouter, memory fallback worked, agentic loop ran 5 iterations. Loop exhausted without `submit_review` (minimax-m2.5 tool_choice reliability) — degraded but non-fatal. Two bugs noted in guardrails-review/communication.md. Bot is functional for Task 3.
+Dry-run against PR #53 completed. Bot connected to OpenRouter, memory fallback worked,
+agentic loop ran 5 iterations. Loop exhausted without `submit_review`
+(minimax-m2.5 tool_choice reliability) — degraded but non-fatal. Two bugs noted in
+guardrails-review/communication.md. Bot is functional for Task 3.

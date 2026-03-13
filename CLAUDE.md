@@ -1,73 +1,78 @@
-# AI Guardrails — Agent Instructions
+# AI Guardrails v3 — TypeScript Rewrite
 
 ## Build & Test
 
 ```bash
-# v1 code (active development)
-uv run pytest tests/test_v1/ -v          # v1 tests (319 tests)
-uv run ruff check src/ai_guardrails/     # lint v1
-uv run ruff format --check src/          # format check
-
-# Legacy code (still functional, being replaced)
-uv run pytest tests/ -v                  # all tests (v1 + legacy)
-uv run ruff check lib/python/            # lint legacy
-uv run pyright                           # type check
+bun install
+bun test                    # run all tests
+bun test --watch            # watch mode
+bun run lint                # biome check src/ tests/
+bun run typecheck           # tsc --noEmit
+bun run build               # compile single binary → dist/ai-guardrails
 ```
 
 ## Architecture
 
-Pipeline + Plugin with DI. Spec: `docs/features/SPEC-v1.md` (source of truth).
-ADR-002 is superseded except for DONTs (section 2) and competitive landscape (section 7).
+Pipeline + Plugin with DI. Full spec: `docs/specs/` — read before implementing anything.
 
-### v1 Layout (`src/ai_guardrails/`)
+| Spec | Content |
+|------|---------|
+| SPEC-000 | Overview, MVP scope, tech stack |
+| SPEC-001 | Architecture, interfaces, module structure |
+| SPEC-002 | Config system (machine → project → inline) |
+| SPEC-003 | Linter system, all runners, language plugins |
+| SPEC-004 | CLI commands, flags, exit codes |
+| SPEC-005 | Hooks (Claude Code PreToolUse + lefthook) |
+| SPEC-006 | Battle-tested defaults |
+| SPEC-007 | Implementation guide, phases, testing conventions |
+| SPEC-008 | Per-language tool reference |
 
-| Layer | Path | Purpose |
-|-------|------|---------|
-| CLI | `cli.py` | cyclopts app → Command dataclasses → dispatch |
-| Pipelines | `pipelines/` | install, init, generate — orchestrate steps |
-| Steps | `steps/` | 7 steps: detect_languages, copy_configs, scaffold_registry, load_registry, generate_configs, setup_ci, setup_agent_instructions |
-| Generators | `generators/` | ruff, markdownlint, codespell, editorconfig, lefthook, claude_settings |
-| Hooks | `hooks/` | dangerous_cmd, suppress_comments, protect_configs, format_stage, config_ignore |
-| Infra | `infra/` | FileManager, CommandRunner, ConfigLoader, Console (all injected) |
-| Models | `models/` | ExceptionRegistry, LanguageConfig, ProjectInfo |
-| Constants | `constants.py` | All shared constants — single source of truth |
+## Branch Strategy
 
-### Legacy Layout (`lib/python/guardrails/`)
+- `main` — default branch; all PRs target `main`
+- Each feature maps to one or more spec sections
 
-Old code. Being replaced by v1. Don't add new features here.
+## Module Layout (`src/`)
+
+```
+src/
+  cli.ts                    # Entry point — Commander wiring
+  commands/                 # One file per CLI command
+  runners/                  # One file per linter (LinterRunner interface)
+  languages/                # Language plugins (compose runners)
+  generators/               # Config file generators
+  config/                   # Zod schemas, loader, defaults
+  models/                   # Pure domain types (LintIssue, BaselineEntry…)
+  pipelines/                # Pipeline orchestrators
+  steps/                    # Reusable pipeline steps
+  hooks/                    # Hook implementations (dangerous-cmd, protect-configs…)
+  writers/                  # Output serializers (SARIF, text)
+  infra/                    # FileManager, CommandRunner, Console (injected, never direct)
+  utils/                    # Pure functions — hash, fingerprint, glob
+  templates/                # Static data files (ruff.toml defaults, CI YAML…)
+```
 
 ## Key Constraints
 
-- Python 3.11+, `from __future__ import annotations` in all files
-- 85%+ test coverage, ruff clean
-- Everything is an error or it's ignored. No warnings.
-- See `@.claude/rules/` for detailed conventions
+- Bun >= 1.2.0 runtime
+- `strict: true`, `exactOptionalPropertyTypes`, `noUncheckedIndexedAccess` — no exceptions
+- No `any` — use `unknown` + Zod at boundaries
+- No `!` non-null assertions — handle `undefined` explicitly
+- No barrel files (`index.ts`) — explicit named imports
+- No inheritance — `implements` only, composition over inheritance
+- No `new Service()` in domain code — DI via PipelineContext
+- Fakes not mocks — `FakeFileManager`, `FakeCommandRunner`, `FakeConsole`
 
 ## DONTs
 
-- NEVER `except Exception: pass` — catch specific exceptions
-- NEVER add new `subprocess.run` call sites — use CommandRunner in v1
-- NEVER duplicate constants — single source in `constants.py` or `languages.yaml`
-- NEVER use test classes for new tests without shared state — prefer standalone functions
-- NEVER push without asking — complete all changes locally first
-- NEVER use `dict[str, Any]` across module boundaries — use dataclasses
-- NEVER read/write files directly in steps — use FileManager
-- NEVER use `print()` for output — use Console
-
-## When adding features
-
-- New pipeline step: `/new-step`
-- New config generator: `/new-generator`
-- New language support: `/new-language`
-
-## Current State (2026-03-02)
-
-- v1 MVP code complete: infra, models, generators, steps, pipelines, CLI, hooks
-- 434 v1 tests + 597 legacy tests, all passing
-- Package configured: `uv run python -c "from ai_guardrails.cli import app"` works
-- Branch: `refactor/extract-lang-config`, PR #53 open
-- Review bot: cc-review (Claude Code) — auto-reviews on PR open
-
+- NEVER push directly to `main` — open a PR
+- NEVER use `any` — `unknown` + Zod at boundaries
+- NEVER non-null assert (`!`) — handle undefined explicitly
+- NEVER import infra directly in domain code — inject via context
+- NEVER use `--reporter=json` for biome — use `--reporter=rdjson`
+- NEVER use mypy — use pyright (`mypy --output json` is explicitly unstable)
+- NEVER use luacheck as primary — use selene (has JSON output, luacheck does not)
+- NEVER `extends` (except Error subclasses) — composition only
 
 ## AI Guardrails - Code Standards
 
@@ -113,16 +118,5 @@ bug-hunt, simplify (via labels or workflow_dispatch). Interactive via `@cc-revie
 ### Pre-commit Workflow
 
 ```
-auto-fix → re-stage → checks → commit
+biome --write → re-stage → typecheck → gitleaks → codespell → markdownlint → commit
 ```
-
-1. `format-and-stage` auto-fixes formatting and re-stages (local only, skipped in CI)
-2. Security scans (gitleaks, detect-secrets, semgrep, bandit)
-3. Linting (check-only — already fixed above)
-4. Type checking (strict mode)
-5. Git hygiene (no commits to main, no large files)
-
-### When Pre-commit Fails
-
-Most formatting is auto-fixed. If it still fails, read the error — it's a real issue
-(missing docstring, type error, security problem). Fix it, stage, commit again.

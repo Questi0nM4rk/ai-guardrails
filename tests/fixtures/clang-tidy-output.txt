@@ -1,0 +1,4 @@
+/project/src/main.cpp:10:5: warning: use of old-style cast [modernize-use-auto]
+/project/src/main.cpp:15:1: error: do not use 'assert' [cppcoreguidelines-avoid-assert]
+/project/include/util.h:22:3: note: expanded from macro 'ASSERT' [cppcoreguidelines-avoid-assert]
+/project/src/lib.cpp:8:12: warning: redundant void argument list in function definition [modernize-redundant-void-arg]
