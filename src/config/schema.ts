@@ -31,7 +31,7 @@ const ConfigValuesSchema = z
       .refine((v) => v === 2 || v === 4, {
         message: "indent_width must be 2 or 4",
       })
-      .default(4),
+      .default(2),
     python_version: z
       .string()
       .regex(/^\d+\.\d+$/)

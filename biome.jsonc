@@ -1,4 +1,4 @@
-// ai-guardrails:sha256=f198cf7896937464e839ed928323b2d5ac39074f1c33bb38c773f91a2cefa236
+// ai-guardrails:sha256=30243caccb040549e1a7223023c4e64901e61a04620cf8f67a02b145b9fe3a19
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "linter": {
@@ -22,7 +22,7 @@
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
-    "indentWidth": 4,
+    "indentWidth": 2,
     "lineWidth": 88
   },
   "javascript": {

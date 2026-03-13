@@ -1,7 +1,7 @@
-# ai-guardrails:sha256=1ce2b923697e986833cd9f6c09ab23a57b2fca946fc223bd0b27187bb1007007
+# ai-guardrails:sha256=a6e0c59397bf71df77d26a4593f45a14da338540d3283a3e6ad0fb9298c71699
 target-version = "py311"
 line-length = 88
-indent-width = 4
+indent-width = 2
 fix = false
 unsafe-fixes = false
 

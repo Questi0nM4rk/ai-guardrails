@@ -90,7 +90,7 @@ describe("ProjectConfigSchema", () => {
   test("config defaults to empty object with schema defaults", () => {
     const result = ProjectConfigSchema.parse({});
     expect(result.config.line_length).toBe(88);
-    expect(result.config.indent_width).toBe(4);
+    expect(result.config.indent_width).toBe(2);
   });
 
   test("ignore defaults to empty array", () => {
