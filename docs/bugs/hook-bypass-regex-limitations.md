@@ -38,6 +38,27 @@ Or switch to a proper tokenizer that understands option–argument pairs.
 
 ---
 
+## 3. `protect-configs.ts` false positives on cp/mv/cat source reads
+
+**File**: `src/hooks/protect-configs.ts`
+
+**Pattern**: `WRITE_PATTERNS` contains `/\bcp\b/`, `/\bmv\b/`, `/\bcat\s+.*>/`,
+`/\becho\b.*>/`, `/\bprintf\b.*>/`. These fire whenever the managed filename
+appears anywhere in the command, including when it is the *source*:
+
+- `cp ruff.toml /tmp/backup` → blocked (false positive, managed file is source)
+- `cat ruff.toml > /tmp/backup` → blocked (false positive, managed file is read)
+
+`redirectToManaged` already anchors `>>?` to the managed file as the write
+target. `cat+>`, `echo+>`, `printf+>` duplicate that check and add false
+positives. `cp` and `mv` need destination-anchoring.
+
+**Fix (future)**: Remove `cat+>`, `echo+>`, `printf+>` from `WRITE_PATTERNS`
+(redundant). For `cp`/`mv`, anchor to the managed file being the last
+(destination) argument. Or replace with a tokenizer.
+
+---
+
 ## Why deferred
 
 Both issues stem from the fundamental limitation of regex-based command
