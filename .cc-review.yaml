@@ -3,21 +3,24 @@ mode: standard
 auto_review: true
 
 languages:
-  - python
+  - typescript
 
 ignore_paths:
   - "docs/**"
   - "**/*.md"
 
 instructions: |
-  Python CLI tool using cyclopts + pipeline architecture with DI.
-  Generated configs are hash-protected — never edit them directly.
+  TypeScript CLI tool using Commander.js + Bun runtime + Zod schemas.
+  Pipeline + plugin architecture with DI via PipelineContext.
+  Generated configs carry a sha256 hash header — never edit them directly.
   All lint suppressions go through .guardrails-exceptions.toml, not inline.
-  All subprocess calls must use `uv run` — never bare `python` or `ruff`.
-  Max 200 lines per module. No unparameterized dict/list in public APIs.
+  No `any` types — use `unknown` + Zod at boundaries.
+  No `!` non-null assertions — handle undefined explicitly.
+  Max 200 lines per file. Bun >= 1.2.0 runtime.
 
 known_patterns:
-  - "ARG002 on ctx parameter in pipeline steps — required by protocol"
+  - "FakeFileManager/FakeCommandRunner/FakeConsole are test fakes, not production code"
+  - "lefthookGenerator.generate() intentionally throws — callers use generateLefthookConfig()"
 
 slop_detection: true
 memory: true

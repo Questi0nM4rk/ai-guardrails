@@ -1,30 +1,38 @@
----
-globs: tests/**/*.py
----
-
 # Test Conventions
+
+## Framework
+
+- `bun:test` — `import { describe, expect, test } from "bun:test"`
+- No Jest, no Vitest — Bun's built-in test runner only
 
 ## Structure
 
-- Prefer standalone test functions for new tests
-- Test classes are acceptable for grouping related tests (existing pattern)
-- One test file per source module: `lib/.../foo.py` -> `tests/test_foo.py`
-- Fixtures live in `tests/conftest.py`
+- Standalone test functions preferred — no classes unless shared state is needed
+- One test file per source module: `src/runners/ruff.ts` → `tests/runners/ruff.test.ts`
+- Fixtures in `tests/fixtures/` — static linter output samples (JSON/text)
+- Fakes in `tests/fakes/` — `FakeFileManager`, `FakeCommandRunner`, `FakeConsole`
 
-## Mocking
+## Fakes not Mocks
 
-- Mock at infrastructure boundaries (subprocess, filesystem, network)
-- Never mock private helper functions — test through public API
-- Use `unittest.mock.patch` and `MagicMock` for subprocess/IO boundaries
-- `tmp_path` for filesystem tests — never write to real paths
-
-## Coverage
-
-- No `# pragma: no cover` without documented justification
-- No file exclusions in pyproject.toml coverage config
-- Target 85%+ coverage on all modules
+- Use fake implementations — in-memory fakes over `vi.mock()` / `spyOn`
+- `FakeFileManager` — in-memory file tree, `seed(path, content)` for setup
+- `FakeCommandRunner` — register canned responses per args tuple
+- `FakeConsole` — captures messages for assertion
 
 ## Naming
 
-- `test_{function_name}_{scenario}_{expected}` pattern
-- Example: `test_detect_languages_python_project_returns_python`
+- `test_<function>_<scenario>_<expected>` pattern
+- Examples:
+  - `test parseRuffOutput returns empty array for empty stdout`
+  - `test filterIssues removes issues matching isAllowed`
+
+## Snapshot Tests
+
+- Generators are snapshot-tested: `expect(output).toMatchSnapshot()`
+- Update snapshots explicitly: `bun test --update-snapshots`
+- Snapshot changes require review — they represent intentional output changes
+
+## Coverage
+
+- Target 85%+ coverage on all modules
+- No coverage suppression without documented justification

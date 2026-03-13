@@ -1,0 +1,29 @@
+[
+  {
+    "code": "E501",
+    "filename": "/home/user/project/src/utils.py",
+    "location": { "row": 42, "column": 89 },
+    "end_location": { "row": 42, "column": 120 },
+    "message": "Line too long (120 > 88 characters)",
+    "fix": null,
+    "url": "https://docs.astral.sh/ruff/rules/E501"
+  },
+  {
+    "code": "F401",
+    "filename": "/home/user/project/src/models.py",
+    "location": { "row": 3, "column": 1 },
+    "end_location": { "row": 3, "column": 20 },
+    "message": "`os.path` imported but unused",
+    "fix": null,
+    "url": "https://docs.astral.sh/ruff/rules/F401"
+  },
+  {
+    "code": "W291",
+    "filename": "/home/user/project/src/utils.py",
+    "location": { "row": 17, "column": 33 },
+    "end_location": { "row": 17, "column": 38 },
+    "message": "Trailing whitespace",
+    "fix": null,
+    "url": "https://docs.astral.sh/ruff/rules/W291"
+  }
+]
