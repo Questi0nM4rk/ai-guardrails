@@ -1,0 +1,34 @@
+// ai-guardrails:sha256=f198cf7896937464e839ed928323b2d5ac39074f1c33bb38c773f91a2cefa236
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
+      },
+      "style": {
+        "useConst": "error",
+        "useTemplate": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 4,
+    "lineWidth": 88
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5"
+    }
+  }
+}

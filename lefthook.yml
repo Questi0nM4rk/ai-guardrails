@@ -1,9 +1,16 @@
-# ai-guardrails:hash:sha256:dfac25cfa7842301182c7432a7c9800880b049110a7c14f65d742c4d2659ab37
+# ai-guardrails:sha256=f0ca65797568513532fbdaf83c6629de53be101fbceae098d2382467d825329f
 pre-commit:
   commands:
+
+    ruff-fix:
+      glob: "*.py"
+      run: ruff check --fix {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+
     biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
-      run: biome check --write {staged_files}
+      run: biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 
@@ -26,26 +33,20 @@ pre-commit:
       priority: 2
 
     check-suppress-comments:
-      glob: "*.{ts,tsx,js,jsx}"
-      run: |
-        if [ ! -f ./dist/ai-guardrails ]; then
-          echo "Binary not found — run: bun run build"
-          exit 1
-        fi
-        ./dist/ai-guardrails hook suppress-comments {staged_files}
-      fail_text: "Suppression comment found (or binary missing — run: bun run build)"
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
       priority: 2
 
     no-commits-to-main:
       run: |
-        branch=$(git rev-parse --abbrev-ref HEAD)
-        if [ "$branch" = "main" ]; then
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
           exit 1
         fi
       fail_text: "Do not commit directly to main"
       priority: 2
-
 
 commit-msg:
   commands:
