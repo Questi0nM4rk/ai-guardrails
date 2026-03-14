@@ -3,13 +3,17 @@ import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
 import { protectRead, protectWrite } from "@/check/builder-path";
 import { COMMAND_RULES } from "@/check/rules/commands";
-import { DEFAULT_PATH_RULES } from "@/check/rules/paths";
+import { DEFAULT_MANAGED_FILES, DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import type { HooksConfig, RuleSet } from "@/check/types";
 import { ProjectConfigSchema } from "@/config/schema";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
 
 export function buildRuleSet(config: HooksConfig): RuleSet {
   const extraPathRules = [
+    ...DEFAULT_MANAGED_FILES.map((f) =>
+      // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
+      protectWrite(new RegExp(`${escapeRegExp(f)}$`), `Writing to managed file: ${f}`)
+    ),
     ...(config.managedFiles ?? []).map((f) =>
       // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
       protectWrite(new RegExp(`${escapeRegExp(f)}$`), `Writing to managed file: ${f}`)

@@ -204,6 +204,14 @@ describe("sudo prefix is unwrapped", () => {
     );
     expect(result.decision).not.toBe("allow");
   });
+
+  test("blocks sudo git push --force", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "sudo git push --force" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
+  });
 });
 
 describe("DANGEROUS_DENY_GLOBS", () => {
