@@ -65,6 +65,21 @@ export const COMMAND_RULES: CommandRule[] = [
     args: ["777"],
     reason: "chmod -R 777 (world-writable recursive)",
   }),
+  callRule("chmod", {
+    flags: ["--recursive"],
+    args: ["777"],
+    reason: "chmod --recursive 777 (world-writable recursive)",
+  }),
+  callRule("chmod", {
+    flags: ["-R"],
+    args: ["a+rwx"],
+    reason: "chmod -R a+rwx (world-writable recursive)",
+  }),
+  callRule("chmod", {
+    flags: ["--recursive"],
+    args: ["a+rwx"],
+    reason: "chmod --recursive a+rwx (world-writable recursive)",
+  }),
 ];
 
 /**

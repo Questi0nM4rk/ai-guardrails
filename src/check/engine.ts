@@ -11,6 +11,7 @@ import type {
 } from "@/check/types";
 
 const INLINE_SHELL_CMDS = new Set(["bash", "sh", "dash", "zsh", "ksh", "eval", "exec"]);
+const MAX_RECURSE_DEPTH = 5;
 const WRITE_OPS = new Set([">", ">>", ">|", "&>", "&>>"]);
 
 export async function evaluate(
@@ -18,7 +19,7 @@ export async function evaluate(
   ruleset: RuleSet
 ): Promise<CheckResult> {
   if (event.type === "bash") {
-    return evaluateCommand(event.command, ruleset.commandRules, ruleset.pathRules);
+    return evaluateCommand(event.command, ruleset.commandRules, ruleset.pathRules, 0);
   }
   return evaluatePath(event.path, event.type, ruleset.pathRules);
 }
@@ -26,8 +27,10 @@ export async function evaluate(
 async function evaluateCommand(
   command: string,
   rules: CommandRule[],
-  pathRules: PathRule[]
+  pathRules: PathRule[],
+  depth: number
 ): Promise<CheckResult> {
+  if (depth > MAX_RECURSE_DEPTH) return { decision: "allow" };
   let ast: ShellFile;
   try {
     ast = await parse(command);
@@ -67,7 +70,7 @@ async function evaluateCommand(
       if (rule.kind === "recurse" && INLINE_SHELL_CMDS.has(unwrapped.cmd)) {
         const inline = extractInlineScript(unwrapped);
         if (inline !== null) {
-          const result = await evaluateCommand(inline, rules, pathRules);
+          const result = await evaluateCommand(inline, rules, pathRules, depth + 1);
           if (result.decision !== "allow") return result;
         }
       }

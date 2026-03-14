@@ -71,10 +71,10 @@ describe("isDangerous", () => {
     expect(await isDangerous("rm -r /tmp/somedir")).toBeNull();
   });
 
-  test("returns reason string when blocked", async () => {
-    const reason = await isDangerous("git reset --hard");
-    expect(typeof reason).toBe("string");
-    expect((reason ?? "").length).toBeGreaterThan(0);
+  test("returns CheckResult with non-allow decision when blocked", async () => {
+    const result = await isDangerous("git reset --hard");
+    expect(result).not.toBeNull();
+    expect(result?.decision).not.toBe("allow");
   });
 });
 
