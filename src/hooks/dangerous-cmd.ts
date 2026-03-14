@@ -15,8 +15,9 @@ export async function isDangerous(command: string): Promise<string | null> {
 export async function runDangerousCmd(): Promise<never> {
   const input = await readHookInput();
   const command = extractBashCommand(input.tool_input);
-  const config = await loadHookConfig();
-  const ruleset = buildRuleSet(config);
-  const result = await evaluate({ type: "bash", command }, ruleset);
-  toHookOutput(result, "dangerous-cmd");
+  const reason = await isDangerous(command);
+  if (reason !== null) {
+    toHookOutput({ decision: "ask", reason }, "dangerous-cmd");
+  }
+  process.exit(0);
 }

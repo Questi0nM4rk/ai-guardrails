@@ -229,4 +229,19 @@ describe("buildResolvedConfig", () => {
     const resolved = buildResolvedConfig(makeMachine(), makeProject());
     expect(resolved.values.python_version).toBeUndefined();
   });
+
+  test("hooks is present in resolved config when set in project", () => {
+    const project = makeProject({
+      hooks: { managed_files: [".claude/settings.json"] },
+    });
+    const resolved = buildResolvedConfig(makeMachine(), project);
+    expect(resolved.hooks).toBeDefined();
+    expect(resolved.hooks?.managed_files).toEqual([".claude/settings.json"]);
+  });
+
+  test("hooks is absent from resolved config when not set in project", () => {
+    const resolved = buildResolvedConfig(makeMachine(), makeProject());
+    expect(resolved.hooks).toBeUndefined();
+    expect("hooks" in resolved).toBe(false);
+  });
 });

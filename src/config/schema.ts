@@ -45,13 +45,11 @@ const AllowEntrySchema = z.object({
   reason: z.string().min(1),
 });
 
-const HooksConfigSchema = z
-  .object({
-    managed_files: z.array(z.string()).optional(),
-    managed_paths: z.array(z.string()).optional(),
-    protected_read_paths: z.array(z.string()).optional(),
-  })
-  .optional();
+const HooksConfigSchema = z.object({
+  managed_files: z.array(z.string()).optional(),
+  managed_paths: z.array(z.string()).optional(),
+  protected_read_paths: z.array(z.string()).optional(),
+});
 
 export type HooksSchemaConfig = z.infer<typeof HooksConfigSchema>;
 
@@ -60,7 +58,7 @@ const ProjectConfigSchema = z.object({
   config: ConfigValuesSchema.default({}),
   ignore: z.array(IgnoreEntrySchema).default([]),
   allow: z.array(AllowEntrySchema).default([]),
-  hooks: HooksConfigSchema,
+  hooks: HooksConfigSchema.optional(),
 });
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
@@ -78,6 +76,7 @@ export interface ResolvedConfig {
     [key: string]: unknown;
   };
   ignoredRules: ReadonlySet<string>;
+  hooks?: HooksSchemaConfig;
   isAllowed(rule: string, filePath: string): boolean;
 }
 
@@ -113,6 +112,7 @@ export function buildResolvedConfig(
     allow,
     values,
     ignoredRules,
+    ...(project.hooks !== undefined && { hooks: project.hooks }),
     isAllowed(rule: string, filePath: string): boolean {
       if (ignoredRules.has(rule)) return true;
       return allow.some(
