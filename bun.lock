@@ -6,6 +6,7 @@
       "name": "ai-guardrails",
       "dependencies": {
         "@commander-js/extra-typings": "^13.0.0",
+        "@questi0nm4rk/shell-ast": "^0.1.0",
         "minimatch": "^10.0.0",
         "shell-quote": "^1.8.3",
         "smol-toml": "^1.5.1",
@@ -13,7 +14,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.4.6",
-        "@types/bun": "latest",
+        "@types/bun": "^1.3.10",
         "@types/minimatch": "^5.1.0",
         "@types/shell-quote": "^1.7.5",
         "typescript": "^5.8.0",
@@ -40,6 +41,8 @@
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.4.6", "", { "os": "win32", "cpu": "x64" }, "sha512-7++XhnsPlr1HDbor5amovPjOH6vsrFOCdp93iKXhFn6bcMUI6soodj3WWKfgEO6JosKU1W5n3uky3WW9RlRjTg=="],
 
     "@commander-js/extra-typings": ["@commander-js/extra-typings@13.1.0", "", { "peerDependencies": { "commander": "~13.1.0" } }, "sha512-q5P52BYb1hwVWE6dtID7VvuJWrlfbCv4klj7BjUUOqMz4jbSZD4C9fJ9lRjL2jnBGTg+gDDlaXN51rkWcLk4fg=="],
+
+    "@questi0nm4rk/shell-ast": ["@questi0nm4rk/shell-ast@0.1.0", "", {}, "sha512-wwcqYQ6cDWMKFwGMFSooSQtWXk+s0/0Y91ebXqAYtx7aJ8Kp2kioHkhYElc+CrJVRS9stYQ09WOOorYtKZE3oA=="],
 
     "@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
 

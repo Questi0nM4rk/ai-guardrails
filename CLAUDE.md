@@ -63,6 +63,23 @@ src/
 - No `new Service()` in domain code — DI via PipelineContext
 - Fakes not mocks — `FakeFileManager`, `FakeCommandRunner`, `FakeConsole`
 
+## NON-NEGOTIABLE: NO HACKS, NO WORKAROUNDS
+
+**I WILL NOT ACCEPT ANY HACK, ANY WORKAROUND, OR ANY IMPROPER WAY OF WORKING WITH THIS CODEBASE.**
+
+If there is a correct, proper way to implement something and you do it any other way — without
+first asking and explaining why — that is a failure. This means:
+
+- No regex where AST parsing exists
+- No string matching where typed data exists
+- No monkeypatching where proper interfaces exist
+- No "TODO: fix later" shortcuts shipped as real code
+- No duplicating logic that should be shared
+- No bypassing type safety with casts, `as`, or `any`
+
+If the proper solution is more complex or out of scope, **stop and ask**. Do not silently take
+the easier wrong path. The cost of asking is zero. The cost of wrong architecture compounds.
+
 ## DONTs
 
 - NEVER push directly to `main` — open a PR

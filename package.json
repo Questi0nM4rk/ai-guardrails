@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@commander-js/extra-typings": "^13.0.0",
+    "@questi0nm4rk/shell-ast": "^0.1.0",
     "minimatch": "^10.0.0",
     "shell-quote": "^1.8.3",
     "smol-toml": "^1.5.1",
