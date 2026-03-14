@@ -11,12 +11,15 @@ import { PROJECT_CONFIG_PATH } from "@/models/paths";
 export function buildRuleSet(config: HooksConfig): RuleSet {
   const extraPathRules = [
     ...(config.managedFiles ?? []).map((f) =>
+      // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
       protectWrite(new RegExp(`${escapeRegExp(f)}$`), `Writing to managed file: ${f}`)
     ),
     ...(config.managedPaths ?? []).map((p) =>
+      // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
       protectWrite(new RegExp(escapeRegExp(p)), `Writing to managed path: ${p}`)
     ),
     ...(config.protectedReadPaths ?? []).map((p) =>
+      // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
       protectRead(new RegExp(escapeRegExp(p)), `Reading protected path: ${p}`)
     ),
   ];
