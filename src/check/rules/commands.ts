@@ -65,6 +65,16 @@ export const COMMAND_RULES: CommandRule[] = [
     flags: ["-D"],
     reason: "git branch -D (force delete)",
   }),
+  callRule("git", {
+    sub: "branch",
+    flags: ["--delete", "--force"],
+    reason: "git branch --delete --force (force delete)",
+  }),
+  callRule("git", {
+    sub: "branch",
+    flags: ["-d", "--force"],
+    reason: "git branch -d --force (force delete)",
+  }),
   callRule("chmod", {
     flags: ["-R"],
     args: ["777"],

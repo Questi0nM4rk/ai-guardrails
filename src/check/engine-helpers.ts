@@ -52,6 +52,7 @@ export function checkRedirectsAgainstPathRules(
   let result: CheckResult | null = null;
   walk(ast, {
     Stmt(node: Stmt) {
+      if (result !== null) return;
       for (const redir of node.redirs) {
         if (!WRITE_OPS.has(redir.op)) continue;
         const target = wordToLit(redir.hdoc ?? redir.word);
@@ -79,6 +80,7 @@ export function findPipeViolations(
   let result: CheckResult | null = null;
   walk(ast, {
     BinaryCmd(node: BinaryCmd) {
+      if (result !== null) return;
       if (node.op !== "|" && node.op !== "|&") return;
       const leftCmd = stmtToCmd(node.x);
       const rightCmd = stmtToCmd(node.y);

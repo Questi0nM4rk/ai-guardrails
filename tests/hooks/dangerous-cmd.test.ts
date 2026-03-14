@@ -39,6 +39,18 @@ describe("isDangerous", () => {
     expect(await isDangerous("git clean -xf")).not.toBeNull();
   });
 
+  test("blocks git branch -D", async () => {
+    expect(await isDangerous("git branch -D my-branch")).not.toBeNull();
+  });
+
+  test("blocks git branch --delete --force", async () => {
+    expect(await isDangerous("git branch --delete --force my-branch")).not.toBeNull();
+  });
+
+  test("blocks git branch -d --force", async () => {
+    expect(await isDangerous("git branch -d --force my-branch")).not.toBeNull();
+  });
+
   test("blocks git commit --no-verify", async () => {
     expect(await isDangerous('git commit -m "wip" --no-verify')).not.toBeNull();
   });
