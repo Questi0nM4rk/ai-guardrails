@@ -49,7 +49,14 @@ export async function loadHookConfig(): Promise<HooksConfig> {
         protectedReadPaths: hooks.protected_read_paths,
       }),
     };
-  } catch {
+  } catch (e: unknown) {
+    const isNotFound =
+      e instanceof Error &&
+      "code" in e &&
+      (e as NodeJS.ErrnoException).code === "ENOENT";
+    if (!isNotFound) {
+      process.stderr.write(`[ai-guardrails] config load error: ${String(e)}\n`);
+    }
     return {};
   }
 }

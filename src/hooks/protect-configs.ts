@@ -17,7 +17,10 @@ export async function runProtectConfigs(): Promise<never> {
   }
 
   if (toolName === "Edit" || toolName === "Write" || toolName === "NotebookEdit") {
-    const rawPath = input.tool_input.file_path ?? input.tool_input.path;
+    const rawPath =
+      input.tool_input.file_path ??
+      input.tool_input.notebook_path ??
+      input.tool_input.path;
     const path = typeof rawPath === "string" ? rawPath : "";
     const result = await evaluate({ type: "write", path }, ruleset);
     toHookOutput(result, "protect-configs");
