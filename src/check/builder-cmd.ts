@@ -12,6 +12,7 @@ export function callRule(
     sub?: string;
     flags?: string[];
     noFlags?: string[];
+    args?: string[];
     hasDdash?: boolean;
     decision?: CheckDecision;
     reason: string;

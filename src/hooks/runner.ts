@@ -44,11 +44,6 @@ export function allow(): never {
   process.exit(0);
 }
 
-export function ask(reason: string): never {
-  process.stdout.write(JSON.stringify({ permissionDecision: "ask", reason }));
-  process.exit(0);
-}
-
 export function deny(reason: string): never {
   process.stderr.write(`${reason}\n`);
   process.exit(2);

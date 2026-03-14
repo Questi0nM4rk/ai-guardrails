@@ -16,6 +16,7 @@ export interface CallRule {
   sub?: string;
   flags?: string[];
   noFlags?: string[];
+  args?: string[]; // all of these must appear in non-flag args
   hasDdash?: boolean;
   decision: CheckDecision;
   reason: string;

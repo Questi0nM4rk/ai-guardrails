@@ -77,8 +77,11 @@ async function evaluateCommand(
         const flags = unwrapped.flags;
         const allFlagsPresent = (rule.flags ?? []).every((f) => flags.includes(f));
         const noFlagPresent = (rule.noFlags ?? []).every((f) => !flags.includes(f));
+        const allArgsPresent = (rule.args ?? []).every((a) =>
+          unwrapped.args.includes(a)
+        );
         const ddashOk = rule.hasDdash === true ? hasDdash(call) : true;
-        if (allFlagsPresent && noFlagPresent && ddashOk) {
+        if (allFlagsPresent && noFlagPresent && allArgsPresent && ddashOk) {
           return { decision: rule.decision, reason: rule.reason };
         }
       }
