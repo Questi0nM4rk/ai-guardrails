@@ -31,7 +31,12 @@ export const COMMAND_RULES: CommandRule[] = [
     noFlags: ["--force-with-lease"],
     reason: "git push --force",
   }),
-  callRule("git", { sub: "push", flags: ["-f"], reason: "git push -f" }),
+  callRule("git", {
+    sub: "push",
+    flags: ["-f"],
+    noFlags: ["--force-with-lease"],
+    reason: "git push -f",
+  }),
   callRule("git", { sub: "reset", flags: ["--hard"], reason: "git reset --hard" }),
   callRule("git", {
     sub: "checkout",

@@ -47,6 +47,10 @@ describe("isDangerous", () => {
     expect(await isDangerous("git push origin main --force-with-lease")).toBeNull();
   });
 
+  test("allows git push -f --force-with-lease", async () => {
+    expect(await isDangerous("git push -f --force-with-lease")).toBeNull();
+  });
+
   test("allows regular rm command with file", async () => {
     expect(await isDangerous("rm foo.txt")).toBeNull();
   });
