@@ -82,6 +82,13 @@ async function evaluateCommand(
         }
       }
     }
+
+    // Check write-like commands (tee, sed -i, cp, mv) against path rules
+    const writePath = extractBashWritePath(unwrapped);
+    if (writePath !== null) {
+      const pathResult = evaluatePath(writePath, "write", pathRules);
+      if (pathResult.decision !== "allow") return pathResult;
+    }
   }
 
   return { decision: "allow" };
@@ -181,6 +188,25 @@ function hasWriteRedirect(ast: ShellFile, pathPattern?: RegExp): boolean {
     },
   });
   return found;
+}
+
+function extractBashWritePath(unwrapped: UnwrappedCall): string | null {
+  const { cmd, args, flags } = unwrapped;
+  const lastArg = args[args.length - 1] ?? null;
+
+  // tee [flags] file — last arg is the output file
+  if (cmd === "tee") return lastArg;
+
+  // sed -i ... file — -i flag, last arg is the file
+  if (cmd === "sed") {
+    const hasInPlace = flags.includes("-i") || args.includes("-i");
+    if (hasInPlace) return lastArg;
+  }
+
+  // cp/mv src dst — last arg is destination
+  if (cmd === "cp" || cmd === "mv") return lastArg;
+
+  return null;
 }
 
 function evaluatePath(

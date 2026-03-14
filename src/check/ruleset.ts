@@ -1,7 +1,11 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { parse as parseToml } from "smol-toml";
 import { protectRead, protectWrite } from "@/check/builder-path";
 import { COMMAND_RULES } from "@/check/rules/commands";
 import { DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import type { HooksConfig, RuleSet } from "@/check/types";
+import { ProjectConfigSchema } from "@/config/schema";
 
 export function buildRuleSet(config: HooksConfig): RuleSet {
   const extraPathRules = [
@@ -27,5 +31,19 @@ function escapeRegExp(s: string): string {
 }
 
 export async function loadHookConfig(): Promise<HooksConfig> {
-  return {};
+  try {
+    const configPath = join(process.cwd(), ".ai-guardrails", "config.toml");
+    const text = await readFile(configPath, "utf8");
+    const config = ProjectConfigSchema.parse(parseToml(text));
+    const hooks = config.hooks;
+    if (hooks === undefined) return {};
+    const result: HooksConfig = {};
+    if (hooks.managed_files !== undefined) result.managedFiles = hooks.managed_files;
+    if (hooks.managed_paths !== undefined) result.managedPaths = hooks.managed_paths;
+    if (hooks.protected_read_paths !== undefined)
+      result.protectedReadPaths = hooks.protected_read_paths;
+    return result;
+  } catch {
+    return {};
+  }
 }

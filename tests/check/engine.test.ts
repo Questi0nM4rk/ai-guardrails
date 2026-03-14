@@ -103,3 +103,61 @@ describe("read events", () => {
     expect(result.decision).toBe("allow");
   });
 });
+
+describe("write-like commands — tee/sed/cp/mv detection", () => {
+  test("tee to biome.jsonc → not allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "cat data | tee biome.jsonc" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
+  });
+
+  test("sed -i on .env → not allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "sed -i 's/old/new/' .env" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
+  });
+
+  test("cp to .claude/settings.json → not allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "cp evil.json .claude/settings.json" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
+  });
+
+  test("mv to .env → not allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "mv staging.env .env" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
+  });
+
+  test("tee to safe file → allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "echo hello | tee output.txt" },
+      ruleset
+    );
+    expect(result.decision).toBe("allow");
+  });
+
+  test("sed without -i → allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "sed 's/old/new/' .env" },
+      ruleset
+    );
+    expect(result.decision).toBe("allow");
+  });
+
+  test("cp to safe destination → allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "cp src.ts dst.ts" },
+      ruleset
+    );
+    expect(result.decision).toBe("allow");
+  });
+});
