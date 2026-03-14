@@ -57,7 +57,7 @@ export async function loadHookConfig(): Promise<HooksConfig> {
     const isNotFound =
       e instanceof Error &&
       "code" in e &&
-      (e as NodeJS.ErrnoException).code === "ENOENT";
+      Object.getOwnPropertyDescriptor(e, "code")?.value === "ENOENT";
     if (!isNotFound) {
       process.stderr.write(`[ai-guardrails] config load error: ${String(e)}\n`);
     }

@@ -56,5 +56,6 @@ describe("protectRead", () => {
     const r = protectRead(/\.ssh\//, "test");
     expect(r.kind).toBe("path");
     expect(r.event).toBe("read");
+    expect(r.decision).toBe("ask");
   });
 });
