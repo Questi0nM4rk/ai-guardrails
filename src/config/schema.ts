@@ -45,11 +45,22 @@ const AllowEntrySchema = z.object({
   reason: z.string().min(1),
 });
 
+const HooksConfigSchema = z
+  .object({
+    managed_files: z.array(z.string()).optional(),
+    managed_paths: z.array(z.string()).optional(),
+    protected_read_paths: z.array(z.string()).optional(),
+  })
+  .optional();
+
+export type HooksSchemaConfig = z.infer<typeof HooksConfigSchema>;
+
 const ProjectConfigSchema = z.object({
   profile: z.enum(["strict", "standard", "minimal"]).optional(),
   config: ConfigValuesSchema.default({}),
   ignore: z.array(IgnoreEntrySchema).default([]),
   allow: z.array(AllowEntrySchema).default([]),
+  hooks: HooksConfigSchema,
 });
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
