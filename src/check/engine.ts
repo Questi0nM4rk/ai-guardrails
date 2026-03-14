@@ -82,7 +82,10 @@ async function evaluateCommand(
         if (rule.sub !== undefined && unwrapped.args[0] !== rule.sub) continue;
         const flags = unwrapped.flags;
         const allFlagsPresent = (rule.flags ?? []).every((f) => flags.includes(f));
-        const noFlagPresent = (rule.noFlags ?? []).every((f) => !flags.includes(f));
+        // Use startsWith to handle parameterized forms: --force-with-lease=refspec
+        const noFlagPresent = (rule.noFlags ?? []).every(
+          (f) => !flags.some((flag) => flag === f || flag.startsWith(`${f}=`))
+        );
         const allArgsPresent = (rule.args ?? []).every((a) =>
           unwrapped.args.includes(a)
         );

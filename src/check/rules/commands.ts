@@ -25,6 +25,14 @@ export const COMMAND_RULES: CommandRule[] = [
     flags: ["--recursive", "--force"],
     reason: "rm with --recursive and --force flags",
   }),
+  callRule("rm", {
+    flags: ["--recursive", "-f"],
+    reason: "rm with --recursive and -f flags",
+  }),
+  callRule("rm", {
+    flags: ["-r", "--force"],
+    reason: "rm with -r and --force flags",
+  }),
   callRule("git", {
     sub: "push",
     flags: ["--force"],

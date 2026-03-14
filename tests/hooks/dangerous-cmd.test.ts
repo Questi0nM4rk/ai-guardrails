@@ -15,6 +15,14 @@ describe("isDangerous", () => {
     expect(await isDangerous("rm -rf /")).not.toBeNull();
   });
 
+  test("blocks rm --recursive -f", async () => {
+    expect(await isDangerous("rm --recursive -f /some/path")).not.toBeNull();
+  });
+
+  test("blocks rm -r --force", async () => {
+    expect(await isDangerous("rm -r --force /some/path")).not.toBeNull();
+  });
+
   test("blocks git push --force", async () => {
     expect(await isDangerous("git push origin main --force")).not.toBeNull();
   });
@@ -57,6 +65,12 @@ describe("isDangerous", () => {
 
   test("allows git push --force-with-lease", async () => {
     expect(await isDangerous("git push origin main --force-with-lease")).toBeNull();
+  });
+
+  test("allows git push --force --force-with-lease=origin/main:main", async () => {
+    expect(
+      await isDangerous("git push --force --force-with-lease=origin/main:main")
+    ).toBeNull();
   });
 
   test("allows git push -f --force-with-lease", async () => {
