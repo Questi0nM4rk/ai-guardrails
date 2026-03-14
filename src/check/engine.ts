@@ -1,7 +1,14 @@
-import type { CallExprNode, ShellFile, Stmt, Word } from "@questi0nm4rk/shell-ast";
-import { findCalls, parse, walk, wordToLit } from "@questi0nm4rk/shell-ast";
-import type { UnwrappedCall } from "@questi0nm4rk/shell-ast/semantic";
+import type { ShellFile } from "@questi0nm4rk/shell-ast";
+import { findCalls, parse } from "@questi0nm4rk/shell-ast";
 import { unwrapCall } from "@questi0nm4rk/shell-ast/semantic";
+import {
+  checkRedirectsAgainstPathRules,
+  checkWriteArgCommands,
+  extractInlineScript,
+  findPipeViolations,
+  hasDdash,
+  hasWriteRedirect,
+} from "@/check/engine-helpers";
 import type {
   CheckResult,
   CommandRule,
@@ -12,7 +19,6 @@ import type {
 
 const INLINE_SHELL_CMDS = new Set(["bash", "sh", "dash", "zsh", "ksh", "eval", "exec"]);
 const MAX_RECURSE_DEPTH = 5;
-const WRITE_OPS = new Set([">", ">>", ">|", "&>", "&>>"]);
 
 export async function evaluate(
   event: ToolEvent,
@@ -38,17 +44,24 @@ async function evaluateCommand(
     return { decision: "allow" };
   }
 
-  const calls = findCalls(ast);
-
   for (const rule of rules) {
     if (rule.kind === "redirect" && hasWriteRedirect(ast, rule.pathPattern)) {
       return { decision: rule.decision, reason: rule.reason };
     }
   }
 
-  // Check write redirect targets against path rules (a redirect is a write event)
   const redirectResult = checkRedirectsAgainstPathRules(ast, pathRules);
   if (redirectResult !== null) return redirectResult;
+
+  // Pipe detection via AST BinaryCmd nodes — avoids false positives from &&/|| adjacency
+  const pipeResult = findPipeViolations(ast, rules);
+  if (pipeResult !== null) return pipeResult;
+
+  const calls = findCalls(ast);
+
+  // Check tee/cp/mv/sed-i argument destinations against path rules
+  const writeArgResult = checkWriteArgCommands(calls, pathRules, evaluatePath);
+  if (writeArgResult !== null) return writeArgResult;
 
   for (let i = 0; i < calls.length; i++) {
     const call = calls[i];
@@ -57,16 +70,6 @@ async function evaluateCommand(
     if (unwrapped === null) continue;
 
     for (const rule of rules) {
-      if (rule.kind === "pipe" && rule.into.includes(unwrapped.cmd) && i > 0) {
-        const prevCall = calls[i - 1];
-        if (prevCall !== undefined) {
-          const prev = unwrapCall(prevCall);
-          if (prev !== null && rule.from.includes(prev.cmd)) {
-            return { decision: rule.decision, reason: rule.reason };
-          }
-        }
-      }
-
       if (rule.kind === "recurse" && INLINE_SHELL_CMDS.has(unwrapped.cmd)) {
         const inline = extractInlineScript(unwrapped);
         if (inline !== null) {
@@ -94,103 +97,7 @@ async function evaluateCommand(
   return { decision: "allow" };
 }
 
-function hasDdash(call: CallExprNode): boolean {
-  return call.args.some((w) => wordToLit(w) === "--");
-}
-
-/**
- * Extract the inline script from `bash -c '...'` / `eval '...'`.
- * Uses raw CallExprNode args because `unwrapped.args` replaces quoted words
- * with the `"<dynamic>"` sentinel — resolved here via `wordToScript`.
- */
-function extractInlineScript(unwrapped: UnwrappedCall): string | null {
-  if (unwrapped.flags.includes("-c") || unwrapped.args.includes("-c")) {
-    // Find the first raw arg word that follows the -c flag in the raw call
-    const rawArgs = unwrapped.raw.args;
-    let seenDashC = false;
-    for (const word of rawArgs) {
-      const lit = wordToLit(word);
-      if (lit === "-c") {
-        seenDashC = true;
-        continue;
-      }
-      if (seenDashC) {
-        return wordToScript(word);
-      }
-    }
-  }
-  if (unwrapped.cmd === "eval" || unwrapped.cmd === "exec") {
-    const firstRawArg = unwrapped.raw.args[1];
-    return firstRawArg !== undefined ? wordToScript(firstRawArg) : null;
-  }
-  return null;
-}
-
-/** Resolve a Word to a plain string, handling Lit and SglQuoted parts; null for dynamic content. */
-function wordToScript(word: Word): string | null {
-  const parts = word.parts;
-  if (parts.length === 0) return null;
-  const chunks: string[] = [];
-  for (const part of parts) {
-    if (part.type === "Lit") {
-      chunks.push(part.value);
-    } else if (part.type === "SglQuoted") {
-      chunks.push(part.value);
-    } else {
-      return null;
-    }
-  }
-  return chunks.join("");
-}
-
-function checkRedirectsAgainstPathRules(
-  ast: ShellFile,
-  pathRules: PathRule[]
-): CheckResult | null {
-  let result: CheckResult | null = null;
-  walk(ast, {
-    Stmt(node: Stmt) {
-      for (const redir of node.redirs) {
-        if (!WRITE_OPS.has(redir.op)) continue;
-        const target = wordToLit(redir.hdoc ?? redir.word);
-        if (target === null) continue;
-        for (const rule of pathRules) {
-          if (
-            (rule.event === "both" || rule.event === "write") &&
-            rule.pattern.test(target)
-          ) {
-            result = { decision: rule.decision, reason: rule.reason };
-            return;
-          }
-        }
-      }
-    },
-  });
-  return result;
-}
-
-function hasWriteRedirect(ast: ShellFile, pathPattern?: RegExp): boolean {
-  let found = false;
-  walk(ast, {
-    Stmt(node: Stmt) {
-      for (const redir of node.redirs) {
-        if (!WRITE_OPS.has(redir.op)) continue;
-        if (pathPattern === undefined) {
-          found = true;
-          return;
-        }
-        const target = wordToLit(redir.hdoc ?? redir.word);
-        if (target !== null && pathPattern.test(target)) {
-          found = true;
-          return;
-        }
-      }
-    },
-  });
-  return found;
-}
-
-function evaluatePath(
+export function evaluatePath(
   path: string,
   eventType: "write" | "read",
   rules: PathRule[]
