@@ -6,6 +6,7 @@ import { COMMAND_RULES } from "@/check/rules/commands";
 import { DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import type { HooksConfig, RuleSet } from "@/check/types";
 import { ProjectConfigSchema } from "@/config/schema";
+import { PROJECT_CONFIG_PATH } from "@/models/paths";
 
 export function buildRuleSet(config: HooksConfig): RuleSet {
   const extraPathRules = [
@@ -32,7 +33,7 @@ function escapeRegExp(s: string): string {
 
 export async function loadHookConfig(): Promise<HooksConfig> {
   try {
-    const configPath = join(process.cwd(), ".ai-guardrails", "config.toml");
+    const configPath = join(process.cwd(), PROJECT_CONFIG_PATH);
     const text = await readFile(configPath, "utf8");
     const raw = parseToml(text);
     const config = ProjectConfigSchema.parse(raw);
