@@ -9,12 +9,8 @@ export async function runProtectConfigs(): Promise<never> {
   const config = await loadHookConfig();
   const ruleset = buildRuleSet(config);
 
-  if (toolName === "Bash") {
-    const command =
-      typeof input.tool_input.command === "string" ? input.tool_input.command : "";
-    const result = await evaluate({ type: "bash", command }, ruleset);
-    toHookOutput(result, "protect-configs");
-  }
+  // Bash events are handled by the dangerous-cmd hook, which includes redirect-to-protected-path
+  // checks via checkRedirectsAgainstPathRules. protect-configs handles file write tools only.
 
   if (toolName === "Edit" || toolName === "Write" || toolName === "NotebookEdit") {
     const rawPath =
