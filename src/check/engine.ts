@@ -73,6 +73,7 @@ async function evaluateCommand(
       }
 
       if (rule.kind === "call" && rule.cmd === unwrapped.cmd) {
+        if (rule.sub !== undefined && unwrapped.args[0] !== rule.sub) continue;
         const flags = unwrapped.flags;
         const allFlagsPresent = (rule.flags ?? []).every((f) => flags.includes(f));
         const noFlagPresent = (rule.noFlags ?? []).every((f) => !flags.includes(f));

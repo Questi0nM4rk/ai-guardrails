@@ -13,6 +13,7 @@ export type ToolEvent =
 export interface CallRule {
   kind: "call";
   cmd: string;
+  sub?: string;
   flags?: string[];
   noFlags?: string[];
   hasDdash?: boolean;

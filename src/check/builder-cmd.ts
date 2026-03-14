@@ -9,6 +9,7 @@ import type {
 export function callRule(
   cmd: string,
   opts: {
+    sub?: string;
     flags?: string[];
     noFlags?: string[];
     hasDdash?: boolean;
