@@ -5,11 +5,19 @@ import { recurseRule } from "@/check/builder-cmd";
 import { protectRead, protectWrite } from "@/check/builder-path";
 import { ALL_RULE_GROUPS, collectCommandRules } from "@/check/rules/groups";
 import { DEFAULT_MANAGED_FILES, DEFAULT_PATH_RULES } from "@/check/rules/paths";
-import type { HooksConfig, RuleSet } from "@/check/types";
+import type { CommandRule, HooksConfig, RuleSet } from "@/check/types";
 import { ProjectConfigSchema } from "@/config/schema";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
 
 export function buildRuleSet(config: HooksConfig): RuleSet {
+  const disabled = new Set(config.disabledGroups ?? []);
+  const activeGroups = ALL_RULE_GROUPS.filter((g) => !disabled.has(g.id));
+
+  const commandRules: CommandRule[] = [
+    recurseRule(), // always active regardless of disabled groups
+    ...collectCommandRules(activeGroups),
+  ];
+
   const extraPathRules = [
     ...DEFAULT_MANAGED_FILES.map((f) =>
       protectWrite(
@@ -34,7 +42,7 @@ export function buildRuleSet(config: HooksConfig): RuleSet {
   ];
 
   return {
-    commandRules: [recurseRule(), ...collectCommandRules(ALL_RULE_GROUPS)],
+    commandRules,
     pathRules: [...DEFAULT_PATH_RULES, ...extraPathRules],
   };
 }
@@ -56,6 +64,9 @@ export async function loadHookConfig(): Promise<HooksConfig> {
       ...(hooks.managed_paths !== undefined && { managedPaths: hooks.managed_paths }),
       ...(hooks.protected_read_paths !== undefined && {
         protectedReadPaths: hooks.protected_read_paths,
+      }),
+      ...(hooks.disabled_groups !== undefined && {
+        disabledGroups: hooks.disabled_groups,
       }),
     };
   } catch (e: unknown) {

@@ -4,6 +4,10 @@ exports[`claudeSettingsGenerator output matches snapshot 1`] = `
 "{
   "permissions": {
     "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(sudo rm -rf*)",
+      "Bash(sudo rm -fr*)",
       "Bash(git push --force)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
@@ -12,13 +16,9 @@ exports[`claudeSettingsGenerator output matches snapshot 1`] = `
       "Bash(git restore -- *)",
       "Bash(git clean -f*)",
       "Bash(git clean --force*)",
+      "Bash(git branch -D *)",
       "Bash(git commit --no-verify*)",
       "Bash(git commit -n *)",
-      "Bash(git branch -D *)",
-      "Bash(rm -rf *)",
-      "Bash(rm -fr *)",
-      "Bash(sudo rm -rf*)",
-      "Bash(sudo rm -fr*)",
       "Bash(chmod -R 777*)",
       "Bash(curl * | bash)",
       "Bash(curl * | sh)",

@@ -14,13 +14,13 @@ describe("COMMAND_RULES (backward-compat export)", () => {
     expect(COMMAND_RULES.some((r) => r.kind === "recurse")).toBe(false);
   });
 
-  test("contains rm CallRule with -r and -f flags", () => {
+  test("contains rm CallRule with --recursive and --force flags", () => {
     const r = COMMAND_RULES.find(
       (r) =>
         r.kind === "call" &&
         r.cmd === "rm" &&
-        r.flags?.includes("-r") &&
-        r.flags?.includes("-f")
+        r.flags?.includes("--recursive") &&
+        r.flags?.includes("--force")
     );
     expect(r).toBeDefined();
   });
@@ -31,10 +31,10 @@ describe("ALL_RULE_GROUPS", () => {
     expect(ALL_RULE_GROUPS).toHaveLength(6);
   });
 
-  test("each group has an id and label", () => {
+  test("each group has an id and name", () => {
     for (const group of ALL_RULE_GROUPS) {
       expect(group.id).toBeTruthy();
-      expect(group.label).toBeTruthy();
+      expect(group.name).toBeTruthy();
     }
   });
 

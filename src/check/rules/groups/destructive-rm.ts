@@ -1,13 +1,13 @@
 import { callRule } from "@/check/builder-cmd";
 import type { RuleGroup } from "@/check/types";
 
-export const RM_GROUP: RuleGroup = {
-  id: "rm",
-  label: "rm — recursive force delete",
+export const destructiveRmGroup: RuleGroup = {
+  id: "destructive-rm",
+  name: "Destructive rm",
   commandRules: [
     callRule("rm", {
-      flags: ["-r", "-f"],
-      reason: "rm with recursive and force flags",
+      flags: ["--recursive", "--force"],
+      reason: "rm with --recursive and --force flags",
     }),
   ],
   denyGlobs: [
@@ -16,4 +16,4 @@ export const RM_GROUP: RuleGroup = {
     "Bash(sudo rm -rf*)",
     "Bash(sudo rm -fr*)",
   ],
-} as const;
+};

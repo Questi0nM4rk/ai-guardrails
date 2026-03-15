@@ -39,6 +39,11 @@ describe("expandFlags", () => {
     expect(expandFlags([])).toEqual([]);
   });
 
+  test("does NOT expand -n (ambiguous across git subcommands)", () => {
+    const result = expandFlags(["-n"]);
+    expect(result).toEqual(["-n"]);
+  });
+
   test("mixes expanded and passthrough flags", () => {
     const result = expandFlags(["-r", "--verbose", "-f"]);
     expect(result).toContain("-r");
@@ -93,8 +98,8 @@ describe("hasFlag + expandFlags integration", () => {
     expect(hasFlag(expanded, "--force")).toBe(true);
   });
 
-  test("-n matches --no-verify via alias", () => {
+  test("-n is NOT expanded (ambiguous)", () => {
     const expanded = expandFlags(["-n"]);
-    expect(hasFlag(expanded, "--no-verify")).toBe(true);
+    expect(hasFlag(expanded, "--no-verify")).toBe(false);
   });
 });

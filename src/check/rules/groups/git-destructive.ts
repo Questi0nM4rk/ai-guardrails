@@ -1,9 +1,9 @@
 import { callRule } from "@/check/builder-cmd";
 import type { RuleGroup } from "@/check/types";
 
-export const GIT_DESTRUCTIVE_GROUP: RuleGroup = {
+export const gitDestructiveGroup: RuleGroup = {
   id: "git-destructive",
-  label: "git destructive — reset, checkout, restore, clean",
+  name: "Git destructive operations",
   commandRules: [
     callRule("git", {
       sub: "reset",
@@ -22,8 +22,13 @@ export const GIT_DESTRUCTIVE_GROUP: RuleGroup = {
     }),
     callRule("git", {
       sub: "clean",
-      flags: ["-f"],
-      reason: "git clean with force flag",
+      flags: ["--force"],
+      reason: "git clean --force",
+    }),
+    callRule("git", {
+      sub: "branch",
+      flags: ["--delete", "--force"],
+      reason: "git branch --delete --force (force delete)",
     }),
   ],
   denyGlobs: [
@@ -32,5 +37,6 @@ export const GIT_DESTRUCTIVE_GROUP: RuleGroup = {
     "Bash(git restore -- *)",
     "Bash(git clean -f*)",
     "Bash(git clean --force*)",
+    "Bash(git branch -D *)",
   ],
-} as const;
+};

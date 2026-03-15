@@ -5,6 +5,10 @@
  * The bidirectional lookup map is derived automatically — adding a new alias
  * only requires editing a single group, not every permutation.
  *
+ * Note: `-n` is intentionally excluded. It means `--no-verify` for `git commit`
+ * but `--dry-run` for `git push` and `--no-checkout` for `git clone`. Commands
+ * that need `-n` matching should use explicit rules with `sub` scoping.
+ *
  * FLAG_EXPANSIONS maps compound short flags (like -D) to the flags they imply.
  */
 
@@ -16,7 +20,6 @@ const FLAG_GROUPS: readonly (readonly string[])[] = [
   ["-r", "--recursive", "-R"],
   ["-f", "--force"],
   ["-d", "--delete"],
-  ["-n", "--no-verify"],
 ];
 
 /** Derived bidirectional alias map from FLAG_GROUPS. */

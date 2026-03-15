@@ -1,26 +1,28 @@
-import { CHMOD_GROUP } from "@/check/rules/chmod";
-import { GIT_DESTRUCTIVE_GROUP } from "@/check/rules/git-destructive";
-import { GIT_PUSH_GROUP } from "@/check/rules/git-push";
-import { GIT_WORKFLOW_GROUP } from "@/check/rules/git-workflow";
-import { REMOTE_EXEC_GROUP } from "@/check/rules/remote-exec";
-import { RM_GROUP } from "@/check/rules/rm";
+import { chmodWorldWritableGroup } from "@/check/rules/groups/chmod-world-writable";
+import { destructiveRmGroup } from "@/check/rules/groups/destructive-rm";
+import { gitBypassHooksGroup } from "@/check/rules/groups/git-bypass-hooks";
+import { gitDestructiveGroup } from "@/check/rules/groups/git-destructive";
+import { gitForcePushGroup } from "@/check/rules/groups/git-force-push";
+import { remoteCodeExecGroup } from "@/check/rules/groups/remote-code-exec";
 import type { CommandRule, RuleGroup } from "@/check/types";
 
 export const ALL_RULE_GROUPS: readonly RuleGroup[] = [
-  GIT_PUSH_GROUP,
-  GIT_DESTRUCTIVE_GROUP,
-  GIT_WORKFLOW_GROUP,
-  RM_GROUP,
-  CHMOD_GROUP,
-  REMOTE_EXEC_GROUP,
+  destructiveRmGroup,
+  gitForcePushGroup,
+  gitDestructiveGroup,
+  gitBypassHooksGroup,
+  chmodWorldWritableGroup,
+  remoteCodeExecGroup,
 ] as const;
 
+/** Collect all command rules from the given groups. */
 export function collectCommandRules(
   groups: readonly RuleGroup[]
 ): readonly CommandRule[] {
   return groups.flatMap((g) => g.commandRules);
 }
 
+/** Collect all deny globs from the given groups. */
 export function collectDenyGlobs(groups: readonly RuleGroup[]): readonly string[] {
   return groups.flatMap((g) => g.denyGlobs);
 }

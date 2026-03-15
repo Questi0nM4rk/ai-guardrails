@@ -49,6 +49,7 @@ const HooksConfigSchema = z.object({
   managed_files: z.array(z.string()).optional(),
   managed_paths: z.array(z.string()).optional(),
   protected_read_paths: z.array(z.string()).optional(),
+  disabled_groups: z.array(z.string()).optional(),
 });
 
 export type HooksSchemaConfig = z.infer<typeof HooksConfigSchema>;

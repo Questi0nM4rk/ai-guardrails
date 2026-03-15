@@ -1,15 +1,15 @@
 import { callRule } from "@/check/builder-cmd";
 import type { RuleGroup } from "@/check/types";
 
-export const GIT_PUSH_GROUP: RuleGroup = {
-  id: "git-push",
-  label: "git push — force push without lease",
+export const gitForcePushGroup: RuleGroup = {
+  id: "git-force-push",
+  name: "Git force push",
   commandRules: [
     callRule("git", {
       sub: "push",
       flags: ["--force"],
       noFlags: ["--force-with-lease"],
-      reason: "git push --force without --force-with-lease",
+      reason: "git push --force",
     }),
   ],
   denyGlobs: [
@@ -17,4 +17,4 @@ export const GIT_PUSH_GROUP: RuleGroup = {
     "Bash(git push --force *)",
     "Bash(git push -f *)",
   ],
-} as const;
+};
