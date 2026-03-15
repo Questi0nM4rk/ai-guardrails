@@ -1,6 +1,6 @@
+import { DANGEROUS_DENY_GLOBS } from "@/check/rules/commands";
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
-import { DANGEROUS_DENY_GLOBS } from "@/hooks/dangerous-patterns";
 
 interface HookEntry {
   type: string;
@@ -42,11 +42,20 @@ function renderClaudeSettings(_config: ResolvedConfig): string {
           ],
         },
         {
-          matcher: "Edit|Write",
+          matcher: "Edit|Write|NotebookEdit",
           hooks: [
             {
               type: "command",
               command: `${guard}; ./dist/ai-guardrails hook protect-configs`,
+            },
+          ],
+        },
+        {
+          matcher: "Read",
+          hooks: [
+            {
+              type: "command",
+              command: `${guard}; ./dist/ai-guardrails hook protect-reads`,
             },
           ],
         },

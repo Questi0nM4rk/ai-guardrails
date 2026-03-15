@@ -1,60 +1,50 @@
 import { describe, expect, test } from "bun:test";
-import { MANAGED_FILES, protectsFile } from "@/hooks/protect-configs";
+import { evaluate } from "@/check/engine";
+import { buildRuleSet } from "@/check/ruleset";
 
-describe("protectsFile", () => {
-  // -----------------------------------------------------------------------
-  // Each managed file should be blocked in write contexts
-  // -----------------------------------------------------------------------
-  for (const managed of MANAGED_FILES) {
-    test(`blocks redirect write to ${managed}`, () => {
-      expect(protectsFile(`echo "content" > ${managed}`)).not.toBeNull();
-    });
+const ruleset = buildRuleSet({});
 
-    test(`blocks tee write to ${managed}`, () => {
-      expect(protectsFile(`cat something | tee ${managed}`)).not.toBeNull();
-    });
-
-    test(`blocks sed -i on ${managed}`, () => {
-      expect(protectsFile(`sed -i 's/foo/bar/' ${managed}`)).not.toBeNull();
-    });
-  }
-
-  // -----------------------------------------------------------------------
-  // Reading managed files should be allowed
-  // -----------------------------------------------------------------------
-  test("allows cat read of ruff.toml", () => {
-    expect(protectsFile("cat ruff.toml")).toBeNull();
+describe("protect-configs — write events", () => {
+  test("Edit .env path → not allow", async () => {
+    const result = await evaluate({ type: "write", path: ".env" }, ruleset);
+    expect(result.decision).not.toBe("allow");
   });
 
-  test("allows grep on biome.jsonc", () => {
-    expect(protectsFile("grep 'line' biome.jsonc")).toBeNull();
+  test("Write biome.jsonc → not allow", async () => {
+    const result = await evaluate({ type: "write", path: "biome.jsonc" }, ruleset);
+    expect(result.decision).not.toBe("allow");
   });
 
-  test("allows reading AGENTS.md", () => {
-    expect(protectsFile("cat AGENTS.md")).toBeNull();
+  test("Write .claude/settings.json → not allow", async () => {
+    const result = await evaluate(
+      { type: "write", path: ".claude/settings.json" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
   });
 
-  // -----------------------------------------------------------------------
-  // Unmanaged files should always be allowed
-  // -----------------------------------------------------------------------
-  test("allows writes to unmanaged files", () => {
-    expect(protectsFile("echo hello > my-custom-config.yml")).toBeNull();
+  test("Write src/main.ts → allow", async () => {
+    const result = await evaluate({ type: "write", path: "src/main.ts" }, ruleset);
+    expect(result.decision).toBe("allow");
   });
 
-  test("allows writes to src files", () => {
-    expect(protectsFile("echo 'import x' > src/index.ts")).toBeNull();
+  test("Write package.json → not allow", async () => {
+    const result = await evaluate({ type: "write", path: "package.json" }, ruleset);
+    expect(result.decision).not.toBe("allow");
+  });
+});
+
+describe("protect-configs — Bash redirect", () => {
+  test("Bash redirect to .env → not allow", async () => {
+    const result = await evaluate(
+      { type: "bash", command: "cat secret > .env" },
+      ruleset
+    );
+    expect(result.decision).not.toBe("allow");
   });
 
-  // -----------------------------------------------------------------------
-  // Return value
-  // -----------------------------------------------------------------------
-  test("returns reason string when blocked", () => {
-    const reason = protectsFile("echo test > ruff.toml");
-    expect(typeof reason).toBe("string");
-    expect((reason ?? "").includes("ruff.toml")).toBe(true);
-  });
-
-  test("returns null when not blocked", () => {
-    expect(protectsFile("echo hello")).toBeNull();
+  test("Bash safe command → allow", async () => {
+    const result = await evaluate({ type: "bash", command: "echo hello" }, ruleset);
+    expect(result.decision).toBe("allow");
   });
 });
