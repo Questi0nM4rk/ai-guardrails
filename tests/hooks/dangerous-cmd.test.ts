@@ -111,7 +111,7 @@ describe("isDangerous", () => {
     expect(await isDangerous("rm --recursive --force /tmp")).not.toBeNull();
   });
 
-  test("blocks git commit -n via alias to --no-verify", async () => {
+  test("blocks git commit -n via explicit rule (not alias)", async () => {
     expect(await isDangerous('git commit -m "skip" -n')).not.toBeNull();
   });
 
