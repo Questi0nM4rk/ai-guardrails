@@ -5,20 +5,33 @@
  * (e.g., `-r` <-> `--recursive`) so rules only need one canonical form.
  */
 
-/** Bidirectional alias map: each flag lists its equivalent forms. */
-const FLAG_ALIASES: ReadonlyMap<string, readonly string[]> = new Map([
-  ["-r", ["--recursive", "-R"]],
-  ["--recursive", ["-r", "-R"]],
-  ["-R", ["--recursive", "-r"]],
-  ["-f", ["--force"]],
-  ["--force", ["-f"]],
-  ["-d", ["--delete"]],
-  ["--delete", ["-d"]],
-  ["-n", ["--no-verify"]],
-  ["--no-verify", ["-n"]],
-]);
+/**
+ * Alias groups: each array lists all equivalent forms of the same flag.
+ * The bidirectional lookup map is derived automatically — adding a new
+ * alias only requires editing a single group, not every permutation.
+ */
+const FLAG_GROUPS: readonly (readonly string[])[] = [
+  ["-r", "--recursive", "-R"],
+  ["-f", "--force"],
+  ["-d", "--delete"],
+  ["-n", "--no-verify"],
+];
 
-/** Multi-flag expansions: compound short flags that expand to multiple flags. */
+/** Derived bidirectional alias map from FLAG_GROUPS. */
+const FLAG_ALIASES: ReadonlyMap<string, readonly string[]> = (() => {
+  const map = new Map<string, string[]>();
+  for (const group of FLAG_GROUPS) {
+    for (const flag of group) {
+      map.set(
+        flag,
+        group.filter((f) => f !== flag)
+      );
+    }
+  }
+  return map;
+})();
+
+/** Compound flag expansions: one flag expands to multiple canonical flags. */
 const FLAG_EXPANSIONS: ReadonlyMap<string, readonly string[]> = new Map([
   ["-D", ["--delete", "--force"]], // git branch -D
 ]);
@@ -26,6 +39,10 @@ const FLAG_EXPANSIONS: ReadonlyMap<string, readonly string[]> = new Map([
 /**
  * Returns true if `flags` contains `wanted` or any alias of `wanted`.
  * Handles parameterized flags: `--force-with-lease=refspec` matches `--force-with-lease`.
+ *
+ * **Precondition:** compound flags (e.g. `-D`) must be pre-expanded via `expandFlags`
+ * before passing to this function. Without expansion, compound flags are not matched
+ * against their constituent parts.
  */
 export function hasFlag(flags: readonly string[], wanted: string): boolean {
   const candidates = new Set<string>([wanted]);
@@ -50,7 +67,9 @@ export function hasFlag(flags: readonly string[], wanted: string): boolean {
 
 /**
  * Expands compound flags via FLAG_EXPANSIONS (e.g., `-D` -> `["--delete", "--force"]`).
- * Non-expansion flags pass through unchanged.
+ * Non-expansion flags pass through unchanged. Deduplicates the result.
+ *
+ * Call this before `hasFlag` to ensure compound flags are resolved.
  */
 export function expandFlags(flags: readonly string[]): string[] {
   const seen = new Set<string>();
