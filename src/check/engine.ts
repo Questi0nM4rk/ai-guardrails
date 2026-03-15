@@ -73,6 +73,7 @@ async function evaluateCommand(
     if (call === undefined) continue;
     const unwrapped = unwrapCall(call);
     if (unwrapped === null) continue;
+    const expanded = expandFlags(unwrapped.flags);
 
     for (const rule of rules) {
       if (rule.kind === "recurse" && INLINE_SHELL_CMDS.has(unwrapped.cmd)) {
@@ -85,7 +86,6 @@ async function evaluateCommand(
 
       if (rule.kind === "call" && rule.cmd === unwrapped.cmd) {
         if (rule.sub !== undefined && unwrapped.args[0] !== rule.sub) continue;
-        const expanded = expandFlags(unwrapped.flags);
         const allFlagsPresent = (rule.flags ?? []).every((f) => hasFlag(expanded, f));
         const noFlagPresent = (rule.noFlags ?? []).every((f) => !hasFlag(expanded, f));
         const allArgsPresent = (rule.args ?? []).every((a) =>

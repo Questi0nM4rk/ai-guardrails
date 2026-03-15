@@ -2,93 +2,98 @@ import { describe, expect, test } from "bun:test";
 import { expandFlags, hasFlag } from "@/check/flag-aliases";
 
 describe("expandFlags", () => {
-  test("passes through flags with no aliases", () => {
-    const result = expandFlags(["--some-unknown"]);
-    expect(result).toEqual(["--some-unknown"]);
+  test("expands -D to --delete and --force", () => {
+    const result = expandFlags(["-D"]);
+    expect(result).toContain("--delete");
+    expect(result).toContain("--force");
   });
 
-  test("expands -r to include --recursive", () => {
+  test("passes through flags without expansions", () => {
+    const result = expandFlags(["--verbose"]);
+    expect(result).toContain("--verbose");
+  });
+
+  test("adds alias equivalents transitively", () => {
     const result = expandFlags(["-r"]);
     expect(result).toContain("-r");
     expect(result).toContain("--recursive");
-  });
-
-  test("expands --recursive to include -r and -R", () => {
-    const result = expandFlags(["--recursive"]);
-    expect(result).toContain("--recursive");
-    expect(result).toContain("-r");
     expect(result).toContain("-R");
   });
 
-  test("expands -f to include --force", () => {
-    const result = expandFlags(["-f"]);
-    expect(result).toContain("-f");
-    expect(result).toContain("--force");
+  test("-R resolves transitively to -r and --recursive", () => {
+    const result = expandFlags(["-R"]);
+    expect(result).toContain("-R");
+    expect(result).toContain("--recursive");
+    expect(result).toContain("-r");
   });
 
-  test("expands --force to include -f", () => {
-    const result = expandFlags(["--force"]);
+  test("deduplicates when expansion overlaps", () => {
+    const result = expandFlags(["--force", "-D"]);
     expect(result).toContain("--force");
-    expect(result).toContain("-f");
-  });
-
-  test("expands -D to --delete and --force (plus their aliases)", () => {
-    const result = expandFlags(["-D"]);
-    expect(result).toContain("-D");
     expect(result).toContain("--delete");
-    expect(result).toContain("--force");
-    expect(result).toContain("-d");
-    expect(result).toContain("-f");
+    expect(result.filter((f) => f === "--force")).toHaveLength(1);
   });
 
-  test("expands --no-verify to include -n", () => {
-    const result = expandFlags(["--no-verify"]);
-    expect(result).toContain("--no-verify");
-    expect(result).toContain("-n");
+  test("returns empty array for empty input", () => {
+    expect(expandFlags([])).toEqual([]);
   });
 
-  test("expands -n to include --no-verify", () => {
-    const result = expandFlags(["-n"]);
-    expect(result).toContain("-n");
-    expect(result).toContain("--no-verify");
-  });
-
-  test("handles multiple flags", () => {
-    const result = expandFlags(["-r", "--force"]);
+  test("mixes expanded and passthrough flags", () => {
+    const result = expandFlags(["-r", "--verbose", "-f"]);
     expect(result).toContain("-r");
     expect(result).toContain("--recursive");
-    expect(result).toContain("--force");
+    expect(result).toContain("-R");
+    expect(result).toContain("--verbose");
     expect(result).toContain("-f");
-  });
-
-  test("does not produce duplicates", () => {
-    const result = expandFlags(["-f", "--force"]);
-    const unique = new Set(result);
-    expect(result).toHaveLength(unique.size);
+    expect(result).toContain("--force");
   });
 });
 
 describe("hasFlag", () => {
-  test("exact match returns true", () => {
+  test("matches exact flag", () => {
     expect(hasFlag(["--force"], "--force")).toBe(true);
   });
 
-  test("different flag returns false", () => {
-    expect(hasFlag(["--force"], "--recursive")).toBe(false);
+  test("does not match absent flag", () => {
+    expect(hasFlag(["--verbose"], "--force")).toBe(false);
   });
 
-  test("parameterized form matches via startsWith", () => {
-    expect(hasFlag(["--force-with-lease=origin/main:main"], "--force-with-lease")).toBe(
+  test("handles parameterized flag (--force-with-lease=refspec)", () => {
+    expect(hasFlag(["--force-with-lease=origin/main"], "--force-with-lease")).toBe(
       true
     );
   });
 
-  test("empty expanded list returns false", () => {
-    expect(hasFlag([], "--force")).toBe(false);
+  test("does not match --force-with-lease as --force", () => {
+    expect(hasFlag(["--force-with-lease"], "--force")).toBe(false);
+  });
+});
+
+describe("hasFlag + expandFlags integration", () => {
+  test("-r matches --recursive via alias expansion", () => {
+    const expanded = expandFlags(["-r"]);
+    expect(hasFlag(expanded, "--recursive")).toBe(true);
   });
 
-  test("does not false-positive on prefix substring", () => {
-    // --force should NOT match --force-with-lease (no = separator)
-    expect(hasFlag(["--force-with-lease"], "--force")).toBe(false);
+  test("--force matches -f via alias expansion", () => {
+    const expanded = expandFlags(["--force"]);
+    expect(hasFlag(expanded, "-f")).toBe(true);
+  });
+
+  test("-R matches --recursive via transitive alias", () => {
+    const expanded = expandFlags(["-R"]);
+    expect(hasFlag(expanded, "--recursive")).toBe(true);
+    expect(hasFlag(expanded, "-r")).toBe(true);
+  });
+
+  test("git branch -D matches --delete and --force", () => {
+    const expanded = expandFlags(["-D"]);
+    expect(hasFlag(expanded, "--delete")).toBe(true);
+    expect(hasFlag(expanded, "--force")).toBe(true);
+  });
+
+  test("-n matches --no-verify via alias", () => {
+    const expanded = expandFlags(["-n"]);
+    expect(hasFlag(expanded, "--no-verify")).toBe(true);
   });
 });

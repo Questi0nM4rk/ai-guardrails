@@ -49,7 +49,6 @@ export function expandFlags(flags: readonly string[]): string[] {
   for (const flag of flags) {
     result.add(flag);
 
-    // Expand compound flags (e.g. -D -> --delete, --force)
     const expansion = FLAG_EXPANSIONS.get(flag);
     if (expansion !== undefined) {
       for (const f of expansion) {
@@ -58,7 +57,7 @@ export function expandFlags(flags: readonly string[]): string[] {
     }
   }
 
-  // Add aliases for everything — iterate until no new entries
+  // Add aliases — iterate until no new entries
   let prevSize = 0;
   while (result.size !== prevSize) {
     prevSize = result.size;
