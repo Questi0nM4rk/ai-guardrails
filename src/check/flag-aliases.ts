@@ -7,9 +7,9 @@
 
 /** Bidirectional alias map: each flag lists its equivalent forms. */
 const FLAG_ALIASES: ReadonlyMap<string, readonly string[]> = new Map([
-  ["-r", ["--recursive"]],
+  ["-r", ["--recursive", "-R"]],
   ["--recursive", ["-r", "-R"]],
-  ["-R", ["--recursive"]],
+  ["-R", ["--recursive", "-r"]],
   ["-f", ["--force"]],
   ["--force", ["-f"]],
   ["-d", ["--delete"]],
@@ -53,13 +53,16 @@ export function hasFlag(flags: readonly string[], wanted: string): boolean {
  * Non-expansion flags pass through unchanged.
  */
 export function expandFlags(flags: readonly string[]): string[] {
+  const seen = new Set<string>();
   const result: string[] = [];
   for (const flag of flags) {
     const expansion = FLAG_EXPANSIONS.get(flag);
-    if (expansion !== undefined) {
-      result.push(...expansion);
-    } else {
-      result.push(flag);
+    const items = expansion !== undefined ? expansion : [flag];
+    for (const item of items) {
+      if (!seen.has(item)) {
+        seen.add(item);
+        result.push(item);
+      }
     }
   }
   return result;

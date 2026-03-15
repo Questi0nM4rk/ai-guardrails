@@ -102,10 +102,11 @@ describe("expandFlags", () => {
     expect(expandFlags([])).toEqual([]);
   });
 
-  test("does not duplicate if expansion overlaps with existing flag", () => {
+  test("deduplicates when expansion overlaps with existing flag", () => {
     const result = expandFlags(["--force", "-D"]);
     expect(result).toContain("--force");
     expect(result).toContain("--delete");
+    expect(result).toHaveLength(2); // --force appears once despite overlap
   });
 });
 
