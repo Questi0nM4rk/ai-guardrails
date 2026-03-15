@@ -107,7 +107,7 @@ describe("isDangerous", () => {
     expect(result?.decision).not.toBe("allow");
   });
 
-  test("blocks rm --recursive --force via aliases", async () => {
+  test("blocks rm --recursive --force via flag alias resolution", async () => {
     expect(await isDangerous("rm --recursive --force /tmp")).not.toBeNull();
   });
 
@@ -115,11 +115,11 @@ describe("isDangerous", () => {
     expect(await isDangerous('git commit -m "skip" -n')).not.toBeNull();
   });
 
-  test("blocks git clean --force via alias to -f", async () => {
+  test("blocks git clean --force via flag alias resolution", async () => {
     expect(await isDangerous("git clean --force")).not.toBeNull();
   });
 
-  test("blocks chmod --recursive 777 via alias to -R", async () => {
+  test("blocks chmod --recursive 777 via flag alias resolution", async () => {
     expect(await isDangerous("chmod --recursive 777 /tmp")).not.toBeNull();
   });
 });
