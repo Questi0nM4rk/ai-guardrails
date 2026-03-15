@@ -1,4 +1,4 @@
-import { DANGEROUS_DENY_GLOBS } from "@/check/rules/commands";
+import { DANGEROUS_DENY_GLOBS } from "@/check/rules/groups";
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 

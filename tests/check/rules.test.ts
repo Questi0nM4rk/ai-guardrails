@@ -1,11 +1,17 @@
 import { describe, expect, test } from "bun:test";
-import { COMMAND_RULES } from "@/check/rules/commands";
+import {
+  ALL_RULE_GROUPS,
+  COMMAND_RULES,
+  collectCommandRules,
+  collectDenyGlobs,
+  DANGEROUS_DENY_GLOBS,
+} from "@/check/rules/groups";
 import { DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import { buildRuleSet } from "@/check/ruleset";
 
-describe("COMMAND_RULES", () => {
-  test("contains a RecurseRule", () => {
-    expect(COMMAND_RULES.some((r) => r.kind === "recurse")).toBe(true);
+describe("COMMAND_RULES (backward-compat export)", () => {
+  test("does not contain a RecurseRule (injected by buildRuleSet)", () => {
+    expect(COMMAND_RULES.some((r) => r.kind === "recurse")).toBe(false);
   });
 
   test("contains rm CallRule with -r and -f flags", () => {
@@ -17,6 +23,47 @@ describe("COMMAND_RULES", () => {
         r.flags?.includes("-f")
     );
     expect(r).toBeDefined();
+  });
+});
+
+describe("ALL_RULE_GROUPS", () => {
+  test("has 6 groups", () => {
+    expect(ALL_RULE_GROUPS).toHaveLength(6);
+  });
+
+  test("each group has an id and label", () => {
+    for (const group of ALL_RULE_GROUPS) {
+      expect(group.id).toBeTruthy();
+      expect(group.label).toBeTruthy();
+    }
+  });
+
+  test("each group has at least one commandRule", () => {
+    for (const group of ALL_RULE_GROUPS) {
+      expect(group.commandRules.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("collectCommandRules aggregates all group rules", () => {
+    const rules = collectCommandRules(ALL_RULE_GROUPS);
+    const totalFromGroups = ALL_RULE_GROUPS.reduce(
+      (sum, g) => sum + g.commandRules.length,
+      0
+    );
+    expect(rules).toHaveLength(totalFromGroups);
+  });
+
+  test("collectDenyGlobs aggregates all group globs", () => {
+    const globs = collectDenyGlobs(ALL_RULE_GROUPS);
+    const totalFromGroups = ALL_RULE_GROUPS.reduce(
+      (sum, g) => sum + g.denyGlobs.length,
+      0
+    );
+    expect(globs).toHaveLength(totalFromGroups);
+  });
+
+  test("DANGEROUS_DENY_GLOBS matches collectDenyGlobs output", () => {
+    expect(DANGEROUS_DENY_GLOBS).toEqual(collectDenyGlobs(ALL_RULE_GROUPS));
   });
 });
 
@@ -41,6 +88,11 @@ describe("buildRuleSet", () => {
     const rs = buildRuleSet({});
     expect(rs.commandRules.length).toBeGreaterThan(0);
     expect(rs.pathRules.length).toBeGreaterThan(0);
+  });
+
+  test("injects recurseRule into commandRules", () => {
+    const rs = buildRuleSet({});
+    expect(rs.commandRules.some((r) => r.kind === "recurse")).toBe(true);
   });
 
   test("adds protectWrite for custom managedFiles", () => {
