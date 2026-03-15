@@ -9,6 +9,7 @@ import {
   hasDdash,
   hasWriteRedirect,
 } from "@/check/engine-helpers";
+import { expandFlags, hasFlag } from "@/check/flag-aliases";
 import type {
   CheckResult,
   CommandRule,
@@ -72,6 +73,7 @@ async function evaluateCommand(
     if (call === undefined) continue;
     const unwrapped = unwrapCall(call);
     if (unwrapped === null) continue;
+    const expanded = expandFlags(unwrapped.flags);
 
     for (const rule of rules) {
       if (rule.kind === "recurse" && INLINE_SHELL_CMDS.has(unwrapped.cmd)) {
@@ -84,12 +86,8 @@ async function evaluateCommand(
 
       if (rule.kind === "call" && rule.cmd === unwrapped.cmd) {
         if (rule.sub !== undefined && unwrapped.args[0] !== rule.sub) continue;
-        const flags = unwrapped.flags;
-        const allFlagsPresent = (rule.flags ?? []).every((f) => flags.includes(f));
-        // Use startsWith to handle parameterized forms: --force-with-lease=refspec
-        const noFlagPresent = (rule.noFlags ?? []).every(
-          (f) => !flags.some((flag) => flag === f || flag.startsWith(`${f}=`))
-        );
+        const allFlagsPresent = (rule.flags ?? []).every((f) => hasFlag(expanded, f));
+        const noFlagPresent = (rule.noFlags ?? []).every((f) => !hasFlag(expanded, f));
         const allArgsPresent = (rule.args ?? []).every((a) =>
           unwrapped.args.includes(a)
         );
