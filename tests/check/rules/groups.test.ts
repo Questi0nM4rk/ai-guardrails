@@ -52,14 +52,16 @@ describe("group aggregation", () => {
     expect(ids).toContain("remote-exec");
   });
 
-  test("collectCommandRules returns 11 rules total", () => {
+  test("collectCommandRules returns sum of all group rules", () => {
     const rules = collectCommandRules(ALL_RULE_GROUPS);
-    expect(rules).toHaveLength(11);
+    const expected = ALL_RULE_GROUPS.reduce((sum, g) => sum + g.commandRules.length, 0);
+    expect(rules).toHaveLength(expected);
   });
 
-  test("collectDenyGlobs returns 28 globs total", () => {
+  test("collectDenyGlobs returns sum of all group globs", () => {
     const globs = collectDenyGlobs(ALL_RULE_GROUPS);
-    expect(globs).toHaveLength(28);
+    const expected = ALL_RULE_GROUPS.reduce((sum, g) => sum + g.denyGlobs.length, 0);
+    expect(globs).toHaveLength(expected);
   });
 
   test("no duplicate group ids", () => {

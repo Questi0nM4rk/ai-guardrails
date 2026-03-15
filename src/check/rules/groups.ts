@@ -15,14 +15,18 @@ export const ALL_RULE_GROUPS: readonly RuleGroup[] = [
   REMOTE_EXEC_GROUP,
 ] as const;
 
-export function collectCommandRules(groups: readonly RuleGroup[]): CommandRule[] {
+export function collectCommandRules(
+  groups: readonly RuleGroup[]
+): readonly CommandRule[] {
   return groups.flatMap((g) => [...g.commandRules]);
 }
 
-export function collectDenyGlobs(groups: readonly RuleGroup[]): string[] {
+export function collectDenyGlobs(groups: readonly RuleGroup[]): readonly string[] {
   return groups.flatMap((g) => [...g.denyGlobs]);
 }
 
 /** Backward-compatible exports — same shape as the old commands.ts */
-export const COMMAND_RULES: CommandRule[] = collectCommandRules(ALL_RULE_GROUPS);
-export const DANGEROUS_DENY_GLOBS: string[] = collectDenyGlobs(ALL_RULE_GROUPS);
+export const COMMAND_RULES: readonly CommandRule[] =
+  collectCommandRules(ALL_RULE_GROUPS);
+export const DANGEROUS_DENY_GLOBS: readonly string[] =
+  collectDenyGlobs(ALL_RULE_GROUPS);
