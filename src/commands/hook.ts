@@ -1,11 +1,13 @@
 import { runDangerousCmd } from "@/hooks/dangerous-cmd";
 import { runFormatStage } from "@/hooks/format-stage";
 import { runProtectConfigs } from "@/hooks/protect-configs";
+import { runProtectReads } from "@/hooks/protect-reads";
 import { runSuppressComments } from "@/hooks/suppress-comments";
 
 const HOOK_NAMES = [
   "dangerous-cmd",
   "protect-configs",
+  "protect-reads",
   "suppress-comments",
   "format-stage",
 ];
@@ -16,6 +18,8 @@ export async function runHook(hookName: string, args: string[]): Promise<never> 
       return runDangerousCmd();
     case "protect-configs":
       return runProtectConfigs();
+    case "protect-reads":
+      return runProtectReads();
     case "suppress-comments":
       return runSuppressComments(args);
     case "format-stage":
