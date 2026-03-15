@@ -27,6 +27,7 @@ export function hasWriteRedirect(ast: ShellFile, pathPattern?: RegExp): boolean 
   let found = false;
   walk(ast, {
     Stmt(node: Stmt) {
+      if (found) return;
       for (const redir of node.redirs) {
         if (!WRITE_OPS.has(redir.op)) continue;
         if (pathPattern === undefined) {
