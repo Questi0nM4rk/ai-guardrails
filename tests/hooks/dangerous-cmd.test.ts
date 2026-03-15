@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { evaluate } from "@/check/engine";
-import { DANGEROUS_DENY_GLOBS } from "@/check/rules/commands";
+import { DANGEROUS_DENY_GLOBS } from "@/check/rules/groups";
 import { buildRuleSet } from "@/check/ruleset";
 import { isDangerous } from "@/hooks/dangerous-cmd";
 
@@ -105,6 +105,22 @@ describe("isDangerous", () => {
     const result = await isDangerous("git reset --hard");
     expect(result).not.toBeNull();
     expect(result?.decision).not.toBe("allow");
+  });
+
+  test("blocks rm --recursive --force via flag alias resolution", async () => {
+    expect(await isDangerous("rm --recursive --force /tmp")).not.toBeNull();
+  });
+
+  test("blocks git commit -n via explicit rule (not alias)", async () => {
+    expect(await isDangerous('git commit -m "skip" -n')).not.toBeNull();
+  });
+
+  test("blocks git clean --force via flag alias resolution", async () => {
+    expect(await isDangerous("git clean --force")).not.toBeNull();
+  });
+
+  test("blocks chmod --recursive 777 via flag alias resolution", async () => {
+    expect(await isDangerous("chmod --recursive 777 /tmp")).not.toBeNull();
   });
 });
 

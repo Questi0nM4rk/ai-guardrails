@@ -18,6 +18,22 @@ const BLOCKED = [
   "bash -c 'rm -rf /tmp'",
   "sudo rm -rf /var/log",
   "npm install && rm -rf /",
+  // Alias-matched: long flags resolve to short equivalents
+  "rm --recursive --force /path",
+  "rm -r --force /path",
+  "rm --recursive -f /path",
+  // Alias-matched: -R resolves to --recursive via transitive alias
+  "rm -R -f /path",
+  "rm -R --force /path",
+  // Explicit rule: git commit -n (not aliased — -n is ambiguous across git subcommands)
+  "git commit -m 'skip hooks' -n",
+  // expandFlags: git branch -D expands to --delete --force
+  "git branch -D my-branch",
+  // Alias-matched: git clean --force resolves to -f
+  "git clean --force",
+  // Alias-matched: chmod --recursive resolves to -R
+  "chmod --recursive 777 /tmp",
+  "chmod --recursive a+rwx /tmp",
 ];
 
 const SAFE = [
@@ -31,6 +47,9 @@ const SAFE = [
   'git commit -m "rm -rf node_modules"',
   'grep "git push --force" Makefile',
   'echo "rm -rf /"',
+  // noFlags still blocks: --force-with-lease via alias expansion
+  "git push --force --force-with-lease",
+  "git push -f --force-with-lease",
 ];
 
 describe("integration — blocked commands", () => {
