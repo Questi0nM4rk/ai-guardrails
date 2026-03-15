@@ -33,7 +33,7 @@ export function hasWriteRedirect(ast: ShellFile, pathPattern?: RegExp): boolean 
           found = true;
           return;
         }
-        const target = wordToLit(redir.hdoc ?? redir.word);
+        const target = wordToLit(redir.word);
         if (target !== null && pathPattern.test(target)) {
           found = true;
           return;
@@ -55,7 +55,7 @@ export function checkRedirectsAgainstPathRules(
       if (result !== null) return;
       for (const redir of node.redirs) {
         if (!WRITE_OPS.has(redir.op)) continue;
-        const target = wordToLit(redir.hdoc ?? redir.word);
+        const target = wordToLit(redir.word);
         if (target === null) continue;
         for (const rule of pathRules) {
           if (

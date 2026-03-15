@@ -36,7 +36,11 @@ async function evaluateCommand(
   pathRules: PathRule[],
   depth: number
 ): Promise<CheckResult> {
-  if (depth > MAX_RECURSE_DEPTH) return { decision: "allow" };
+  if (depth > MAX_RECURSE_DEPTH)
+    return {
+      decision: "ask",
+      reason: "inline script nesting too deep to inspect safely",
+    };
   let ast: ShellFile;
   try {
     ast = await parse(command);
