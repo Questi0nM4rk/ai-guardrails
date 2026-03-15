@@ -148,7 +148,7 @@ export function checkWriteArgCommands(
 
 /** Extract the inline script from `bash -c '...'` / `eval '...'`. */
 export function extractInlineScript(unwrapped: UnwrappedCall): string | null {
-  if (unwrapped.flags.includes("-c") || unwrapped.args.includes("-c")) {
+  if (unwrapped.flags.includes("-c")) {
     const rawArgs = unwrapped.raw.args;
     let seenDashC = false;
     for (const word of rawArgs) {

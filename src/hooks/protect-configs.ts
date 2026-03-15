@@ -6,13 +6,12 @@ import { readHookInput } from "@/hooks/runner";
 export async function runProtectConfigs(): Promise<never> {
   const input = await readHookInput();
   const toolName = input.tool_name;
-  const config = await loadHookConfig();
-  const ruleset = buildRuleSet(config);
-
   // Bash events are handled by the dangerous-cmd hook, which includes redirect-to-protected-path
   // checks via checkRedirectsAgainstPathRules. protect-configs handles file write tools only.
 
   if (toolName === "Edit" || toolName === "Write" || toolName === "NotebookEdit") {
+    const config = await loadHookConfig();
+    const ruleset = buildRuleSet(config);
     const rawPath =
       input.tool_input.file_path ??
       input.tool_input.notebook_path ??
