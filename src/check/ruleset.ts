@@ -1,8 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
+import { recurseRule } from "@/check/builder-cmd";
 import { protectRead, protectWrite } from "@/check/builder-path";
-import { COMMAND_RULES } from "@/check/rules/commands";
+import { ALL_RULE_GROUPS, collectCommandRules } from "@/check/rules/groups";
 import { DEFAULT_MANAGED_FILES, DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import type { HooksConfig, RuleSet } from "@/check/types";
 import { ProjectConfigSchema } from "@/config/schema";
@@ -33,7 +34,7 @@ export function buildRuleSet(config: HooksConfig): RuleSet {
   ];
 
   return {
-    commandRules: COMMAND_RULES,
+    commandRules: [recurseRule(), ...collectCommandRules(ALL_RULE_GROUPS)],
     pathRules: [...DEFAULT_PATH_RULES, ...extraPathRules],
   };
 }
