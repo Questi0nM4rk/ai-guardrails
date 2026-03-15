@@ -1,4 +1,4 @@
-import { DANGEROUS_DENY_GLOBS } from "@/check/rules/commands";
+import { ALL_RULE_GROUPS, collectDenyGlobs } from "@/check/rules/groups";
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 
@@ -25,10 +25,14 @@ function renderClaudeSettings(_config: ResolvedConfig): string {
   // settings.json must be strict JSON (no comments) for all JSON parsers.
   // Staleness/tamper detection is handled by validate-configs comparing
   // regenerated content against on-disk content directly.
+  //
+  // Always emit ALL deny globs regardless of disabled_groups config.
+  // settings.json deny patterns are a first-layer static safety net,
+  // independent of hook-level config toggling.
   const guard = "[ ! -f ./dist/ai-guardrails ] && exit 0";
   const settings: ClaudeSettings = {
     permissions: {
-      deny: DANGEROUS_DENY_GLOBS,
+      deny: collectDenyGlobs(ALL_RULE_GROUPS),
     },
     hooks: {
       PreToolUse: [

@@ -8,13 +8,13 @@ describe("COMMAND_RULES", () => {
     expect(COMMAND_RULES.some((r) => r.kind === "recurse")).toBe(true);
   });
 
-  test("contains rm CallRule with -r and -f flags", () => {
+  test("contains rm CallRule with --recursive and --force flags", () => {
     const r = COMMAND_RULES.find(
       (r) =>
         r.kind === "call" &&
         r.cmd === "rm" &&
-        r.flags?.includes("-r") &&
-        r.flags?.includes("-f")
+        r.flags?.includes("--recursive") &&
+        r.flags?.includes("--force")
     );
     expect(r).toBeDefined();
   });
