@@ -51,13 +51,21 @@ export interface PathRule {
   reason: string;
 }
 
+export interface RuleGroup {
+  readonly id: string;
+  readonly name: string;
+  readonly commandRules: readonly CommandRule[];
+  readonly denyGlobs: readonly string[];
+}
+
 export interface RuleSet {
-  commandRules: CommandRule[];
-  pathRules: PathRule[];
+  readonly commandRules: readonly CommandRule[];
+  readonly pathRules: readonly PathRule[];
 }
 
 export interface HooksConfig {
   managedFiles?: string[];
   managedPaths?: string[];
   protectedReadPaths?: string[];
+  disabledGroups?: string[];
 }
