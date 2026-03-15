@@ -40,8 +40,9 @@ const FLAG_EXPANSIONS: ReadonlyMap<string, readonly string[]> = new Map([
 
 /**
  * Expand a list of flags by applying FLAG_EXPANSIONS and FLAG_ALIASES.
- * The result contains every original flag plus all alias equivalents,
- * with full transitivity through the alias graph.
+ * The result contains every original flag (including compound flags like `-D`)
+ * plus their expansions and all alias equivalents, with full transitivity
+ * through the alias graph.
  */
 export function expandFlags(flags: readonly string[]): string[] {
   const result = new Set<string>();

@@ -18,11 +18,11 @@ export const ALL_RULE_GROUPS: readonly RuleGroup[] = [
 export function collectCommandRules(
   groups: readonly RuleGroup[]
 ): readonly CommandRule[] {
-  return groups.flatMap((g) => [...g.commandRules]);
+  return groups.flatMap((g) => g.commandRules);
 }
 
 export function collectDenyGlobs(groups: readonly RuleGroup[]): readonly string[] {
-  return groups.flatMap((g) => [...g.denyGlobs]);
+  return groups.flatMap((g) => g.denyGlobs);
 }
 
 /** Backward-compatible exports — same shape as the old commands.ts */

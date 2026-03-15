@@ -2,8 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { expandFlags, hasFlag } from "@/check/flag-aliases";
 
 describe("expandFlags", () => {
-  test("expands -D to --delete and --force", () => {
+  test("expands -D to --delete and --force, retains original", () => {
     const result = expandFlags(["-D"]);
+    expect(result).toContain("-D"); // compound flag retained in output
     expect(result).toContain("--delete");
     expect(result).toContain("--force");
   });
