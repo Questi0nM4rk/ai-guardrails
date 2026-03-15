@@ -38,5 +38,6 @@ export const gitDestructiveGroup: RuleGroup = {
     "Bash(git clean -f*)",
     "Bash(git clean --force*)",
     "Bash(git branch -D *)",
+    "Bash(git branch --delete --force *)",
   ],
 };

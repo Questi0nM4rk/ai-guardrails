@@ -18,5 +18,9 @@ export const gitBypassHooksGroup: RuleGroup = {
       reason: "git commit -n (bypasses hooks)",
     }),
   ],
-  denyGlobs: ["Bash(git commit --no-verify*)", "Bash(git commit -n *)"],
+  denyGlobs: [
+    "Bash(git commit --no-verify*)",
+    "Bash(git commit -n *)",
+    "Bash(git commit -n)",
+  ],
 };

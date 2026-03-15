@@ -13,7 +13,7 @@ export const destructiveRmGroup: RuleGroup = {
   denyGlobs: [
     "Bash(rm -rf *)",
     "Bash(rm -fr *)",
-    "Bash(sudo rm -rf*)",
-    "Bash(sudo rm -fr*)",
+    "Bash(sudo rm -rf *)",
+    "Bash(sudo rm -fr *)",
   ],
 };

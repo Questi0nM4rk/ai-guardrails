@@ -48,7 +48,7 @@ export function hasWriteRedirect(ast: ShellFile, pathPattern?: RegExp): boolean 
 /** Checks redirect targets against path rules — catches `cmd > .env` patterns. */
 export function checkRedirectsAgainstPathRules(
   ast: ShellFile,
-  pathRules: PathRule[]
+  pathRules: readonly PathRule[]
 ): CheckResult | null {
   let result: CheckResult | null = null;
   walk(ast, {
@@ -76,7 +76,7 @@ export function checkRedirectsAgainstPathRules(
 /** Walk BinaryCmd pipe nodes to detect actual `from | into` patterns. */
 export function findPipeViolations(
   ast: ShellFile,
-  rules: CommandRule[]
+  rules: readonly CommandRule[]
 ): CheckResult | null {
   let result: CheckResult | null = null;
   walk(ast, {
@@ -111,11 +111,11 @@ function stmtToCmd(stmt: Stmt): string | null {
 /** Checks tee/cp/mv/sed-i argument destinations against path rules. */
 export function checkWriteArgCommands(
   calls: CallExprNode[],
-  pathRules: PathRule[],
+  pathRules: readonly PathRule[],
   evaluatePath: (
     path: string,
     event: "write" | "read",
-    rules: PathRule[]
+    rules: readonly PathRule[]
   ) => CheckResult
 ): CheckResult | null {
   for (const call of calls) {

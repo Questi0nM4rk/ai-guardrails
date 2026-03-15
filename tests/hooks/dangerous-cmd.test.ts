@@ -115,10 +115,6 @@ describe("isDangerous", () => {
     expect(await isDangerous('git commit -m "skip" -n')).not.toBeNull();
   });
 
-  test("blocks git branch -D via flag expansion", async () => {
-    expect(await isDangerous("git branch -D feature")).not.toBeNull();
-  });
-
   test("blocks git clean --force via alias to -f", async () => {
     expect(await isDangerous("git clean --force")).not.toBeNull();
   });

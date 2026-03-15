@@ -11,6 +11,12 @@ import { PROJECT_CONFIG_PATH } from "@/models/paths";
 
 export function buildRuleSet(config: HooksConfig): RuleSet {
   const disabled = new Set(config.disabledGroups ?? []);
+  const knownIds = new Set(ALL_RULE_GROUPS.map((g) => g.id));
+  for (const id of disabled) {
+    if (!knownIds.has(id)) {
+      process.stderr.write(`[ai-guardrails] unknown disabled_group: "${id}"\n`);
+    }
+  }
   const activeGroups = ALL_RULE_GROUPS.filter((g) => !disabled.has(g.id));
 
   const commandRules: CommandRule[] = [

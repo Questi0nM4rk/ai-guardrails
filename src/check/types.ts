@@ -59,8 +59,8 @@ export interface RuleGroup {
 }
 
 export interface RuleSet {
-  commandRules: CommandRule[];
-  pathRules: PathRule[];
+  readonly commandRules: readonly CommandRule[];
+  readonly pathRules: readonly PathRule[];
 }
 
 export interface HooksConfig {

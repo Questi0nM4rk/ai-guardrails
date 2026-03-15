@@ -63,7 +63,8 @@ describe("collectCommandRules", () => {
 describe("collectDenyGlobs", () => {
   test("collects all globs from all groups", () => {
     const globs = collectDenyGlobs(ALL_RULE_GROUPS);
-    expect(globs.length).toBe(28);
+    const expected = ALL_RULE_GROUPS.reduce((sum, g) => sum + g.denyGlobs.length, 0);
+    expect(globs.length).toBe(expected);
   });
 
   test("returns empty for empty groups", () => {

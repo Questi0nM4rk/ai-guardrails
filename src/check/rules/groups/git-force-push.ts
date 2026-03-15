@@ -15,6 +15,7 @@ export const gitForcePushGroup: RuleGroup = {
   denyGlobs: [
     "Bash(git push --force)",
     "Bash(git push --force *)",
+    "Bash(git push -f)",
     "Bash(git push -f *)",
   ],
 };

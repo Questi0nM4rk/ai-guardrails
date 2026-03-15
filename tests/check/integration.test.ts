@@ -25,7 +25,7 @@ const BLOCKED = [
   // Alias-matched: -R resolves to --recursive via transitive alias
   "rm -R -f /path",
   "rm -R --force /path",
-  // Alias-matched: git commit -n resolves to --no-verify
+  // Explicit rule: git commit -n (not aliased — -n is ambiguous across git subcommands)
   "git commit -m 'skip hooks' -n",
   // expandFlags: git branch -D expands to --delete --force
   "git branch -D my-branch",

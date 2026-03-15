@@ -33,8 +33,8 @@ export async function evaluate(
 
 async function evaluateCommand(
   command: string,
-  rules: CommandRule[],
-  pathRules: PathRule[],
+  rules: readonly CommandRule[],
+  pathRules: readonly PathRule[],
   depth: number
 ): Promise<CheckResult> {
   if (depth > MAX_RECURSE_DEPTH)
@@ -105,7 +105,7 @@ async function evaluateCommand(
 export function evaluatePath(
   path: string,
   eventType: "write" | "read",
-  rules: PathRule[]
+  rules: readonly PathRule[]
 ): CheckResult {
   for (const rule of rules) {
     if (

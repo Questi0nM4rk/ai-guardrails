@@ -16,5 +16,5 @@ export const chmodWorldWritableGroup: RuleGroup = {
       reason: "chmod --recursive a+rwx (world-writable recursive)",
     }),
   ],
-  denyGlobs: ["Bash(chmod -R 777*)"],
+  denyGlobs: ["Bash(chmod -R 777*)", "Bash(chmod -R a+rwx*)"],
 };
