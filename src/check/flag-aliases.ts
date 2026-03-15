@@ -8,6 +8,8 @@
  * Note: `-n` is intentionally excluded. It means `--no-verify` for `git commit`
  * but `--dry-run` for `git push` and `--no-checkout` for `git clone`. Commands
  * that need `-n` matching should use explicit rules with `sub` scoping.
+ *
+ * FLAG_EXPANSIONS maps compound short flags (like -D) to the flags they imply.
  */
 
 /**
@@ -41,8 +43,9 @@ const FLAG_EXPANSIONS: ReadonlyMap<string, readonly string[]> = new Map([
 
 /**
  * Expand a list of flags by applying FLAG_EXPANSIONS and FLAG_ALIASES.
- * The result contains every original flag plus all alias equivalents,
- * with full transitivity through the alias graph.
+ * The result contains every original flag (including compound flags like `-D`)
+ * plus their expansions and all alias equivalents, with full transitivity
+ * through the alias graph.
  */
 export function expandFlags(flags: readonly string[]): string[] {
   const result = new Set<string>();

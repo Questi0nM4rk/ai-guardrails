@@ -2,8 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { expandFlags, hasFlag } from "@/check/flag-aliases";
 
 describe("expandFlags", () => {
-  test("expands -D to --delete and --force", () => {
+  test("expands -D to --delete and --force, retains original", () => {
     const result = expandFlags(["-D"]);
+    expect(result).toContain("-D"); // compound flag retained in output
     expect(result).toContain("--delete");
     expect(result).toContain("--force");
   });
@@ -20,11 +21,17 @@ describe("expandFlags", () => {
     expect(result).toContain("-R");
   });
 
+  test("-R resolves transitively to -r and --recursive", () => {
+    const result = expandFlags(["-R"]);
+    expect(result).toContain("-R");
+    expect(result).toContain("--recursive");
+    expect(result).toContain("-r");
+  });
+
   test("deduplicates when expansion overlaps", () => {
     const result = expandFlags(["--force", "-D"]);
     expect(result).toContain("--force");
     expect(result).toContain("--delete");
-    // --force should not appear twice
     expect(result.filter((f) => f === "--force")).toHaveLength(1);
   });
 
@@ -35,6 +42,16 @@ describe("expandFlags", () => {
   test("does NOT expand -n (ambiguous across git subcommands)", () => {
     const result = expandFlags(["-n"]);
     expect(result).toEqual(["-n"]);
+  });
+
+  test("mixes expanded and passthrough flags", () => {
+    const result = expandFlags(["-r", "--verbose", "-f"]);
+    expect(result).toContain("-r");
+    expect(result).toContain("--recursive");
+    expect(result).toContain("-R");
+    expect(result).toContain("--verbose");
+    expect(result).toContain("-f");
+    expect(result).toContain("--force");
   });
 });
 

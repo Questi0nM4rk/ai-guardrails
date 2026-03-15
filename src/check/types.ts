@@ -52,10 +52,10 @@ export interface PathRule {
 }
 
 export interface RuleGroup {
-  id: string;
-  name: string;
-  commandRules: CommandRule[];
-  denyGlobs: string[];
+  readonly id: string;
+  readonly name: string;
+  readonly commandRules: readonly CommandRule[];
+  readonly denyGlobs: readonly string[];
 }
 
 export interface RuleSet {

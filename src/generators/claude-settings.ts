@@ -14,7 +14,7 @@ interface PreToolUseEntry {
 
 interface ClaudeSettings {
   permissions: {
-    deny: string[];
+    deny: readonly string[];
   };
   hooks: {
     PreToolUse: PreToolUseEntry[];
