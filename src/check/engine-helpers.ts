@@ -162,7 +162,16 @@ export function extractInlineScript(unwrapped: UnwrappedCall): string | null {
       }
     }
   }
-  if (unwrapped.cmd === "eval" || unwrapped.cmd === "exec") {
+  if (unwrapped.cmd === "eval") {
+    // eval concatenates all args with spaces and re-parses as shell syntax (POSIX)
+    const args = unwrapped.raw.args.slice(1);
+    if (args.length === 0) return null;
+    const parts = args.map(wordToScript);
+    if (parts.some((p) => p === null)) return null;
+    return (parts as string[]).join(" ");
+  }
+  if (unwrapped.cmd === "exec") {
+    // exec replaces the process — does not re-parse shell syntax; inspect first arg only
     const firstRawArg = unwrapped.raw.args[1];
     return firstRawArg !== undefined ? wordToScript(firstRawArg) : null;
   }

@@ -12,11 +12,17 @@ export function buildRuleSet(config: HooksConfig): RuleSet {
   const extraPathRules = [
     ...DEFAULT_MANAGED_FILES.map((f) =>
       // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
-      protectWrite(new RegExp(`${escapeRegExp(f)}$`), `Writing to managed file: ${f}`)
+      protectWrite(
+        new RegExp(`(?:^|/)${escapeRegExp(f)}$`),
+        `Writing to managed file: ${f}`
+      )
     ),
     ...(config.managedFiles ?? []).map((f) =>
       // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
-      protectWrite(new RegExp(`${escapeRegExp(f)}$`), `Writing to managed file: ${f}`)
+      protectWrite(
+        new RegExp(`(?:^|/)${escapeRegExp(f)}$`),
+        `Writing to managed file: ${f}`
+      )
     ),
     ...(config.managedPaths ?? []).map((p) =>
       // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
