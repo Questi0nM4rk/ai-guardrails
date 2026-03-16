@@ -69,13 +69,9 @@ export async function loadHookConfig(): Promise<HooksConfig> {
         disabledGroups: hooks.disabled_groups,
       }),
     };
-  } catch (e: unknown) {
-    const isNotFound =
-      e instanceof Error && "code" in e && (e as { code: unknown }).code === "ENOENT";
-    if (!isNotFound) {
-      // Config parse errors fall back to defaults silently.
-      // Default rules (DEFAULT_PATH_RULES + DEFAULT_MANAGED_FILES) still protect.
-    }
+  } catch {
+    // Missing config (ENOENT) or parse errors fall back to defaults silently.
+    // Default rules (DEFAULT_PATH_RULES + DEFAULT_MANAGED_FILES) still protect.
     return {};
   }
 }
