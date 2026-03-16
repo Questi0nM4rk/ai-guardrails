@@ -21,23 +21,27 @@ export function buildRuleSet(config: HooksConfig): RuleSet {
   const extraPathRules = [
     ...DEFAULT_MANAGED_FILES.map((f) =>
       protectWrite(
-        new RegExp(`(?:^|/)${escapeRegExp(f)}$`), // nosemgrep: detect-non-literal-regexp — fully escaped via escapeRegExp; no ReDoS risk
+        new RegExp(`(?:^|/)${escapeRegExp(f)}$`), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
         `Writing to managed file: ${f}`
       )
     ),
     ...(config.managedFiles ?? []).map((f) =>
       protectWrite(
-        new RegExp(`(?:^|/)${escapeRegExp(f)}$`), // nosemgrep: detect-non-literal-regexp — fully escaped via escapeRegExp; no ReDoS risk
+        new RegExp(`(?:^|/)${escapeRegExp(f)}$`), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
         `Writing to managed file: ${f}`
       )
     ),
     ...(config.managedPaths ?? []).map((p) =>
-      // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
-      protectWrite(new RegExp(escapeRegExp(p)), `Writing to managed path: ${p}`)
+      protectWrite(
+        new RegExp(escapeRegExp(p)), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
+        `Writing to managed path: ${p}`
+      )
     ),
     ...(config.protectedReadPaths ?? []).map((p) =>
-      // nosemgrep: detect-non-literal-regexp — input is fully escaped via escapeRegExp; no ReDoS risk
-      protectRead(new RegExp(escapeRegExp(p)), `Reading protected path: ${p}`)
+      protectRead(
+        new RegExp(escapeRegExp(p)), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
+        `Reading protected path: ${p}`
+      )
     ),
   ];
 

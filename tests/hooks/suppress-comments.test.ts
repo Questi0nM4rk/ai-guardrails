@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { scanFile } from "@/hooks/suppress-comments";
+import { extractComment, scanFile } from "@/hooks/suppress-comments";
 
 describe("scanFile", () => {
   // -----------------------------------------------------------------------
@@ -60,5 +60,94 @@ describe("scanFile", () => {
   test("detects # type: ignore in .py files", () => {
     const findings = scanFile("module.py", "x: int = 'bad'  # type: ignore\n");
     expect(findings).toHaveLength(1);
+  });
+
+  // -----------------------------------------------------------------------
+  // nosemgrep detection
+  // -----------------------------------------------------------------------
+  test("detects nosemgrep in TypeScript files", () => {
+    const findings = scanFile("file.ts", "new RegExp(x); // nosemgrep: some-rule\n");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.pattern).toBe("nosemgrep");
+  });
+
+  // -----------------------------------------------------------------------
+  // Generic comment-only keyword scanner
+  // -----------------------------------------------------------------------
+  test("generic scanner catches NOLINT in TypeScript comment", () => {
+    const findings = scanFile("file.ts", "code(); // NOLINT\n");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.pattern).toBe("generic-suppression-keyword");
+  });
+
+  test("generic scanner does not flag keywords in code", () => {
+    const findings = scanFile("file.ts", "const suppressWarning = true;\n");
+    expect(findings).toHaveLength(0);
+  });
+
+  test("generic scanner does not flag 'suppress' (ordinary English word)", () => {
+    const findings = scanFile(
+      "file.ts",
+      "// suppress compiler noise from generated proto\n"
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  test("generic scanner flags nolint in comment", () => {
+    const findings = scanFile("file.ts", "code(); // nolint: SA1000\n");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.pattern).toBe("generic-suppression-keyword");
+  });
+
+  test("generic scanner ignores URLs with //", () => {
+    const findings = scanFile("file.ts", 'const url = "http://nolint.io/api";\n');
+    expect(findings).toHaveLength(0);
+  });
+
+  test("generic scanner skips lines with ai-guardrails-allow", () => {
+    const findings = scanFile(
+      "file.ts",
+      '// nosemgrep: rule // ai-guardrails-allow: semgrep/rule "justified"\n'
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  test("generic scanner does not double-flag explicit pattern hits", () => {
+    // nosemgrep is an explicit pattern — should only appear once
+    const findings = scanFile("file.ts", "new RegExp(x); // nosemgrep: rule\n");
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.pattern).toBe("nosemgrep");
+  });
+});
+
+describe("extractComment", () => {
+  test("extracts // comment", () => {
+    expect(extractComment("const x = 1; // some comment")).toBe(" some comment");
+  });
+
+  test("extracts # comment", () => {
+    expect(extractComment("x = 1  # noqa")).toBe(" noqa");
+  });
+
+  test("extracts -- comment", () => {
+    expect(extractComment("local x = 1 -- luacheck: ignore")).toBe(" luacheck: ignore");
+  });
+
+  test("extracts block comment", () => {
+    expect(extractComment("x = 1; /* suppress */")).toBe(" suppress ");
+  });
+
+  test("returns empty for no comment", () => {
+    expect(extractComment("const x = 1;")).toBe("");
+  });
+
+  test("skips :// in URLs, finds real comment after", () => {
+    expect(extractComment('const url = "http://example.com"; // real comment')).toBe(
+      " real comment"
+    );
+  });
+
+  test("returns empty for line with only URL", () => {
+    expect(extractComment('const url = "https://nolint.io/api";')).toBe("");
   });
 });
