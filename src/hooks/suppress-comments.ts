@@ -8,6 +8,7 @@ const SUPPRESSION_PATTERNS: Record<string, RegExp[]> = {
     /\/\/\s*@ts-nocheck/,
     /eslint-disable/, // ai-guardrails-allow: suppress-comments/eslint-disable "pattern definition — not an active suppression"
     /\/\*\s*tslint:disable/,
+    /nosemgrep/, // ai-guardrails-allow: suppress-comments/nosemgrep "pattern definition — not an active suppression"
   ],
   rust: [/#\[allow\(/, /#!\[allow\(/],
   go: [/\/\/nolint/, /\/\/\s*nolint/],
@@ -38,10 +39,35 @@ const EXT_TO_LANG: Record<string, string> = {
   ".hpp": "cpp",
 };
 
+const GENERIC_SUPPRESSION =
+  /\b(nolint|nocheck|nosemgrep|suppress|pragma\s+ignore|NOLINT)\b/;
+const BLOCK_COMMENT = /\/\*(.+?)\*\//;
+
 interface Finding {
   file: string;
   line: number;
   pattern: string;
+}
+
+/**
+ * Extract the comment portion of a line, ignoring code.
+ * Handles //, #, --, and inline block comments.
+ * Returns empty string if no comment is found.
+ */
+export function extractComment(line: string): string {
+  const blockMatch = BLOCK_COMMENT.exec(line);
+  if (blockMatch) return blockMatch[1] ?? "";
+
+  const slashIdx = line.indexOf("//");
+  if (slashIdx !== -1) return line.slice(slashIdx + 2);
+
+  const hashIdx = line.indexOf("#");
+  if (hashIdx !== -1) return line.slice(hashIdx + 1);
+
+  const dashIdx = line.indexOf("--");
+  if (dashIdx !== -1) return line.slice(dashIdx + 2);
+
+  return "";
 }
 
 export function scanFile(filePath: string, content: string): Finding[] {
@@ -53,6 +79,7 @@ export function scanFile(filePath: string, content: string): Finding[] {
   const findings: Finding[] = [];
   const lines = content.split("\n");
   const allowedLines = new Set(parseAllowComments(lines).map((c) => c.line));
+  const flaggedLines = new Set<number>();
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
@@ -60,8 +87,23 @@ export function scanFile(filePath: string, content: string): Finding[] {
     for (const pattern of patterns) {
       if (pattern.test(line)) {
         findings.push({ file: filePath, line: i + 1, pattern: pattern.source });
+        flaggedLines.add(i + 1);
         break;
       }
+    }
+  }
+
+  // Second pass: generic comment-only keyword scanner
+  for (let i = 0; i < lines.length; i++) {
+    const lineNum = i + 1;
+    if (allowedLines.has(lineNum) || flaggedLines.has(lineNum)) continue;
+    const comment = extractComment(lines[i] ?? "");
+    if (comment !== "" && GENERIC_SUPPRESSION.test(comment)) {
+      findings.push({
+        file: filePath,
+        line: lineNum,
+        pattern: "generic-suppression-keyword",
+      });
     }
   }
 
