@@ -73,9 +73,16 @@ export async function loadHookConfig(): Promise<HooksConfig> {
         disabledGroups: hooks.disabled_groups,
       }),
     };
-  } catch {
-    // Missing config (ENOENT) or parse errors fall back to defaults silently.
-    // Default rules (DEFAULT_PATH_RULES + DEFAULT_MANAGED_FILES) still protect.
+  } catch (e: unknown) {
+    // ENOENT is expected — no config file means use defaults.
+    // Other errors (bad TOML, Zod mismatch, permissions) deserve a warning so
+    // users know their custom config isn't active. This function is only called
+    // from hook processes (not pipeline domain code), so stderr is acceptable.
+    const isNotFound =
+      e instanceof Error && "code" in e && (e as { code: unknown }).code === "ENOENT";
+    if (!isNotFound) {
+      process.stderr.write(`[ai-guardrails] config load error: ${String(e)}\n`);
+    }
     return {};
   }
 }
