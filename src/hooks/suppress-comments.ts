@@ -39,8 +39,12 @@ const EXT_TO_LANG: Record<string, string> = {
   ".hpp": "cpp",
 };
 
-// Only unambiguous linter directive tokens — not ordinary English words like "suppress".
-const GENERIC_SUPPRESSION = /\b(nolint|nocheck|nosemgrep|pragma\s+ignore|NOLINT)\b/;
+// Unambiguous linter directive tokens — not ordinary English words like "suppress".
+// Keep in sync: these are the generic fallback; SUPPRESSION_PATTERNS above has per-language specifics.
+const GENERIC_KEYWORDS = ["nolint", "nocheck", "nosemgrep", "NOLINT"] as const;
+const GENERIC_SUPPRESSION = new RegExp(
+  `\\b(${GENERIC_KEYWORDS.join("|")}|pragma\\s+ignore)\\b`
+);
 const BLOCK_COMMENT = /\/\*(.+?)\*\//;
 
 interface Finding {
