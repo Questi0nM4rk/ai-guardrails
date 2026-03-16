@@ -43,7 +43,7 @@ async function runInstalls(
     cons.info(`  Installing ${tool.runnerId}...`);
     // Install hints are hardcoded simple commands (no quoting or escaping needed).
     // See src/runners/*.ts installHint fields for the full list.
-    const parts = cmd.split(" ");
+    const parts = cmd.split(/\s+/).filter(Boolean);
     const result = await commandRunner.run(parts, { cwd: projectDir });
     if (result.exitCode === 0) {
       cons.info(`  ${tool.runnerId} installed`);

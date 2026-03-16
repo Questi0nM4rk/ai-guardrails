@@ -8,7 +8,7 @@ const SUPPRESSION_PATTERNS: Record<string, RegExp[]> = {
     /\/\/\s*@ts-nocheck/,
     /eslint-disable/, // ai-guardrails-allow: suppress-comments/eslint-disable "pattern definition — not an active suppression"
     /\/\*\s*tslint:disable/,
-    /nosemgrep/, // ai-guardrails-allow: suppress-comments/nosemgrep "pattern definition — not an active suppression"
+    /(?:\/\/|\/\*)\s*nosemgrep/, // ai-guardrails-allow: suppress-comments/nosemgrep "pattern definition — not an active suppression"
   ],
   rust: [/#\[allow\(/, /#!\[allow\(/],
   go: [/\/\/nolint/, /\/\/\s*nolint/],
@@ -53,16 +53,23 @@ interface Finding {
   pattern: string;
 }
 
+// Languages that use # for comments (not private fields or color codes)
+const HASH_COMMENT_LANGS = new Set(["python", "shell"]);
+// Languages that use -- for comments (not decrement operators)
+const DASH_COMMENT_LANGS = new Set(["lua"]);
+
 /**
  * Extract the comment portion of a line, ignoring code.
- * Handles //, #, --, and inline block comments.
+ * Language-aware: only checks comment markers valid for the given language.
  * Returns empty string if no comment is found.
  */
-export function extractComment(line: string): string {
+export function extractComment(line: string, lang: string): string {
+  // Block comments (C-style) — valid for TS, Go, Rust, C++, C#
   const blockMatch = BLOCK_COMMENT.exec(line);
   if (blockMatch) return blockMatch[1] ?? "";
 
-  // Find // that is NOT preceded by : (avoids matching http:// and https://)
+  // // comments — valid for TS, Go, Rust, C++, C#
+  // Skip :// to avoid matching URLs
   let searchFrom = 0;
   while (searchFrom < line.length) {
     const slashIdx = line.indexOf("//", searchFrom);
@@ -74,11 +81,17 @@ export function extractComment(line: string): string {
     return line.slice(slashIdx + 2);
   }
 
-  const hashIdx = line.indexOf("#");
-  if (hashIdx !== -1) return line.slice(hashIdx + 1);
+  // # comments — only for Python and shell (not TS private fields)
+  if (HASH_COMMENT_LANGS.has(lang)) {
+    const hashIdx = line.indexOf("#");
+    if (hashIdx !== -1) return line.slice(hashIdx + 1);
+  }
 
-  const dashIdx = line.indexOf("--");
-  if (dashIdx !== -1) return line.slice(dashIdx + 2);
+  // -- comments — only for Lua (not TS decrement)
+  if (DASH_COMMENT_LANGS.has(lang)) {
+    const dashIdx = line.indexOf("--");
+    if (dashIdx !== -1) return line.slice(dashIdx + 2);
+  }
 
   return "";
 }
@@ -110,7 +123,7 @@ export function scanFile(filePath: string, content: string): Finding[] {
   for (let i = 0; i < lines.length; i++) {
     const lineNum = i + 1;
     if (allowedLines.has(lineNum) || flaggedLines.has(lineNum)) continue;
-    const comment = extractComment(lines[i] ?? "");
+    const comment = extractComment(lines[i] ?? "", lang);
     if (comment !== "" && GENERIC_SUPPRESSION.test(comment)) {
       findings.push({
         file: filePath,

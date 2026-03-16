@@ -68,7 +68,7 @@ describe("scanFile", () => {
   test("detects nosemgrep in TypeScript files", () => {
     const findings = scanFile("file.ts", "new RegExp(x); // nosemgrep: some-rule\n");
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.pattern).toBe("nosemgrep");
+    expect(findings[0]?.pattern).toContain("nosemgrep");
   });
 
   // -----------------------------------------------------------------------
@@ -116,38 +116,52 @@ describe("scanFile", () => {
     // nosemgrep is an explicit pattern — should only appear once
     const findings = scanFile("file.ts", "new RegExp(x); // nosemgrep: rule\n");
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.pattern).toBe("nosemgrep");
+    expect(findings[0]?.pattern).toContain("nosemgrep");
   });
 });
 
 describe("extractComment", () => {
-  test("extracts // comment", () => {
-    expect(extractComment("const x = 1; // some comment")).toBe(" some comment");
-  });
-
-  test("extracts # comment", () => {
-    expect(extractComment("x = 1  # noqa")).toBe(" noqa");
-  });
-
-  test("extracts -- comment", () => {
-    expect(extractComment("local x = 1 -- luacheck: ignore")).toBe(" luacheck: ignore");
-  });
-
-  test("extracts block comment", () => {
-    expect(extractComment("x = 1; /* suppress */")).toBe(" suppress ");
-  });
-
-  test("returns empty for no comment", () => {
-    expect(extractComment("const x = 1;")).toBe("");
-  });
-
-  test("skips :// in URLs, finds real comment after", () => {
-    expect(extractComment('const url = "http://example.com"; // real comment')).toBe(
-      " real comment"
+  test("extracts // comment in typescript", () => {
+    expect(extractComment("const x = 1; // some comment", "typescript")).toBe(
+      " some comment"
     );
   });
 
+  test("extracts # comment in python", () => {
+    expect(extractComment("x = 1  # noqa", "python")).toBe(" noqa");
+  });
+
+  test("does NOT treat # as comment in typescript", () => {
+    expect(extractComment("this.#privateField = 1", "typescript")).toBe("");
+  });
+
+  test("extracts -- comment in lua", () => {
+    expect(extractComment("local x = 1 -- luacheck: ignore", "lua")).toBe(
+      " luacheck: ignore"
+    );
+  });
+
+  test("does NOT treat -- as comment in typescript", () => {
+    expect(extractComment("x--", "typescript")).toBe("");
+  });
+
+  test("extracts block comment", () => {
+    expect(extractComment("x = 1; /* suppress */", "typescript")).toBe(" suppress ");
+  });
+
+  test("returns empty for no comment", () => {
+    expect(extractComment("const x = 1;", "typescript")).toBe("");
+  });
+
+  test("skips :// in URLs, finds real comment after", () => {
+    expect(
+      extractComment('const url = "http://example.com"; // real comment', "typescript")
+    ).toBe(" real comment");
+  });
+
   test("returns empty for line with only URL", () => {
-    expect(extractComment('const url = "https://nolint.io/api";')).toBe("");
+    expect(extractComment('const url = "https://nolint.io/api";', "typescript")).toBe(
+      ""
+    );
   });
 });
