@@ -65,8 +65,14 @@ const DASH_COMMENT_LANGS = new Set(["lua"]);
  */
 export function extractComment(line: string, lang: string): string {
   // Block comments (C-style) — valid for TS, Go, Rust, C++, C#
+  // After a block comment, also check for // comment trailing it
   const blockMatch = BLOCK_COMMENT.exec(line);
-  if (blockMatch) return blockMatch[1] ?? "";
+  if (blockMatch) {
+    const afterBlock = line.slice((blockMatch.index ?? 0) + blockMatch[0].length);
+    const slashAfter = afterBlock.indexOf("//");
+    if (slashAfter !== -1) return afterBlock.slice(slashAfter + 2);
+    return blockMatch[1] ?? "";
+  }
 
   // // comments — valid for TS, Go, Rust, C++, C#
   // Skip :// to avoid matching URLs
