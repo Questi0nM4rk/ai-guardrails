@@ -1,5 +1,5 @@
 import { createInterface } from "node:readline";
-import { parse as shellParse } from "shell-quote";
+
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { StepResult } from "@/models/step-result";
@@ -41,7 +41,9 @@ async function runInstalls(
     const cmd = preferredInstallCmd(tool.hint);
     if (!cmd) continue;
     cons.info(`  Installing ${tool.runnerId}...`);
-    const parts = shellParse(cmd).filter((t): t is string => typeof t === "string");
+    // Install hints are hardcoded simple commands (no quoting or escaping needed).
+    // See src/runners/*.ts installHint fields for the full list.
+    const parts = cmd.split(" ");
     const result = await commandRunner.run(parts, { cwd: projectDir });
     if (result.exitCode === 0) {
       cons.info(`  ${tool.runnerId} installed`);
