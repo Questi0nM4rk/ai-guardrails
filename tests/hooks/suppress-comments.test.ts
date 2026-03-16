@@ -164,4 +164,10 @@ describe("extractComment", () => {
       ""
     );
   });
+
+  test("finds // comment after block comment on same line", () => {
+    expect(extractComment("code; /* innocuous */ // NOLINT", "typescript")).toBe(
+      " NOLINT"
+    );
+  });
 });
