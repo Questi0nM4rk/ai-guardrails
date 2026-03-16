@@ -73,7 +73,8 @@ export async function loadHookConfig(): Promise<HooksConfig> {
     const isNotFound =
       e instanceof Error && "code" in e && (e as { code: unknown }).code === "ENOENT";
     if (!isNotFound) {
-      process.stderr.write(`[ai-guardrails] config load error: ${String(e)}\n`);
+      // Config parse errors fall back to defaults silently.
+      // Default rules (DEFAULT_PATH_RULES + DEFAULT_MANAGED_FILES) still protect.
     }
     return {};
   }
