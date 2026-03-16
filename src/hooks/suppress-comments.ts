@@ -39,8 +39,8 @@ const EXT_TO_LANG: Record<string, string> = {
   ".hpp": "cpp",
 };
 
-const GENERIC_SUPPRESSION =
-  /\b(nolint|nocheck|nosemgrep|suppress|pragma\s+ignore|NOLINT)\b/;
+// Only unambiguous linter directive tokens — not ordinary English words like "suppress".
+const GENERIC_SUPPRESSION = /\b(nolint|nocheck|nosemgrep|pragma\s+ignore|NOLINT)\b/;
 const BLOCK_COMMENT = /\/\*(.+?)\*\//;
 
 interface Finding {
@@ -58,8 +58,17 @@ export function extractComment(line: string): string {
   const blockMatch = BLOCK_COMMENT.exec(line);
   if (blockMatch) return blockMatch[1] ?? "";
 
-  const slashIdx = line.indexOf("//");
-  if (slashIdx !== -1) return line.slice(slashIdx + 2);
+  // Find // that is NOT preceded by : (avoids matching http:// and https://)
+  let searchFrom = 0;
+  while (searchFrom < line.length) {
+    const slashIdx = line.indexOf("//", searchFrom);
+    if (slashIdx === -1) break;
+    if (slashIdx > 0 && line[slashIdx - 1] === ":") {
+      searchFrom = slashIdx + 2;
+      continue;
+    }
+    return line.slice(slashIdx + 2);
+  }
 
   const hashIdx = line.indexOf("#");
   if (hashIdx !== -1) return line.slice(hashIdx + 1);

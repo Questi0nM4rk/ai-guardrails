@@ -85,10 +85,23 @@ describe("scanFile", () => {
     expect(findings).toHaveLength(0);
   });
 
-  test("generic scanner flags suppress-lint in comment", () => {
-    const findings = scanFile("file.ts", "code(); // suppress-lint\n");
+  test("generic scanner does not flag 'suppress' (ordinary English word)", () => {
+    const findings = scanFile(
+      "file.ts",
+      "// suppress compiler noise from generated proto\n"
+    );
+    expect(findings).toHaveLength(0);
+  });
+
+  test("generic scanner flags nolint in comment", () => {
+    const findings = scanFile("file.ts", "code(); // nolint: SA1000\n");
     expect(findings).toHaveLength(1);
     expect(findings[0]?.pattern).toBe("generic-suppression-keyword");
+  });
+
+  test("generic scanner ignores URLs with //", () => {
+    const findings = scanFile("file.ts", 'const url = "http://nolint.io/api";\n');
+    expect(findings).toHaveLength(0);
   });
 
   test("generic scanner skips lines with ai-guardrails-allow", () => {
@@ -126,5 +139,15 @@ describe("extractComment", () => {
 
   test("returns empty for no comment", () => {
     expect(extractComment("const x = 1;")).toBe("");
+  });
+
+  test("skips :// in URLs, finds real comment after", () => {
+    expect(extractComment('const url = "http://example.com"; // real comment')).toBe(
+      " real comment"
+    );
+  });
+
+  test("returns empty for line with only URL", () => {
+    expect(extractComment('const url = "https://nolint.io/api";')).toBe("");
   });
 });
