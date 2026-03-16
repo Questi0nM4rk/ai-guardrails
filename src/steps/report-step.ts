@@ -20,7 +20,7 @@ export async function reportStep(
     if (sarifOutputPath) {
       await fileManager.writeText(sarifOutputPath, sarifJson);
     } else {
-      process.stdout.write(`${sarifJson}\n`);
+      console.info(sarifJson);
     }
   }
 
