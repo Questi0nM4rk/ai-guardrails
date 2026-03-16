@@ -69,8 +69,17 @@ export function extractComment(line: string, lang: string): string {
   const blockMatch = BLOCK_COMMENT.exec(line);
   if (blockMatch) {
     const afterBlock = line.slice((blockMatch.index ?? 0) + blockMatch[0].length);
-    const slashAfter = afterBlock.indexOf("//");
-    if (slashAfter !== -1) return afterBlock.slice(slashAfter + 2);
+    // Apply same :// guard as the main // scanner to skip URLs
+    let pos = 0;
+    while (pos < afterBlock.length) {
+      const idx = afterBlock.indexOf("//", pos);
+      if (idx === -1) break;
+      if (idx > 0 && afterBlock[idx - 1] === ":") {
+        pos = idx + 2;
+        continue;
+      }
+      return afterBlock.slice(idx + 2);
+    }
     return blockMatch[1] ?? "";
   }
 

@@ -170,4 +170,10 @@ describe("extractComment", () => {
       " NOLINT"
     );
   });
+
+  test("skips URL after block comment on same line", () => {
+    expect(extractComment("code; /* block */ http://nolint.io/api", "typescript")).toBe(
+      " block "
+    );
+  });
 });
