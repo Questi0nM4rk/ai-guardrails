@@ -15,7 +15,9 @@ import { withHashHeader } from "@/utils/hash";
  */
 function globToRegex(glob: string): string {
   // Escape regex metacharacters except `*` (handled separately)
-  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  const escaped = glob.replace(/[.+^${}()|[\]\\?]/g, (ch) =>
+    ch === "?" ? "[^/]" : `\\${ch}`
+  );
   // Replace `**` before `*` to avoid double-processing
   return escaped.replace(/\*\*/g, ".*").replace(/\*/g, "[^/]*");
 }

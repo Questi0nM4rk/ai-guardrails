@@ -2,7 +2,7 @@ import { extname, join } from "node:path";
 import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import type { ConfigStrategy } from "@/config/schema";
 import type { FileManager } from "@/infra/file-manager";
-import { deepMerge } from "@/utils/deep-merge";
+import { deepMerge, isPlainObject } from "@/utils/deep-merge";
 import { withHashHeader, withJsoncHashHeader } from "@/utils/hash";
 
 /** File extensions that support structured merge (JSON/JSONC and TOML). */
@@ -51,10 +51,6 @@ function stripJsoncComments(text: string): string {
     result += ch;
   }
   return result;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function parseForMerge(

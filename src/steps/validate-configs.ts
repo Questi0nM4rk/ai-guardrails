@@ -1,5 +1,4 @@
 import { join } from "node:path";
-import type { ResolvedConfig } from "@/config/schema";
 import { ALL_GENERATORS } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
@@ -63,8 +62,7 @@ async function validateOne(
 
 export async function validateConfigsStep(
   projectDir: string,
-  fileManager: FileManager,
-  _config: ResolvedConfig | null = null
+  fileManager: FileManager
 ): Promise<StepResult> {
   const problems = (
     await Promise.all(

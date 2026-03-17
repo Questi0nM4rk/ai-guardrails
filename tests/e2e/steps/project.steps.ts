@@ -9,11 +9,10 @@ import {
 } from "@questi0nm4rk/feats";
 
 function isFixtureProject(value: unknown): value is FixtureProject {
-  if (typeof value !== "object" || value === null || !("cleanup" in value)) {
-    return false;
-  }
-  const record = value as Record<string, unknown>;
-  return typeof record.cleanup === "function";
+  if (typeof value !== "object" || value === null) return false;
+  if (!("cleanup" in value)) return false;
+  // After the `in` check, TS narrows to `{ cleanup: unknown }`
+  return typeof value.cleanup === "function";
 }
 
 const FIXTURE_DIR = resolve(import.meta.dir, "../fixtures");
