@@ -1,6 +1,10 @@
 import { minimatch } from "minimatch";
 import { z } from "zod";
 
+const ConfigStrategySchema = z.enum(["merge", "replace", "skip"]);
+export type ConfigStrategy = z.infer<typeof ConfigStrategySchema>;
+export { ConfigStrategySchema };
+
 const IgnoreEntrySchema = z.object({
   rule: z.string().regex(/^[\w-]+\/[\w\-.]+$/, "Format: linter/RULE_CODE"),
   reason: z.string().min(1, "Reason is required"),
