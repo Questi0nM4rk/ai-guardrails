@@ -21,7 +21,7 @@ Then<E2EWorld>(
 );
 
 Then<E2EWorld>("all detected languages should have configs", async (world) => {
-  // After init, at least .lefthook.yml and .claude/settings.json should exist
-  expect(world.project.hasFile(".lefthook.yml")).toBe(true);
+  // After init, at least lefthook.yml and .claude/settings.json should exist
+  expect(world.project.hasFile("lefthook.yml")).toBe(true);
   expect(world.project.hasFile(".claude/settings.json")).toBe(true);
 });

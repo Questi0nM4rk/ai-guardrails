@@ -37,3 +37,4 @@ Thumbs.db
 .claude/*
 !.claude/rules/
 .coverage
+.playwright-mcp/

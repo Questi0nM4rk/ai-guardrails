@@ -5,7 +5,7 @@ import type { E2EWorld } from "./project.steps";
 When<E2EWorld>("I run ai-guardrails init", async (world) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-    "--non-interactive",
+
     "--project-dir",
     ".",
   ]);
@@ -14,7 +14,7 @@ When<E2EWorld>("I run ai-guardrails init", async (world) => {
 When<E2EWorld>("I run ai-guardrails init with merge strategy", async (world) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-    "--non-interactive",
+
     "--config-strategy",
     "merge",
     "--project-dir",
@@ -25,7 +25,7 @@ When<E2EWorld>("I run ai-guardrails init with merge strategy", async (world) => 
 When<E2EWorld>("I run ai-guardrails init with replace strategy", async (world) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-    "--non-interactive",
+
     "--config-strategy",
     "replace",
     "--project-dir",
@@ -36,7 +36,7 @@ When<E2EWorld>("I run ai-guardrails init with replace strategy", async (world) =
 When<E2EWorld>("I run ai-guardrails init with skip strategy", async (world) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-    "--non-interactive",
+
     "--config-strategy",
     "skip",
     "--project-dir",
@@ -47,7 +47,7 @@ When<E2EWorld>("I run ai-guardrails init with skip strategy", async (world) => {
 Given<E2EWorld>("ai-guardrails has been initialized", async (world) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-    "--non-interactive",
+
     "--project-dir",
     ".",
   ]);
