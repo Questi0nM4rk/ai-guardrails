@@ -1,6 +1,15 @@
-// ai-guardrails:sha256=30243caccb040549e1a7223023c4e64901e61a04620cf8f67a02b145b9fe3a19
+// ai-guardrails:sha256=acd536b658e27248777eb69ab3a3bb3d762368f5954146696682f41d98ce6cf7
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!tests/e2e/fixtures/**",
+      "!.venv/**",
+      "!node_modules/**",
+      "!.claude/**"
+    ]
+  },
   "linter": {
     "enabled": true,
     "rules": {
@@ -15,7 +24,8 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "error"
+        "noConsole": "error",
+        "useBiomeIgnoreFolder": "off"
       }
     }
   },

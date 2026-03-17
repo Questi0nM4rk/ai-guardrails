@@ -9,6 +9,7 @@ function makeConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
     allow: [],
     values: { line_length: 100, indent_width: 2 },
     ignoredRules: new Set(),
+    ignorePaths: [],
     isAllowed: () => false,
     ...overrides,
   };
@@ -48,5 +49,27 @@ describe("biomeGenerator", () => {
   test("noExplicitAny is error", () => {
     const output = biomeGenerator.generate(makeConfig());
     expect(output).toContain('"noExplicitAny": "error"');
+  });
+
+  test("no files section emitted when ignorePaths is empty", () => {
+    const output = biomeGenerator.generate(makeConfig());
+    expect(output).not.toContain('"files"');
+  });
+
+  test("files.includes emitted with negated globs when ignorePaths set", () => {
+    const output = biomeGenerator.generate(
+      makeConfig({ ignorePaths: ["tests/e2e/fixtures/**"] })
+    );
+    expect(output).toContain('"files"');
+    expect(output).toContain('"includes"');
+    expect(output).toContain('"!tests/e2e/fixtures/**"');
+  });
+
+  test("files.includes contains all negated ignore paths", () => {
+    const output = biomeGenerator.generate(
+      makeConfig({ ignorePaths: ["tests/e2e/fixtures/**", "vendor/**"] })
+    );
+    expect(output).toContain('"!tests/e2e/fixtures/**"');
+    expect(output).toContain('"!vendor/**"');
   });
 });

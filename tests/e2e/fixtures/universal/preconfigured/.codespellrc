@@ -1,0 +1,3 @@
+[codespell]
+skip = vendor,build
+ignore-words-list = commmon

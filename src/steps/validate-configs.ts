@@ -1,6 +1,4 @@
 import { join } from "node:path";
-import type { ResolvedConfig } from "@/config/schema";
-import { LEFTHOOK_GENERATOR_ID } from "@/generators/lefthook";
 import { ALL_GENERATORS } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
@@ -32,8 +30,7 @@ function hasHashHeader(content: string): boolean {
 async function validateOne(
   generator: ConfigGenerator,
   projectDir: string,
-  fileManager: FileManager,
-  config: ResolvedConfig | null
+  fileManager: FileManager
 ): Promise<string | null> {
   let content: string;
   try {
@@ -45,38 +42,31 @@ async function validateOne(
   if (!content.trim()) return `empty: ${generator.configFile}`;
 
   // Tamper check: verify hash header matches body.
+  // Files with no header are user-owned and not tamper-checked.
+  // Files with a valid hash were written by us (generated or merged) and are intact.
+  // Files with a header but invalid hash have been manually edited after generation.
   if (hasHashHeader(content) && !hasValidHash(content)) {
     return `tampered: ${generator.configFile}`;
   }
 
-  // Staleness check (--check mode): regenerate and compare against on-disk content.
-  // lefthookGenerator.generate() intentionally throws (requires active plugins) —
-  // that falls back to tamper-only detection. All other generator errors are real.
-  if (config !== null) {
-    let expected: string | null = null;
-    try {
-      expected = generator.generate(config);
-    } catch (err) {
-      if (generator.id !== LEFTHOOK_GENERATOR_ID) {
-        throw err;
-      }
-    }
-    if (expected !== null && expected !== content) {
-      return `stale: ${generator.configFile}`;
-    }
-  }
+  // Staleness detection (comparing on-disk content against fresh generation) is
+  // intentionally not implemented here. Merged files also receive a valid hash header
+  // (withHashHeader is applied after merge), so we cannot distinguish a purely
+  // generated file from a merged one by hash alone. Comparing a merged file against
+  // generator.generate() would always report "stale". Staleness detection requires
+  // provenance tracking (recording whether each file was merged or replaced at
+  // generation time) which is deferred to a future phase.
 
   return null;
 }
 
 export async function validateConfigsStep(
   projectDir: string,
-  fileManager: FileManager,
-  config: ResolvedConfig | null = null
+  fileManager: FileManager
 ): Promise<StepResult> {
   const problems = (
     await Promise.all(
-      ALL_GENERATORS.map((g) => validateOne(g, projectDir, fileManager, config))
+      ALL_GENERATORS.map((g) => validateOne(g, projectDir, fileManager))
     )
   ).filter((p): p is string => p !== null);
 

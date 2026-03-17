@@ -115,4 +115,57 @@ describe("checkStep", () => {
 
     expect(issues).toHaveLength(2);
   });
+
+  test("filters out issues in ignored paths", async () => {
+    const fm = new FakeFileManager();
+    const cr = new FakeCommandRunner();
+    const project = ProjectConfigSchema.parse({
+      ignore_paths: ["tests/fixtures/**"],
+    });
+    const config = buildResolvedConfig(MachineConfigSchema.parse({}), project);
+
+    const languages = [
+      makePlugin([
+        makeIssue({ file: "/project/tests/fixtures/bad.py" }),
+        makeIssue({ file: "/project/src/good.py" }),
+      ]),
+    ];
+
+    const { result, issues } = await checkStep("/project", languages, config, cr, fm);
+
+    // Only the issue outside the ignored path should remain
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.file).toBe("/project/src/good.py");
+    expect(result.status).toBe("error");
+  });
+
+  test("keeps issues outside ignored paths", async () => {
+    const fm = new FakeFileManager();
+    const cr = new FakeCommandRunner();
+    const project = ProjectConfigSchema.parse({
+      ignore_paths: ["tests/e2e/fixtures/**"],
+    });
+    const config = buildResolvedConfig(MachineConfigSchema.parse({}), project);
+
+    const languages = [makePlugin([makeIssue({ file: "/project/src/main.py" })])];
+
+    const { issues } = await checkStep("/project", languages, config, cr, fm);
+
+    expect(issues).toHaveLength(1);
+  });
+
+  test("ignorePaths empty array disables path filtering", async () => {
+    const fm = new FakeFileManager();
+    const cr = new FakeCommandRunner();
+    const config = makeConfig(); // ignorePaths defaults to []
+
+    const languages = [
+      makePlugin([makeIssue({ file: "/project/tests/fixtures/bad.py" })]),
+    ];
+
+    const { issues } = await checkStep("/project", languages, config, cr, fm);
+
+    // Without ignorePaths, nothing is filtered by path
+    expect(issues).toHaveLength(1);
+  });
 });

@@ -1,6 +1,10 @@
 import { minimatch } from "minimatch";
 import { z } from "zod";
 
+const ConfigStrategySchema = z.enum(["merge", "replace", "skip"]);
+export type ConfigStrategy = z.infer<typeof ConfigStrategySchema>;
+export { ConfigStrategySchema };
+
 const IgnoreEntrySchema = z.object({
   rule: z.string().regex(/^[\w-]+\/[\w\-.]+$/, "Format: linter/RULE_CODE"),
   reason: z.string().min(1, "Reason is required"),
@@ -60,6 +64,7 @@ const ProjectConfigSchema = z.object({
   ignore: z.array(IgnoreEntrySchema).default([]),
   allow: z.array(AllowEntrySchema).default([]),
   hooks: HooksConfigSchema.optional(),
+  ignore_paths: z.array(z.string()).default([]),
 });
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
@@ -78,6 +83,7 @@ export interface ResolvedConfig {
   };
   hooks?: HooksSchemaConfig;
   ignoredRules: ReadonlySet<string>;
+  ignorePaths: readonly string[];
   isAllowed(rule: string, filePath: string): boolean;
 }
 
@@ -107,6 +113,8 @@ export function buildResolvedConfig(
     ...(python_version !== undefined && { python_version }),
   };
 
+  const ignorePaths = project.ignore_paths;
+
   return {
     profile,
     ignore,
@@ -114,6 +122,7 @@ export function buildResolvedConfig(
     values,
     ...(project.hooks !== undefined && { hooks: project.hooks }),
     ignoredRules,
+    ignorePaths,
     isAllowed(rule: string, filePath: string): boolean {
       if (ignoredRules.has(rule)) return true;
       return allow.some(

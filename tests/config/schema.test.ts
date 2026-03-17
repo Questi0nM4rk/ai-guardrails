@@ -146,6 +146,18 @@ describe("ProjectConfigSchema", () => {
     });
     expect((result.config as Record<string, unknown>).unknown_tool_setting).toBe(42);
   });
+
+  test("ignore_paths defaults to empty array", () => {
+    const result = ProjectConfigSchema.parse({});
+    expect(result.ignore_paths).toEqual([]);
+  });
+
+  test("ignore_paths accepts an array of glob strings", () => {
+    const result = ProjectConfigSchema.parse({
+      ignore_paths: ["tests/e2e/fixtures/**", "vendor/**"],
+    });
+    expect(result.ignore_paths).toEqual(["tests/e2e/fixtures/**", "vendor/**"]);
+  });
 });
 
 describe("buildResolvedConfig", () => {
@@ -228,5 +240,18 @@ describe("buildResolvedConfig", () => {
   test("resolved values omit python_version when not set", () => {
     const resolved = buildResolvedConfig(makeMachine(), makeProject());
     expect(resolved.values.python_version).toBeUndefined();
+  });
+
+  test("ignorePaths is empty array when not set in project config", () => {
+    const resolved = buildResolvedConfig(makeMachine(), makeProject());
+    expect(resolved.ignorePaths).toEqual([]);
+  });
+
+  test("ignorePaths reflects project ignore_paths", () => {
+    const project = makeProject({
+      ignore_paths: ["tests/e2e/fixtures/**", "vendor/**"],
+    });
+    const resolved = buildResolvedConfig(makeMachine(), project);
+    expect(resolved.ignorePaths).toEqual(["tests/e2e/fixtures/**", "vendor/**"]);
   });
 });
