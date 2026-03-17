@@ -13,7 +13,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "^2.4.6",
-        "@questi0nm4rk/feats": "^1.0.0",
+        "@questi0nm4rk/feats": "1.0.1",
         "@types/bun": "^1.3.10",
         "@types/minimatch": "^5.1.0",
         "typescript": "^5.8.0",
@@ -47,7 +47,7 @@
 
     "@cucumber/messages": ["@cucumber/messages@32.2.0", "", { "dependencies": { "class-transformer": "0.5.1", "reflect-metadata": "0.2.2" } }, "sha512-oYp1dgL2TByYWL51Z+rNm+/mFtJhiPU9WS03goes9EALb8d9GFcXRbG1JluFLFaChF1YDqIzLac0kkC3tv1DjQ=="],
 
-    "@questi0nm4rk/feats": ["@questi0nm4rk/feats@1.0.0", "", { "dependencies": { "@cucumber/cucumber-expressions": "^19.0.0", "@cucumber/gherkin": "^37.0.0", "@cucumber/messages": "^32.0.0", "smol-toml": "^1.5.0", "yaml": "^2.7.0" } }, "sha512-NJCw0KN0U56OXUVRvdTfJLsatM90Z5UlSv2W3Aqrkix8vzqjwbX2Xy6v2vfqGcyGNoFfpXouXhBMBJNoPz5AMA=="],
+    "@questi0nm4rk/feats": ["@questi0nm4rk/feats@1.0.1", "", { "dependencies": { "@cucumber/cucumber-expressions": "^19.0.0", "@cucumber/gherkin": "^37.0.0", "@cucumber/messages": "^32.0.0", "smol-toml": "^1.5.0", "yaml": "^2.7.0" } }, "sha512-Hdz1IMllNs08EIuYr9nT09NplqekvVdfoi+a8uKZotu95seSgqCjMSkaFaO78m/mAEDTj8K1sLpntQt86Q4IEg=="],
 
     "@questi0nm4rk/shell-ast": ["@questi0nm4rk/shell-ast@0.1.0", "", {}, "sha512-wwcqYQ6cDWMKFwGMFSooSQtWXk+s0/0Y91ebXqAYtx7aJ8Kp2kioHkhYElc+CrJVRS9stYQ09WOOorYtKZE3oA=="],
 
