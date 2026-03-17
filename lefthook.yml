@@ -1,15 +1,17 @@
-# ai-guardrails:sha256=f0ca65797568513532fbdaf83c6629de53be101fbceae098d2382467d825329f
+# ai-guardrails:sha256=0b6b08ea353319c546babd65be2cdb46c729e6a83df1a79ad0079fa6a8f2c768
 pre-commit:
   commands:
 
     ruff-fix:
       glob: "*.py"
+      exclude: "tests/e2e/fixtures/.*"
       run: ruff check --fix {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 
     biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
+      exclude: "tests/e2e/fixtures/.*"
       run: biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
@@ -21,19 +23,21 @@ pre-commit:
 
     codespell:
       glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
-      exclude: "tests/fixtures/.*"
+      exclude: "tests/(fixtures|e2e/fixtures)/.*"
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
       priority: 2
 
     markdownlint:
       glob: "*.md"
+      exclude: "tests/e2e/fixtures/.*"
       run: markdownlint-cli2 {staged_files}
       fail_text: "Markdown lint errors found"
       priority: 2
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      exclude: "tests/e2e/fixtures/.*"
       run: ai-guardrails hook suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2

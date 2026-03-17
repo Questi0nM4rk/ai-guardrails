@@ -1,0 +1,8 @@
+linters:
+  enable:
+    - errcheck
+    - govet
+  disable:
+    - deadcode
+run:
+  timeout: 5m
