@@ -67,8 +67,10 @@ Given<E2EWorld>(
 );
 
 After(async (world: World) => {
-  const e2eWorld = world as E2EWorld;
-  if (e2eWorld.project !== undefined) {
-    await e2eWorld.project.cleanup();
+  if ("project" in world && world.project !== undefined) {
+    const project = world.project;
+    if (typeof project === "object" && project !== null && "cleanup" in project) {
+      await (project as FixtureProject).cleanup();
+    }
   }
 });
