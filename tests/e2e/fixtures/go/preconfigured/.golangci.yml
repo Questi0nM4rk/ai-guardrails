@@ -3,6 +3,6 @@ linters:
     - errcheck
     - govet
   disable:
-    - unused
+    - deadcode
 run:
   timeout: 5m

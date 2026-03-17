@@ -11,7 +11,10 @@
     "noImplicitOverride": true,
     "verbatimModuleSyntax": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*",
+        "./node_modules/@questi0nm4rk/feats/src/*"
+      ]
     }
   },
   "include": ["src", "tests"],
