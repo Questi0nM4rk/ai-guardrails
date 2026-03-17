@@ -33,8 +33,15 @@ export const installPipeline: Pipeline = {
     cons.success(configResult.message);
 
     cons.step("Generating configs...");
-    const strategyParsed = ConfigStrategySchema.safeParse(ctx.flags.configStrategy);
-    const configStrategy = strategyParsed.success ? strategyParsed.data : "merge";
+    const rawStrategy = ctx.flags.configStrategy;
+    const strategyParsed = ConfigStrategySchema.safeParse(rawStrategy ?? "merge");
+    if (!strategyParsed.success) {
+      return {
+        status: "error",
+        message: `Invalid --config-strategy value "${String(rawStrategy)}". Must be one of: merge, replace, skip.`,
+      };
+    }
+    const configStrategy = strategyParsed.data;
     const genResult = await generateConfigsStep(
       projectDir,
       languages,

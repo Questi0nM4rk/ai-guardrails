@@ -17,8 +17,55 @@ function isMergeable(configFile: string): boolean {
 }
 
 /**
+ * Strip single-line (`//`) and block (`/* ... *\/`) comments from a JSONC
+ * string, respecting string literals so URLs and embedded slashes are safe.
+ */
+function stripJsoncComments(text: string): string {
+  let result = "";
+  let inString = false;
+  let isEscaped = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i] ?? "";
+    if (isEscaped) {
+      result += ch;
+      isEscaped = false;
+      continue;
+    }
+    if (ch === "\\" && inString) {
+      result += ch;
+      isEscaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      result += ch;
+      continue;
+    }
+    if (!inString && ch === "/" && text[i + 1] === "/") {
+      // Skip until end of line
+      while (i < text.length && text[i] !== "\n") i++;
+      if (i < text.length) result += "\n";
+      continue;
+    }
+    if (!inString && ch === "/" && text[i + 1] === "*") {
+      // Skip block comment
+      i += 2;
+      while (i < text.length && !(text[i] === "*" && text[i + 1] === "/")) i++;
+      i++; // skip the closing /
+      continue;
+    }
+    result += ch;
+  }
+  return result;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
  * Parse a config file into a plain object based on its extension.
- * Returns `null` if the format is not supported for merge.
+ * Returns `null` if the format is not supported for merge or parsing fails.
  */
 function parseForMerge(
   content: string,
@@ -26,12 +73,13 @@ function parseForMerge(
 ): Record<string, unknown> | null {
   const ext = extname(configFile);
   if (ext === ".toml") {
-    return parseToml(content) as Record<string, unknown>;
+    const parsed: unknown = parseToml(content);
+    return isPlainObject(parsed) ? parsed : null;
   }
   if (ext === ".json" || ext === ".jsonc") {
-    // Strip single-line comments for JSONC before parsing
-    const stripped = content.replace(/\/\/[^\n]*/g, "");
-    return JSON.parse(stripped) as Record<string, unknown>;
+    const stripped = stripJsoncComments(content);
+    const parsed: unknown = JSON.parse(stripped);
+    return isPlainObject(parsed) ? parsed : null;
   }
   return null;
 }
