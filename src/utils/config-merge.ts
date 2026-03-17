@@ -107,9 +107,14 @@ export async function applyStrategy(
   const existingData = parseForMerge(existingText, configFile);
   const generatedData = parseForMerge(generated, configFile);
 
-  if (existingData === null || generatedData === null) return generated;
+  // If either side fails to parse, skip the file rather than silently
+  // replacing the user's content with generated output.
+  if (existingData === null || generatedData === null) return null;
 
-  const merged = deepMerge(existingData, generatedData);
+  // User settings win on key collision: generated is the base, existing overlays on top.
+  // This preserves user customisations (e.g. line-length = 120) while adding any
+  // guardrails keys that are absent from the existing file.
+  const merged = deepMerge(generatedData, existingData);
   const serialized = serializeForMerge(merged, configFile);
   const ext = extname(configFile);
   if (ext === ".jsonc") return withJsoncHashHeader(serialized);

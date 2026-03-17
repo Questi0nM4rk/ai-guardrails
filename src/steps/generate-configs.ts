@@ -17,6 +17,14 @@ async function runGenerator(
   strategy: ConfigStrategy
 ): Promise<{ file: string; skipped?: true } | { error: string }> {
   try {
+    // Check skip condition BEFORE calling generate() so that a throwing
+    // generator (e.g. lefthook without active plugins) does not mask a skip.
+    const dest = join(projectDir, configFile);
+    const exists = await fileManager.exists(dest);
+    if (exists && strategy === "skip") {
+      return { file: configFile, skipped: true };
+    }
+
     const generated = generate();
     const content = await applyStrategy(
       projectDir,
@@ -30,7 +38,6 @@ async function runGenerator(
       return { file: configFile, skipped: true };
     }
 
-    const dest = join(projectDir, configFile);
     await fileManager.mkdir(dirname(dest), { parents: true });
     await fileManager.writeText(dest, content);
     return { file: configFile };

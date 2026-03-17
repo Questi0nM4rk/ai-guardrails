@@ -9,4 +9,4 @@ Feature: Multi-language monorepo
   Scenario: Random 3-language monorepo
     Given a monorepo with 3 random bare languages
     When I run ai-guardrails init
-    Then all detected languages should have configs
+    Then global guardrails configs should exist

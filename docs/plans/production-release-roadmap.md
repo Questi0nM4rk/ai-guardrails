@@ -131,7 +131,7 @@ tokenization, no AST needed), document why. If not, replace and `bun remove shel
 ai-guardrails generates biome, ruff, lefthook configs but does NOT generate or
 enforce tsconfig strictness. Our own tsconfig is hand-written, not dogfooded.
 
-### 0.5.1 TypeScript strictness profile generator
+### 0.7.1 TypeScript strictness profile generator
 
 **What:** New generator that creates or merges tsconfig compiler options based
 on a strictness profile.
@@ -155,7 +155,7 @@ profile, verify all flags are set. Verify project-specific fields preserved.
 **Dogfood:** This repo uses pedantic profile — verify generated output matches
 our hand-written tsconfig.
 
-### 0.5.2 Profile selection in config
+### 0.7.2 Profile selection in config
 
 **What:** `.ai-guardrails/config.toml` gets a `[typescript]` section:
 
@@ -635,27 +635,27 @@ First real greenfield dogfood of `ai-guardrails init`.
 
 ## Phase 12: Advanced Features (v4+)
 
-### 9.1 Governance hierarchy
+### 12.1 Governance hierarchy
 
 **What:** Organization config overrides team config overrides project config, with locking.
 
 **Depends on:** Config system refactor (SPEC-002 Phase 2).
 
-### 9.2 Agent attribution + auto-strict
+### 12.2 Agent attribution + auto-strict
 
 **What:** Detect AI-authored code (git author parsing) and apply stricter
 rules automatically.
 
 **Depends on:** Governance model for per-author rule sets.
 
-### 9.3 Team features
+### 12.3 Team features
 
 **What:** `ai-guardrails team list`, `team status`, `report --team` for
 multi-developer visibility.
 
 **Depends on:** Governance hierarchy.
 
-### 9.4 Baseline burn-down
+### 12.4 Baseline burn-down
 
 **What:** `baseline promote` to move issues from baseline to active.
 Track burn-down over time. Integrate with CI reporting.
@@ -704,7 +704,7 @@ Before tagging a release:
 | Linter runners (12) | All functional |
 | Config generators (10) | All functional |
 | Hook system | AST engine + flag aliases + rule groups + config toggling |
-| Tests | 570 passing, 85%+ coverage |
+| Tests | 633 passing, 85%+ coverage |
 | Baseline | Code exists, not wired |
 | SARIF output | Implemented |
 | CI | lint + test + semgrep + self-dogfood + cc-review |

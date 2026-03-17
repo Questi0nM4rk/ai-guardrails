@@ -1,12 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"os"
+)
 
 func main() {
-	unused := 42
-	fmt.Println("hello")
+	// govet: printf verb mismatch — %d with string arg
+	fmt.Printf("%d\n", "not a number")
 }
 
-func badFunc() error {
-	return nil
+func riskyOp() error {
+	return errors.New("something went wrong")
+}
+
+func caller() {
+	// errcheck: unchecked error return
+	os.Remove("/tmp/testfile")
 }

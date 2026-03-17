@@ -8,6 +8,15 @@ import {
   setupFixture,
 } from "@questi0nm4rk/feats";
 
+function isFixtureProject(value: unknown): value is FixtureProject {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "cleanup" in value &&
+    typeof (value as FixtureProject).cleanup === "function"
+  );
+}
+
 const FIXTURE_DIR = resolve(import.meta.dir, "../fixtures");
 
 const ALL_LANGS = [
@@ -70,10 +79,7 @@ Given<E2EWorld>(
 );
 
 After(async (world: World) => {
-  if ("project" in world && world.project !== undefined) {
-    const project = world.project;
-    if (typeof project === "object" && project !== null && "cleanup" in project) {
-      await (project as FixtureProject).cleanup();
-    }
+  if ("project" in world && isFixtureProject(world.project)) {
+    await world.project.cleanup();
   }
 });

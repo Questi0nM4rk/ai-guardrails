@@ -72,3 +72,11 @@ Then<E2EWorld>(
     expect(content).toContain(String(text));
   }
 );
+
+Then<E2EWorld>(
+  "{string} should not contain {string}",
+  async (world, file: unknown, text: unknown) => {
+    const content = await world.project.readFile(String(file));
+    expect(content).not.toContain(String(text));
+  }
+);
