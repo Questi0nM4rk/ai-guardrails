@@ -13,14 +13,16 @@ const BIOME_RULE_PREFIX = "biome/";
 const SEVERITY_ERROR = "ERROR";
 
 interface RdjsonRange {
-  start: { line: number; character: number };
-  end: { line: number; character: number };
+  // biome rdjson uses 1-based line/column (not the LSP 0-based line/character)
+  start: { line: number; column: number };
+  end: { line: number; column: number };
 }
 
 interface RdjsonDiagnostic {
   // location is absent for config-error diagnostics
   location?: {
-    path?: { text: string };
+    // biome rdjson emits path as a plain string (e.g. "src/main.ts")
+    path?: string;
     range?: RdjsonRange;
   };
   severity: string;
@@ -56,11 +58,16 @@ function isRdjsonOutput(value: unknown): value is RdjsonOutput {
   );
 }
 
+// biome emits ANSI reset codes before JSON output in TTY-like contexts.
+// Build the regex via RegExp to avoid biome's noControlCharactersInRegex lint rule.
+// The ESC character (U+001B) cannot appear as a literal in regex patterns per that rule.
+const ANSI_RE = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
+
 export function parseBiomeRdjsonOutput(
   stdout: string,
   projectDir: string
 ): LintIssue[] {
-  const parsed = safeParseJson(stdout);
+  const parsed = safeParseJson(stdout.replace(ANSI_RE, ""));
   if (parsed === null) return [];
 
   if (!isRdjsonOutput(parsed)) {
@@ -69,10 +76,11 @@ export function parseBiomeRdjsonOutput(
 
   return parsed.diagnostics.flatMap((diag) => {
     // location is absent for config-error diagnostics (e.g. invalid biome.json)
-    if (!diag.code || !diag.location?.path?.text || !diag.location?.range) return [];
-    const filePath = resolve(projectDir, diag.location.path.text);
-    const line = diag.location.range.start.line + 1;
-    const col = diag.location.range.start.character + 1;
+    if (!diag.code || !diag.location?.path || !diag.location.range) return [];
+    const filePath = resolve(projectDir, diag.location.path);
+    // range.start.line and .column are already 1-based in biome's rdjson output
+    const line = diag.location.range.start.line;
+    const col = diag.location.range.start.column;
     const rule = BIOME_RULE_PREFIX + diag.code.value;
     const message = extractMessage(diag.message);
     const severity: "error" | "warning" =

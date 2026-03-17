@@ -112,9 +112,13 @@ export async function applyStrategy(
   const existingData = parseForMerge(existingText, configFile);
   const generatedData = parseForMerge(generated, configFile);
 
-  // If either side fails to parse, skip the file rather than silently
-  // replacing the user's content with generated output.
-  if (existingData === null || generatedData === null) return null;
+  // If either side fails to parse, surface the error rather than silently
+  // skipping — the user needs to know the file has syntax errors.
+  if (existingData === null || generatedData === null) {
+    throw new Error(
+      `Cannot merge ${configFile}: existing file has syntax errors. Fix the file or use --config-strategy=replace.`
+    );
+  }
 
   // User settings win on key collision: generated is the base, existing overlays on top.
   // This preserves user customisations (e.g. line-length = 120) while adding any

@@ -10,11 +10,9 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
     "paths": {
-      "@/*": [
-        "./src/*",
-        "./node_modules/@questi0nm4rk/feats/src/*"
-      ]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "tests"],
