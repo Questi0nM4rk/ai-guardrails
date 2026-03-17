@@ -96,5 +96,5 @@ export async function generateConfigsStep(
     parts.push(`Skipped ${skipped.length} existing file(s): ${skipped.join(", ")}`);
   }
 
-  return ok(parts.join("; "));
+  return ok(parts.length > 0 ? parts.join("; ") : "No config files generated");
 }

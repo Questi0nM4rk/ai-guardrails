@@ -61,17 +61,22 @@ function parseForMerge(
   content: string,
   configFile: string
 ): Record<string, unknown> | null {
-  const ext = extname(configFile);
-  if (ext === ".toml") {
-    const parsed: unknown = parseToml(content);
-    return isPlainObject(parsed) ? parsed : null;
+  try {
+    const ext = extname(configFile);
+    if (ext === ".toml") {
+      const parsed: unknown = parseToml(content);
+      return isPlainObject(parsed) ? parsed : null;
+    }
+    if (ext === ".json" || ext === ".jsonc") {
+      const stripped = stripJsoncComments(content);
+      const parsed: unknown = JSON.parse(stripped);
+      return isPlainObject(parsed) ? parsed : null;
+    }
+    return null;
+  } catch {
+    // Malformed TOML/JSON — cannot merge, caller should skip
+    return null;
   }
-  if (ext === ".json" || ext === ".jsonc") {
-    const stripped = stripJsoncComments(content);
-    const parsed: unknown = JSON.parse(stripped);
-    return isPlainObject(parsed) ? parsed : null;
-  }
-  return null;
 }
 
 function serializeForMerge(data: Record<string, unknown>, configFile: string): string {
