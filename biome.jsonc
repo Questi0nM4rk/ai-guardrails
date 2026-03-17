@@ -1,8 +1,14 @@
-// ai-guardrails:sha256=6f166d1d2f7bcb56b7a89d8dedb9ef7fa0af97c810fb68f2cf96ae3ad9456656
+// ai-guardrails:sha256=52664f41dcc387a23ca062c4ee324c1632841c58e3033bf1af973759a4f260ef
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "files": {
-    "includes": ["**", "!tests/e2e/fixtures/**"]
+    "includes": [
+      "**",
+      "!tests/e2e/fixtures/**",
+      "!.venv/**",
+      "!node_modules/**",
+      "!.claude/**"
+    ]
   },
   "linter": {
     "enabled": true,

@@ -120,6 +120,7 @@ describe("agentRulesGenerator", () => {
       allow: [],
       values: { line_length: 88, indent_width: 4 },
       ignoredRules: new Set<string>(),
+      ignorePaths: [],
       isAllowed: () => false,
     };
     const output = agentRulesGenerator.generate(config);
@@ -133,6 +134,7 @@ describe("agentRulesGenerator", () => {
       allow: [],
       values: { line_length: 88, indent_width: 4 },
       ignoredRules: new Set<string>(),
+      ignorePaths: [],
       isAllowed: () => false,
     };
     const output = agentRulesGenerator.generate(config);

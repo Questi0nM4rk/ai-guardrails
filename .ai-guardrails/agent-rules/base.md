@@ -1,0 +1,29 @@
+<!-- ai-guardrails:sha256=420431e9fd3fd7de3a689bf841d828c3bb7c3ff1af1d1c94a2199de44673bb96 -->
+# AI Agent Rules
+
+## Core Principles
+
+- Never push directly to main — always open a PR
+- Never commit secrets, credentials, or .env files
+- Run tests before committing: all tests must pass
+- Fix ALL review findings including nitpicks
+- Never batch-resolve review threads without reading each one
+
+## Git Workflow
+
+- Conventional commit messages: feat:, fix:, refactor:, chore:, test:, docs:
+- Create feature branches: git checkout -b feat/<name>
+- Keep commits focused — one logical change per commit
+
+## Code Quality
+
+- No any — use unknown + type narrowing at boundaries
+- No non-null assertions (!) — handle undefined explicitly
+- No commented-out code — delete it or open an issue
+- No TODO without an issue reference
+
+## Security
+
+- Never log secrets, tokens, or passwords
+- Never eval() user input
+- Never trust user-provided paths without sanitization

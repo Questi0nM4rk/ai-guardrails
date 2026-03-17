@@ -8,6 +8,7 @@ const mockConfig: ResolvedConfig = {
   allow: [],
   values: { line_length: 88, indent_width: 2 },
   ignoredRules: new Set(),
+  ignorePaths: [],
   isAllowed: () => false,
 };
 

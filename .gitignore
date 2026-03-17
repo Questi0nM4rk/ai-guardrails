@@ -32,8 +32,9 @@ Thumbs.db
 *.log
 .test/
 
-# Legacy v0 runtime directory (created by old ai-guardrails init, not used by v1+)
-.ai-guardrails/
+# Legacy v0 runtime subdirectories (created by old ai-guardrails init, not used by v1+)
+.ai-guardrails/configs/
+.ai-guardrails/lib/
 .claude/*
 !.claude/rules/
 .coverage

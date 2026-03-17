@@ -65,6 +65,7 @@ describe("resolveConfig", () => {
         config: { line_length: 88, indent_width: 4 },
         ignore: [],
         allow: [],
+        ignore_paths: [],
       }
     );
     expect(resolved.profile).toBe("minimal");
@@ -73,7 +74,12 @@ describe("resolveConfig", () => {
   test("uses machine profile when project has none", () => {
     const resolved = resolveConfig(
       { profile: "strict", ignore: [] },
-      { config: { line_length: 88, indent_width: 4 }, ignore: [], allow: [] }
+      {
+        config: { line_length: 88, indent_width: 4 },
+        ignore: [],
+        allow: [],
+        ignore_paths: [],
+      }
     );
     expect(resolved.profile).toBe("strict");
   });
@@ -88,6 +94,7 @@ describe("resolveConfig", () => {
         config: { line_length: 88, indent_width: 4 },
         ignore: [{ rule: "ruff/D", reason: "project" }],
         allow: [],
+        ignore_paths: [],
       }
     );
     expect(resolved.ignore).toHaveLength(2);
@@ -106,6 +113,7 @@ describe("resolveConfig", () => {
         config: { line_length: 88, indent_width: 4 },
         ignore: [{ rule: "ruff/E501", reason: "project reason" }],
         allow: [],
+        ignore_paths: [],
       }
     );
     expect(resolved.ignore).toHaveLength(1);
@@ -115,7 +123,12 @@ describe("resolveConfig", () => {
   test("isAllowed returns true for globally ignored rule", () => {
     const resolved = resolveConfig(
       { profile: "standard", ignore: [{ rule: "ruff/E501", reason: "test" }] },
-      { config: { line_length: 88, indent_width: 4 }, ignore: [], allow: [] }
+      {
+        config: { line_length: 88, indent_width: 4 },
+        ignore: [],
+        allow: [],
+        ignore_paths: [],
+      }
     );
     expect(resolved.isAllowed("ruff/E501", "src/foo.py")).toBe(true);
   });
@@ -123,7 +136,12 @@ describe("resolveConfig", () => {
   test("isAllowed returns false for non-ignored rule", () => {
     const resolved = resolveConfig(
       { profile: "standard", ignore: [] },
-      { config: { line_length: 88, indent_width: 4 }, ignore: [], allow: [] }
+      {
+        config: { line_length: 88, indent_width: 4 },
+        ignore: [],
+        allow: [],
+        ignore_paths: [],
+      }
     );
     expect(resolved.isAllowed("ruff/E501", "src/foo.py")).toBe(false);
   });
@@ -135,6 +153,7 @@ describe("resolveConfig", () => {
         config: { line_length: 88, indent_width: 4 },
         ignore: [],
         allow: [{ rule: "ruff/ARG002", glob: "tests/**/*.py", reason: "fixtures" }],
+        ignore_paths: [],
       }
     );
     expect(resolved.isAllowed("ruff/ARG002", "tests/unit/foo.py")).toBe(true);
@@ -148,6 +167,7 @@ describe("resolveConfig", () => {
         config: { line_length: 88, indent_width: 4 },
         ignore: [],
         allow: [{ rule: "ruff/ARG002", glob: "tests/**/*.py", reason: "fixtures" }],
+        ignore_paths: [],
       }
     );
     expect(resolved.isAllowed("ruff/E501", "tests/unit/foo.py")).toBe(false);
@@ -163,6 +183,7 @@ describe("resolveConfig", () => {
         config: { line_length: 88, indent_width: 4 },
         ignore: [{ rule: "ruff/D", reason: "project" }],
         allow: [],
+        ignore_paths: [],
       }
     );
     expect(resolved.ignoredRules.has("ruff/E501")).toBe(true);

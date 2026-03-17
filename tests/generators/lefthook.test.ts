@@ -10,6 +10,7 @@ function makeConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
     allow: [],
     values: { line_length: 100, indent_width: 2 },
     ignoredRules: new Set(),
+    ignorePaths: [],
     isAllowed: () => false,
     ...overrides,
   };
@@ -77,6 +78,34 @@ describe("no-commits-to-main hook", () => {
     expect(output).toMatch(
       /"\$branch"\s*=\s*"main"\s*\]\s*\|\|\s*\[.*"\$branch"\s*=\s*"master"/
     );
+  });
+});
+
+describe("generateLefthookConfig ignorePaths", () => {
+  test("no exclude lines emitted in language sections when ignorePaths is empty", () => {
+    const output = generateLefthookConfig(makeConfig(), [makePlugin("typescript")]);
+    // biome-fix section must not have an exclude line
+    const biomeFix =
+      output.match(/biome-fix:([\s\S]*?)(?:\n {4}\w|\ncommit)/)?.[1] ?? "";
+    expect(biomeFix).not.toContain("exclude:");
+  });
+
+  test("exclude line added to language sections when ignorePaths set", () => {
+    const config = makeConfig({ ignorePaths: ["tests/e2e/fixtures/**"] });
+    const output = generateLefthookConfig(config, [makePlugin("typescript")]);
+    const biomeFix =
+      output.match(/biome-fix:([\s\S]*?)(?:\n {4}\w|\ncommit)/)?.[1] ?? "";
+    expect(biomeFix).toContain("exclude:");
+    expect(biomeFix).toContain("tests/e2e/fixtures/");
+  });
+
+  test("codespell exclude merges ignorePaths with default fixture pattern", () => {
+    const config = makeConfig({ ignorePaths: ["tests/e2e/fixtures/**"] });
+    const output = generateLefthookConfig(config, []);
+    const codespell =
+      output.match(/codespell:([\s\S]*?)(?:\n {4}\w|\ncommit)/)?.[1] ?? "";
+    expect(codespell).toContain("tests/fixtures/.*");
+    expect(codespell).toContain("tests/e2e/fixtures/");
   });
 });
 
