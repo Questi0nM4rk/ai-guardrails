@@ -3,9 +3,10 @@ package main
 import "fmt"
 
 func main() {
+	unused := 42
 	fmt.Println("hello")
 }
 
-func BadFunction() {
-	_ = fmt.Sprintf("%d", "not a number")
+func badFunc() error {
+	return nil
 }
