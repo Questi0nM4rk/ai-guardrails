@@ -1,4 +1,4 @@
-// ai-guardrails:sha256=52664f41dcc387a23ca062c4ee324c1632841c58e3033bf1af973759a4f260ef
+// ai-guardrails:sha256=acd536b658e27248777eb69ab3a3bb3d762368f5954146696682f41d98ce6cf7
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "files": {
@@ -24,7 +24,8 @@
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "error"
+        "noConsole": "error",
+        "useBiomeIgnoreFolder": "off"
       }
     }
   },
