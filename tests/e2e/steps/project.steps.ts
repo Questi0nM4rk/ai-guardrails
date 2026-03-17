@@ -50,13 +50,9 @@ Given<E2EWorld>(
   "a monorepo combining bare {string} and bare {string}",
   async (world, a: unknown, b: unknown) => {
     world.binaryPath = resolve(process.cwd(), "dist/ai-guardrails");
-    world.project = await composeFixtures(
-      [
-        resolve(FIXTURE_DIR, String(a), "bare"),
-        resolve(FIXTURE_DIR, String(b), "bare"),
-      ],
-      { fixtureDir: "/" }
-    );
+    world.project = await composeFixtures([`${String(a)}/bare`, `${String(b)}/bare`], {
+      fixtureDir: FIXTURE_DIR,
+    });
   }
 );
 
@@ -67,8 +63,8 @@ Given<E2EWorld>(
     const rng = createRng();
     const langs = rng.sample(ALL_LANGS, Number(count));
     world.project = await composeFixtures(
-      langs.map((l) => resolve(FIXTURE_DIR, l, "bare")),
-      { fixtureDir: "/" }
+      langs.map((l) => `${l}/bare`),
+      { fixtureDir: FIXTURE_DIR }
     );
   }
 );

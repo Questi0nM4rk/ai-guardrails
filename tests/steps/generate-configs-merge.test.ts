@@ -150,9 +150,10 @@ describe("applyStrategy — file exists + merge on JSONC", () => {
     expect(writeEntry).toBeDefined();
     if (writeEntry) {
       const [, merged] = writeEntry;
-      // Result is valid JSON (the merged output is serialized as JSON)
-      expect(() => JSON.parse(merged)).not.toThrow();
-      const obj = JSON.parse(merged) as Record<string, unknown>;
+      // Merged JSONC has a hash header comment — strip it before parsing
+      const jsonContent = merged.replace(/^\/\/[^\n]*\n/, "");
+      expect(() => JSON.parse(jsonContent)).not.toThrow();
+      const obj = JSON.parse(jsonContent) as Record<string, unknown>;
       // customKey from existing should be present (deepMerge retains existing keys not in generated)
       expect(obj.customKey).toBe("preserved");
     }

@@ -8,6 +8,7 @@ import type { LanguagePlugin } from "@/languages/types";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { deepMerge } from "@/utils/deep-merge";
+import { withHashHeader, withJsoncHashHeader } from "@/utils/hash";
 
 /** File extensions that support structured merge (JSON/JSONC and TOML). */
 const MERGEABLE_EXTENSIONS = new Set([".json", ".jsonc", ".toml"]);
@@ -134,7 +135,12 @@ async function applyStrategy(
   }
 
   const merged = deepMerge(existingData, generatedData);
-  return serializeForMerge(merged, configFile);
+  const serialized = serializeForMerge(merged, configFile);
+  // Re-apply hash header so the validation step doesn't flag merged configs as stale
+  const ext = extname(configFile);
+  if (ext === ".jsonc") return withJsoncHashHeader(serialized);
+  if (ext === ".toml") return withHashHeader(serialized);
+  return serialized;
 }
 
 async function runGenerator(
