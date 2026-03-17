@@ -50,6 +50,11 @@ program
   .option("--no-ci", "Skip CI workflow generation")
   .option("--no-agent-rules", "Skip AGENTS.md and IDE rule files")
   .option("--interactive", "Prompt for each optional step")
+  .option(
+    "--config-strategy <strategy>",
+    "How to handle existing lang configs: merge | replace | skip",
+    "merge"
+  )
   .action(async (opts) => {
     await runInit(getProjectDir(), { ...opts });
   });

@@ -1,3 +1,4 @@
+import { ConfigStrategySchema } from "@/config/schema";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { generateConfigsStep } from "@/steps/generate-configs";
@@ -32,11 +33,14 @@ export const installPipeline: Pipeline = {
     cons.success(configResult.message);
 
     cons.step("Generating configs...");
+    const strategyParsed = ConfigStrategySchema.safeParse(ctx.flags.configStrategy);
+    const configStrategy = strategyParsed.success ? strategyParsed.data : "merge";
     const genResult = await generateConfigsStep(
       projectDir,
       languages,
       config,
-      fileManager
+      fileManager,
+      configStrategy
     );
     if (genResult.status === "error") {
       return { status: "error", message: genResult.message };
