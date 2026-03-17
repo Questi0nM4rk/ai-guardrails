@@ -1,3 +1,4 @@
+import { ConfigStrategySchema } from "@/config/schema";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { generateConfigsStep } from "@/steps/generate-configs";
@@ -32,11 +33,21 @@ export const installPipeline: Pipeline = {
     cons.success(configResult.message);
 
     cons.step("Generating configs...");
+    const rawStrategy = ctx.flags.configStrategy;
+    const strategyParsed = ConfigStrategySchema.safeParse(rawStrategy ?? "merge");
+    if (!strategyParsed.success) {
+      return {
+        status: "error",
+        message: `Invalid --config-strategy value "${String(rawStrategy)}". Must be one of: merge, replace, skip.`,
+      };
+    }
+    const configStrategy = strategyParsed.data;
     const genResult = await generateConfigsStep(
       projectDir,
       languages,
       config,
-      fileManager
+      fileManager,
+      configStrategy
     );
     if (genResult.status === "error") {
       return { status: "error", message: genResult.message };
@@ -44,7 +55,7 @@ export const installPipeline: Pipeline = {
     cons.success(genResult.message);
 
     cons.step("Validating configs...");
-    const validateResult = await validateConfigsStep(projectDir, fileManager, config);
+    const validateResult = await validateConfigsStep(projectDir, fileManager);
     if (validateResult.status === "error") {
       return { status: "error", message: validateResult.message };
     }

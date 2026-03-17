@@ -20,6 +20,7 @@ function makeConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
     allow: [],
     values: { line_length: 100, indent_width: 2 },
     ignoredRules: new Set(),
+    ignorePaths: [],
     isAllowed: () => false,
     ...overrides,
   };
@@ -36,10 +37,11 @@ describe("parseBiomeRdjsonOutput", () => {
     expect(first.rule).toBe("biome/lint/correctness/noUnusedVariables");
     expect(first.linter).toBe("biome");
     expect(first.file).toBe("/project/src/foo.ts");
-    expect(first.line).toBe(10); // 0-indexed 9 → 1-indexed 10
-    expect(first.col).toBe(4); // 0-indexed 3 → 1-indexed 4
+    expect(first.line).toBe(10); // biome v2 emits 1-based line numbers directly
+    expect(first.col).toBe(4); // biome v2 emits 1-based column numbers directly
     expect(first.message).toBe("This variable is unused.");
-    expect(first.severity).toBe("error");
+    // biome v2 rdjson omits severity field; defaults to warning
+    expect(first.severity).toBe("warning");
     expect(first.fingerprint).toHaveLength(64);
   });
 
@@ -48,18 +50,17 @@ describe("parseBiomeRdjsonOutput", () => {
     expect(issues).toHaveLength(0);
   });
 
-  test("converts 0-indexed lines to 1-indexed", () => {
+  test("passes through 1-based line/column numbers from biome v2 rdjson", () => {
     const json = JSON.stringify({
       diagnostics: [
         {
           location: {
-            path: { text: "src/foo.ts" },
+            path: "src/foo.ts",
             range: {
-              start: { line: 0, character: 0 },
-              end: { line: 0, character: 5 },
+              start: { line: 1, column: 1 },
+              end: { line: 1, column: 6 },
             },
           },
-          severity: "ERROR",
           code: { value: "lint/style/noVar" },
           message: "Use const or let instead of var.",
         },
@@ -78,13 +79,12 @@ describe("parseBiomeRdjsonOutput", () => {
       diagnostics: [
         {
           location: {
-            path: { text: "src/nested/file.ts" },
+            path: "src/nested/file.ts",
             range: {
-              start: { line: 5, character: 2 },
-              end: { line: 5, character: 10 },
+              start: { line: 6, column: 3 },
+              end: { line: 6, column: 11 },
             },
           },
-          severity: "ERROR",
           code: { value: "lint/correctness/noUnusedVariables" },
           message: "Unused.",
         },
@@ -97,24 +97,36 @@ describe("parseBiomeRdjsonOutput", () => {
     expect(issue.file).toBe("/my/project/src/nested/file.ts");
   });
 
-  test("maps WARNING severity to warning", () => {
+  test("defaults severity to warning when absent (biome v2 omits severity field)", () => {
     const issues = parseBiomeRdjsonOutput(FIXTURE_JSON, PROJECT_DIR);
-    const warning = issues.find(
-      (i) => i.rule === "biome/lint/suspicious/noExplicitAny"
-    );
-    expect(warning).toBeDefined();
-    if (!warning) return;
-    expect(warning.severity).toBe("warning");
+    // biome v2 rdjson does not include a severity field — all issues default to warning
+    for (const issue of issues) {
+      expect(issue.severity).toBe("warning");
+    }
   });
 
-  test("maps ERROR severity to error", () => {
-    const issues = parseBiomeRdjsonOutput(FIXTURE_JSON, PROJECT_DIR);
-    const error = issues.find(
-      (i) => i.rule === "biome/lint/correctness/noUnusedVariables"
-    );
-    expect(error).toBeDefined();
-    if (!error) return;
-    expect(error.severity).toBe("error");
+  test("maps ERROR severity to error when present", () => {
+    const json = JSON.stringify({
+      diagnostics: [
+        {
+          location: {
+            path: "src/foo.ts",
+            range: {
+              start: { line: 1, column: 1 },
+              end: { line: 1, column: 5 },
+            },
+          },
+          severity: "ERROR",
+          code: { value: "lint/correctness/noUnusedVariables" },
+          message: "Unused.",
+        },
+      ],
+    });
+    const issues = parseBiomeRdjsonOutput(json, PROJECT_DIR);
+    const issue = issues[0];
+    expect(issue).toBeDefined();
+    if (!issue) return;
+    expect(issue.severity).toBe("error");
   });
 
   test("returns [] for malformed JSON", () => {

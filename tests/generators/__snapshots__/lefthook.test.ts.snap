@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`generateLefthookConfig output matches snapshot for python + typescript 1`] = `
-"# ai-guardrails:sha256=f0ca65797568513532fbdaf83c6629de53be101fbceae098d2382467d825329f
+"# ai-guardrails:sha256=b6c8ade2fd39f455819a397861fa96e32076329002bc0438c1e582cf56e2a534
 pre-commit:
   commands:
 
@@ -24,7 +24,7 @@ pre-commit:
 
     codespell:
       glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
-      exclude: "tests/fixtures/.*"
+      exclude: 'tests/fixtures/.*'
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
       priority: 2
@@ -60,7 +60,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot for empty plugins 1`] = `
-"# ai-guardrails:sha256=a804e958af16ea699be688c8a04e6f60a2874af6ba13eba796ff8ec2e985ba29
+"# ai-guardrails:sha256=5972c2b1018a0004966903c703c80ce6ecba537cfdc1652bfbf63aa9f5b9c685
 pre-commit:
   commands:
 
@@ -71,7 +71,7 @@ pre-commit:
 
     codespell:
       glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
-      exclude: "tests/fixtures/.*"
+      exclude: 'tests/fixtures/.*'
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
       priority: 2

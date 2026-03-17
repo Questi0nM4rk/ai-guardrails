@@ -1,4 +1,4 @@
-import { Command } from "@commander-js/extra-typings";
+import { Command, Option } from "@commander-js/extra-typings";
 import { runCheck } from "@/commands/check";
 import { runGenerate } from "@/commands/generate";
 import { runHook } from "@/commands/hook";
@@ -50,6 +50,11 @@ program
   .option("--no-ci", "Skip CI workflow generation")
   .option("--no-agent-rules", "Skip AGENTS.md and IDE rule files")
   .option("--interactive", "Prompt for each optional step")
+  .addOption(
+    new Option("--config-strategy <strategy>", "How to handle existing lang configs")
+      .choices(["merge", "replace", "skip"])
+      .default("merge")
+  )
   .action(async (opts) => {
     await runInit(getProjectDir(), { ...opts });
   });

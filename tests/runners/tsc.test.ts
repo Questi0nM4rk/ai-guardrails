@@ -20,6 +20,7 @@ function makeConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
     allow: [],
     values: { line_length: 100, indent_width: 2 },
     ignoredRules: new Set(),
+    ignorePaths: [],
     isAllowed: () => false,
     ...overrides,
   };

@@ -1,7 +1,11 @@
-// ai-guardrails:sha256=a15eb63c05e78ca9311f807cff9944c84004a5eca13b49fcaff5d557005f6655
+// ai-guardrails:sha256=123417be51461d24ccaac2ded9e3e1d3a6fe34633d0843a252c3d75159766ee3
 {
   "default": true,
-  "MD013": { "line_length": 120, "tables": false, "code_blocks": false },
+  "MD013": {
+    "line_length": 120,
+    "tables": false,
+    "code_blocks": false
+  },
   "MD033": false,
   "MD040": false,
   "MD041": false,

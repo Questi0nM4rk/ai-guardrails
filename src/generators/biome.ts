@@ -5,9 +5,17 @@ import { withJsoncHashHeader } from "@/utils/hash";
 function renderBiomeJson(config: ResolvedConfig): string {
   const lineWidth = config.values.line_length ?? 100;
   const indentWidth = config.values.indent_width ?? 2;
+
+  // Biome v2.4.x uses files.includes with negated globs for exclusions
+  const filesSection =
+    config.ignorePaths.length > 0
+      ? { files: { includes: ["**", ...config.ignorePaths.map((p) => `!${p}`)] } }
+      : {};
+
   return JSON.stringify(
     {
       $schema: "https://biomejs.dev/schemas/2.4.6/schema.json",
+      ...filesSection,
       linter: {
         enabled: true,
         rules: {
@@ -23,6 +31,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
           suspicious: {
             noExplicitAny: "error",
             noConsole: "error",
+            useBiomeIgnoreFolder: "off",
           },
         },
       },

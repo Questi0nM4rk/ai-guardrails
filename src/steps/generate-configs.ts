@@ -1,22 +1,43 @@
 import { dirname, join } from "node:path";
-import type { ResolvedConfig } from "@/config/schema";
+import type { ConfigStrategy, ResolvedConfig } from "@/config/schema";
 import { generateLefthookConfig, lefthookGenerator } from "@/generators/lefthook";
 import { ALL_GENERATORS } from "@/generators/registry";
 import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
+import { applyStrategy } from "@/utils/config-merge";
 
 async function runGenerator(
   projectDir: string,
   fileManager: FileManager,
   id: string,
   configFile: string,
-  generate: () => string
-): Promise<{ file: string } | { error: string }> {
+  generate: () => string,
+  strategy: ConfigStrategy
+): Promise<{ file: string; skipped?: true } | { error: string }> {
   try {
-    const content = generate();
+    // Check skip condition BEFORE calling generate() so that a throwing
+    // generator (e.g. lefthook without active plugins) does not mask a skip.
     const dest = join(projectDir, configFile);
+    const exists = await fileManager.exists(dest);
+    if (exists && strategy === "skip") {
+      return { file: configFile, skipped: true };
+    }
+
+    const generated = generate();
+    const content = await applyStrategy(
+      projectDir,
+      configFile,
+      generated,
+      strategy,
+      fileManager
+    );
+
+    if (content === null) {
+      return { file: configFile, skipped: true };
+    }
+
     await fileManager.mkdir(dirname(dest), { parents: true });
     await fileManager.writeText(dest, content);
     return { file: configFile };
@@ -30,7 +51,8 @@ export async function generateConfigsStep(
   projectDir: string,
   languages: readonly LanguagePlugin[],
   config: ResolvedConfig,
-  fileManager: FileManager
+  fileManager: FileManager,
+  strategy: ConfigStrategy = "merge"
 ): Promise<StepResult> {
   const results = await Promise.all(
     ALL_GENERATORS.map((g) => {
@@ -38,20 +60,41 @@ export async function generateConfigsStep(
         g.id === lefthookGenerator.id
           ? () => generateLefthookConfig(config, languages)
           : () => g.generate(config);
-      return runGenerator(projectDir, fileManager, g.id, g.configFile, generate);
+      return runGenerator(
+        projectDir,
+        fileManager,
+        g.id,
+        g.configFile,
+        generate,
+        strategy
+      );
     })
   );
 
   const written: string[] = [];
+  const skipped: string[] = [];
   const errors: string[] = [];
   for (const r of results) {
-    if ("file" in r) written.push(r.file);
-    else errors.push(r.error);
+    if ("error" in r) {
+      errors.push(r.error);
+    } else if (r.skipped === true) {
+      skipped.push(r.file);
+    } else {
+      written.push(r.file);
+    }
   }
 
   if (errors.length > 0) {
     return error(`Config generation failed: ${errors.join(", ")}`);
   }
 
-  return ok(`Generated ${written.length} config file(s): ${written.join(", ")}`);
+  const parts: string[] = [];
+  if (written.length > 0) {
+    parts.push(`Generated ${written.length} config file(s): ${written.join(", ")}`);
+  }
+  if (skipped.length > 0) {
+    parts.push(`Skipped ${skipped.length} existing file(s): ${skipped.join(", ")}`);
+  }
+
+  return ok(parts.length > 0 ? parts.join("; ") : "No config files generated");
 }

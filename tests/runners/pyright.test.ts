@@ -19,6 +19,7 @@ function makeConfig(): ResolvedConfig {
     allow: [],
     values: { line_length: 88, indent_width: 4 },
     ignoredRules: new Set(),
+    ignorePaths: [],
     isAllowed: () => false,
   };
 }

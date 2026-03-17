@@ -1,3 +1,5 @@
+import { relative } from "node:path";
+import { minimatch } from "minimatch";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
@@ -49,9 +51,20 @@ export async function checkStep(
     }
 
     const allIssues = runnerResults.flat();
-    const filtered = allIssues.filter(
-      (issue) => !config.isAllowed(issue.rule, issue.file)
-    );
+    const filtered = allIssues.filter((issue) => {
+      if (config.isAllowed(issue.rule, issue.file)) return false;
+      if (config.ignorePaths.length > 0) {
+        const relPath = relative(projectDir, issue.file);
+        if (
+          config.ignorePaths.some((pattern) =>
+            minimatch(relPath, pattern, { dot: true })
+          )
+        ) {
+          return false;
+        }
+      }
+      return true;
+    });
 
     // TODO(baseline): Load .ai-guardrails/baseline.json and call
     // classifyFingerprint() to filter out "existing" issues from the
