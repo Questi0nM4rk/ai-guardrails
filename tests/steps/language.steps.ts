@@ -12,6 +12,7 @@ const PROJECT_DIR = "/project";
 interface LanguageWorld extends World {
   fm: FakeFileManager;
   detectedIds: string[];
+  runnerIds: string[];
   stepResult?: StepResult;
   stepLanguages?: LanguagePlugin[];
 }
@@ -129,20 +130,20 @@ When<LanguageWorld>(
   async (world: LanguageWorld, pluginId: unknown) => {
     const plugin = ALL_PLUGINS.find((p) => p.id === String(pluginId));
     if (plugin === undefined) throw new Error(`Plugin not found: ${String(pluginId)}`);
-    world.detectedIds = plugin.runners().map((r) => r.id);
+    world.runnerIds = plugin.runners().map((r) => r.id);
   }
 );
 
 Then<LanguageWorld>(
   "the runner ids should include {string}",
   async (world: LanguageWorld, runnerId: unknown) => {
-    expect(world.detectedIds).toContain(String(runnerId));
+    expect(world.runnerIds).toContain(String(runnerId));
   }
 );
 
 Then<LanguageWorld>(
   "there should be {int} runners",
   async (world: LanguageWorld, count: unknown) => {
-    expect(world.detectedIds.length).toBe(Number(count));
+    expect(world.runnerIds.length).toBe(Number(count));
   }
 );

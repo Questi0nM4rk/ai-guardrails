@@ -1,5 +1,6 @@
 import { expect } from "bun:test";
 import { Given, Then, When } from "@questi0nm4rk/feats";
+import { ALL_GENERATORS } from "@/generators/registry";
 import { installPipeline } from "@/pipelines/install";
 import type { FakeCommandRunner } from "../fakes/fake-command-runner";
 import type { FakeFileManager } from "../fakes/fake-file-manager";
@@ -91,5 +92,13 @@ Then<PipelineWorld>(
   async (world: PipelineWorld, code: unknown) => {
     if (world.inlineResult === undefined) throw new Error("inlineResult not set");
     expect(installExitCode(world.inlineResult)).toBe(Number(code));
+  }
+);
+
+Then<PipelineWorld>(
+  "at least as many files as generators should be written",
+  async (world: PipelineWorld) => {
+    const written = (world.ctx.fileManager as FakeFileManager).written;
+    expect(written.length).toBeGreaterThanOrEqual(ALL_GENERATORS.length);
   }
 );

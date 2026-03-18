@@ -15,10 +15,12 @@ export interface PipelineWorld extends World {
   inlineResult?: PipelineResult;
 }
 
-export const BASE_CONFIG = buildResolvedConfig(
-  MachineConfigSchema.parse({}),
-  ProjectConfigSchema.parse({})
-);
+function freshConfig() {
+  return buildResolvedConfig(
+    MachineConfigSchema.parse({}),
+    ProjectConfigSchema.parse({})
+  );
+}
 
 export function makeBaseCtx(overrides: Partial<PipelineContext> = {}): PipelineContext {
   const fm = new FakeFileManager();
@@ -26,7 +28,7 @@ export function makeBaseCtx(overrides: Partial<PipelineContext> = {}): PipelineC
 
   return {
     projectDir: "/project",
-    config: BASE_CONFIG,
+    config: freshConfig(),
     fileManager: fm,
     commandRunner: new FakeCommandRunner(),
     console: new FakeConsole(),
