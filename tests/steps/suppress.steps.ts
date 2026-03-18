@@ -95,13 +95,21 @@ Then(
   "the extracted comment should start with {string}",
   (world: SuppressWorld, prefix: unknown) => {
     if (typeof prefix !== "string") throw new Error("expected string");
-    expect(world.extractedComment).toContain(prefix.trim());
+    const trimmed = prefix.trim();
+    expect(world.extractedComment.startsWith(trimmed)).toBe(true);
   }
 );
 
 // --- allow-comment steps ---
 
 When("I parse allow comments from lines:", (world: SuppressWorld, table: unknown) => {
+  if (
+    table === null ||
+    typeof table !== "object" ||
+    typeof (table as DataTable).asLists !== "function"
+  ) {
+    throw new Error("expected DataTable argument");
+  }
   const dt = table as DataTable;
   const lines = dt.asLists().map((row) => row[0] ?? "");
   world.allowComments = parseAllowComments(lines);
