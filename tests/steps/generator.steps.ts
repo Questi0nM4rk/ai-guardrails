@@ -424,13 +424,13 @@ Then<GeneratorWorld>(
 Then<GeneratorWorld>(
   "AGENT_SYMLINKS cursor should be {string}",
   (_world: GeneratorWorld, value: unknown) => {
-    expect(AGENT_SYMLINKS["cursor"]).toBe(String(value));
+    expect(AGENT_SYMLINKS.cursor).toBe(String(value));
   }
 );
 
 Then<GeneratorWorld>(
   "AGENT_SYMLINKS windsurf should be {string}",
   (_world: GeneratorWorld, value: unknown) => {
-    expect(AGENT_SYMLINKS["windsurf"]).toBe(String(value));
+    expect(AGENT_SYMLINKS.windsurf).toBe(String(value));
   }
 );
