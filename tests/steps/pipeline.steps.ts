@@ -16,8 +16,8 @@ import { FakeFileManager } from "../fakes/fake-file-manager";
 
 interface PipelineWorld extends World {
   ctx: PipelineContext;
-  result: PipelineResult;
-  inlineResult: PipelineResult;
+  result?: PipelineResult;
+  inlineResult?: PipelineResult;
 }
 
 const BASE_CONFIG = buildResolvedConfig(
@@ -109,7 +109,7 @@ Given<PipelineWorld>(
     const s = String(status);
     expect(["ok", "error"]).toContain(s);
     world.inlineResult = {
-      status: s as "ok" | "error",
+      status: s === "ok" ? "ok" : "error",
       issueCount: Number(count),
     };
   }
@@ -138,7 +138,7 @@ Given<PipelineWorld>(
   async (world: PipelineWorld, status: unknown) => {
     const s = String(status);
     expect(["ok", "error"]).toContain(s);
-    world.inlineResult = { status: s as "ok" | "error" };
+    world.inlineResult = { status: s === "ok" ? "ok" : "error" };
   }
 );
 
@@ -159,13 +159,15 @@ Then<PipelineWorld>(
   async (world: PipelineWorld, status: unknown) => {
     const s = String(status);
     expect(["ok", "error"]).toContain(s);
-    expect(world.result.status).toBe(s as "ok" | "error");
+    if (world.result === undefined) throw new Error("result not set");
+    expect(world.result.status).toBe(s === "ok" ? "ok" : "error");
   }
 );
 
 Then<PipelineWorld>(
   "the result issue count should be {int}",
   async (world: PipelineWorld, count: unknown) => {
+    if (world.result === undefined) throw new Error("result not set");
     expect(world.result.issueCount).toBe(Number(count));
   }
 );
@@ -173,6 +175,7 @@ Then<PipelineWorld>(
 Then<PipelineWorld>(
   "the result issue count should be greater than 0",
   async (world: PipelineWorld) => {
+    if (world.result === undefined) throw new Error("result not set");
     expect(world.result.issueCount ?? 0).toBeGreaterThan(0);
   }
 );
@@ -194,6 +197,7 @@ Then<PipelineWorld>(
 Then<PipelineWorld>(
   "the check exit code should be {int}",
   async (world: PipelineWorld, code: unknown) => {
+    if (world.result === undefined) throw new Error("result not set");
     expect(checkExitCode(world.result)).toBe(Number(code));
   }
 );
@@ -201,6 +205,7 @@ Then<PipelineWorld>(
 Then<PipelineWorld>(
   "the check exit code for that result should be {int}",
   async (world: PipelineWorld, code: unknown) => {
+    if (world.inlineResult === undefined) throw new Error("inlineResult not set");
     expect(checkExitCode(world.inlineResult)).toBe(Number(code));
   }
 );
@@ -260,6 +265,7 @@ Then<PipelineWorld>(
 Then<PipelineWorld>(
   "the install exit code should be {int}",
   async (world: PipelineWorld, code: unknown) => {
+    if (world.inlineResult === undefined) throw new Error("inlineResult not set");
     expect(installExitCode(world.inlineResult)).toBe(Number(code));
   }
 );

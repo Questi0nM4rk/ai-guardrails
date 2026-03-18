@@ -12,8 +12,8 @@ const PROJECT_DIR = "/project";
 interface LanguageWorld extends World {
   fm: FakeFileManager;
   detectedIds: string[];
-  stepResult: StepResult;
-  stepLanguages: LanguagePlugin[];
+  stepResult?: StepResult;
+  stepLanguages?: LanguagePlugin[];
 }
 
 Given<LanguageWorld>(
@@ -102,15 +102,15 @@ Then<LanguageWorld>(
 Then<LanguageWorld>(
   "the step result status should be {string}",
   async (world: LanguageWorld, status: unknown) => {
-    const s = String(status);
-    expect(["ok", "error", "skip", "warn"]).toContain(s);
-    expect(world.stepResult.status).toBe(s as "ok" | "error" | "skip" | "warn");
+    if (world.stepResult === undefined) throw new Error("stepResult not set");
+    expect(String(world.stepResult.status)).toBe(String(status));
   }
 );
 
 Then<LanguageWorld>(
   "{string} should be in the step languages",
   async (world: LanguageWorld, lang: unknown) => {
+    if (world.stepLanguages === undefined) throw new Error("stepLanguages not set");
     const ids = world.stepLanguages.map((l) => l.id);
     expect(ids).toContain(String(lang));
   }
@@ -119,6 +119,23 @@ Then<LanguageWorld>(
 Then<LanguageWorld>(
   "the step result message should contain {string}",
   async (world: LanguageWorld, text: unknown) => {
+    if (world.stepResult === undefined) throw new Error("stepResult not set");
     expect(world.stepResult.message).toContain(String(text));
+  }
+);
+
+When<LanguageWorld>(
+  "the {string} plugin runners are inspected",
+  async (world: LanguageWorld, pluginId: unknown) => {
+    const plugin = ALL_PLUGINS.find((p) => p.id === String(pluginId));
+    if (plugin === undefined) throw new Error(`Plugin not found: ${String(pluginId)}`);
+    world.detectedIds = plugin.runners().map((r) => r.id);
+  }
+);
+
+Then<LanguageWorld>(
+  "the runner ids should include {string}",
+  async (world: LanguageWorld, runnerId: unknown) => {
+    expect(world.detectedIds).toContain(String(runnerId));
   }
 );

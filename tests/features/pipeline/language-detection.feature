@@ -76,3 +76,13 @@ Feature: Language detection
     When the detect-languages step runs
     Then "python" should be in the step languages
     And "rust" should be in the step languages
+
+  Scenario: Python plugin returns ruff and pyright runners
+    When the "python" plugin runners are inspected
+    Then the runner ids should include "ruff"
+    And the runner ids should include "pyright"
+
+  Scenario: TypeScript plugin returns biome and tsc runners
+    When the "typescript" plugin runners are inspected
+    Then the runner ids should include "biome"
+    And the runner ids should include "tsc"
