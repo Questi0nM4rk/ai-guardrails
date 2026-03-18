@@ -1,0 +1,78 @@
+Feature: Language detection
+
+  Scenario Outline: Detects <language> by marker file
+    Given a project with file "<marker>"
+    When languages are detected
+    Then "<language>" should be detected
+
+    Examples:
+      | language   | marker                |
+      | python     | pyproject.toml        |
+      | python     | src/app.py            |
+      | typescript | package.json          |
+      | typescript | src/index.ts          |
+      | typescript | index.js              |
+      | rust       | Cargo.toml            |
+      | go         | go.mod                |
+      | shell      | scripts/build.sh      |
+      | cpp        | CMakeLists.txt        |
+      | dotnet     | MyApp.csproj          |
+      | lua        | src/main.lua          |
+
+  Scenario: Universal plugin always included for empty project
+    Given an empty project
+    When languages are detected
+    Then "universal" should be detected
+
+  Scenario: Universal plugin always included with other languages
+    Given a project with file "pyproject.toml"
+    When languages are detected
+    Then "universal" should be detected
+    And "python" should be detected
+
+  Scenario: Multiple languages detected simultaneously
+    Given a project with files "pyproject.toml" and "package.json"
+    When languages are detected
+    Then "python" should be detected
+    And "typescript" should be detected
+
+  Scenario: Returns only universal for empty project
+    Given an empty project
+    When languages are detected
+    Then only "universal" should be detected
+
+  Scenario: ALL_PLUGINS contains 9 plugins
+    When the plugin registry is inspected
+    Then it should contain 9 plugins
+
+  Scenario: Universal plugin is last in registry
+    When the plugin registry is inspected
+    Then the last plugin id should be "universal"
+
+  Scenario: All plugin IDs are unique
+    When the plugin registry is inspected
+    Then all plugin ids should be unique
+
+  Scenario: Plugins returned in priority order
+    Given a project with files "pyproject.toml" and "Cargo.toml"
+    When languages are detected
+    Then "python" should appear before "rust"
+
+  Scenario: detectLanguagesStep returns ok with detected languages
+    Given a project with file "pyproject.toml"
+    When the detect-languages step runs
+    Then the step result status should be "ok"
+    And "python" should be in the step languages
+    And "universal" should be in the step languages
+
+  Scenario: detectLanguagesStep result message contains Detected
+    Given a project with file "package.json"
+    When the detect-languages step runs
+    Then the step result status should be "ok"
+    And the step result message should contain "Detected"
+
+  Scenario: detectLanguagesStep detects multiple languages
+    Given a project with files "pyproject.toml" and "Cargo.toml"
+    When the detect-languages step runs
+    Then "python" should be in the step languages
+    And "rust" should be in the step languages
