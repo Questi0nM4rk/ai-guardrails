@@ -139,3 +139,10 @@ Then<LanguageWorld>(
     expect(world.detectedIds).toContain(String(runnerId));
   }
 );
+
+Then<LanguageWorld>(
+  "there should be {int} runners",
+  async (world: LanguageWorld, count: unknown) => {
+    expect(world.detectedIds.length).toBe(Number(count));
+  }
+);

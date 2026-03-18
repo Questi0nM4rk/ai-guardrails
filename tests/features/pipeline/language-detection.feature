@@ -82,7 +82,15 @@ Feature: Language detection
     Then the runner ids should include "ruff"
     And the runner ids should include "pyright"
 
+  Scenario: Python plugin returns exactly 2 runners
+    When the "python" plugin runners are inspected
+    Then there should be 2 runners
+
   Scenario: TypeScript plugin returns biome and tsc runners
     When the "typescript" plugin runners are inspected
     Then the runner ids should include "biome"
     And the runner ids should include "tsc"
+
+  Scenario: TypeScript plugin returns exactly 2 runners
+    When the "typescript" plugin runners are inspected
+    Then there should be 2 runners
