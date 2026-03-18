@@ -1,11 +1,13 @@
 import { expect } from "bun:test";
 import type { World } from "@questi0nm4rk/feats";
-import { Given, Then, When } from "@questi0nm4rk/feats";
-import { evaluate } from "@/check/engine";
+import { Then, When } from "@questi0nm4rk/feats";
 import { DANGEROUS_DENY_GLOBS } from "@/check/rules/groups";
-import { buildRuleSet } from "@/check/ruleset";
+import type { buildRuleSet } from "@/check/ruleset";
 import type { CheckDecision, CheckResult } from "@/check/types";
 import { isDangerous } from "@/hooks/dangerous-cmd";
+
+// `the default ruleset`, `I evaluate bash command`, `the decision should be/not be`
+// are registered once in engine.steps.ts — no duplicates here.
 
 const VALID_DECISIONS = [
   "allow",
@@ -26,12 +28,7 @@ function toCheckDecision(s: string): CheckDecision {
 interface HookWorld extends World {
   ruleset?: ReturnType<typeof buildRuleSet>;
   isDangerousResult?: CheckResult | null;
-  evaluateResult?: CheckResult;
 }
-
-Given("the default ruleset", (world: HookWorld) => {
-  world.ruleset = buildRuleSet({});
-});
 
 When("I run isDangerous with {string}", async (world: HookWorld, command: unknown) => {
   if (typeof command !== "string") throw new Error("expected string");
@@ -67,47 +64,6 @@ Then(
     expect(world.isDangerousResult?.decision).not.toBe(toCheckDecision(decision));
   }
 );
-
-When("I evaluate bash command {string}", async (world: HookWorld, command: unknown) => {
-  if (typeof command !== "string") throw new Error("expected string");
-  if (world.ruleset === undefined) throw new Error("ruleset not set");
-  world.evaluateResult = await evaluate({ type: "bash", command }, world.ruleset);
-});
-
-// DocString variant — for bash commands containing embedded double quotes
-When(
-  "I evaluate bash command with the command",
-  async (world: HookWorld, docString: unknown) => {
-    if (typeof docString !== "string") throw new Error("expected docstring");
-    if (world.ruleset === undefined) throw new Error("ruleset not set");
-    const command = docString.trim();
-    world.evaluateResult = await evaluate({ type: "bash", command }, world.ruleset);
-  }
-);
-
-When("I evaluate write to path {string}", async (world: HookWorld, path: unknown) => {
-  if (typeof path !== "string") throw new Error("expected string");
-  if (world.ruleset === undefined) throw new Error("ruleset not set");
-  world.evaluateResult = await evaluate({ type: "write", path }, world.ruleset);
-});
-
-When("I evaluate read of path {string}", async (world: HookWorld, path: unknown) => {
-  if (typeof path !== "string") throw new Error("expected string");
-  if (world.ruleset === undefined) throw new Error("ruleset not set");
-  world.evaluateResult = await evaluate({ type: "read", path }, world.ruleset);
-});
-
-Then("the decision should be {string}", (world: HookWorld, decision: unknown) => {
-  if (typeof decision !== "string") throw new Error("expected string");
-  if (world.evaluateResult === undefined) throw new Error("evaluateResult not set");
-  expect(world.evaluateResult.decision).toBe(toCheckDecision(decision));
-});
-
-Then("the decision should not be {string}", (world: HookWorld, decision: unknown) => {
-  if (typeof decision !== "string") throw new Error("expected string");
-  if (world.evaluateResult === undefined) throw new Error("evaluateResult not set");
-  expect(world.evaluateResult.decision).not.toBe(toCheckDecision(decision));
-});
 
 Then(
   "DANGEROUS_DENY_GLOBS should contain {string}",

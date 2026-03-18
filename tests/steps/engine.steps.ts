@@ -89,6 +89,16 @@ When<EngineWorld>(
   }
 );
 
+// DocString variant — for bash commands containing embedded double quotes
+When<EngineWorld>(
+  "I evaluate bash command with the command",
+  async (world: EngineWorld, docString: unknown) => {
+    if (typeof docString !== "string") throw new Error("expected docstring");
+    const command = docString.trim();
+    world.result = await evaluate({ type: "bash", command }, world.ruleset);
+  }
+);
+
 When<EngineWorld>(
   "I evaluate a write event for path {string}",
   async (world: EngineWorld, path: unknown) => {
@@ -96,8 +106,24 @@ When<EngineWorld>(
   }
 );
 
+// Alias used by protect-configs.feature
+When<EngineWorld>(
+  "I evaluate write to path {string}",
+  async (world: EngineWorld, path: unknown) => {
+    world.result = await evaluate({ type: "write", path: String(path) }, world.ruleset);
+  }
+);
+
 When<EngineWorld>(
   "I evaluate a read event for path {string}",
+  async (world: EngineWorld, path: unknown) => {
+    world.result = await evaluate({ type: "read", path: String(path) }, world.ruleset);
+  }
+);
+
+// Alias used by protect-reads.feature
+When<EngineWorld>(
+  "I evaluate read of path {string}",
   async (world: EngineWorld, path: unknown) => {
     world.result = await evaluate({ type: "read", path: String(path) }, world.ruleset);
   }

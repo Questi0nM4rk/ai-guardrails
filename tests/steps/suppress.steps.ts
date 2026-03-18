@@ -95,8 +95,7 @@ Then(
   "the extracted comment should start with {string}",
   (world: SuppressWorld, prefix: unknown) => {
     if (typeof prefix !== "string") throw new Error("expected string");
-    const trimmed = prefix.trim();
-    expect(world.extractedComment.startsWith(trimmed)).toBe(true);
+    expect(world.extractedComment.startsWith(prefix)).toBe(true);
   }
 );
 

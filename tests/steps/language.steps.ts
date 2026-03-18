@@ -17,17 +17,8 @@ interface LanguageWorld extends World {
   stepLanguages?: LanguagePlugin[];
 }
 
-Given<LanguageWorld>(
-  "a project with file {string}",
-  async (world: LanguageWorld, file: unknown) => {
-    world.fm = new FakeFileManager();
-    world.fm.seed(`${PROJECT_DIR}/${String(file)}`, "content");
-  }
-);
-
-Given<LanguageWorld>("an empty project", async (world: LanguageWorld) => {
-  world.fm = new FakeFileManager();
-});
+// "a project with file {string}" and "an empty project" are registered in
+// generator.steps.ts — no duplicate registration here.
 
 Given<LanguageWorld>(
   "a project with files {string} and {string}",
