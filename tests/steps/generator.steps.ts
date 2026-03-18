@@ -9,6 +9,26 @@ import {
   buildAgentRules,
   detectAgentTools,
 } from "@/generators/agent-rules";
+
+const AGENT_TOOL_KEYS = [
+  "claude",
+  "cursor",
+  "windsurf",
+  "copilot",
+  "cline",
+  "aider",
+] as const satisfies readonly (keyof DetectedAgentTools)[];
+
+function toAgentToolKey(value: string): keyof DetectedAgentTools {
+  const found = AGENT_TOOL_KEYS.find((k) => k === value);
+  if (found !== undefined) {
+    return found;
+  }
+  throw new Error(
+    `Invalid agent tool key: "${value}". Expected one of: ${AGENT_TOOL_KEYS.join(", ")}`
+  );
+}
+
 import { biomeGenerator } from "@/generators/biome";
 import { claudeSettingsGenerator } from "@/generators/claude-settings";
 import { generateLefthookConfig, lefthookGenerator } from "@/generators/lefthook";
@@ -223,7 +243,7 @@ When<GeneratorWorld>("I detect agent tools", async (world: GeneratorWorld) => {
 When<GeneratorWorld>(
   "I build agent rules for {string}",
   (world: GeneratorWorld, tool: unknown) => {
-    world.agentRules = buildAgentRules(String(tool) as keyof DetectedAgentTools);
+    world.agentRules = buildAgentRules(toAgentToolKey(String(tool)));
   }
 );
 

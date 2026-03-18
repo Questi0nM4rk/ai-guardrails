@@ -3,7 +3,18 @@ import type { World } from "@questi0nm4rk/feats";
 import { Given, Then, When } from "@questi0nm4rk/feats";
 import type { MachineConfig, ProjectConfig, ResolvedConfig } from "@/config/loader";
 import { loadMachineConfig, loadProjectConfig, resolveConfig } from "@/config/loader";
+import { PROFILES } from "@/config/schema";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+
+function toProfile(value: string): MachineConfig["profile"] {
+  const found = PROFILES.find((p) => p === value);
+  if (found !== undefined) {
+    return found;
+  }
+  throw new Error(
+    `Invalid profile: "${value}". Expected one of: ${PROFILES.join(", ")}`
+  );
+}
 
 interface ConfigWorld extends World {
   fm: FakeFileManager;
@@ -50,7 +61,7 @@ Given<ConfigWorld>(
   "a machine config with profile {string}",
   (world: ConfigWorld, profile: unknown) => {
     world.machineForResolve = {
-      profile: String(profile) as MachineConfig["profile"],
+      profile: toProfile(String(profile)),
       ignore: [],
     };
   }
@@ -60,7 +71,7 @@ Given<ConfigWorld>(
   "a project config with profile {string}",
   (world: ConfigWorld, profile: unknown) => {
     world.projectForResolve = {
-      profile: String(profile) as ProjectConfig["profile"],
+      profile: toProfile(String(profile)),
       config: { line_length: 88, indent_width: 2 },
       ignore: [],
       allow: [],
@@ -218,6 +229,10 @@ Then<ConfigWorld>(
       expect(String(world.machineConfig.profile)).toBe(p);
     } else if (world.projectConfig !== undefined) {
       expect(String(world.projectConfig.profile)).toBe(p);
+    } else {
+      throw new Error(
+        "No config loaded — set world.machineConfig or world.projectConfig first"
+      );
     }
   }
 );
