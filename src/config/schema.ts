@@ -1,6 +1,8 @@
 import { minimatch } from "minimatch";
 import { z } from "zod";
 
+import type { NoConsoleLevel } from "@/utils/detect-project-type";
+
 const ConfigStrategySchema = z.enum(["merge", "replace", "skip"]);
 export type ConfigStrategy = z.infer<typeof ConfigStrategySchema>;
 export { ConfigStrategySchema };
@@ -84,7 +86,7 @@ export interface ResolvedConfig {
   hooks?: HooksSchemaConfig;
   ignoredRules: ReadonlySet<string>;
   ignorePaths: readonly string[];
-  noConsoleLevel: "off" | "warn" | "error";
+  noConsoleLevel: NoConsoleLevel;
   isAllowed(rule: string, filePath: string): boolean;
 }
 
