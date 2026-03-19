@@ -16,21 +16,22 @@ async function detectBiomeVersion(
   return match?.[1];
 }
 
-let cachedBiomeVersionPromise: Promise<string | undefined> | undefined;
+const biomeVersionCache = new Map<string, Promise<string | undefined>>();
 
 export async function getBiomeVersion(
   commandRunner: CommandRunner,
   projectDir: string
 ): Promise<string | undefined> {
-  if (cachedBiomeVersionPromise === undefined) {
-    cachedBiomeVersionPromise = detectBiomeVersion(commandRunner, projectDir);
-  }
-  return cachedBiomeVersionPromise;
+  const cached = biomeVersionCache.get(projectDir);
+  if (cached !== undefined) return cached;
+  const promise = detectBiomeVersion(commandRunner, projectDir);
+  biomeVersionCache.set(projectDir, promise);
+  return promise;
 }
 
 /** Reset the biome version cache. Exported for test isolation. */
 export function resetBiomeVersionCache(): void {
-  cachedBiomeVersionPromise = undefined;
+  biomeVersionCache.clear();
 }
 
 const BIOME_LINTER_ID = "biome";
