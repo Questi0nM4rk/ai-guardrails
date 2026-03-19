@@ -7,8 +7,9 @@ Ordered by implementation dependency. No time estimates.
 ## Completed
 
 - **Phase 0:** Hotfixes (PR #113) — nosemgrep detection, generic scanner, infra fixes
-- **Phase 10:** E2E fixture test system (PR #117) — 8 lang fixtures, feats integration
-- **Phase 11:** BDD test package (feats v1.0.1 published to npm)
+- **E2E fixture test system** (PR #117) — 8 lang fixtures, feats integration
+- **BDD test package** (feats v1.0.1 published to npm)
+- **Bugfixes #123-127** (PR #133) — generator language gates, detection ignore paths, CI install step, context-aware noConsole
 - **Config merge strategy** (PR #117) — `--config-strategy merge|replace|skip`
 - **Unified ignore_paths** (PR #117) — one config feeds check, biome, lefthook
 - **Biome v2 runner update** (PR #117) — rdjson format changes for v2.3+
@@ -134,6 +135,7 @@ Matrix build for Linux x64, macOS arm64, macOS x64.
 ### 5.4 Install script
 
 `curl | sh` one-liner that downloads the right binary for the platform.
+Must include SHA-256 checksum verification against the GitHub Release manifest.
 
 ### 5.5 Changelog generation
 
@@ -302,7 +304,7 @@ GitHub Actions / GitLab CI / none.
 
 ---
 
-## Current State (2026-03-18)
+## Current State (as of 2026-03-19, PR #133 merge)
 
 | Component | Status |
 |-----------|--------|
@@ -313,7 +315,7 @@ GitHub Actions / GitLab CI / none.
 | Hook system | AST engine + flag aliases + rule groups + config toggling |
 | Config merge | merge/replace/skip strategy, deep merge |
 | Unified ignore_paths | Feeds check, biome, lefthook from one config |
-| Tests | 646 passing (589 unit + 14 E2E + 43 new) |
+| Tests | 752 passing (35 files, 5 snapshots) |
 | E2E fixtures | 8 languages, bare + preconfigured, monorepo combo |
 | BDD framework | @questi0nm4rk/feats v1.0.1 on npm |
 | Baseline | Code exists, not wired |
