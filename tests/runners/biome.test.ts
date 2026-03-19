@@ -333,6 +333,25 @@ describe("getBiomeVersion", () => {
     expect(version).toBe("2.4.8");
   });
 
+  test("getBiomeVersion falls back to global biome when local not found", async () => {
+    const runner = new FakeCommandRunner();
+    // local biome absent
+    runner.register([LOCAL_BIOME_PROJECT, "--version"], {
+      stdout: "",
+      stderr: "not found",
+      exitCode: 127,
+    });
+    // global biome present
+    runner.register(["biome", "--version"], {
+      stdout: "biome 2.5.0",
+      stderr: "",
+      exitCode: 0,
+    });
+
+    const version = await getBiomeVersion(runner, PROJECT_DIR);
+    expect(version).toBe("2.5.0");
+  });
+
   test("getBiomeVersion returns undefined on failure", async () => {
     const runner = new FakeCommandRunner();
     // local biome absent
