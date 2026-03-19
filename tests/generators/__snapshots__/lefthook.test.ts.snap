@@ -1,6 +1,159 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`generateLefthookConfig output matches snapshot for python + typescript 1`] = `
+exports[`generateLefthookConfig output matches snapshot with no active plugins 1`] = `
+"# ai-guardrails:sha256=5972c2b1018a0004966903c703c80ce6ecba537cfdc1652bfbf63aa9f5b9c685
+pre-commit:
+  commands:
+
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+      fail_text: "Potential secrets detected"
+      priority: 2
+
+    codespell:
+      glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
+      exclude: 'tests/fixtures/.*'
+      run: codespell --check-filenames {staged_files}
+      fail_text: "Spell errors found"
+      priority: 2
+
+    markdownlint:
+      glob: "*.md"
+      run: markdownlint-cli2 {staged_files}
+      fail_text: "Markdown lint errors found"
+      priority: 2
+
+    check-suppress-comments:
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
+      priority: 2
+
+    no-commits-to-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+          echo "Direct commits to main are not allowed"
+          exit 1
+        fi
+      fail_text: "Do not commit directly to main"
+      priority: 2
+
+commit-msg:
+  commands:
+    conventional:
+      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:" {1}
+      fail_text: "Commit message must follow Conventional Commits format"
+"
+`;
+
+exports[`generateLefthookConfig output matches snapshot with TypeScript plugin 1`] = `
+"# ai-guardrails:sha256=5e80cb9e5816489f5709b958b11e480e5e5255f3195ede89a81efefba6f5ef30
+pre-commit:
+  commands:
+
+    biome-fix:
+      glob: "*.{ts,tsx,js,jsx}"
+      run: biome check --write {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+      fail_text: "Potential secrets detected"
+      priority: 2
+
+    codespell:
+      glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
+      exclude: 'tests/fixtures/.*'
+      run: codespell --check-filenames {staged_files}
+      fail_text: "Spell errors found"
+      priority: 2
+
+    markdownlint:
+      glob: "*.md"
+      run: markdownlint-cli2 {staged_files}
+      fail_text: "Markdown lint errors found"
+      priority: 2
+
+    check-suppress-comments:
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
+      priority: 2
+
+    no-commits-to-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+          echo "Direct commits to main are not allowed"
+          exit 1
+        fi
+      fail_text: "Do not commit directly to main"
+      priority: 2
+
+commit-msg:
+  commands:
+    conventional:
+      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:" {1}
+      fail_text: "Commit message must follow Conventional Commits format"
+"
+`;
+
+exports[`generateLefthookConfig output matches snapshot with Python plugin 1`] = `
+"# ai-guardrails:sha256=6038748e201ff44b36cc96a916909598db6a493793f418ddedd51a8e38dbe3fa
+pre-commit:
+  commands:
+
+    ruff-fix:
+      glob: "*.py"
+      run: ruff check --fix {staged_files} && git add {staged_files}
+      stage_fixed: true
+      priority: 1
+
+    gitleaks:
+      run: gitleaks protect --staged --no-banner
+      fail_text: "Potential secrets detected"
+      priority: 2
+
+    codespell:
+      glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
+      exclude: 'tests/fixtures/.*'
+      run: codespell --check-filenames {staged_files}
+      fail_text: "Spell errors found"
+      priority: 2
+
+    markdownlint:
+      glob: "*.md"
+      run: markdownlint-cli2 {staged_files}
+      fail_text: "Markdown lint errors found"
+      priority: 2
+
+    check-suppress-comments:
+      glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      run: ai-guardrails hook suppress-comments {staged_files}
+      fail_text: "Inline suppression comments require a reason"
+      priority: 2
+
+    no-commits-to-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
+        if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
+          echo "Direct commits to main are not allowed"
+          exit 1
+        fi
+      fail_text: "Do not commit directly to main"
+      priority: 2
+
+commit-msg:
+  commands:
+    conventional:
+      run: grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\\(.+\\))?!?:" {1}
+      fail_text: "Commit message must follow Conventional Commits format"
+"
+`;
+
+exports[`generateLefthookConfig output matches snapshot with TypeScript and Python plugins 1`] = `
 "# ai-guardrails:sha256=b6c8ade2fd39f455819a397861fa96e32076329002bc0438c1e582cf56e2a534
 pre-commit:
   commands:
@@ -59,8 +212,8 @@ commit-msg:
 "
 `;
 
-exports[`generateLefthookConfig output matches snapshot for empty plugins 1`] = `
-"# ai-guardrails:sha256=5972c2b1018a0004966903c703c80ce6ecba537cfdc1652bfbf63aa9f5b9c685
+exports[`generateLefthookConfig output matches snapshot with ignorePaths 1`] = `
+"# ai-guardrails:sha256=62485b889b3195a00697c871c773baddaff7ac8bd00c059364b355e9b7684e5b
 pre-commit:
   commands:
 
@@ -71,19 +224,21 @@ pre-commit:
 
     codespell:
       glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
-      exclude: 'tests/fixtures/.*'
+      exclude: 'tests/fixtures/.*|(vendor/.[^/]*|dist/.[^/]*)'
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
       priority: 2
 
     markdownlint:
       glob: "*.md"
+      exclude: '(vendor/.[^/]*|dist/.[^/]*)'
       run: markdownlint-cli2 {staged_files}
       fail_text: "Markdown lint errors found"
       priority: 2
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
+      exclude: '(vendor/.[^/]*|dist/.[^/]*)'
       run: ai-guardrails hook suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2

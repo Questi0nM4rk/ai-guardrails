@@ -1,0 +1,14 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`markdownlintGenerator generate output matches snapshot 1`] = `
+"// ai-guardrails:sha256=a15eb63c05e78ca9311f807cff9944c84004a5eca13b49fcaff5d557005f6655
+{
+  "default": true,
+  "MD013": { "line_length": 120, "tables": false, "code_blocks": false },
+  "MD033": false,
+  "MD040": false,
+  "MD041": false,
+  "MD060": false
+}
+"
+`;
