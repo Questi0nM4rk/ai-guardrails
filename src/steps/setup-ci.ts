@@ -14,6 +14,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+        if: hashFiles('bun.lock', 'bun.lockb', 'package.json') != ''
       - run: bunx ai-guardrails check
 `;
 
