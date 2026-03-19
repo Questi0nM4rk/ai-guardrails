@@ -54,8 +54,13 @@ export async function generateConfigsStep(
   fileManager: FileManager,
   strategy: ConfigStrategy = "merge"
 ): Promise<StepResult> {
+  const activeIds = new Set(languages.map((l) => l.id));
+  const applicable = ALL_GENERATORS.filter(
+    (g) => g.languages === undefined || g.languages.some((id) => activeIds.has(id))
+  );
+
   const results = await Promise.all(
-    ALL_GENERATORS.map((g) => {
+    applicable.map((g) => {
       const generate =
         g.id === lefthookGenerator.id
           ? () => generateLefthookConfig(config, languages)

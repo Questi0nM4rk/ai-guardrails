@@ -56,6 +56,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
 export const biomeGenerator: ConfigGenerator = {
   id: "biome",
   configFile: "biome.jsonc",
+  languages: ["typescript"],
   generate(config: ResolvedConfig): string {
     return withJsoncHashHeader(renderBiomeJson(config));
   },
