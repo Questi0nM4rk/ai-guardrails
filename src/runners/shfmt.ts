@@ -1,16 +1,19 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import { findShellFiles } from "@/runners/shellcheck";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 
 /**
- * Parse shfmt -l stdout into LintIssue[].
+ * Parse shfmt -l stdout into raw issues without fingerprints.
  * shfmt -l lists one file per line that needs reformatting.
  * Returns [] for empty output.
  */
-export function parseShfmtOutput(stdout: string, projectDir: string): LintIssue[] {
+export function parseShfmtOutput(
+  stdout: string,
+  projectDir: string
+): Omit<LintIssue, "fingerprint">[] {
   const filenames = stdout
     .split("\n")
     .map((line) => line.trim())
@@ -20,13 +23,6 @@ export function parseShfmtOutput(stdout: string, projectDir: string): LintIssue[
     const rule = "shfmt/format";
     const file = resolve(projectDir, filename);
     const message = `File needs formatting — run: shfmt -w ${filename}`;
-    const fingerprint = computeFingerprint({
-      rule,
-      file,
-      lineContent: message,
-      contextBefore: [],
-      contextAfter: [],
-    });
 
     return {
       rule,
@@ -36,8 +32,7 @@ export function parseShfmtOutput(stdout: string, projectDir: string): LintIssue[
       col: 1,
       message,
       severity: "error",
-      fingerprint,
-    } satisfies LintIssue;
+    } satisfies Omit<LintIssue, "fingerprint">;
   });
 }
 
@@ -68,6 +63,7 @@ export const shfmtRunner: LinterRunner = {
       cwd: projectDir,
     });
 
-    return parseShfmtOutput(result.stdout, projectDir);
+    const raw = parseShfmtOutput(result.stdout, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

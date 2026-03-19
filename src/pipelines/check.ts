@@ -30,7 +30,11 @@ export const checkPipeline: Pipeline = {
     cons.success(configResult.message);
 
     cons.step("Running checks...");
-    const { result: checkResult, issues } = await checkStep(
+    const {
+      result: checkResult,
+      issues,
+      newIssueCount,
+    } = await checkStep(
       projectDir,
       languages,
       config,
@@ -46,11 +50,11 @@ export const checkPipeline: Pipeline = {
       return {
         status: "error",
         message: checkResult.message,
-        issueCount: issues.length,
+        issueCount: newIssueCount,
       };
     }
 
     cons.success(checkResult.message);
-    return { status: "ok", issueCount: issues.length };
+    return { status: "ok", issueCount: newIssueCount };
   },
 };

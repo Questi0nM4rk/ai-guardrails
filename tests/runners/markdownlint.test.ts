@@ -51,7 +51,6 @@ describe("parseMarkdownlintOutput", () => {
     expect(first.col).toBe(1);
     expect(first.message).toBe("Line length [Expected: 80; Actual: 120]");
     expect(first.severity).toBe("warning");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("extracts MD rule code correctly", () => {

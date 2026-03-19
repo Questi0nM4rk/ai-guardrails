@@ -5,6 +5,7 @@ import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
+import { classifyFingerprint, loadBaselineFromFile } from "@/models/baseline";
 import type { LintIssue } from "@/models/lint-issue";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
@@ -13,6 +14,7 @@ import type { RunOptions } from "@/runners/types";
 export interface CheckStepResult {
   result: StepResult;
   issues: LintIssue[];
+  newIssueCount: number;
   skipped: number;
 }
 
@@ -66,20 +68,24 @@ export async function checkStep(
       return true;
     });
 
-    // TODO(baseline): Load .ai-guardrails/baseline.json and call
-    // classifyFingerprint() to filter out "existing" issues from the
-    // failure set — only "new" issues since the last snapshot should
-    // cause the check to fail ("hold-the-line" enforcement).
-    // See docs/bugs/baseline-fingerprint-gap.md for full details and fix outline.
+    const baseline = (await loadBaselineFromFile(projectDir, fileManager)) ?? new Map();
+
+    const newIssues = filtered.filter(
+      (issue) => classifyFingerprint(issue.fingerprint, baseline) === "new"
+    );
+    const baselinedCount = filtered.length - newIssues.length;
 
     const msg =
-      filtered.length === 0
-        ? "No new issues found"
-        : `Found ${filtered.length} issue(s)`;
+      newIssues.length === 0
+        ? baselinedCount > 0
+          ? `No new issues (${baselinedCount} baselined)`
+          : "No issues found"
+        : `Found ${newIssues.length} new issue(s)${baselinedCount > 0 ? ` (${baselinedCount} baselined)` : ""}`;
 
     return {
-      result: filtered.length > 0 ? error(msg) : ok(msg),
+      result: newIssues.length > 0 ? error(msg) : ok(msg),
       issues: filtered,
+      newIssueCount: newIssues.length,
       skipped,
     };
   } catch (err) {
@@ -87,6 +93,7 @@ export async function checkStep(
     return {
       result: error(`Check failed: ${message}`),
       issues: [],
+      newIssueCount: 0,
       skipped: 0,
     };
   }
