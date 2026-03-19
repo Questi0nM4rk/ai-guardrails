@@ -14,6 +14,7 @@ import { ruffGenerator } from "@/generators/ruff";
 import type { ConfigGenerator } from "@/generators/types";
 import { generateConfigsStep } from "@/steps/generate-configs";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+import { makePlugin } from "../fakes/fake-language-plugin";
 
 const PROJECT_DIR = "/project";
 
@@ -35,15 +36,6 @@ function makeDefaultConfig(): ResolvedConfig {
     ignorePaths: [],
     noConsoleLevel: "warn" as const,
     isAllowed: () => false,
-  };
-}
-
-function makePlugin(id: string) {
-  return {
-    id,
-    name: id,
-    detect: async () => true,
-    runners: () => [],
   };
 }
 
