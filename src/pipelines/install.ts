@@ -33,19 +33,22 @@ export const installPipeline: Pipeline = {
     }
     cons.success(configResult.message);
 
-    // Detect noConsole level from package.json (CLI vs browser framework vs unknown)
-    const pkgJsonPath = `${projectDir}/package.json`;
-    const pkgJsonExists = await fileManager.exists(pkgJsonPath);
+    // Detect noConsole level only when TypeScript is active (biome is the only consumer)
+    const hasTypeScript = languages.some((l) => l.id === "typescript");
     let noConsoleLevel = config.noConsoleLevel;
-    if (pkgJsonExists) {
-      const pkgJsonText = await fileManager.readText(pkgJsonPath);
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(pkgJsonText);
-      } catch {
-        parsed = null;
+    if (hasTypeScript) {
+      const pkgJsonPath = `${projectDir}/package.json`;
+      const pkgJsonExists = await fileManager.exists(pkgJsonPath);
+      if (pkgJsonExists) {
+        const pkgJsonText = await fileManager.readText(pkgJsonPath);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(pkgJsonText);
+        } catch {
+          parsed = null;
+        }
+        noConsoleLevel = detectNoConsoleLevel(parsed);
       }
-      noConsoleLevel = detectNoConsoleLevel(parsed);
     }
     const configWithConsoleLevel = { ...config, noConsoleLevel };
 
