@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { ALL_GENERATORS } from "@/generators/registry";
+import { ALL_GENERATORS, applicableGenerators } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
@@ -72,11 +72,7 @@ export async function validateConfigsStep(
 ): Promise<StepResult> {
   const generators =
     activeLanguageIds !== undefined
-      ? ALL_GENERATORS.filter(
-          (g) =>
-            g.languages === undefined ||
-            g.languages.some((id) => activeLanguageIds.has(id))
-        )
+      ? applicableGenerators(activeLanguageIds)
       : ALL_GENERATORS;
 
   const problems = (
