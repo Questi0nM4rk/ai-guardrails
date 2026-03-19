@@ -4,6 +4,7 @@ export class FakeFileManager implements FileManager {
   private readonly files = new Map<string, string>();
   readonly written: Array<[string, string]> = [];
   readonly appended: Array<[string, string]> = [];
+  readonly deleted: string[] = [];
 
   seed(path: string, content: string): void {
     this.files.set(path, content);
@@ -60,6 +61,11 @@ export class FakeFileManager implements FileManager {
 
   async isSymlink(_path: string): Promise<boolean> {
     return false;
+  }
+
+  async delete(path: string): Promise<void> {
+    this.files.delete(path);
+    this.deleted.push(path);
   }
 }
 

@@ -6,6 +6,7 @@ import {
 } from "@/config/schema";
 import { ALL_GENERATORS } from "@/generators/registry";
 import { generateConfigsStep } from "@/steps/generate-configs";
+import { withHashHeader, withJsoncHashHeader } from "@/utils/hash";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 import { makePlugin } from "../fakes/fake-language-plugin";
 
@@ -103,5 +104,91 @@ describe("generateConfigsStep", () => {
 
     expect(result.message).toContain("Generated");
     expect(result.message).toContain(String(UNIVERSAL_COUNT));
+  });
+
+  describe("stale config cleanup on replace strategy", () => {
+    test("deletes biome.jsonc with hash header when python-only project uses replace", async () => {
+      const fm = new FakeFileManager();
+      const config = makeConfig();
+      fm.seed("/project/biome.jsonc", withJsoncHashHeader("{ }\n"));
+
+      const result = await generateConfigsStep(
+        "/project",
+        [makePlugin("python")],
+        config,
+        fm,
+        "replace"
+      );
+
+      expect(result.status).toBe("ok");
+      expect(fm.deleted).toContain("/project/biome.jsonc");
+      expect(result.message).toContain("Removed 1 stale config(s)");
+      expect(result.message).toContain("biome.jsonc");
+    });
+
+    test("preserves biome.jsonc without hash header when python-only project uses replace", async () => {
+      const fm = new FakeFileManager();
+      const config = makeConfig();
+      fm.seed("/project/biome.jsonc", "{ /* user-created */ }\n");
+
+      const result = await generateConfigsStep(
+        "/project",
+        [makePlugin("python")],
+        config,
+        fm,
+        "replace"
+      );
+
+      expect(result.status).toBe("ok");
+      expect(fm.deleted).not.toContain("/project/biome.jsonc");
+    });
+
+    test("does not delete stale biome.jsonc when strategy is merge", async () => {
+      const fm = new FakeFileManager();
+      const config = makeConfig();
+      fm.seed("/project/biome.jsonc", withJsoncHashHeader("{ }\n"));
+
+      const result = await generateConfigsStep(
+        "/project",
+        [makePlugin("python")],
+        config,
+        fm,
+        "merge"
+      );
+
+      expect(result.status).toBe("ok");
+      expect(fm.deleted).not.toContain("/project/biome.jsonc");
+    });
+
+    test("deletes ruff.toml with hash header when typescript-only project uses replace", async () => {
+      const fm = new FakeFileManager();
+      const config = makeConfig();
+      fm.seed("/project/ruff.toml", withHashHeader("# ruff config\n"));
+
+      const result = await generateConfigsStep(
+        "/project",
+        [makePlugin("typescript")],
+        config,
+        fm,
+        "replace"
+      );
+
+      expect(result.status).toBe("ok");
+      expect(fm.deleted).toContain("/project/ruff.toml");
+    });
+
+    test("FakeFileManager.deleted tracks all deletions", async () => {
+      const fm = new FakeFileManager();
+      const config = makeConfig();
+      fm.seed("/project/biome.jsonc", withJsoncHashHeader("{ }\n"));
+      fm.seed("/project/ruff.toml", withHashHeader("# ruff config\n"));
+
+      await generateConfigsStep("/project", [], config, fm, "replace");
+
+      // With no active languages, all language-gated generators are inactive.
+      // Both files have hash headers so both should be deleted.
+      expect(fm.deleted).toContain("/project/biome.jsonc");
+      expect(fm.deleted).toContain("/project/ruff.toml");
+    });
   });
 });

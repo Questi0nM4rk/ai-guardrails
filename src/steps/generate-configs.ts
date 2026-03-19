@@ -1,12 +1,13 @@
 import { dirname, join } from "node:path";
 import type { ConfigStrategy, ResolvedConfig } from "@/config/schema";
 import { generateLefthookConfig, lefthookGenerator } from "@/generators/lefthook";
-import { applicableGenerators } from "@/generators/registry";
+import { ALL_GENERATORS, applicableGenerators } from "@/generators/registry";
 import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { applyStrategy } from "@/utils/config-merge";
+import { HASH_PREFIX, JSONC_HASH_PREFIX, MD_HASH_PREFIX } from "@/utils/hash";
 
 async function runGenerator(
   projectDir: string,
@@ -91,12 +92,37 @@ export async function generateConfigsStep(
     return error(`Config generation failed: ${errors.join(", ")}`);
   }
 
+  const removed: string[] = [];
+  if (strategy === "replace") {
+    const inactive = ALL_GENERATORS.filter(
+      (g) => g.languages !== undefined && !g.languages.some((id) => activeIds.has(id))
+    );
+    for (const g of inactive) {
+      const dest = join(projectDir, g.configFile);
+      if (await fileManager.exists(dest)) {
+        const content = await fileManager.readText(dest);
+        const firstLine = content.split("\n")[0] ?? "";
+        if (
+          firstLine.startsWith(HASH_PREFIX) ||
+          firstLine.startsWith(JSONC_HASH_PREFIX) ||
+          firstLine.startsWith(MD_HASH_PREFIX)
+        ) {
+          await fileManager.delete(dest);
+          removed.push(g.configFile);
+        }
+      }
+    }
+  }
+
   const parts: string[] = [];
   if (written.length > 0) {
     parts.push(`Generated ${written.length} config file(s): ${written.join(", ")}`);
   }
   if (skipped.length > 0) {
     parts.push(`Skipped ${skipped.length} existing file(s): ${skipped.join(", ")}`);
+  }
+  if (removed.length > 0) {
+    parts.push(`Removed ${removed.length} stale config(s): ${removed.join(", ")}`);
   }
 
   return ok(parts.length > 0 ? parts.join("; ") : "No config files generated");
