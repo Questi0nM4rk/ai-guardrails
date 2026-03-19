@@ -43,25 +43,23 @@ describe("detectLanguagesStep", () => {
 
   test("passes ignorePaths through to registry — ignored files not detected", async () => {
     const fm = new FakeFileManager();
-    fm.seed("/project/vendor/main.py", "");
+    fm.seed("/project/src/main.py", "");
 
-    // Without ignore, python may be detected (glob-based detection)
+    // Without ignore, python IS detected (glob finds src/main.py)
     const { languages: withoutIgnore } = await detectLanguagesStep("/project", fm);
     const withoutIgnoreIds = withoutIgnore.map((p) => p.id);
+    expect(withoutIgnoreIds).toContain("python");
 
-    // With ignore covering the only python file
+    // With ignore covering the only python file, python is NOT detected
     const { result, languages: withIgnore } = await detectLanguagesStep(
       "/project",
       fm,
-      ["vendor/**"]
+      ["src/**"]
     );
 
     expect(result.status).toBe("ok");
-    // If python was detected without ignore, it should not appear with ignore
-    if (withoutIgnoreIds.includes("python")) {
-      const withIgnoreIds = withIgnore.map((p) => p.id);
-      expect(withIgnoreIds).not.toContain("python");
-    }
+    const withIgnoreIds = withIgnore.map((p) => p.id);
+    expect(withIgnoreIds).not.toContain("python");
   });
 
   test("returns error status on exception from fileManager", async () => {

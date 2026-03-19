@@ -47,6 +47,17 @@ function seedUserOwnedConfig(
   );
 }
 
+/** Get the correct hash header prefix for a config file */
+function hashPrefix(configFile: string): string {
+  if (configFile.endsWith(".jsonc") || configFile.endsWith(".json")) {
+    return "//";
+  }
+  if (configFile.endsWith(".md")) {
+    return "<!--";
+  }
+  return "#";
+}
+
 /** Seed a config file with a hash header that has wrong hash (tampered) */
 function seedTamperedConfig(
   fm: FakeFileManager,
@@ -54,11 +65,13 @@ function seedTamperedConfig(
   gen: ConfigGenerator
 ): void {
   const fakeHash = "a".repeat(64);
-  const body = "# tampered body content\n";
-  fm.seed(
-    `${projectDir}/${gen.configFile}`,
-    `# ai-guardrails:sha256=${fakeHash}\n${body}`
-  );
+  const prefix = hashPrefix(gen.configFile);
+  const body = "tampered body content\n";
+  const header =
+    prefix === "<!--"
+      ? `<!-- ai-guardrails:sha256=${fakeHash} -->`
+      : `${prefix} ai-guardrails:sha256=${fakeHash}`;
+  fm.seed(`${projectDir}/${gen.configFile}`, `${header}\n${body}`);
 }
 
 describe("validateConfigsStep — all generators", () => {
