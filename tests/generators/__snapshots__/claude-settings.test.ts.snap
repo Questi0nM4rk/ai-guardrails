@@ -1,6 +1,6 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`claudeSettingsGenerator output matches snapshot 1`] = `
+exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
 "{
   "permissions": {
     "deny": [
