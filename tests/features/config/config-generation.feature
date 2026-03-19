@@ -25,10 +25,15 @@ Feature: Config file generation
     When I generate with line_length 120
     Then the output should contain '"lineWidth": 120'
 
-  Scenario: biomeGenerator output has schema reference
+  Scenario: biomeGenerator output has schema reference when biome_version set
+    Given the biome generator
+    When I generate with biome_version "2.4.8"
+    Then the output should contain "biomejs.dev/schemas/2.4.8/schema.json"
+
+  Scenario: biomeGenerator omits schema when biome_version absent
     Given the biome generator
     When I generate with default config
-    Then the output should contain "biomejs.dev/schemas"
+    Then the output should not contain "$schema"
 
   Scenario: biomeGenerator noExplicitAny is error
     Given the biome generator
