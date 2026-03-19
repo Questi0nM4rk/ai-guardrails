@@ -16,7 +16,7 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
         run: bun install --frozen-lockfile
-        if: hashFiles('bun.lock', 'bun.lockb', 'package.json') != ''
+        if: hashFiles('bun.lock', 'bun.lockb') != ''
       - run: bunx ai-guardrails check
 `;
 

@@ -43,9 +43,7 @@ describe("setupCiStep", () => {
     await setupCiStep("/project", fm);
 
     const [, content] = fm.written[0] ?? ["", ""];
-    expect(content).toContain(
-      "hashFiles('bun.lock', 'bun.lockb', 'package.json') != ''"
-    );
+    expect(content).toContain("hashFiles('bun.lock', 'bun.lockb') != ''");
   });
 
   test("step ordering: checkout then setup-bun then install then check", async () => {
