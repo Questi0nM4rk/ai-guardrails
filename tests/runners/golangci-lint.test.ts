@@ -43,7 +43,6 @@ describe("parseGolangciOutput", () => {
     expect(first.col).toBe(1);
     expect(first.message).toBe("func `foo` is unused");
     expect(first.severity).toBe("error");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("returns [] when Issues is null", () => {

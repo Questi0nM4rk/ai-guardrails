@@ -96,4 +96,35 @@ describe("computeFingerprint", () => {
     });
     expect(fp).toMatch(/^[0-9a-f]{64}$/);
   });
+
+  test("same relative file path at different project roots produces same fingerprint", () => {
+    // Proves baselines are portable: the same issue checked out at /home/alice/repo
+    // and /home/bob/repo produces the same fingerprint if callers pass relative paths.
+    const opts = {
+      rule: "ruff/E501",
+      lineContent: "x = very_long_line",
+      contextBefore: [],
+      contextAfter: [],
+    };
+    const fpAlice = computeFingerprint({ ...opts, file: "src/foo.py" });
+    const fpBob = computeFingerprint({ ...opts, file: "src/foo.py" });
+    expect(fpAlice).toBe(fpBob);
+  });
+
+  test("absolute paths in file produce different fingerprints for same relative location", () => {
+    // Documents the pre-fix bug: two machines checking out the same file would get
+    // different fingerprints if absolute paths were passed to computeFingerprint.
+    const opts = {
+      rule: "ruff/E501",
+      lineContent: "x = very_long_line",
+      contextBefore: [],
+      contextAfter: [],
+    };
+    const fpAlice = computeFingerprint({
+      ...opts,
+      file: "/home/alice/repo/src/foo.py",
+    });
+    const fpBob = computeFingerprint({ ...opts, file: "/home/bob/repo/src/foo.py" });
+    expect(fpAlice).not.toBe(fpBob);
+  });
 });

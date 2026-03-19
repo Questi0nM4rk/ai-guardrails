@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 import { safeParseJson } from "@/utils/parse";
 
 interface GolangciIssue {
@@ -24,10 +24,13 @@ function isGolangciOutput(value: unknown): value is GolangciOutput {
 }
 
 /**
- * Parse golangci-lint JSON output into LintIssue[].
+ * Parse golangci-lint JSON output into raw issues without fingerprints.
  * Handles null Issues array (no issues found).
  */
-export function parseGolangciOutput(json: string, projectDir: string): LintIssue[] {
+export function parseGolangciOutput(
+  json: string,
+  projectDir: string
+): Omit<LintIssue, "fingerprint">[] {
   const parsed = safeParseJson(json);
   if (parsed === null) return [];
 
@@ -41,13 +44,6 @@ export function parseGolangciOutput(json: string, projectDir: string): LintIssue
     .map((issue) => {
       const rule = `golangci-lint/${issue.FromLinter}`;
       const file = resolve(projectDir, issue.Pos.Filename);
-      const fingerprint = computeFingerprint({
-        rule,
-        file,
-        lineContent: "",
-        contextBefore: [],
-        contextAfter: [],
-      });
 
       return {
         rule,
@@ -57,7 +53,6 @@ export function parseGolangciOutput(json: string, projectDir: string): LintIssue
         col: issue.Pos.Column,
         message: issue.Text,
         severity: "error" as const,
-        fingerprint,
       };
     });
 }
@@ -111,14 +106,13 @@ export const golangciLintRunner: LinterRunner = {
   },
 
   async run(opts: RunOptions): Promise<LintIssue[]> {
-    const { projectDir, commandRunner } = opts;
+    const { projectDir, commandRunner, fileManager } = opts;
     const jsonFlag = await getVersionFlag(commandRunner, projectDir);
     const result = await commandRunner.run(
       ["golangci-lint", "run", jsonFlag, "./..."],
-      {
-        cwd: projectDir,
-      }
+      { cwd: projectDir }
     );
-    return parseGolangciOutput(result.stdout, projectDir);
+    const raw = parseGolangciOutput(result.stdout, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

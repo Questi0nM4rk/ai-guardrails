@@ -1,4 +1,4 @@
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { FileManager } from "@/infra/file-manager";
@@ -10,12 +10,12 @@ import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { runLinterCollection } from "@/steps/run-linters";
 
-function issueToEntry(issue: LintIssue): BaselineEntry {
+function issueToEntry(issue: LintIssue, projectDir: string): BaselineEntry {
   return {
     fingerprint: issue.fingerprint,
     rule: issue.rule,
     linter: issue.linter,
-    file: issue.file,
+    file: relative(projectDir, issue.file),
     line: issue.line,
     message: issue.message,
     capturedAt: new Date().toISOString(),
@@ -43,7 +43,9 @@ export async function snapshotStep(
       (issue) => !config.isAllowed(issue.rule, issue.file)
     );
 
-    const entries: BaselineEntry[] = filtered.map(issueToEntry);
+    const entries: BaselineEntry[] = filtered.map((issue) =>
+      issueToEntry(issue, projectDir)
+    );
     const dest = join(projectDir, baselinePath ?? BASELINE_PATH);
     await fileManager.mkdir(dirname(dest), { parents: true });
     await fileManager.writeText(dest, JSON.stringify(entries, null, 2));

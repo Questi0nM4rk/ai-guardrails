@@ -1,18 +1,23 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 
 const CLANG_TIDY_PATTERN =
   /^(.+):(\d+):(\d+):\s+(warning|error|note):\s+(.+?)\s+\[(.+)\]$/;
 
 /**
- * Parse clang-tidy text output into LintIssue[].
+ * Parse clang-tidy text output into raw issues without fingerprints.
  * Skips note-level diagnostics — only warning and error are actionable.
+ *
+ * LintIssue.file is the absolute path emitted by clang-tidy.
  */
-export function parseClangTidyOutput(text: string, projectDir = ""): LintIssue[] {
-  const issues: LintIssue[] = [];
+export function parseClangTidyOutput(
+  text: string,
+  projectDir: string
+): Omit<LintIssue, "fingerprint">[] {
+  const issues: Omit<LintIssue, "fingerprint">[] = [];
 
   for (const line of text.split("\n")) {
     const match = CLANG_TIDY_PATTERN.exec(line);
@@ -29,14 +34,6 @@ export function parseClangTidyOutput(text: string, projectDir = ""): LintIssue[]
     const checkName = match[6] ?? "";
     const rule = `clang-tidy/${checkName}`;
 
-    const fingerprint = computeFingerprint({
-      rule,
-      file,
-      lineContent: message,
-      contextBefore: [],
-      contextAfter: [],
-    });
-
     issues.push({
       rule,
       linter: "clang-tidy",
@@ -45,7 +42,6 @@ export function parseClangTidyOutput(text: string, projectDir = ""): LintIssue[]
       col,
       message,
       severity: level === "error" ? "error" : "warning",
-      fingerprint,
     });
   }
 
@@ -97,6 +93,7 @@ export const clangTidyRunner: LinterRunner = {
     const result = await commandRunner.run(["clang-tidy", "--quiet", ...files], {
       cwd: projectDir,
     });
-    return parseClangTidyOutput(result.stderr, projectDir);
+    const raw = parseClangTidyOutput(result.stderr, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

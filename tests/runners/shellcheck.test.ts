@@ -39,7 +39,6 @@ describe("parseShellcheckOutput", () => {
     expect(first.col).toBe(1);
     expect(first.message).toBe("Double quote to prevent globbing and word splitting.");
     expect(first.severity).toBe("error");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("maps SC codes correctly (e.g. SC2086)", () => {

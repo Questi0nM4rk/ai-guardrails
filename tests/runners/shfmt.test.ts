@@ -39,7 +39,6 @@ describe("parseShfmtOutput", () => {
     expect(first.col).toBe(1);
     expect(first.message).toBe("File needs formatting — run: shfmt -w script.sh");
     expect(first.severity).toBe("error");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("returns [] for empty output", () => {
