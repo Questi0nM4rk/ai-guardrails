@@ -1,6 +1,8 @@
 import { join } from "node:path";
 import { z } from "zod";
 
+import { BASELINE_PATH } from "@/models/paths";
+
 const BaselineEntrySchema = z.object({
   fingerprint: z.string(),
   rule: z.string(),
@@ -55,11 +57,10 @@ export function classifyFingerprint(
  */
 export async function loadBaselineFromFile(
   projectDir: string,
-  baselinePath: string,
   fileManager: { readText(path: string): Promise<string> }
 ): Promise<ReadonlyMap<string, BaselineEntry> | null> {
   try {
-    const text = await fileManager.readText(join(projectDir, baselinePath));
+    const text = await fileManager.readText(join(projectDir, BASELINE_PATH));
     const parsed: unknown = JSON.parse(text);
     const entries = z.array(BaselineEntrySchema).parse(parsed);
     return loadBaseline(entries);

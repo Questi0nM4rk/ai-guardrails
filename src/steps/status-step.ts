@@ -5,7 +5,6 @@ import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
 import { classifyFingerprint, loadBaselineFromFile } from "@/models/baseline";
 import type { LintIssue } from "@/models/lint-issue";
-import { BASELINE_PATH } from "@/models/paths";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { runLinterCollection } from "@/steps/run-linters";
@@ -26,8 +25,8 @@ export async function statusStep(
   console: Console
 ): Promise<StatusStepOutput> {
   try {
-    const baseline = await loadBaselineFromFile(projectDir, BASELINE_PATH, fileManager);
-    const baselineMap = baseline ?? new Map();
+    const baselineMap =
+      (await loadBaselineFromFile(projectDir, fileManager)) ?? new Map();
 
     const allIssues = await runLinterCollection(
       projectDir,

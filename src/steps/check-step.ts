@@ -7,7 +7,6 @@ import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
 import { classifyFingerprint, loadBaselineFromFile } from "@/models/baseline";
 import type { LintIssue } from "@/models/lint-issue";
-import { BASELINE_PATH } from "@/models/paths";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import type { RunOptions } from "@/runners/types";
@@ -69,8 +68,7 @@ export async function checkStep(
       return true;
     });
 
-    const baseline =
-      (await loadBaselineFromFile(projectDir, BASELINE_PATH, fileManager)) ?? new Map();
+    const baseline = (await loadBaselineFromFile(projectDir, fileManager)) ?? new Map();
 
     const newIssues = filtered.filter(
       (issue) => classifyFingerprint(issue.fingerprint, baseline) === "new"
