@@ -1,3 +1,4 @@
+import { relative } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
@@ -37,8 +38,15 @@ function isRuffItem(value: unknown): value is RuffItem {
 /**
  * Parse ruff JSON array output into normalized LintIssue[].
  * Returns [] for empty stdout, invalid JSON, or non-array output.
+ *
+ * projectDir is used to compute a project-relative path for the fingerprint.
+ * LintIssue.file remains the absolute path emitted by ruff.
  */
-export function parseRuffOutput(stdout: string, _config: ResolvedConfig): LintIssue[] {
+export function parseRuffOutput(
+  stdout: string,
+  _config: ResolvedConfig,
+  projectDir: string
+): LintIssue[] {
   if (!stdout.trim()) return [];
 
   const parsed = safeParseJson(stdout);
@@ -49,9 +57,11 @@ export function parseRuffOutput(stdout: string, _config: ResolvedConfig): LintIs
     if (!isRuffItem(item)) continue;
 
     const rule = `ruff/${item.code}`;
+    // item.filename is an absolute path; use relative for portable fingerprints
+    const relFile = relative(projectDir, item.filename);
     const fingerprint = computeFingerprint({
       rule,
-      file: item.filename,
+      file: relFile,
       lineContent: item.message,
       contextBefore: [],
       contextAfter: [],
@@ -93,6 +103,6 @@ export const ruffRunner: LinterRunner = {
         cwd: projectDir,
       }
     );
-    return parseRuffOutput(result.stdout, config);
+    return parseRuffOutput(result.stdout, config, projectDir);
   },
 };

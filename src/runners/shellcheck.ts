@@ -35,9 +35,10 @@ export function parseShellcheckOutput(stdout: string, projectDir: string): LintI
     const rule = `shellcheck/SC${comment.code}`;
     const file = resolve(projectDir, comment.file);
     const severity = comment.level === "error" ? "error" : "warning";
+    // comment.file is project-relative (shellcheck emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file,
+      file: comment.file,
       lineContent: comment.message,
       contextBefore: [],
       contextAfter: [],

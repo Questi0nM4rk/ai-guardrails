@@ -11,6 +11,8 @@ const FIXTURE_PATH = new URL("../fixtures/pyright-output.json", import.meta.url)
   .pathname;
 const fixtureText = await Bun.file(FIXTURE_PATH).text();
 
+const PROJECT_DIR = "/home/user/project";
+
 /** Minimal ResolvedConfig that allows everything (no filtering) */
 function makeConfig(): ResolvedConfig {
   return {
@@ -29,7 +31,7 @@ describe("parsePyrightOutput", () => {
   test("returns correct LintIssue[] from fixture", () => {
     // Fixture has 3 diagnostics: error, warning, information
     // information is skipped, so we expect 2 results
-    const issues = parsePyrightOutput(fixtureText);
+    const issues = parsePyrightOutput(fixtureText, PROJECT_DIR);
 
     expect(issues).toHaveLength(2);
 
@@ -71,7 +73,7 @@ describe("parsePyrightOutput", () => {
       summary: { errorCount: 0, warningCount: 0, informationCount: 1 },
     });
 
-    const issues = parsePyrightOutput(input);
+    const issues = parsePyrightOutput(input, "/project");
     expect(issues).toHaveLength(0);
   });
 
@@ -92,7 +94,7 @@ describe("parsePyrightOutput", () => {
       summary: { errorCount: 1, warningCount: 0, informationCount: 0 },
     });
 
-    const issues = parsePyrightOutput(input);
+    const issues = parsePyrightOutput(input, "/project");
     expect(issues).toHaveLength(1);
     expect(issues[0]?.line).toBe(1); // 0 + 1
     expect(issues[0]?.col).toBe(1); // 0 + 1
@@ -114,23 +116,26 @@ describe("parsePyrightOutput", () => {
       summary: { errorCount: 1, warningCount: 0, informationCount: 0 },
     });
 
-    const issues = parsePyrightOutput(input);
+    const issues = parsePyrightOutput(input, "/project");
     expect(issues).toHaveLength(1);
     expect(issues[0]?.rule).toBe("pyright/unknown");
   });
 
   test("returns [] for empty stdout", () => {
-    const issues = parsePyrightOutput("");
+    const issues = parsePyrightOutput("", "/project");
     expect(issues).toHaveLength(0);
   });
 
   test("returns [] for invalid JSON", () => {
-    const issues = parsePyrightOutput("not valid json {[}");
+    const issues = parsePyrightOutput("not valid json {[}", "/project");
     expect(issues).toHaveLength(0);
   });
 
   test("returns [] when generalDiagnostics is missing", () => {
-    const issues = parsePyrightOutput(JSON.stringify({ summary: { errorCount: 0 } }));
+    const issues = parsePyrightOutput(
+      JSON.stringify({ summary: { errorCount: 0 } }),
+      "/project"
+    );
     expect(issues).toHaveLength(0);
   });
 });

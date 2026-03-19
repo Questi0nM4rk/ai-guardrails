@@ -28,9 +28,10 @@ export function parseMarkdownlintOutput(
     const file = resolve(projectDir, filePath);
     const lineNum = Number.parseInt(lineStr, 10);
     const rule = MARKDOWNLINT_RULE_PREFIX + ruleCode;
+    // filePath is project-relative (markdownlint-cli2 emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file,
+      file: filePath,
       lineContent: message,
       contextBefore: [],
       contextAfter: [],

@@ -1,3 +1,4 @@
+import { relative } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
@@ -55,8 +56,11 @@ function isPyrightOutput(value: unknown): value is PyrightOutput {
  * Parse pyright --outputjson output into normalized LintIssue[].
  * Skips information-level diagnostics.
  * Returns [] for empty stdout or invalid JSON.
+ *
+ * projectDir is used to compute a project-relative path for the fingerprint.
+ * LintIssue.file remains the absolute path emitted by pyright.
  */
-export function parsePyrightOutput(stdout: string): LintIssue[] {
+export function parsePyrightOutput(stdout: string, projectDir: string): LintIssue[] {
   if (!stdout.trim()) return [];
 
   const parsed = safeParseJson(stdout);
@@ -74,9 +78,11 @@ export function parsePyrightOutput(stdout: string): LintIssue[] {
     const line = diag.range.start.line + 1;
     const col = diag.range.start.character + 1;
 
+    // diag.file is an absolute path; use relative for portable fingerprints
+    const relFile = relative(projectDir, diag.file);
     const fingerprint = computeFingerprint({
       rule,
-      file: diag.file,
+      file: relFile,
       lineContent: diag.message,
       contextBefore: [],
       contextAfter: [],
@@ -117,6 +123,6 @@ export const pyrightRunner: LinterRunner = {
     const result = await commandRunner.run([cmd, "--outputjson", projectDir], {
       cwd: projectDir,
     });
-    return parsePyrightOutput(result.stdout);
+    return parsePyrightOutput(result.stdout, projectDir);
   },
 };

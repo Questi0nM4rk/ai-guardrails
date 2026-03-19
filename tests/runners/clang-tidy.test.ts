@@ -26,7 +26,7 @@ function makeConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
 
 describe("parseClangTidyOutput", () => {
   test("returns LintIssue[] from fixture", () => {
-    const issues = parseClangTidyOutput(FIXTURE_TEXT);
+    const issues = parseClangTidyOutput(FIXTURE_TEXT, PROJECT_DIR);
     // 2 warnings + 1 error = 3 issues; note lines are skipped
     expect(issues).toHaveLength(3);
   });
@@ -37,13 +37,13 @@ describe("parseClangTidyOutput", () => {
       "/project/include/util.h:22:3: note: expanded from macro 'ASSERT' [some-check]",
     ].join("\n");
 
-    const issues = parseClangTidyOutput(text);
+    const issues = parseClangTidyOutput(text, PROJECT_DIR);
     expect(issues).toHaveLength(1);
     expect(issues[0]?.rule).toBe("clang-tidy/modernize-use-auto");
   });
 
   test("maps fields correctly", () => {
-    const issues = parseClangTidyOutput(FIXTURE_TEXT);
+    const issues = parseClangTidyOutput(FIXTURE_TEXT, PROJECT_DIR);
     const first = issues[0];
     expect(first).toBeDefined();
     if (!first) return;
@@ -58,7 +58,7 @@ describe("parseClangTidyOutput", () => {
   });
 
   test("maps error level to error severity", () => {
-    const issues = parseClangTidyOutput(FIXTURE_TEXT);
+    const issues = parseClangTidyOutput(FIXTURE_TEXT, PROJECT_DIR);
     const errorIssue = issues.find(
       (i) => i.rule === "clang-tidy/cppcoreguidelines-avoid-assert"
     );
@@ -68,7 +68,7 @@ describe("parseClangTidyOutput", () => {
   });
 
   test("returns [] for empty input", () => {
-    const issues = parseClangTidyOutput("");
+    const issues = parseClangTidyOutput("", PROJECT_DIR);
     expect(issues).toHaveLength(0);
   });
 });

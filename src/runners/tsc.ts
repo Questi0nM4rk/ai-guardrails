@@ -42,9 +42,10 @@ export function parseTscOutput(output: string, projectDir: string): LintIssue[] 
     if (!parsed) continue;
     const filePath = resolve(projectDir, parsed.file);
     const rule = TSC_RULE_PREFIX + parsed.tsCode;
+    // parsed.file is already project-relative (tsc emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file: filePath,
+      file: parsed.file,
       lineContent: parsed.message,
       contextBefore: [],
       contextAfter: [],

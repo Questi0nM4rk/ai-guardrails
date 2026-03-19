@@ -20,9 +20,10 @@ export function parseShfmtOutput(stdout: string, projectDir: string): LintIssue[
     const rule = "shfmt/format";
     const file = resolve(projectDir, filename);
     const message = `File needs formatting — run: shfmt -w ${filename}`;
+    // filename is project-relative (shfmt -l emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file,
+      file: filename,
       lineContent: message,
       contextBefore: [],
       contextAfter: [],
