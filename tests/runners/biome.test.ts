@@ -328,12 +328,6 @@ describe("getBiomeVersion", () => {
       stderr: "",
       exitCode: 0,
     });
-    // resolveToolPath probes local first — register the version call for local path
-    runner.register([LOCAL_BIOME_PROJECT, "--version"], {
-      stdout: "biome 2.4.8",
-      stderr: "",
-      exitCode: 0,
-    });
 
     const version = await getBiomeVersion(runner, PROJECT_DIR);
     expect(version).toBe("2.4.8");

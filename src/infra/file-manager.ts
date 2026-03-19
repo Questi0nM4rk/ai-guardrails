@@ -2,6 +2,11 @@ import { promises as fs } from "node:fs";
 import { Glob } from "bun";
 import { minimatch } from "minimatch";
 
+function isEnoent(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  return "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT";
+}
+
 export interface FileManager {
   readText(path: string): Promise<string>;
   writeText(path: string, content: string): Promise<void>;
@@ -63,6 +68,11 @@ export class RealFileManager implements FileManager {
   }
 
   async delete(path: string): Promise<void> {
-    await fs.unlink(path);
+    try {
+      await fs.unlink(path);
+    } catch (err: unknown) {
+      if (isEnoent(err)) return; // already deleted — idempotent
+      throw err;
+    }
   }
 }

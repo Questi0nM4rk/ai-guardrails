@@ -130,5 +130,9 @@ export async function generateConfigsStep(
     parts.push(`Removed ${removed.length} stale config(s): ${removed.join(", ")}`);
   }
 
+  if (errors.length > 0) {
+    return error(`Config generation failed: ${errors.join(", ")}`);
+  }
+
   return ok(parts.length > 0 ? parts.join("; ") : "No config files generated");
 }
