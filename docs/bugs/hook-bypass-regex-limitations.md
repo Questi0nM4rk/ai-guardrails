@@ -1,6 +1,12 @@
-# Hook Bypass — Regex Limitations (Deferred)
+# Hook Bypass — Regex Limitations
 
-**Status**: Deferred — current regex approach will be replaced with a proper
+> **RESOLVED** — All three issues were fixed by the AST-based policy engine
+> rewrite (PR #104–108). The regex approach was replaced with a proper
+> AST/token-based checker. Historical content preserved below for reference.
+
+---
+
+**Original status**: Deferred — current regex approach will be replaced with a proper
 command tokenizer. These are known limitations, not bugs.
 
 ---

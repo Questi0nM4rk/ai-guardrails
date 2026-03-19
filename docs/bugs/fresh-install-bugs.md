@@ -1,5 +1,11 @@
 # Fresh Install Bug Reports
 
+> **RESOLVED** — All bugs in this document were eliminated by the TypeScript
+> rewrite (PR #95). The Python implementation described here no longer exists.
+> Historical content preserved below for reference.
+
+---
+
 Bugs discovered during a fresh `ai-guardrails init` on a real project
 (`guardrails-review` repo, 2026-02-26).
 
