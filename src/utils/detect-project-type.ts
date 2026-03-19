@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type NoConsoleLevel = "off" | "warn" | "error";
 
 const BROWSER_FRAMEWORKS = [
@@ -12,6 +14,15 @@ const BROWSER_FRAMEWORKS = [
   "qwik",
 ] as const;
 
+/** Loose schema for package.json — only validates the fields we care about */
+const PackageJsonSchema = z
+  .object({
+    bin: z.unknown().optional(),
+    dependencies: z.record(z.unknown()).optional(),
+    devDependencies: z.record(z.unknown()).optional(),
+  })
+  .passthrough();
+
 /**
  * Detect the appropriate noConsole level based on package.json content.
  *
@@ -22,25 +33,17 @@ const BROWSER_FRAMEWORKS = [
  * Browser wins over CLI: if both bin and react exist → "error"
  */
 export function detectNoConsoleLevel(packageJson: unknown): NoConsoleLevel {
-  if (typeof packageJson !== "object" || packageJson === null) return "warn";
+  const parsed = PackageJsonSchema.safeParse(packageJson);
+  if (!parsed.success) return "warn";
 
-  const pkg = packageJson as Record<string, unknown>;
-
-  const deps =
-    typeof pkg.dependencies === "object" && pkg.dependencies !== null
-      ? (pkg.dependencies as Record<string, unknown>)
-      : {};
-  const devDeps =
-    typeof pkg.devDependencies === "object" && pkg.devDependencies !== null
-      ? (pkg.devDependencies as Record<string, unknown>)
-      : {};
-  const allDeps = { ...deps, ...devDeps };
+  const { bin, dependencies, devDependencies } = parsed.data;
+  const allDeps = { ...dependencies, ...devDependencies };
 
   // Browser frameworks take precedence over CLI detection
   if (BROWSER_FRAMEWORKS.some((f) => f in allDeps)) return "error";
 
   // CLI tools — only if no browser framework was found
-  if ("bin" in pkg) return "off";
+  if (bin !== undefined) return "off";
 
   return "warn";
 }
