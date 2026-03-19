@@ -98,18 +98,23 @@ export async function generateConfigsStep(
       (g) => g.languages !== undefined && !g.languages.some((id) => activeIds.has(id))
     );
     for (const g of inactive) {
-      const dest = join(projectDir, g.configFile);
-      if (await fileManager.exists(dest)) {
-        const content = await fileManager.readText(dest);
-        const firstLine = content.split("\n")[0] ?? "";
-        if (
-          firstLine.startsWith(HASH_PREFIX) ||
-          firstLine.startsWith(JSONC_HASH_PREFIX) ||
-          firstLine.startsWith(MD_HASH_PREFIX)
-        ) {
-          await fileManager.delete(dest);
-          removed.push(g.configFile);
+      try {
+        const dest = join(projectDir, g.configFile);
+        if (await fileManager.exists(dest)) {
+          const content = await fileManager.readText(dest);
+          const firstLine = content.split("\n")[0] ?? "";
+          if (
+            firstLine.startsWith(HASH_PREFIX) ||
+            firstLine.startsWith(JSONC_HASH_PREFIX) ||
+            firstLine.startsWith(MD_HASH_PREFIX)
+          ) {
+            await fileManager.delete(dest);
+            removed.push(g.configFile);
+          }
         }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`${g.id} cleanup: ${msg}`);
       }
     }
   }
