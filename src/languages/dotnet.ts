@@ -5,10 +5,14 @@ export const dotnetPlugin: LanguagePlugin = {
   id: "dotnet",
   name: ".NET",
 
-  async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
+  async detect({
+    projectDir,
+    fileManager,
+    ignorePaths,
+  }: DetectOptions): Promise<boolean> {
     const [csprojFiles, slnFiles] = await Promise.all([
-      fileManager.glob("**/*.csproj", projectDir),
-      fileManager.glob("**/*.sln", projectDir),
+      fileManager.glob("**/*.csproj", projectDir, ignorePaths),
+      fileManager.glob("**/*.sln", projectDir, ignorePaths),
     ]);
     return csprojFiles.length > 0 || slnFiles.length > 0;
   },

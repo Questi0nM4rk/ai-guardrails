@@ -4,6 +4,7 @@ import type { LinterRunner } from "@/runners/types";
 export interface DetectOptions {
   projectDir: string;
   fileManager: FileManager;
+  ignorePaths?: readonly string[];
 }
 
 export interface LanguagePlugin {
