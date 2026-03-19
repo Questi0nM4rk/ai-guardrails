@@ -1,8 +1,7 @@
-import { relative } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 import { safeParseJson } from "@/utils/parse";
 import { resolveToolPath } from "@/utils/resolve-tool-path";
 
@@ -53,14 +52,16 @@ function isPyrightOutput(value: unknown): value is PyrightOutput {
 }
 
 /**
- * Parse pyright --outputjson output into normalized LintIssue[].
+ * Parse pyright --outputjson output into raw issues without fingerprints.
  * Skips information-level diagnostics.
  * Returns [] for empty stdout or invalid JSON.
  *
- * projectDir is used to compute a project-relative path for the fingerprint.
- * LintIssue.file remains the absolute path emitted by pyright.
+ * LintIssue.file is the absolute path emitted by pyright.
  */
-export function parsePyrightOutput(stdout: string, projectDir: string): LintIssue[] {
+export function parsePyrightOutput(
+  stdout: string,
+  _projectDir: string
+): Omit<LintIssue, "fingerprint">[] {
   if (!stdout.trim()) return [];
 
   const parsed = safeParseJson(stdout);
@@ -68,7 +69,7 @@ export function parsePyrightOutput(stdout: string, projectDir: string): LintIssu
 
   if (!isPyrightOutput(parsed)) return [];
 
-  const issues: LintIssue[] = [];
+  const issues: Omit<LintIssue, "fingerprint">[] = [];
   for (const diag of parsed.generalDiagnostics) {
     if (!isPyrightDiagnostic(diag)) continue;
     if (diag.severity === "information") continue;
@@ -78,16 +79,6 @@ export function parsePyrightOutput(stdout: string, projectDir: string): LintIssu
     const line = diag.range.start.line + 1;
     const col = diag.range.start.character + 1;
 
-    // diag.file is an absolute path; use relative for portable fingerprints
-    const relFile = relative(projectDir, diag.file);
-    const fingerprint = computeFingerprint({
-      rule,
-      file: relFile,
-      lineContent: diag.message,
-      contextBefore: [],
-      contextAfter: [],
-    });
-
     issues.push({
       rule,
       linter: "pyright",
@@ -96,7 +87,6 @@ export function parsePyrightOutput(stdout: string, projectDir: string): LintIssu
       col,
       message: diag.message,
       severity: diag.severity === "error" ? "error" : "warning",
-      fingerprint,
     });
   }
   return issues;
@@ -117,12 +107,13 @@ export const pyrightRunner: LinterRunner = {
   },
 
   async run(opts: RunOptions): Promise<LintIssue[]> {
-    const { projectDir, commandRunner } = opts;
+    const { projectDir, commandRunner, fileManager } = opts;
     const cmd =
       (await resolveToolPath("pyright", projectDir, commandRunner)) ?? "pyright";
     const result = await commandRunner.run([cmd, "--outputjson", projectDir], {
       cwd: projectDir,
     });
-    return parsePyrightOutput(result.stdout, projectDir);
+    const raw = parsePyrightOutput(result.stdout, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

@@ -51,7 +51,6 @@ describe("parseBiomeRdjsonOutput", () => {
     expect(first.message).toBe("This variable is unused.");
     // biome v2 rdjson omits severity field; defaults to warning
     expect(first.severity).toBe("warning");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("returns [] for empty diagnostics array", () => {

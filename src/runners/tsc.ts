@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 import { resolveToolPath } from "@/utils/resolve-tool-path";
 
 const TSC_LINTER_ID = "tsc";
@@ -35,21 +35,21 @@ function parseTscLine(line: string): TscMatch | null {
   };
 }
 
-export function parseTscOutput(output: string, projectDir: string): LintIssue[] {
-  const issues: LintIssue[] = [];
+/**
+ * Parse tsc text output into raw issues without fingerprints.
+ *
+ * LintIssue.file is absolute (resolved from projectDir + relative path tsc emits).
+ */
+export function parseTscOutput(
+  output: string,
+  projectDir: string
+): Omit<LintIssue, "fingerprint">[] {
+  const issues: Omit<LintIssue, "fingerprint">[] = [];
   for (const line of output.split("\n")) {
     const parsed = parseTscLine(line);
     if (!parsed) continue;
     const filePath = resolve(projectDir, parsed.file);
     const rule = TSC_RULE_PREFIX + parsed.tsCode;
-    // parsed.file is already project-relative (tsc emits relative paths)
-    const fingerprint = computeFingerprint({
-      rule,
-      file: parsed.file,
-      lineContent: parsed.message,
-      contextBefore: [],
-      contextAfter: [],
-    });
     issues.push({
       rule,
       linter: TSC_LINTER_ID,
@@ -58,7 +58,6 @@ export function parseTscOutput(output: string, projectDir: string): LintIssue[] 
       col: parsed.col,
       message: parsed.message,
       severity: parsed.severity,
-      fingerprint,
     });
   }
   return issues;
@@ -80,13 +79,18 @@ export const tscRunner: LinterRunner = {
     return (await resolveToolPath("tsc", projectDir ?? ".", commandRunner)) !== null;
   },
 
-  async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
+  async run({
+    projectDir,
+    commandRunner,
+    fileManager,
+  }: RunOptions): Promise<LintIssue[]> {
     const tsc = (await resolveToolPath("tsc", projectDir, commandRunner)) ?? "tsc";
     const result = await commandRunner.run([tsc, "--noEmit", "--pretty", "false"], {
       cwd: projectDir,
     });
     // tsc exits non-zero when errors exist — parse stdout+stderr
     const combined = `${result.stdout}\n${result.stderr}`;
-    return parseTscOutput(combined, projectDir);
+    const raw = parseTscOutput(combined, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

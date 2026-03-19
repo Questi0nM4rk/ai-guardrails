@@ -1,9 +1,9 @@
-import { relative } from "node:path";
+import { resolve } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 import { safeParseJson } from "@/utils/parse";
 
 // Codes starting with E or F are errors; everything else is a warning.
@@ -36,46 +36,39 @@ function isRuffItem(value: unknown): value is RuffItem {
 }
 
 /**
- * Parse ruff JSON array output into normalized LintIssue[].
+ * Parse ruff JSON array output into raw issues without fingerprints.
  * Returns [] for empty stdout, invalid JSON, or non-array output.
  *
- * projectDir is used to compute a project-relative path for the fingerprint.
- * LintIssue.file remains the absolute path emitted by ruff.
+ * projectDir is used to resolve relative filenames to absolute paths.
+ * LintIssue.file is always absolute.
  */
 export function parseRuffOutput(
   stdout: string,
   _config: ResolvedConfig,
   projectDir: string
-): LintIssue[] {
+): Omit<LintIssue, "fingerprint">[] {
   if (!stdout.trim()) return [];
 
   const parsed = safeParseJson(stdout);
   if (!Array.isArray(parsed)) return [];
 
-  const issues: LintIssue[] = [];
+  const issues: Omit<LintIssue, "fingerprint">[] = [];
   for (const item of parsed) {
     if (!isRuffItem(item)) continue;
 
     const rule = `ruff/${item.code}`;
-    // item.filename is an absolute path; use relative for portable fingerprints
-    const relFile = relative(projectDir, item.filename);
-    const fingerprint = computeFingerprint({
-      rule,
-      file: relFile,
-      lineContent: item.message,
-      contextBefore: [],
-      contextAfter: [],
-    });
+    const absFile = item.filename.startsWith("/")
+      ? item.filename
+      : resolve(projectDir, item.filename);
 
     issues.push({
       rule,
       linter: "ruff",
-      file: item.filename,
+      file: absFile,
       line: item.location.row,
       col: item.location.column,
       message: item.message,
       severity: severityForCode(item.code),
-      fingerprint,
     });
   }
   return issues;
@@ -96,13 +89,12 @@ export const ruffRunner: LinterRunner = {
   },
 
   async run(opts: RunOptions): Promise<LintIssue[]> {
-    const { projectDir, config, commandRunner } = opts;
+    const { projectDir, config, commandRunner, fileManager } = opts;
     const result = await commandRunner.run(
       ["ruff", "check", "--output-format=json", projectDir],
-      {
-        cwd: projectDir,
-      }
+      { cwd: projectDir }
     );
-    return parseRuffOutput(result.stdout, config, projectDir);
+    const raw = parseRuffOutput(result.stdout, config, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

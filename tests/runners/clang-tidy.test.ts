@@ -54,7 +54,6 @@ describe("parseClangTidyOutput", () => {
     expect(first.col).toBe(5);
     expect(first.message).toBe("use of old-style cast");
     expect(first.severity).toBe("warning");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("maps error level to error severity", () => {

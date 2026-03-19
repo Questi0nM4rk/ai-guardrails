@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 import { safeParseJson } from "@/utils/parse";
 import { resolveToolPath } from "@/utils/resolve-tool-path";
 
@@ -91,10 +91,16 @@ function isRdjsonOutput(value: unknown): value is RdjsonOutput {
 // The ESC character (U+001B) cannot appear as a literal in regex patterns per that rule.
 const ANSI_RE = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
 
+/**
+ * Parse biome rdjson output into raw issues without fingerprints.
+ * Returns [] on malformed or empty input.
+ *
+ * LintIssue.file is absolute (resolved from projectDir + relative path biome emits).
+ */
 export function parseBiomeRdjsonOutput(
   stdout: string,
   projectDir: string
-): LintIssue[] {
+): Omit<LintIssue, "fingerprint">[] {
   const parsed = safeParseJson(stdout.replace(ANSI_RE, ""));
   if (parsed === null) return [];
 
@@ -113,14 +119,6 @@ export function parseBiomeRdjsonOutput(
     const message = extractMessage(diag.message);
     const severity: "error" | "warning" =
       diag.severity === SEVERITY_ERROR ? "error" : "warning";
-    // diag.location.path is already project-relative (biome emits relative paths)
-    const fingerprint = computeFingerprint({
-      rule,
-      file: diag.location.path,
-      lineContent: message,
-      contextBefore: [],
-      contextAfter: [],
-    });
     return [
       {
         rule,
@@ -130,7 +128,6 @@ export function parseBiomeRdjsonOutput(
         col,
         message,
         severity,
-        fingerprint,
       },
     ];
   });
@@ -152,15 +149,18 @@ export const biomeRunner: LinterRunner = {
     return (await resolveToolPath("biome", projectDir ?? ".", commandRunner)) !== null;
   },
 
-  async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
+  async run({
+    projectDir,
+    commandRunner,
+    fileManager,
+  }: RunOptions): Promise<LintIssue[]> {
     const cmd = (await resolveToolPath("biome", projectDir, commandRunner)) ?? "biome";
     const result = await commandRunner.run(
       [cmd, "ci", "--reporter=rdjson", projectDir],
-      {
-        cwd: projectDir,
-      }
+      { cwd: projectDir }
     );
     // biome exits non-zero when issues are found — parse stdout regardless
-    return parseBiomeRdjsonOutput(result.stdout, projectDir);
+    const raw = parseBiomeRdjsonOutput(result.stdout, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

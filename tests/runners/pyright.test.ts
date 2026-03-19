@@ -45,7 +45,6 @@ describe("parsePyrightOutput", () => {
     expect(errorIssue.col).toBe(16); // 0-indexed 15 → 1-indexed 16
     expect(errorIssue.message).toBe('Type "str" is not assignable to type "int"');
     expect(errorIssue.severity).toBe("error");
-    expect(errorIssue.fingerprint).toHaveLength(64);
 
     const warningIssue = issues[1];
     expect(warningIssue).toBeDefined();

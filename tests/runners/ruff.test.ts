@@ -24,7 +24,7 @@ function makeConfig(): ResolvedConfig {
 }
 
 describe("parseRuffOutput", () => {
-  test("returns correct LintIssue[] from fixture", () => {
+  test("returns correct raw issues from fixture", () => {
     const issues = parseRuffOutput(fixtureText, makeConfig(), PROJECT_DIR);
 
     expect(issues).toHaveLength(3);
@@ -39,7 +39,6 @@ describe("parseRuffOutput", () => {
     expect(e501.col).toBe(89);
     expect(e501.message).toBe("Line too long (120 > 88 characters)");
     expect(e501.severity).toBe("error");
-    expect(e501.fingerprint).toHaveLength(64);
 
     const f401 = issues[1];
     expect(f401).toBeDefined();
@@ -118,10 +117,11 @@ describe("parseRuffOutput", () => {
   });
 });
 
-describe("parseRuffOutput fingerprint portability", () => {
-  test("same issue at different project roots produces the same fingerprint", () => {
-    // src/foo.py with E501 at /alice/repo and /bob/repo should produce identical fingerprints
-    // because both runners pass the relative path to computeFingerprint.
+describe("ruffRunner fingerprint stability", () => {
+  test("same issue at different project roots produces the same fingerprint", async () => {
+    // src/foo.py with E501 at line 1 — same source content, different project roots
+    const sourceContent = "x = 1 + 1  # some long line\n";
+
     const makeInput = (absProjectDir: string) =>
       JSON.stringify([
         {
@@ -135,16 +135,25 @@ describe("parseRuffOutput fingerprint portability", () => {
         },
       ]);
 
-    const issuesAlice = parseRuffOutput(
-      makeInput("/alice/repo"),
-      makeConfig(),
-      "/alice/repo"
-    );
-    const issuesBob = parseRuffOutput(
-      makeInput("/bob/repo"),
-      makeConfig(),
-      "/bob/repo"
-    );
+    const runFor = async (absProjectDir: string) => {
+      const commandRunner = new FakeCommandRunner();
+      commandRunner.register(["ruff", "check", "--output-format=json", absProjectDir], {
+        stdout: makeInput(absProjectDir),
+        stderr: "",
+        exitCode: 1,
+      });
+      const fileManager = new FakeFileManager();
+      fileManager.seed(`${absProjectDir}/src/foo.py`, sourceContent);
+      return ruffRunner.run({
+        projectDir: absProjectDir,
+        config: makeConfig(),
+        commandRunner,
+        fileManager,
+      });
+    };
+
+    const issuesAlice = await runFor("/alice/repo");
+    const issuesBob = await runFor("/bob/repo");
 
     expect(issuesAlice).toHaveLength(1);
     expect(issuesBob).toHaveLength(1);
@@ -152,6 +161,78 @@ describe("parseRuffOutput fingerprint portability", () => {
     expect(issuesAlice[0]?.file).toBe("/alice/repo/src/foo.py");
     expect(issuesBob[0]?.file).toBe("/bob/repo/src/foo.py");
     expect(issuesAlice[0]?.fingerprint).toBe(issuesBob[0]?.fingerprint);
+    expect(issuesAlice[0]?.fingerprint).toHaveLength(64);
+  });
+
+  test("same issue with different error message but same source line produces the same fingerprint", async () => {
+    // Two runs of ruff at the same file — message changes (tool upgrade) but source stays same
+    const sourceContent = "import os\nx = 1\n";
+    const absFile = "/project/src/foo.py";
+    const makeInput = (msg: string) =>
+      JSON.stringify([
+        {
+          code: "F401",
+          filename: absFile,
+          location: { row: 1, column: 1 },
+          end_location: { row: 1, column: 9 },
+          message: msg,
+          fix: null,
+          url: "",
+        },
+      ]);
+
+    const runWithMessage = async (msg: string) => {
+      const commandRunner = new FakeCommandRunner();
+      commandRunner.register(["ruff", "check", "--output-format=json", "/project"], {
+        stdout: makeInput(msg),
+        stderr: "",
+        exitCode: 1,
+      });
+      const fileManager = new FakeFileManager();
+      fileManager.seed(absFile, sourceContent);
+      return ruffRunner.run({
+        projectDir: "/project",
+        config: makeConfig(),
+        commandRunner,
+        fileManager,
+      });
+    };
+
+    const issuesV1 = await runWithMessage("`os` imported but unused");
+    const issuesV2 = await runWithMessage(
+      "`os` imported but never used (different wording)"
+    );
+
+    expect(issuesV1).toHaveLength(1);
+    expect(issuesV2).toHaveLength(1);
+    // Fingerprints must be identical despite different messages — source-based stability
+    expect(issuesV1[0]?.fingerprint).toBe(issuesV2[0]?.fingerprint);
+  });
+
+  test("run produces fingerprint with length 64 for each issue", async () => {
+    const commandRunner = new FakeCommandRunner();
+    const projectDir = "/home/user/project";
+    commandRunner.register(["ruff", "check", "--output-format=json", projectDir], {
+      stdout: fixtureText,
+      stderr: "",
+      exitCode: 1,
+    });
+    // Seed source files used in fixture
+    const fileManager = new FakeFileManager();
+    fileManager.seed(`${projectDir}/src/utils.py`, "# placeholder\n".repeat(50));
+    fileManager.seed(`${projectDir}/src/models.py`, "# placeholder\n".repeat(10));
+
+    const issues = await ruffRunner.run({
+      projectDir,
+      config: makeConfig(),
+      commandRunner,
+      fileManager,
+    });
+
+    expect(issues).toHaveLength(3);
+    for (const issue of issues) {
+      expect(issue.fingerprint).toHaveLength(64);
+    }
   });
 });
 
