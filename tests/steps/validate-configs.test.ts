@@ -4,7 +4,7 @@ import {
   MachineConfigSchema,
   ProjectConfigSchema,
 } from "@/config/schema";
-import { generateLefthookConfig } from "@/generators/lefthook";
+import { generateLefthookConfig, LEFTHOOK_GENERATOR_ID } from "@/generators/lefthook";
 import { ALL_GENERATORS, applicableGenerators } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import { validateConfigsStep } from "@/steps/validate-configs";
@@ -22,7 +22,7 @@ function makeConfig() {
  * lefthookGenerator.generate() intentionally throws — use generateLefthookConfig() instead.
  */
 function generateContent(gen: ConfigGenerator): string {
-  if (gen.id === "lefthook") {
+  if (gen.id === LEFTHOOK_GENERATOR_ID) {
     return generateLefthookConfig(makeConfig(), []);
   }
   return gen.generate(makeConfig());

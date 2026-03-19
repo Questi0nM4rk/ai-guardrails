@@ -116,7 +116,7 @@ describe("reportStep — sarif format", () => {
 });
 
 describe("reportStep — error handling", () => {
-  test("returns error when fileManager throws on writeText", async () => {
+  test("propagates writeText error when writing sarif output", async () => {
     const console = new FakeConsole();
     const inner = new FakeFileManager();
     const throwingFm: FileManager = {
@@ -133,10 +133,9 @@ describe("reportStep — error handling", () => {
     };
 
     const issues = [makeIssue()];
-    const result = await reportStep(issues, "sarif", console, throwingFm);
-    expect(result.status).toBe("error");
-    if (result.message) {
-      expect(result.message).toContain("disk full");
-    }
+    // reportStep has no try/catch — writeText throw propagates
+    await expect(
+      reportStep(issues, "sarif", console, throwingFm, "/output.sarif")
+    ).rejects.toThrow("disk full");
   });
 });

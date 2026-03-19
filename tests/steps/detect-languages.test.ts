@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { FileManager } from "@/infra/file-manager";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
@@ -66,7 +67,7 @@ describe("detectLanguagesStep", () => {
   test("returns error status on exception from fileManager", async () => {
     const innerFm = new FakeFileManager();
     // Make glob throw to trigger the catch path
-    const throwingFm = {
+    const throwingFm: FileManager = {
       readText: (p: string) => innerFm.readText(p),
       writeText: (p: string, c: string) => innerFm.writeText(p, c),
       appendText: (p: string, c: string) => innerFm.appendText(p, c),
