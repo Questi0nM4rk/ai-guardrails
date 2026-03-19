@@ -1,0 +1,25 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`editorconfigGenerator generate output matches snapshot 1`] = `
+"# ai-guardrails:sha256=285e2b9659f1911260d0071a2c812420eb87a0cbc1b44cd1c58bc37e6d88b5e1
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+max_line_length = 88
+
+[*.{ts,js,tsx,jsx,json,yaml,yml,toml,md}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab
+
+[*.go]
+indent_style = tab
+"
+`;
