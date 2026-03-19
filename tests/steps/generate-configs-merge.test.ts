@@ -4,18 +4,14 @@ import {
   MachineConfigSchema,
   ProjectConfigSchema,
 } from "@/config/schema";
-import type { LanguagePlugin } from "@/languages/types";
 import { generateConfigsStep } from "@/steps/generate-configs";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+import { makePlugin } from "../fakes/fake-language-plugin";
 
 function makeConfig() {
   const machine = MachineConfigSchema.parse({});
   const project = ProjectConfigSchema.parse({});
   return buildResolvedConfig(machine, project);
-}
-
-function makePlugin(id: string): LanguagePlugin {
-  return { id, name: id, detect: async () => true, runners: () => [] };
 }
 
 const PYTHON = [makePlugin("python")];
