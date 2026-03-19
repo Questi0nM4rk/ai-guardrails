@@ -3,11 +3,20 @@ import type { FileManager } from "@/infra/file-manager";
 import { setupCiStep } from "@/steps/setup-ci";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
-/** A FileManager that throws on writeText — for testing error paths */
-class FailingFileManager extends FakeFileManager implements FileManager {
-  override async writeText(_path: string, _content: string): Promise<void> {
-    throw new Error("disk full");
-  }
+/** A FileManager that delegates to FakeFileManager but throws on writeText */
+function makeFailingFileManager(): FileManager {
+  const inner = new FakeFileManager();
+  return {
+    readText: (p) => inner.readText(p),
+    writeText: async () => {
+      throw new Error("disk full");
+    },
+    appendText: (p, c) => inner.appendText(p, c),
+    exists: (p) => inner.exists(p),
+    mkdir: (p, o) => inner.mkdir(p, o),
+    glob: (p, c, i) => inner.glob(p, c, i),
+    isSymlink: (p) => inner.isSymlink(p),
+  };
 }
 
 describe("setupCiStep", () => {
@@ -56,7 +65,7 @@ describe("setupCiStep", () => {
   });
 
   test("returns error when fileManager throws", async () => {
-    const fm = new FailingFileManager();
+    const fm = makeFailingFileManager();
 
     const result = await setupCiStep("/project", fm);
 

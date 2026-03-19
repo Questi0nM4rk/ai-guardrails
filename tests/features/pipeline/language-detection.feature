@@ -117,7 +117,7 @@ Feature: Language detection
     When languages are detected
     Then "python" should be detected
 
-  Scenario: pyproject.toml at root always triggers Python (marker not filtered)
+  Scenario: Python file only in node_modules does not trigger detection
     Given a project with only a file at ignored path "node_modules/pkg/helper.py"
     When languages are detected
     Then "python" should not be detected
