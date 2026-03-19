@@ -113,9 +113,10 @@ export function parseBiomeRdjsonOutput(
     const message = extractMessage(diag.message);
     const severity: "error" | "warning" =
       diag.severity === SEVERITY_ERROR ? "error" : "warning";
+    // diag.location.path is already project-relative (biome emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file: filePath,
+      file: diag.location.path,
       lineContent: message,
       contextBefore: [],
       contextAfter: [],

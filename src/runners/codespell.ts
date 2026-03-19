@@ -27,9 +27,10 @@ export function parseCodespellOutput(stdout: string, projectDir: string): LintIs
     const file = resolve(projectDir, relativePath);
     const lineNum = Number.parseInt(lineStr, 10);
     const message = `Spelling: ${typo.trim()} ==> ${correction.trim()}`;
+    // relativePath is already project-relative (codespell emits relative paths)
     const fingerprint = computeFingerprint({
       rule: CODESPELL_RULE,
-      file,
+      file: relativePath,
       lineContent: message,
       contextBefore: [],
       contextAfter: [],

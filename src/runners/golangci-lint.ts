@@ -41,9 +41,10 @@ export function parseGolangciOutput(json: string, projectDir: string): LintIssue
     .map((issue) => {
       const rule = `golangci-lint/${issue.FromLinter}`;
       const file = resolve(projectDir, issue.Pos.Filename);
+      // issue.Pos.Filename is project-relative (golangci-lint emits relative paths)
       const fingerprint = computeFingerprint({
         rule,
-        file,
+        file: issue.Pos.Filename,
         lineContent: "",
         contextBefore: [],
         contextAfter: [],

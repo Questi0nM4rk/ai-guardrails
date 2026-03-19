@@ -55,9 +55,10 @@ export function parseClippyNdjson(ndjson: string, projectDir: string): LintIssue
 
     const rule = `clippy/${msg.code.code}`;
     const file = resolve(projectDir, primarySpan.file_name);
+    // primarySpan.file_name is project-relative (cargo emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file,
+      file: primarySpan.file_name,
       lineContent: "",
       contextBefore: [],
       contextAfter: [],

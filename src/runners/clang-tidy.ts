@@ -1,4 +1,4 @@
-import { resolve } from "node:path";
+import { relative, resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
 import { computeFingerprint } from "@/models/lint-issue";
@@ -10,8 +10,11 @@ const CLANG_TIDY_PATTERN =
 /**
  * Parse clang-tidy text output into LintIssue[].
  * Skips note-level diagnostics — only warning and error are actionable.
+ *
+ * projectDir is used to compute a project-relative path for the fingerprint.
+ * LintIssue.file remains the absolute path emitted by clang-tidy.
  */
-export function parseClangTidyOutput(text: string, projectDir = ""): LintIssue[] {
+export function parseClangTidyOutput(text: string, projectDir: string): LintIssue[] {
   const issues: LintIssue[] = [];
 
   for (const line of text.split("\n")) {
@@ -29,9 +32,11 @@ export function parseClangTidyOutput(text: string, projectDir = ""): LintIssue[]
     const checkName = match[6] ?? "";
     const rule = `clang-tidy/${checkName}`;
 
+    // rawFile is an absolute path from clang-tidy; make it relative for portable fingerprints
+    const relFile = relative(projectDir, file);
     const fingerprint = computeFingerprint({
       rule,
-      file,
+      file: relFile,
       lineContent: message,
       contextBefore: [],
       contextAfter: [],

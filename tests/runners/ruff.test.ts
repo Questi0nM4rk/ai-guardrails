@@ -7,6 +7,8 @@ import { FakeFileManager } from "../fakes/fake-file-manager";
 const FIXTURE_PATH = new URL("../fixtures/ruff-output.json", import.meta.url).pathname;
 const fixtureText = await Bun.file(FIXTURE_PATH).text();
 
+const PROJECT_DIR = "/home/user/project";
+
 /** Minimal ResolvedConfig that allows everything (no filtering) */
 function makeConfig(): ResolvedConfig {
   return {
@@ -23,7 +25,7 @@ function makeConfig(): ResolvedConfig {
 
 describe("parseRuffOutput", () => {
   test("returns correct LintIssue[] from fixture", () => {
-    const issues = parseRuffOutput(fixtureText, makeConfig());
+    const issues = parseRuffOutput(fixtureText, makeConfig(), PROJECT_DIR);
 
     expect(issues).toHaveLength(3);
 
@@ -53,17 +55,17 @@ describe("parseRuffOutput", () => {
   });
 
   test("returns [] for empty stdout", () => {
-    const issues = parseRuffOutput("", makeConfig());
+    const issues = parseRuffOutput("", makeConfig(), PROJECT_DIR);
     expect(issues).toHaveLength(0);
   });
 
   test("returns [] for invalid JSON", () => {
-    const issues = parseRuffOutput("not valid json {[}", makeConfig());
+    const issues = parseRuffOutput("not valid json {[}", makeConfig(), PROJECT_DIR);
     expect(issues).toHaveLength(0);
   });
 
   test("returns [] for null JSON", () => {
-    const issues = parseRuffOutput("null", makeConfig());
+    const issues = parseRuffOutput("null", makeConfig(), PROJECT_DIR);
     expect(issues).toHaveLength(0);
   });
 
@@ -79,7 +81,7 @@ describe("parseRuffOutput", () => {
         url: "",
       },
     ]);
-    const issues = parseRuffOutput(input, makeConfig());
+    const issues = parseRuffOutput(input, makeConfig(), "/project");
     expect(issues[0]?.severity).toBe("error");
   });
 
@@ -95,7 +97,7 @@ describe("parseRuffOutput", () => {
         url: "",
       },
     ]);
-    const issues = parseRuffOutput(input, makeConfig());
+    const issues = parseRuffOutput(input, makeConfig(), "/project");
     expect(issues[0]?.severity).toBe("error");
   });
 
@@ -111,8 +113,45 @@ describe("parseRuffOutput", () => {
         url: "",
       },
     ]);
-    const issues = parseRuffOutput(input, makeConfig());
+    const issues = parseRuffOutput(input, makeConfig(), "/project");
     expect(issues[0]?.severity).toBe("warning");
+  });
+});
+
+describe("parseRuffOutput fingerprint portability", () => {
+  test("same issue at different project roots produces the same fingerprint", () => {
+    // src/foo.py with E501 at /alice/repo and /bob/repo should produce identical fingerprints
+    // because both runners pass the relative path to computeFingerprint.
+    const makeInput = (absProjectDir: string) =>
+      JSON.stringify([
+        {
+          code: "E501",
+          filename: `${absProjectDir}/src/foo.py`,
+          location: { row: 1, column: 89 },
+          end_location: { row: 1, column: 120 },
+          message: "Line too long",
+          fix: null,
+          url: "",
+        },
+      ]);
+
+    const issuesAlice = parseRuffOutput(
+      makeInput("/alice/repo"),
+      makeConfig(),
+      "/alice/repo"
+    );
+    const issuesBob = parseRuffOutput(
+      makeInput("/bob/repo"),
+      makeConfig(),
+      "/bob/repo"
+    );
+
+    expect(issuesAlice).toHaveLength(1);
+    expect(issuesBob).toHaveLength(1);
+    // LintIssue.file differs (absolute) but fingerprint must be identical
+    expect(issuesAlice[0]?.file).toBe("/alice/repo/src/foo.py");
+    expect(issuesBob[0]?.file).toBe("/bob/repo/src/foo.py");
+    expect(issuesAlice[0]?.fingerprint).toBe(issuesBob[0]?.fingerprint);
   });
 });
 

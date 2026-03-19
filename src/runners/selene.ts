@@ -46,9 +46,10 @@ export function parseSeleneOutput(stdout: string, projectDir: string): LintIssue
     const file = resolve(projectDir, entry.filename);
     const severity: "error" | "warning" =
       entry.severity === "Error" ? "error" : "warning";
+    // entry.filename is project-relative (selene emits relative paths)
     const fingerprint = computeFingerprint({
       rule,
-      file,
+      file: entry.filename,
       lineContent: entry.primary_label,
       contextBefore: [],
       contextAfter: [],
