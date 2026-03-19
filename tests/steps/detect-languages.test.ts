@@ -98,17 +98,19 @@ describe("detectLanguagesStep — direct plugin delegation", () => {
     const { result, languages } = await detectLanguagesStep("/project", fm);
 
     expect(result.status).toBe("ok");
-    expect(Array.isArray(languages)).toBe(true);
+    expect(languages.length).toBeGreaterThan(0);
   });
 
   test("returns expected message format when universal is the only detected plugin", async () => {
     const fm = new FakeFileManager();
-    // Only seed a non-language-specific file
+    // Only seed a non-language-specific file — no language markers
     fm.seed("/project/README.md", "# Hello");
 
-    const { result } = await detectLanguagesStep("/project", fm);
+    const { result, languages } = await detectLanguagesStep("/project", fm);
 
     expect(result.status).toBe("ok");
     expect(result.message).toContain("Detected languages:");
+    expect(languages).toHaveLength(1);
+    expect(languages[0]?.id).toBe("universal");
   });
 });

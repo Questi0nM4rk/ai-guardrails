@@ -8,7 +8,6 @@ import { generateLefthookConfig, LEFTHOOK_GENERATOR_ID } from "@/generators/left
 import { ALL_GENERATORS, applicableGenerators } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import { validateConfigsStep } from "@/steps/validate-configs";
-import { computeHash } from "@/utils/hash";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
 function makeConfig() {
@@ -146,13 +145,9 @@ describe("validateConfigsStep — single generator isolation", () => {
 
   test("config with valid hash header passes tamper check", async () => {
     const fm = new FakeFileManager();
-    const body = "# body content\nsome config = true\n";
-    const hash = computeHash(body);
-    const validContent = `# ai-guardrails:sha256=${hash}\n${body}`;
-
-    for (const gen of ALL_GENERATORS) {
-      fm.seed(`/project/${gen.configFile}`, validContent);
-    }
+    // Use generateContent() to produce correctly-prefixed headers per file type
+    // (JSON/JSONC → "//", markdown → "<!--", others → "#")
+    seedAllValid(fm, "/project");
 
     const result = await validateConfigsStep("/project", fm);
 
@@ -171,20 +166,6 @@ describe("validateConfigsStep — single generator isolation", () => {
 });
 
 describe("validateConfigsStep — activeLanguageIds filter", () => {
-  test("only validates generators applicable to the given language IDs", async () => {
-    const fm = new FakeFileManager();
-    const activeIds = new Set<string>();
-    const applicable = applicableGenerators(activeIds);
-
-    for (const gen of applicable) {
-      fm.seed(`/project/${gen.configFile}`, generateContent(gen));
-    }
-
-    const result = await validateConfigsStep("/project", fm, activeIds);
-
-    expect(result.status).toBe("ok");
-  });
-
   test("reports missing for a language-specific generator when language is active", async () => {
     const fm = new FakeFileManager();
 
@@ -219,7 +200,10 @@ describe("validateConfigsStep — activeLanguageIds filter", () => {
 
   test("returns ok with correct count when activeLanguageIds filters generators", async () => {
     const fm = new FakeFileManager();
-    const activeIds = new Set<string>(["python"]);
+    const langScoped = ALL_GENERATORS.find(
+      (g) => g.languages !== undefined && g.languages.length > 0
+    );
+    const activeIds = new Set<string>(langScoped?.languages ?? []);
     const applicable = applicableGenerators(activeIds);
 
     for (const gen of applicable) {
