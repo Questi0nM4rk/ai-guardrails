@@ -1,6 +1,7 @@
 import { expect } from "bun:test";
 import type { World } from "@questi0nm4rk/feats";
 import { Given, Then, When } from "@questi0nm4rk/feats";
+import { DEFAULT_IGNORE } from "@/languages/constants";
 import { ALL_PLUGINS, detectLanguages } from "@/languages/registry";
 import type { LanguagePlugin } from "@/languages/types";
 import type { StepResult } from "@/models/step-result";
@@ -153,5 +154,22 @@ Then<LanguageWorld>(
   "{string} should not be detected",
   async (world: LanguageWorld, lang: unknown) => {
     expect(world.detectedIds).not.toContain(String(lang));
+  }
+);
+
+// ─── DEFAULT_IGNORE inspection ────────────────────────────────────────────────
+
+interface IgnoreWorld extends World {
+  ignoreList: readonly string[];
+}
+
+When<IgnoreWorld>("the DEFAULT_IGNORE list is inspected", (world: IgnoreWorld) => {
+  world.ignoreList = DEFAULT_IGNORE;
+});
+
+Then<IgnoreWorld>(
+  "it should contain the pattern {string}",
+  (world: IgnoreWorld, pattern: unknown) => {
+    expect(world.ignoreList).toContain(String(pattern));
   }
 );
