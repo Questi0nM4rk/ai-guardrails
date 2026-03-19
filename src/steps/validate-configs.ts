@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { ALL_GENERATORS } from "@/generators/registry";
+import { ALL_GENERATORS, applicableGenerators } from "@/generators/registry";
 import type { ConfigGenerator } from "@/generators/types";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
@@ -60,19 +60,28 @@ async function validateOne(
   return null;
 }
 
+/**
+ * Validate config files that were actually generated.
+ * When activeLanguageIds is provided, only validates generators applicable
+ * to those languages (matching the language-gate filter in generate-configs).
+ */
 export async function validateConfigsStep(
   projectDir: string,
-  fileManager: FileManager
+  fileManager: FileManager,
+  activeLanguageIds?: ReadonlySet<string>
 ): Promise<StepResult> {
+  const generators =
+    activeLanguageIds !== undefined
+      ? applicableGenerators(activeLanguageIds)
+      : ALL_GENERATORS;
+
   const problems = (
-    await Promise.all(
-      ALL_GENERATORS.map((g) => validateOne(g, projectDir, fileManager))
-    )
+    await Promise.all(generators.map((g) => validateOne(g, projectDir, fileManager)))
   ).filter((p): p is string => p !== null);
 
   if (problems.length > 0) {
     return error(`Config validation failed: ${problems.join(", ")}`);
   }
 
-  return ok(`All ${ALL_GENERATORS.length} config files validated`);
+  return ok(`All ${generators.length} config files validated`);
 }

@@ -60,6 +60,7 @@ function makeDefaultConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig 
     values: { line_length: 88, indent_width: 2 },
     ignoredRules: new Set(),
     ignorePaths: [],
+    noConsoleLevel: "warn" as const,
     isAllowed: () => false,
     ...overrides,
   };

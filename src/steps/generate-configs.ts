@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import type { ConfigStrategy, ResolvedConfig } from "@/config/schema";
 import { generateLefthookConfig, lefthookGenerator } from "@/generators/lefthook";
-import { ALL_GENERATORS } from "@/generators/registry";
+import { applicableGenerators } from "@/generators/registry";
 import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
 import type { StepResult } from "@/models/step-result";
@@ -54,8 +54,11 @@ export async function generateConfigsStep(
   fileManager: FileManager,
   strategy: ConfigStrategy = "merge"
 ): Promise<StepResult> {
+  const activeIds = new Set(languages.map((l) => l.id));
+  const applicable = applicableGenerators(activeIds);
+
   const results = await Promise.all(
-    ALL_GENERATORS.map((g) => {
+    applicable.map((g) => {
       const generate =
         g.id === lefthookGenerator.id
           ? () => generateLefthookConfig(config, languages)

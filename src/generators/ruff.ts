@@ -73,6 +73,7 @@ line-ending = "lf"
 export const ruffGenerator: ConfigGenerator = {
   id: "ruff",
   configFile: "ruff.toml",
+  languages: ["python"],
   generate(config: ResolvedConfig): string {
     return renderRuffToml(config);
   },

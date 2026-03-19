@@ -6,11 +6,15 @@ export const cppPlugin: LanguagePlugin = {
   id: "cpp",
   name: "C/C++",
 
-  async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
+  async detect({
+    projectDir,
+    fileManager,
+    ignorePaths,
+  }: DetectOptions): Promise<boolean> {
     if (await fileManager.exists(`${projectDir}/CMakeLists.txt`)) return true;
     const [cppFiles, cFiles] = await Promise.all([
-      fileManager.glob("**/*.cpp", projectDir),
-      fileManager.glob("**/*.c", projectDir),
+      fileManager.glob("**/*.cpp", projectDir, ignorePaths),
+      fileManager.glob("**/*.c", projectDir, ignorePaths),
     ]);
     return cppFiles.length > 0 || cFiles.length > 0;
   },

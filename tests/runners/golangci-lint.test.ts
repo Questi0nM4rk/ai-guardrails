@@ -22,6 +22,7 @@ function makeConfig(overrides?: Partial<ResolvedConfig>): ResolvedConfig {
     values: { line_length: 100, indent_width: 2 },
     ignoredRules: new Set(),
     ignorePaths: [],
+    noConsoleLevel: "warn",
     isAllowed: () => false,
     ...overrides,
   };

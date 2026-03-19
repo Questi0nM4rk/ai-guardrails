@@ -6,12 +6,16 @@ import {
 } from "@/config/schema";
 import { generateConfigsStep } from "@/steps/generate-configs";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+import { makePlugin } from "../fakes/fake-language-plugin";
 
 function makeConfig() {
   const machine = MachineConfigSchema.parse({});
   const project = ProjectConfigSchema.parse({});
   return buildResolvedConfig(machine, project);
 }
+
+const PYTHON = [makePlugin("python")];
+const TYPESCRIPT = [makePlugin("typescript")];
 
 // ---------------------------------------------------------------------------
 // Strategy: file does not exist — always write regardless of strategy
@@ -22,7 +26,7 @@ describe("applyStrategy — file does not exist", () => {
     const fm = new FakeFileManager();
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "merge");
+    const result = await generateConfigsStep("/project", PYTHON, config, fm, "merge");
 
     expect(result.status).toBe("ok");
     const writtenPaths = fm.written.map(([p]) => p);
@@ -33,7 +37,7 @@ describe("applyStrategy — file does not exist", () => {
     const fm = new FakeFileManager();
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "skip");
+    const result = await generateConfigsStep("/project", PYTHON, config, fm, "skip");
 
     // skip only skips existing files — new files are still written
     expect(result.status).toBe("ok");
@@ -45,7 +49,7 @@ describe("applyStrategy — file does not exist", () => {
     const fm = new FakeFileManager();
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "replace");
+    const result = await generateConfigsStep("/project", PYTHON, config, fm, "replace");
 
     expect(result.status).toBe("ok");
     const writtenPaths = fm.written.map(([p]) => p);
@@ -63,7 +67,7 @@ describe("applyStrategy — file exists + skip", () => {
     fm.seed("/project/ruff.toml", "# existing content\n");
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "skip");
+    const result = await generateConfigsStep("/project", PYTHON, config, fm, "skip");
 
     expect(result.status).toBe("ok");
     // ruff.toml should not appear in written list
@@ -76,7 +80,7 @@ describe("applyStrategy — file exists + skip", () => {
     fm.seed("/project/ruff.toml", "# existing\n");
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "skip");
+    const result = await generateConfigsStep("/project", PYTHON, config, fm, "skip");
 
     expect(result.status).toBe("ok");
     expect(result.message).toContain("Skipped");
@@ -93,7 +97,7 @@ describe("applyStrategy — file exists + replace", () => {
     fm.seed("/project/ruff.toml", "# old content that should be replaced\n");
     const config = makeConfig();
 
-    await generateConfigsStep("/project", [], config, fm, "replace");
+    await generateConfigsStep("/project", PYTHON, config, fm, "replace");
 
     const writeEntry = fm.written.find(([p]) => p === "/project/ruff.toml");
     expect(writeEntry).toBeDefined();
@@ -115,7 +119,7 @@ describe("applyStrategy — file exists + merge on TOML", () => {
     fm.seed("/project/ruff.toml", 'line-length = 100\n[custom]\nkey = "user-value"\n');
     const config = makeConfig();
 
-    await generateConfigsStep("/project", [], config, fm, "merge");
+    await generateConfigsStep("/project", PYTHON, config, fm, "merge");
 
     const writeEntry = fm.written.find(([p]) => p === "/project/ruff.toml");
     expect(writeEntry).toBeDefined();
@@ -143,7 +147,13 @@ describe("applyStrategy — file exists + merge on JSONC", () => {
     fm.seed("/project/biome.jsonc", existingJsonc);
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "merge");
+    const result = await generateConfigsStep(
+      "/project",
+      TYPESCRIPT,
+      config,
+      fm,
+      "merge"
+    );
 
     expect(result.status).toBe("ok");
     const writeEntry = fm.written.find(([p]) => p === "/project/biome.jsonc");
@@ -169,7 +179,13 @@ describe("applyStrategy — file exists + merge on JSONC", () => {
     fm.seed("/project/biome.jsonc", existingJsonc);
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "merge");
+    const result = await generateConfigsStep(
+      "/project",
+      TYPESCRIPT,
+      config,
+      fm,
+      "merge"
+    );
 
     expect(result.status).toBe("ok");
     // biome.jsonc is mergeable; parse must not fail on the URL
@@ -212,7 +228,7 @@ describe("applyStrategy — parse error falls back to replace", () => {
     const config = makeConfig();
 
     // Should not throw — falls back to replace or surfaces as error
-    const result = await generateConfigsStep("/project", [], config, fm, "merge");
+    const result = await generateConfigsStep("/project", PYTHON, config, fm, "merge");
 
     if (result.status === "ok") {
       const writeEntry = fm.written.find(([p]) => p === "/project/ruff.toml");
@@ -231,7 +247,13 @@ describe("applyStrategy — parse error falls back to replace", () => {
     fm.seed("/project/biome.jsonc", "{ not valid json }");
     const config = makeConfig();
 
-    const result = await generateConfigsStep("/project", [], config, fm, "merge");
+    const result = await generateConfigsStep(
+      "/project",
+      TYPESCRIPT,
+      config,
+      fm,
+      "merge"
+    );
 
     // Either falls back to generated (ok) or surfaces as error
     expect(["ok", "error"]).toContain(result.status);

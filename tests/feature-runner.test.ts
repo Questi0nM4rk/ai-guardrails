@@ -7,6 +7,9 @@ import "./steps/generator.steps";
 import "./steps/language.steps";
 import "./steps/check-pipeline.steps";
 import "./steps/install-pipeline.steps";
+import "./steps/generator-filtering.steps";
+import "./steps/ci-workflow.steps";
+import "./steps/no-console.steps";
 
 const features = await loadFeatures("tests/features/**/*.feature", {
   cwd: process.cwd(),

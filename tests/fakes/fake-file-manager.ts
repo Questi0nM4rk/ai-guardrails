@@ -36,14 +36,26 @@ export class FakeFileManager implements FileManager {
     // no-op for fake
   }
 
-  async glob(pattern: string, _cwd: string): Promise<string[]> {
+  async glob(
+    pattern: string,
+    cwd: string,
+    ignore?: readonly string[]
+  ): Promise<string[]> {
+    const prefix = cwd.endsWith("/") ? cwd : `${cwd}/`;
     const results: string[] = [];
     for (const key of this.files.keys()) {
       if (matchesGlob(key, pattern)) {
         results.push(key);
       }
     }
-    return results;
+    if (ignore === undefined || ignore.length === 0) return results;
+    // Strip the cwd prefix before testing ignore patterns so that relative
+    // patterns (e.g. "node_modules/**") match correctly — mirroring how
+    // RealFileManager returns and filters relative paths from Bun's Glob.scan.
+    return results.filter((f) => {
+      const relative = f.startsWith(prefix) ? f.slice(prefix.length) : f;
+      return !ignore.some((ig) => matchesGlob(relative, ig));
+    });
   }
 
   async isSymlink(_path: string): Promise<boolean> {

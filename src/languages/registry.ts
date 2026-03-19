@@ -1,4 +1,5 @@
 import type { FileManager } from "@/infra/file-manager";
+import { DEFAULT_IGNORE } from "@/languages/constants";
 import { cppPlugin } from "@/languages/cpp";
 import { dotnetPlugin } from "@/languages/dotnet";
 import { goPlugin } from "@/languages/go";
@@ -30,12 +31,18 @@ export const ALL_PLUGINS: readonly LanguagePlugin[] = [
  */
 export async function detectLanguages(
   projectDir: string,
-  fileManager: FileManager
+  fileManager: FileManager,
+  ignorePaths?: readonly string[]
 ): Promise<LanguagePlugin[]> {
+  const mergedIgnore: readonly string[] = [...DEFAULT_IGNORE, ...(ignorePaths ?? [])];
   const results = await Promise.all(
     ALL_PLUGINS.map(async (plugin) => ({
       plugin,
-      active: await plugin.detect({ projectDir, fileManager }),
+      active: await plugin.detect({
+        projectDir,
+        fileManager,
+        ignorePaths: mergedIgnore,
+      }),
     }))
   );
   return results.filter((r) => r.active).map((r) => r.plugin);

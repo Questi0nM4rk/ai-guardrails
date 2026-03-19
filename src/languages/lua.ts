@@ -6,8 +6,12 @@ export const luaPlugin: LanguagePlugin = {
   id: "lua",
   name: "Lua",
 
-  async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
-    const luaFiles = await fileManager.glob("**/*.lua", projectDir);
+  async detect({
+    projectDir,
+    fileManager,
+    ignorePaths,
+  }: DetectOptions): Promise<boolean> {
+    const luaFiles = await fileManager.glob("**/*.lua", projectDir, ignorePaths);
     return luaFiles.length > 0;
   },
 

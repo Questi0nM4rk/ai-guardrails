@@ -7,8 +7,16 @@ export const shellPlugin: LanguagePlugin = {
   id: "shell",
   name: "Shell",
 
-  async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
-    const files = await fileManager.glob("**/*.{sh,bash,zsh,ksh}", projectDir);
+  async detect({
+    projectDir,
+    fileManager,
+    ignorePaths,
+  }: DetectOptions): Promise<boolean> {
+    const files = await fileManager.glob(
+      "**/*.{sh,bash,zsh,ksh}",
+      projectDir,
+      ignorePaths
+    );
     return files.length > 0;
   },
 

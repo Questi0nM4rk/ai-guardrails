@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs";
 import { Glob } from "bun";
+import { minimatch } from "minimatch";
 
 export interface FileManager {
   readText(path: string): Promise<string>;
@@ -7,7 +8,7 @@ export interface FileManager {
   appendText(path: string, content: string): Promise<void>;
   exists(path: string): Promise<boolean>;
   mkdir(path: string, opts?: { parents?: boolean }): Promise<void>;
-  glob(pattern: string, cwd: string): Promise<string[]>;
+  glob(pattern: string, cwd: string, ignore?: readonly string[]): Promise<string[]>;
   isSymlink(path: string): Promise<boolean>;
 }
 
@@ -37,13 +38,18 @@ export class RealFileManager implements FileManager {
     await fs.mkdir(path, { recursive: opts?.parents ?? false });
   }
 
-  async glob(pattern: string, cwd: string): Promise<string[]> {
+  async glob(
+    pattern: string,
+    cwd: string,
+    ignore?: readonly string[]
+  ): Promise<string[]> {
     const g = new Glob(pattern);
     const results: string[] = [];
     for await (const file of g.scan({ cwd, absolute: false })) {
       results.push(file);
     }
-    return results;
+    if (ignore === undefined || ignore.length === 0) return results;
+    return results.filter((f) => !ignore.some((ig) => minimatch(f, ig)));
   }
 
   async isSymlink(path: string): Promise<boolean> {
