@@ -1,5 +1,6 @@
 import { ConfigStrategySchema } from "@/config/schema";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
+import { getBiomeVersion } from "@/runners/biome";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { generateConfigsStep } from "@/steps/generate-configs";
 import { loadConfigStep } from "@/steps/load-config";
@@ -33,9 +34,11 @@ export const installPipeline: Pipeline = {
     }
     cons.success(configResult.message);
 
-    // Detect noConsole level only when TypeScript is active (biome is the only consumer)
+    // Detect noConsole level and biome version only when TypeScript is active
+    // (biome is the only consumer of both)
     const hasTypeScript = languages.some((l) => l.id === "typescript");
     let noConsoleLevel = config.noConsoleLevel;
+    let biomeVersion: string | undefined;
     if (hasTypeScript) {
       const pkgJsonPath = `${projectDir}/package.json`;
       const pkgJsonExists = await fileManager.exists(pkgJsonPath);
@@ -49,8 +52,16 @@ export const installPipeline: Pipeline = {
         }
         noConsoleLevel = detectNoConsoleLevel(parsed);
       }
+      biomeVersion = await getBiomeVersion(commandRunner, projectDir);
     }
-    const configWithConsoleLevel = { ...config, noConsoleLevel };
+    const configWithConsoleLevel = {
+      ...config,
+      noConsoleLevel,
+      values: {
+        ...config.values,
+        ...(biomeVersion !== undefined && { biome_version: biomeVersion }),
+      },
+    };
 
     cons.step("Generating configs...");
     const rawStrategy = ctx.flags.configStrategy;

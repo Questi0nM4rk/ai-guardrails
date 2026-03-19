@@ -16,6 +16,7 @@ function makeFailingFileManager(): FileManager {
     mkdir: (p, o) => inner.mkdir(p, o),
     glob: (p, c, i) => inner.glob(p, c, i),
     isSymlink: (p) => inner.isSymlink(p),
+    delete: (p) => inner.delete(p),
   };
 }
 

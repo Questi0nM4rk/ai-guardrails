@@ -2,6 +2,11 @@ import { promises as fs } from "node:fs";
 import { Glob } from "bun";
 import { minimatch } from "minimatch";
 
+function isEnoent(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) return false;
+  return "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT";
+}
+
 export interface FileManager {
   readText(path: string): Promise<string>;
   writeText(path: string, content: string): Promise<void>;
@@ -10,6 +15,7 @@ export interface FileManager {
   mkdir(path: string, opts?: { parents?: boolean }): Promise<void>;
   glob(pattern: string, cwd: string, ignore?: readonly string[]): Promise<string[]>;
   isSymlink(path: string): Promise<boolean>;
+  delete(path: string): Promise<void>;
 }
 
 export class RealFileManager implements FileManager {
@@ -58,6 +64,15 @@ export class RealFileManager implements FileManager {
       return stat.isSymbolicLink();
     } catch {
       return false;
+    }
+  }
+
+  async delete(path: string): Promise<void> {
+    try {
+      await fs.unlink(path);
+    } catch (err: unknown) {
+      if (isEnoent(err)) return; // already deleted — idempotent
+      throw err;
     }
   }
 }
