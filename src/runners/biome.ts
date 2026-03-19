@@ -6,6 +6,34 @@ import type { LinterRunner, RunOptions } from "@/runners/types";
 import { safeParseJson } from "@/utils/parse";
 import { resolveToolPath } from "@/utils/resolve-tool-path";
 
+async function detectBiomeVersion(
+  commandRunner: CommandRunner,
+  projectDir: string
+): Promise<string | undefined> {
+  const cmd = (await resolveToolPath("biome", projectDir, commandRunner)) ?? "biome";
+  const result = await commandRunner.run([cmd, "--version"], { cwd: projectDir });
+  const match = /(\d+\.\d+\.\d+)/.exec(result.stdout);
+  return match?.[1];
+}
+
+const biomeVersionCache = new Map<string, Promise<string | undefined>>();
+
+export async function getBiomeVersion(
+  commandRunner: CommandRunner,
+  projectDir: string
+): Promise<string | undefined> {
+  const cached = biomeVersionCache.get(projectDir);
+  if (cached !== undefined) return cached;
+  const promise = detectBiomeVersion(commandRunner, projectDir);
+  biomeVersionCache.set(projectDir, promise);
+  return promise;
+}
+
+/** Reset the biome version cache. Exported for test isolation. */
+export function resetBiomeVersionCache(): void {
+  biomeVersionCache.clear();
+}
+
 const BIOME_LINTER_ID = "biome";
 const BIOME_RULE_PREFIX = "biome/";
 

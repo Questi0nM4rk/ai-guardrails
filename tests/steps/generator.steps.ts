@@ -142,6 +142,17 @@ When<GeneratorWorld>(
 );
 
 When<GeneratorWorld>(
+  "I generate with biome_version {string}",
+  (world: GeneratorWorld, version: unknown) => {
+    world.generatorOutput = world.generator.generate(
+      makeDefaultConfig({
+        values: { line_length: 88, indent_width: 2, biome_version: String(version) },
+      })
+    );
+  }
+);
+
+When<GeneratorWorld>(
   "I generate with ignorePaths containing {string}",
   (world: GeneratorWorld, path: unknown) => {
     world.generatorOutput = world.generator.generate(
