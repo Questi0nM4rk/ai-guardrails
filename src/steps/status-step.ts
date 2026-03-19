@@ -1,43 +1,20 @@
-import { join } from "node:path";
-import { z } from "zod";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
-import { classifyFingerprint, loadBaseline } from "@/models/baseline";
+import { classifyFingerprint, loadBaselineFromFile } from "@/models/baseline";
 import type { LintIssue } from "@/models/lint-issue";
 import { BASELINE_PATH } from "@/models/paths";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { runLinterCollection } from "@/steps/run-linters";
 
-const BaselineEntrySchema = z.object({
-  fingerprint: z.string(),
-  rule: z.string(),
-  linter: z.string(),
-  file: z.string(),
-  line: z.number(),
-  message: z.string(),
-  capturedAt: z.string(),
-});
-
 export interface StatusStepOutput {
   result: StepResult;
   newIssues: LintIssue[];
   fixedCount: number;
   baselineCount: number;
-}
-
-async function loadBaselineFromFile(projectDir: string, fileManager: FileManager) {
-  try {
-    const text = await fileManager.readText(join(projectDir, BASELINE_PATH));
-    const parsed = JSON.parse(text);
-    const entries = z.array(BaselineEntrySchema).parse(parsed);
-    return loadBaseline(entries);
-  } catch {
-    return null;
-  }
 }
 
 export async function statusStep(
@@ -49,7 +26,7 @@ export async function statusStep(
   console: Console
 ): Promise<StatusStepOutput> {
   try {
-    const baseline = await loadBaselineFromFile(projectDir, fileManager);
+    const baseline = await loadBaselineFromFile(projectDir, BASELINE_PATH, fileManager);
     const baselineMap = baseline ?? new Map();
 
     const allIssues = await runLinterCollection(

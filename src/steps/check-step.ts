@@ -1,12 +1,11 @@
-import { join, relative } from "node:path";
+import { relative } from "node:path";
 import { minimatch } from "minimatch";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { LanguagePlugin } from "@/languages/types";
-import type { BaselineEntry } from "@/models/baseline";
-import { classifyFingerprint, loadBaseline } from "@/models/baseline";
+import { classifyFingerprint, loadBaselineFromFile } from "@/models/baseline";
 import type { LintIssue } from "@/models/lint-issue";
 import { BASELINE_PATH } from "@/models/paths";
 import type { StepResult } from "@/models/step-result";
@@ -70,17 +69,8 @@ export async function checkStep(
       return true;
     });
 
-    const baselinePath = join(projectDir, BASELINE_PATH);
-    let baseline: ReadonlyMap<string, BaselineEntry> = new Map();
-    try {
-      const raw = await fileManager.readText(baselinePath);
-      const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        baseline = loadBaseline(parsed as readonly BaselineEntry[]);
-      }
-    } catch {
-      // No baseline file or invalid JSON — treat all issues as new
-    }
+    const baseline =
+      (await loadBaselineFromFile(projectDir, BASELINE_PATH, fileManager)) ?? new Map();
 
     const newIssues = filtered.filter(
       (issue) => classifyFingerprint(issue.fingerprint, baseline) === "new"
