@@ -10,6 +10,7 @@ export interface FileManager {
   mkdir(path: string, opts?: { parents?: boolean }): Promise<void>;
   glob(pattern: string, cwd: string, ignore?: readonly string[]): Promise<string[]>;
   isSymlink(path: string): Promise<boolean>;
+  delete(path: string): Promise<void>;
 }
 
 export class RealFileManager implements FileManager {
@@ -59,5 +60,9 @@ export class RealFileManager implements FileManager {
     } catch {
       return false;
     }
+  }
+
+  async delete(path: string): Promise<void> {
+    await fs.unlink(path);
   }
 }
