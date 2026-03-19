@@ -3,7 +3,11 @@ import { z } from "zod";
 
 import { BASELINE_PATH } from "@/models/paths";
 
-const BaselineEntrySchema = z.object({
+/**
+ * Zod schema for baseline entries. Single source of truth for the type.
+ * Stored in .ai-guardrails/baseline.json as an array.
+ */
+export const BaselineEntrySchema = z.object({
   fingerprint: z.string(),
   rule: z.string(),
   linter: z.string(),
@@ -13,19 +17,7 @@ const BaselineEntrySchema = z.object({
   capturedAt: z.string(),
 });
 
-/**
- * A single entry in the baseline snapshot.
- * Stored in .ai-guardrails/baseline.json as an array.
- */
-export interface BaselineEntry {
-  readonly fingerprint: string;
-  readonly rule: string;
-  readonly linter: string;
-  readonly file: string; // project-relative path
-  readonly line: number;
-  readonly message: string;
-  readonly capturedAt: string; // ISO 8601
-}
+export type BaselineEntry = z.infer<typeof BaselineEntrySchema>;
 
 /**
  * Comparison result when checking a LintIssue against the baseline.
