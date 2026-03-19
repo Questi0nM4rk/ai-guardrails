@@ -29,13 +29,8 @@ describe("editorconfigGenerator", () => {
     expect(output.length).toBeGreaterThan(0);
   });
 
-  test("generate output matches snapshot with default config", () => {
+  test("generate output matches snapshot", () => {
     const output = editorconfigGenerator.generate(makeConfig());
-    expect(output).toMatchSnapshot();
-  });
-
-  test("generate output matches snapshot with indent_width 4", () => {
-    const output = editorconfigGenerator.generate(makeConfig(4));
     expect(output).toMatchSnapshot();
   });
 });

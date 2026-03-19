@@ -27,15 +27,14 @@ describe("setupAgentInstructionsStep", () => {
     expect(writtenPaths.some((p) => p.includes("cursorrules"))).toBe(true);
   });
 
-  test("writes agent rules file for claude when .claude/settings.json exists", async () => {
+  test("returns ok without writing when only claude tool is detected", async () => {
     const fm = new FakeFileManager();
     fm.seed("/project/.claude/settings.json", "{}");
 
     const result = await setupAgentInstructionsStep("/project", fm);
 
-    // claude has no entry in AGENT_SYMLINKS, so writeToolRules returns null
-    // All keys return null → "skipped" message
     expect(result.status).toBe("ok");
+    expect(fm.written).toHaveLength(0);
   });
 
   test("writes agent rules for windsurf when .windsurfrules exists", async () => {

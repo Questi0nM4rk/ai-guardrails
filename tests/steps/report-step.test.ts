@@ -132,9 +132,11 @@ describe("reportStep — error handling", () => {
       delete: (p) => inner.delete(p),
     };
 
-    // reportStep does not have a try/catch — it will throw through
-    // Verify no crash for text format (no file write)
-    const result = await reportStep([], "text", console, throwingFm);
-    expect(result.status).toBe("ok");
+    const issues = [makeIssue()];
+    const result = await reportStep(issues, "sarif", console, throwingFm);
+    expect(result.status).toBe("error");
+    if (result.message) {
+      expect(result.message).toContain("disk full");
+    }
   });
 });

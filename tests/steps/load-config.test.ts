@@ -61,8 +61,8 @@ describe("loadConfigStep", () => {
   });
 });
 
-describe("loadConfigStep — FileManager error propagation", () => {
-  test("returns error when FileManager throws unexpectedly", async () => {
+describe("loadConfigStep — FileManager error handling", () => {
+  test("returns ok with defaults when all FileManager reads throw", async () => {
     const inner = new FakeFileManager();
     const throwingFm: FileManager = {
       readText: async () => {
@@ -77,15 +77,8 @@ describe("loadConfigStep — FileManager error propagation", () => {
       delete: (p) => inner.delete(p),
     };
 
-    // readTomlSafe catches file-not-found, but we throw for all reads
-    // This will propagate because the error is not a "file not found" pattern
-    // Actually readTomlSafe catches ALL errors — so this goes to the outer catch
-    // via Zod parse of bad data. Let's test a different error path.
-    // We seed nothing; readText throws "File not found" which readTomlSafe catches.
-    // So we need a non-file-not-found error to exercise the outer catch.
-    // The outer catch is exercised by Zod failures. So this test confirms no throw.
+    // readTomlSafe catches all errors and returns {} — config falls back to defaults
     const { result } = await loadConfigStep("/project", throwingFm);
-    // readTomlSafe catches all errors and returns {}, so this should succeed with defaults
     expect(result.status).toBe("ok");
   });
 });
