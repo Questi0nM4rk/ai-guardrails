@@ -94,3 +94,30 @@ Feature: Language detection
   Scenario: TypeScript plugin returns exactly 2 runners
     When the "typescript" plugin runners are inspected
     Then there should be 2 runners
+
+  # Ignore path scenarios — files in dependency dirs must NOT trigger detection
+
+  Scenario Outline: Files in ignored dirs do not trigger detection
+    Given a project with only a file at ignored path "<path>"
+    When languages are detected
+    Then "<language>" should not be detected
+
+    Examples:
+      | language   | path                                       |
+      | python     | node_modules/pkg/helper.py                 |
+      | python     | .venv/lib/python3.11/site.py               |
+      | typescript | node_modules/react/index.js                |
+      | typescript | dist/bundle.js                             |
+      | shell      | vendor/scripts/build.sh                    |
+      | cpp        | build/generated/foo.cpp                    |
+      | lua        | vendor/libs/module.lua                     |
+
+  Scenario: src/app.py still triggers Python detection
+    Given a project with file "src/app.py"
+    When languages are detected
+    Then "python" should be detected
+
+  Scenario: Python file only in node_modules does not trigger detection
+    Given a project with only a file at ignored path "node_modules/pkg/helper.py"
+    When languages are detected
+    Then "python" should not be detected

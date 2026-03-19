@@ -7,9 +7,13 @@ export const pythonPlugin: LanguagePlugin = {
   id: "python",
   name: "Python",
 
-  async detect({ projectDir, fileManager }: DetectOptions): Promise<boolean> {
+  async detect({
+    projectDir,
+    fileManager,
+    ignorePaths,
+  }: DetectOptions): Promise<boolean> {
     if (await fileManager.exists(`${projectDir}/pyproject.toml`)) return true;
-    const pyFiles = await fileManager.glob("**/*.py", projectDir);
+    const pyFiles = await fileManager.glob("**/*.py", projectDir, ignorePaths);
     return pyFiles.length > 0;
   },
 

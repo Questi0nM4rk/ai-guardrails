@@ -7,6 +7,7 @@ import { setupAgentInstructionsStep } from "@/steps/setup-agent-instructions";
 import { setupCiStep } from "@/steps/setup-ci";
 import { setupHooksStep } from "@/steps/setup-hooks";
 import { validateConfigsStep } from "@/steps/validate-configs";
+import { detectNoConsoleLevel } from "@/utils/detect-project-type";
 
 export const installPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
@@ -32,6 +33,25 @@ export const installPipeline: Pipeline = {
     }
     cons.success(configResult.message);
 
+    // Detect noConsole level only when TypeScript is active (biome is the only consumer)
+    const hasTypeScript = languages.some((l) => l.id === "typescript");
+    let noConsoleLevel = config.noConsoleLevel;
+    if (hasTypeScript) {
+      const pkgJsonPath = `${projectDir}/package.json`;
+      const pkgJsonExists = await fileManager.exists(pkgJsonPath);
+      if (pkgJsonExists) {
+        const pkgJsonText = await fileManager.readText(pkgJsonPath);
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(pkgJsonText);
+        } catch {
+          parsed = null;
+        }
+        noConsoleLevel = detectNoConsoleLevel(parsed);
+      }
+    }
+    const configWithConsoleLevel = { ...config, noConsoleLevel };
+
     cons.step("Generating configs...");
     const rawStrategy = ctx.flags.configStrategy;
     const strategyParsed = ConfigStrategySchema.safeParse(rawStrategy ?? "merge");
@@ -45,7 +65,7 @@ export const installPipeline: Pipeline = {
     const genResult = await generateConfigsStep(
       projectDir,
       languages,
-      config,
+      configWithConsoleLevel,
       fileManager,
       configStrategy
     );
@@ -55,7 +75,12 @@ export const installPipeline: Pipeline = {
     cons.success(genResult.message);
 
     cons.step("Validating configs...");
-    const validateResult = await validateConfigsStep(projectDir, fileManager);
+    const activeLanguageIds = new Set(languages.map((l) => l.id));
+    const validateResult = await validateConfigsStep(
+      projectDir,
+      fileManager,
+      activeLanguageIds
+    );
     if (validateResult.status === "error") {
       return { status: "error", message: validateResult.message };
     }
@@ -67,7 +92,7 @@ export const installPipeline: Pipeline = {
       const hooksResult = await setupHooksStep(
         projectDir,
         languages,
-        config,
+        configWithConsoleLevel,
         fileManager,
         commandRunner
       );

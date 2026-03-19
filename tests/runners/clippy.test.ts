@@ -13,6 +13,7 @@ function makeConfig(): ResolvedConfig {
     values: { line_length: 100, indent_width: 4 },
     ignoredRules: new Set(),
     ignorePaths: [],
+    noConsoleLevel: "warn",
     isAllowed: () => false,
   };
 }

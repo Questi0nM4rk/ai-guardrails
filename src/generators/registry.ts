@@ -19,3 +19,13 @@ export const ALL_GENERATORS: readonly ConfigGenerator[] = [
   claudeSettingsGenerator,
   agentRulesGenerator,
 ];
+
+/** Filter generators to those applicable for the given active language IDs */
+export function applicableGenerators(
+  activeLanguageIds: ReadonlySet<string>
+): readonly ConfigGenerator[] {
+  return ALL_GENERATORS.filter(
+    (g) =>
+      g.languages === undefined || g.languages.some((id) => activeLanguageIds.has(id))
+  );
+}

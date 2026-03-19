@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
-"// ai-guardrails:sha256=1a1267c177bacb16495e376cc6a2ac3732e3936e7746a03cd65209c627246b0f
+"// ai-guardrails:sha256=308144b8ee25b8a4ccd5368278396790c43e0c4e2972e3de8b2139f1651560c7
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "linter": {
@@ -18,7 +18,7 @@ exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "error",
+        "noConsole": "warn",
         "useBiomeIgnoreFolder": "off"
       }
     }

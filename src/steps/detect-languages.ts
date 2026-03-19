@@ -6,10 +6,11 @@ import { error, ok } from "@/models/step-result";
 
 export async function detectLanguagesStep(
   projectDir: string,
-  fileManager: FileManager
+  fileManager: FileManager,
+  ignorePaths?: readonly string[]
 ): Promise<{ result: StepResult; languages: LanguagePlugin[] }> {
   try {
-    const languages = await detectLanguages(projectDir, fileManager);
+    const languages = await detectLanguages(projectDir, fileManager, ignorePaths);
     const names = languages.map((p) => p.name).join(", ");
     return {
       result: ok(`Detected languages: ${names || "none"}`),
