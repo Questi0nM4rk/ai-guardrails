@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
+import type { FileManager } from "@/infra/file-manager";
 import { setupCiStep } from "@/steps/setup-ci";
 import { FakeFileManager } from "../fakes/fake-file-manager";
+
+/** A FileManager that throws on writeText — for testing error paths */
+class FailingFileManager extends FakeFileManager implements FileManager {
+  override async writeText(_path: string, _content: string): Promise<void> {
+    throw new Error("disk full");
+  }
+}
 
 describe("setupCiStep", () => {
   test("writes workflow file to .github/workflows/ai-guardrails.yml", async () => {
@@ -48,11 +56,7 @@ describe("setupCiStep", () => {
   });
 
   test("returns error when fileManager throws", async () => {
-    const fm = new FakeFileManager();
-    // Override writeText to simulate failure
-    fm.writeText = async (_path: string, _content: string): Promise<void> => {
-      throw new Error("disk full");
-    };
+    const fm = new FailingFileManager();
 
     const result = await setupCiStep("/project", fm);
 
