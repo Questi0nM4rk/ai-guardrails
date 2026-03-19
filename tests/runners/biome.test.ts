@@ -1,12 +1,20 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { resolve } from "node:path";
 import type { ResolvedConfig } from "@/config/schema";
-import { biomeRunner, parseBiomeRdjsonOutput } from "@/runners/biome";
+import {
+  biomeRunner,
+  getBiomeVersion,
+  parseBiomeRdjsonOutput,
+  resetBiomeVersionCache,
+} from "@/runners/biome";
 import { clearResolveToolPathCache } from "@/utils/resolve-tool-path";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
-beforeEach(() => clearResolveToolPathCache());
+beforeEach(() => {
+  clearResolveToolPathCache();
+  resetBiomeVersionCache();
+});
 
 const FIXTURE_PATH = resolve(import.meta.dir, "../fixtures/biome-rdjson-output.json");
 const PROJECT_DIR = "/project";
@@ -309,5 +317,44 @@ describe("biomeRunner node_modules/.bin resolution", () => {
       PROJECT_DIR,
     ]);
     expect(issues).toHaveLength(3);
+  });
+});
+
+describe("getBiomeVersion", () => {
+  test("getBiomeVersion parses version from biome output", async () => {
+    const runner = new FakeCommandRunner();
+    runner.register([LOCAL_BIOME_PROJECT, "--version"], {
+      stdout: "biome 2.4.8",
+      stderr: "",
+      exitCode: 0,
+    });
+    // resolveToolPath probes local first — register the version call for local path
+    runner.register([LOCAL_BIOME_PROJECT, "--version"], {
+      stdout: "biome 2.4.8",
+      stderr: "",
+      exitCode: 0,
+    });
+
+    const version = await getBiomeVersion(runner, PROJECT_DIR);
+    expect(version).toBe("2.4.8");
+  });
+
+  test("getBiomeVersion returns undefined on failure", async () => {
+    const runner = new FakeCommandRunner();
+    // local biome absent
+    runner.register([LOCAL_BIOME_PROJECT, "--version"], {
+      stdout: "",
+      stderr: "not found",
+      exitCode: 127,
+    });
+    // global biome absent
+    runner.register(["biome", "--version"], {
+      stdout: "",
+      stderr: "not found",
+      exitCode: 127,
+    });
+
+    const version = await getBiomeVersion(runner, PROJECT_DIR);
+    expect(version).toBeUndefined();
   });
 });

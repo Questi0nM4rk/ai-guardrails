@@ -1,9 +1,8 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
-"// ai-guardrails:sha256=308144b8ee25b8a4ccd5368278396790c43e0c4e2972e3de8b2139f1651560c7
+"// ai-guardrails:sha256=8535b5a6aa8e4be8de148a1e715d2b8aaaa03bbbb12eda9858043a0d2c3796fb
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "linter": {
     "enabled": true,
     "rules": {

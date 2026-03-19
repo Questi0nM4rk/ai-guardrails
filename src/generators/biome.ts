@@ -6,6 +6,15 @@ function renderBiomeJson(config: ResolvedConfig): string {
   const lineWidth = config.values.line_length ?? 100;
   const indentWidth = config.values.indent_width ?? 2;
 
+  const biomeVersion =
+    typeof config.values.biome_version === "string"
+      ? config.values.biome_version
+      : undefined;
+  const schemaSection =
+    biomeVersion !== undefined
+      ? { $schema: `https://biomejs.dev/schemas/${biomeVersion}/schema.json` }
+      : {};
+
   // Biome v2.4.x uses files.includes with negated globs for exclusions
   const filesSection =
     config.ignorePaths.length > 0
@@ -14,7 +23,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
 
   return JSON.stringify(
     {
-      $schema: "https://biomejs.dev/schemas/2.4.6/schema.json",
+      ...schemaSection,
       ...filesSection,
       linter: {
         enabled: true,
