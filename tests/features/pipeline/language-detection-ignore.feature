@@ -87,7 +87,7 @@ Feature: Language detection ignore paths
       | python     | .venv/lib/site-packages/x.py    | .venv           |
       | python     | venv/lib/python3.11/x.py        | venv            |
       | python     | __pycache__/cache.py            | __pycache__     |
-      | typescript | build/output.js                 | build           |
+      | typescript | build/output.ts                 | build           |
       | shell      | target/release/build.sh         | target          |
 
   # ─── Universal plugin is always detected ──────────────────────────────────
