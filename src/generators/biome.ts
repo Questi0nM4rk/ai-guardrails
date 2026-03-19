@@ -30,7 +30,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
           },
           suspicious: {
             noExplicitAny: "error",
-            noConsole: "error",
+            noConsole: config.noConsoleLevel,
             useBiomeIgnoreFolder: "off",
           },
         },

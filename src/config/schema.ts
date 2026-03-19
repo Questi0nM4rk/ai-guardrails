@@ -84,6 +84,7 @@ export interface ResolvedConfig {
   hooks?: HooksSchemaConfig;
   ignoredRules: ReadonlySet<string>;
   ignorePaths: readonly string[];
+  noConsoleLevel: "off" | "warn" | "error";
   isAllowed(rule: string, filePath: string): boolean;
 }
 
@@ -123,6 +124,7 @@ export function buildResolvedConfig(
     ...(project.hooks !== undefined && { hooks: project.hooks }),
     ignoredRules,
     ignorePaths,
+    noConsoleLevel: "warn" as const,
     isAllowed(rule: string, filePath: string): boolean {
       if (ignoredRules.has(rule)) return true;
       return allow.some(
