@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 
 const MARKDOWNLINT_LINTER_ID = "markdownlint";
 const MARKDOWNLINT_RULE_PREFIX = "markdownlint/";
@@ -11,14 +11,14 @@ const MARKDOWNLINT_RULE_PREFIX = "markdownlint/";
 const MARKDOWNLINT_LINE_PATTERN = /^(.+):(\d+)\s+(MD\d+)(?:\/[\w-]+)?\s+(.+)$/;
 
 /**
- * Parse markdownlint-cli2 stdout into LintIssue[].
+ * Parse markdownlint-cli2 stdout into raw issues without fingerprints.
  * Returns [] on empty or non-matching input.
  */
 export function parseMarkdownlintOutput(
   stdout: string,
   projectDir: string
-): LintIssue[] {
-  const issues: LintIssue[] = [];
+): Omit<LintIssue, "fingerprint">[] {
+  const issues: Omit<LintIssue, "fingerprint">[] = [];
   for (const line of stdout.split("\n")) {
     const match = MARKDOWNLINT_LINE_PATTERN.exec(line);
     if (!match) continue;
@@ -28,14 +28,6 @@ export function parseMarkdownlintOutput(
     const file = resolve(projectDir, filePath);
     const lineNum = Number.parseInt(lineStr, 10);
     const rule = MARKDOWNLINT_RULE_PREFIX + ruleCode;
-    // filePath is project-relative (markdownlint-cli2 emits relative paths)
-    const fingerprint = computeFingerprint({
-      rule,
-      file: filePath,
-      lineContent: message,
-      contextBefore: [],
-      contextAfter: [],
-    });
     issues.push({
       rule,
       linter: MARKDOWNLINT_LINTER_ID,
@@ -44,7 +36,6 @@ export function parseMarkdownlintOutput(
       col: 1,
       message,
       severity: "warning",
-      fingerprint,
     });
   }
   return issues;
@@ -64,7 +55,11 @@ export const markdownlintRunner: LinterRunner = {
     return result.exitCode === 0;
   },
 
-  async run({ projectDir, commandRunner }: RunOptions): Promise<LintIssue[]> {
+  async run({
+    projectDir,
+    commandRunner,
+    fileManager,
+  }: RunOptions): Promise<LintIssue[]> {
     const result = await commandRunner.run(
       [
         "markdownlint-cli2",
@@ -80,6 +75,7 @@ export const markdownlintRunner: LinterRunner = {
       { cwd: projectDir }
     );
     // markdownlint-cli2 exits non-zero on issues — parse stdout regardless
-    return parseMarkdownlintOutput(result.stdout, projectDir);
+    const raw = parseMarkdownlintOutput(result.stdout, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };

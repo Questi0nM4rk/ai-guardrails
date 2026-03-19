@@ -38,7 +38,6 @@ describe("parseSeleneOutput", () => {
     expect(first.line).toBe(10);
     expect(first.col).toBe(5);
     expect(first.message).toBe("unused variable `score`");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("maps Warning severity to warning", () => {

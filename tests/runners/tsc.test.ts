@@ -42,7 +42,6 @@ describe("parseTscOutput", () => {
     expect(first.col).toBe(5);
     expect(first.message).toBe("Type 'string' is not assignable to type 'number'.");
     expect(first.severity).toBe("error");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("returns [] for clean output", () => {

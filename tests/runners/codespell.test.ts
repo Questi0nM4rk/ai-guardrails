@@ -40,7 +40,6 @@ describe("parseCodespellOutput", () => {
     // The message format is "Spelling: <typo> ==> <correction>"
     expect(first.message).toMatch(/^Spelling: .+ ==> .+$/);
     expect(first.severity).toBe("warning");
-    expect(first.fingerprint).toHaveLength(64);
   });
 
   test("strips leading ./ from paths", () => {

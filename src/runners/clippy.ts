@@ -1,8 +1,8 @@
 import { resolve } from "node:path";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { LintIssue } from "@/models/lint-issue";
-import { computeFingerprint } from "@/models/lint-issue";
 import type { LinterRunner, RunOptions } from "@/runners/types";
+import { applyFingerprints } from "@/utils/apply-fingerprints";
 import { parseNdjson } from "@/utils/ndjson";
 
 interface ClippySpan {
@@ -34,12 +34,15 @@ function isClippyEntry(value: unknown): value is ClippyEntry {
 }
 
 /**
- * Parse clippy NDJSON output into LintIssue[].
+ * Parse clippy NDJSON output into raw issues without fingerprints.
  * Filters build artifacts — only keeps compiler-message entries with non-null code.
  */
-export function parseClippyNdjson(ndjson: string, projectDir: string): LintIssue[] {
+export function parseClippyNdjson(
+  ndjson: string,
+  projectDir: string
+): Omit<LintIssue, "fingerprint">[] {
   const entries = parseNdjson(ndjson);
-  const issues: LintIssue[] = [];
+  const issues: Omit<LintIssue, "fingerprint">[] = [];
 
   for (const entry of entries) {
     if (!isClippyEntry(entry)) continue;
@@ -55,14 +58,6 @@ export function parseClippyNdjson(ndjson: string, projectDir: string): LintIssue
 
     const rule = `clippy/${msg.code.code}`;
     const file = resolve(projectDir, primarySpan.file_name);
-    // primarySpan.file_name is project-relative (cargo emits relative paths)
-    const fingerprint = computeFingerprint({
-      rule,
-      file: primarySpan.file_name,
-      lineContent: "",
-      contextBefore: [],
-      contextAfter: [],
-    });
 
     issues.push({
       rule,
@@ -72,7 +67,6 @@ export function parseClippyNdjson(ndjson: string, projectDir: string): LintIssue
       col: primarySpan.column_start,
       message: msg.message,
       severity: msg.level === "error" ? "error" : "warning",
-      fingerprint,
     });
   }
 
@@ -94,11 +88,12 @@ export const clippyRunner: LinterRunner = {
   },
 
   async run(opts: RunOptions): Promise<LintIssue[]> {
-    const { projectDir, commandRunner } = opts;
+    const { projectDir, commandRunner, fileManager } = opts;
     const result = await commandRunner.run(
       ["cargo", "clippy", "--message-format=json", "--", "-D", "warnings"],
       { cwd: projectDir }
     );
-    return parseClippyNdjson(result.stdout, projectDir);
+    const raw = parseClippyNdjson(result.stdout, projectDir);
+    return applyFingerprints(raw, projectDir, fileManager);
   },
 };
