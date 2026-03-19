@@ -1,4 +1,5 @@
 import { expect } from "bun:test";
+import { basename } from "node:path";
 import type { World } from "@questi0nm4rk/feats";
 import { Given, Then, When } from "@questi0nm4rk/feats";
 import type { ResolvedConfig } from "@/config/schema";
@@ -159,10 +160,7 @@ When<FilteringWorld>("configs are generated", async (world: FilteringWorld) => {
   const fm = world.fm ?? new FakeFileManager();
   const languages = (world.detectedLanguages ?? []).map(makePlugin);
   await generateConfigsStep(PROJECT_DIR, languages, makeDefaultConfig(), fm, "merge");
-  world.writtenFiles = fm.written.map(([p]) => {
-    const lastSlash = p.lastIndexOf("/");
-    return lastSlash >= 0 ? p.slice(lastSlash + 1) : p;
-  });
+  world.writtenFiles = fm.written.map(([p]) => basename(p));
 });
 
 // ─── Then: file written / not written ─────────────────────────────────────────
