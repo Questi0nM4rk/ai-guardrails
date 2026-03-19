@@ -138,3 +138,20 @@ Then<LanguageWorld>(
     expect(world.runnerIds.length).toBe(Number(count));
   }
 );
+
+Given<LanguageWorld>(
+  "a project with only a file at ignored path {string}",
+  async (world: LanguageWorld, path: unknown) => {
+    world.fm = new FakeFileManager();
+    // Seed under the project dir so the key is absolute, matching how other
+    // Given steps work (generator.steps.ts seeds ${PROJECT_DIR}/${file}).
+    world.fm.seed(`${PROJECT_DIR}/${String(path)}`, "content");
+  }
+);
+
+Then<LanguageWorld>(
+  "{string} should not be detected",
+  async (world: LanguageWorld, lang: unknown) => {
+    expect(world.detectedIds).not.toContain(String(lang));
+  }
+);
