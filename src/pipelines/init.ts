@@ -1,5 +1,5 @@
 import { dirname, join } from "node:path";
-import { createInterface } from "node:readline";
+import type { Interface as ReadlineInterface } from "node:readline";
 import { stringify as stringifyToml } from "smol-toml";
 import { PROFILES, type Profile } from "@/config/schema";
 import type { Console } from "@/infra/console";
@@ -15,21 +15,16 @@ function isProfile(value: string): value is Profile {
   return (PROFILES as readonly string[]).includes(value);
 }
 
-function createStdinReader(): ReturnType<typeof createInterface> {
-  return createInterface({ input: process.stdin, output: process.stdout });
-}
-
-async function askQuestion(
-  rl: ReturnType<typeof createInterface>,
-  question: string
-): Promise<string> {
+async function askQuestion(rl: ReadlineInterface, question: string): Promise<string> {
   return new Promise((resolve) => {
     rl.question(question, resolve);
   });
 }
 
-async function promptProfile(): Promise<Profile> {
-  const rl = createStdinReader();
+async function promptProfile(
+  createReadline: () => ReadlineInterface
+): Promise<Profile> {
+  const rl = createReadline();
   try {
     let prompt = "Select profile [strict/standard/minimal] (default: standard): ";
     for (;;) {
@@ -44,8 +39,10 @@ async function promptProfile(): Promise<Profile> {
   }
 }
 
-async function promptIgnoreRules(): Promise<string[]> {
-  const rl = createStdinReader();
+async function promptIgnoreRules(
+  createReadline: () => ReadlineInterface
+): Promise<string[]> {
+  const rl = createReadline();
   try {
     const input = await askQuestion(
       rl,
@@ -102,7 +99,14 @@ function logInitStart(cons: Console, interactive: boolean): void {
 
 export const initPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
-    const { projectDir, fileManager, commandRunner, console: cons } = ctx;
+    const {
+      projectDir,
+      fileManager,
+      commandRunner,
+      console: cons,
+      isTTY,
+      createReadline,
+    } = ctx;
 
     const force = ctx.flags.force === true;
     const upgrade = ctx.flags.upgrade === true;
@@ -116,16 +120,15 @@ export const initPipeline: Pipeline = {
       };
     }
 
-    const isInteractive =
-      process.stdin.isTTY === true || ctx.flags.interactive === true;
+    const isInteractive = isTTY || ctx.flags.interactive === true;
     logInitStart(cons, isInteractive);
 
     let profile: Profile = "standard";
     let ignoreRules: string[] = [];
 
     if (isInteractive) {
-      profile = await promptProfile();
-      ignoreRules = await promptIgnoreRules();
+      profile = await promptProfile(createReadline);
+      ignoreRules = await promptIgnoreRules(createReadline);
     } else {
       const flagProfile = ctx.flags.profile;
       if (typeof flagProfile === "string" && isProfile(flagProfile)) {
@@ -150,7 +153,14 @@ export const initPipeline: Pipeline = {
     cons.step("Checking prerequisites...");
     const { report } = await checkPrerequisites(cons, commandRunner, languages);
 
-    await installPrerequisites(cons, commandRunner, report, projectDir, isInteractive);
+    await installPrerequisites(
+      cons,
+      commandRunner,
+      report,
+      projectDir,
+      isInteractive,
+      createReadline
+    );
 
     return installPipeline.run(ctx);
   },
