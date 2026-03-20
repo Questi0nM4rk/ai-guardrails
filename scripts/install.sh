@@ -41,7 +41,7 @@ BINARY="ai-guardrails-${PLATFORM}-${ARCH}"
 # Resolve latest release tag
 # ---------------------------------------------------------------------------
 
-TAG=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+TAG=$(curl -fsSL --max-time 30 "https://api.github.com/repos/${REPO}/releases/latest" \
   | grep '"tag_name"' \
   | sed 's/.*: "//;s/".*//')
 
@@ -52,7 +52,7 @@ fi
 
 # Validate tag format (v followed by semver-like digits)
 case "$TAG" in
-  v[0-9]*) ;;
+  v[0-9]*.[0-9]*.[0-9]*) ;;
   *)
     printf 'Error: unexpected tag format: %s\n' "$TAG" >&2
     exit 1
@@ -76,14 +76,14 @@ cleanup() {
 }
 trap cleanup EXIT
 
-curl -fsSL "${DOWNLOAD_URL}/${BINARY}"          -o "$TMP_BINARY"
-curl -fsSL "${DOWNLOAD_URL}/checksums.sha256"   -o "$TMP_CHECKSUMS"
+curl -fsSL --max-time 300 "${DOWNLOAD_URL}/${BINARY}"          -o "$TMP_BINARY"
+curl -fsSL --max-time 60  "${DOWNLOAD_URL}/checksums.sha256"   -o "$TMP_CHECKSUMS"
 
 # ---------------------------------------------------------------------------
 # SHA-256 verification
 # ---------------------------------------------------------------------------
 
-EXPECTED=$(grep -F "${BINARY}" "$TMP_CHECKSUMS" | awk '{print $1}')
+EXPECTED=$(grep -F " ${BINARY}" "$TMP_CHECKSUMS" | awk '{print $1}')
 
 if [ -z "$EXPECTED" ]; then
   printf 'Error: %s not found in checksums file\n' "$BINARY" >&2
