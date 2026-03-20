@@ -37,5 +37,6 @@ Thumbs.db
 .ai-guardrails/lib/
 .claude/*
 !.claude/rules/
+!.claude/settings.json
 .coverage
 .playwright-mcp/
