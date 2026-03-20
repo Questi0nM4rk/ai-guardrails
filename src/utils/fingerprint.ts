@@ -6,16 +6,6 @@ const CONTEXT_LINES = 2;
 /**
  * Compute a stable fingerprint for a lint issue using surrounding source lines.
  * The fingerprint includes the file path to avoid collisions across files.
- *
- * NOTE: This function is not yet called by any runner. All runners currently
- * call computeFingerprint() directly with the tool's error message as lineContent,
- * which makes fingerprints dependent on tool output wording rather than source
- * code content. This means fingerprints will silently break when tools change
- * their error messages (e.g. version upgrades), invalidating saved baselines.
- *
- * TODO(baseline): Wire this into each runner's run() method by reading source
- * files and grouping issues by file before computing fingerprints.
- * See docs/bugs/baseline-fingerprint-gap.md for the full fix outline.
  */
 export function fingerprintIssue(
   issue: Omit<LintIssue, "fingerprint">,

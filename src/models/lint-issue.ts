@@ -25,9 +25,7 @@ export interface FingerprintOpts {
  * File path is included so identical issues in different files produce distinct fingerprints.
  *
  * NOTE: Callers must pass a project-relative path as `file`, NOT an absolute path.
- * Absolute paths make baselines non-portable between machines (local vs CI at a different
- * checkout root). All runners currently pass absolute paths, so baselines break in CI.
- * See docs/bugs/baseline-fingerprint-gap.md Issue 3 for the fix outline.
+ * Callers pass project-relative paths for portable baselines.
  */
 export function computeFingerprint(opts: FingerprintOpts): string {
   const { rule, file, lineContent, contextBefore, contextAfter } = opts;

@@ -29,9 +29,15 @@ export async function setupAgentInstructionsStep(
 ): Promise<StepResult> {
   try {
     const tools = await detectAgentTools(projectDir, fileManager);
-    const activeKeys = (Object.keys(tools) as Array<keyof DetectedAgentTools>).filter(
-      (key) => tools[key]
-    );
+    const knownKeys: Array<keyof DetectedAgentTools> = [
+      "claude",
+      "cursor",
+      "windsurf",
+      "copilot",
+      "cline",
+      "aider",
+    ];
+    const activeKeys = knownKeys.filter((key) => tools[key]);
 
     const results = await Promise.all(
       activeKeys.map((key) => writeToolRules(projectDir, fileManager, key))

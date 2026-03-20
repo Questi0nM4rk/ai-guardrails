@@ -22,8 +22,8 @@ program
   .option("--no-color", "Disable ANSI color output");
 
 function getProjectDir(): string {
-  const opts = program.opts() as { projectDir?: string };
-  return opts.projectDir ?? process.cwd();
+  const projectDir: unknown = program.getOptionValue("projectDir");
+  return typeof projectDir === "string" ? projectDir : process.cwd();
 }
 
 // ---------------------------------------------------------------------------
