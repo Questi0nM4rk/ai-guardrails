@@ -1,6 +1,5 @@
-// ai-guardrails:sha256=acd536b658e27248777eb69ab3a3bb3d762368f5954146696682f41d98ce6cf7
+// ai-guardrails:sha256=54f57da41a94f95da106bac44913d0c2a912015e89406bb112e10ed6ec02d95c
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "files": {
     "includes": [
       "**",
@@ -40,5 +39,6 @@
       "quoteStyle": "double",
       "trailingCommas": "es5"
     }
-  }
+  },
+  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json"
 }
