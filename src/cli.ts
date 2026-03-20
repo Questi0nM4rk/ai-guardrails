@@ -7,11 +7,12 @@ import { runInstall } from "@/commands/install";
 import { runReport } from "@/commands/report";
 import { runSnapshot } from "@/commands/snapshot";
 import { runStatus } from "@/commands/status";
+import pkg from "../package.json";
 
 const program = new Command()
   .name("ai-guardrails")
   .description("Pedantic code quality enforcement for AI-maintained repositories")
-  .version("3.0.0");
+  .version(pkg.version);
 
 // ---------------------------------------------------------------------------
 // Global options (inherited by subcommands via .optsWithGlobals())
