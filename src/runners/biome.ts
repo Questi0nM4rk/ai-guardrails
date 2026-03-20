@@ -70,9 +70,9 @@ function extractMessage(message: unknown): string {
     typeof message === "object" &&
     message !== null &&
     "content" in message &&
-    typeof (message as { content: unknown }).content === "string"
+    typeof message.content === "string"
   ) {
-    return (message as { content: string }).content;
+    return message.content;
   }
   return String(message);
 }
@@ -82,7 +82,7 @@ function isRdjsonOutput(value: unknown): value is RdjsonOutput {
     typeof value === "object" &&
     value !== null &&
     "diagnostics" in value &&
-    Array.isArray((value as RdjsonOutput).diagnostics)
+    Array.isArray(value.diagnostics)
   );
 }
 

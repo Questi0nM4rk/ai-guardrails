@@ -24,31 +24,35 @@ interface PyrightOutput {
 
 function isPyrightRange(value: unknown): value is PyrightRange {
   if (typeof value !== "object" || value === null) return false;
-  const v = value as { start: unknown };
-  const start = v.start;
+  if (!("start" in value)) return false;
+  const start = value.start;
   return (
     typeof start === "object" &&
     start !== null &&
-    typeof (start as { line: unknown; character: unknown }).line === "number" &&
-    typeof (start as { line: unknown; character: unknown }).character === "number"
+    "line" in start &&
+    typeof start.line === "number" &&
+    "character" in start &&
+    typeof start.character === "number"
   );
 }
 
 function isPyrightDiagnostic(value: unknown): value is PyrightDiagnostic {
   if (typeof value !== "object" || value === null) return false;
-  const v = value as PyrightDiagnostic & { range: unknown };
   return (
-    typeof v.file === "string" &&
-    typeof v.severity === "string" &&
-    typeof v.message === "string" &&
-    isPyrightRange(v.range)
+    "file" in value &&
+    typeof value.file === "string" &&
+    "severity" in value &&
+    typeof value.severity === "string" &&
+    "message" in value &&
+    typeof value.message === "string" &&
+    "range" in value &&
+    isPyrightRange(value.range)
   );
 }
 
 function isPyrightOutput(value: unknown): value is PyrightOutput {
   if (typeof value !== "object" || value === null) return false;
-  const v = value as { generalDiagnostics: unknown };
-  return Array.isArray(v.generalDiagnostics);
+  return "generalDiagnostics" in value && Array.isArray(value.generalDiagnostics);
 }
 
 /**
