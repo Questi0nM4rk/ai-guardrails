@@ -1,8 +1,9 @@
 # AI Guardrails — Production Release Roadmap
 
-## Status: ACTIVE (updated 2026-03-19)
+## Status: ACTIVE (updated 2026-03-20)
 
-786 tests, 38 files. Baseline integration complete. All dogfooding bugs fixed.
+896 tests, 51 files. Baseline integration complete. Release workflow live.
+All audit issues resolved. Zero `as` casts. Zero open bugs.
 
 ## Completed
 
@@ -10,163 +11,211 @@
 - **Check system rewrite:** Flag aliases, rule groups, config toggling (PR #106-108)
 - **E2E fixture system:** 8 lang fixtures, feats integration, config merge (PR #114-117)
 - **BDD test migration:** ~290 behavior tests → Gherkin feature files (PR #119-122)
-- **Bugfixes #123-127:** Generator language gates, detection ignore paths, CI install, noConsole (PR #128-133)
+- **Bugfixes #123-127:** Generator language gates, detection ignore paths, CI install,
+  noConsole (PR #128-133)
 - **Bugfixes #134-135:** Stale config cleanup on --force, dynamic biome schema (PR #137-139)
-- **Baseline integration (#136):** checkStep loads baseline, content-stable fingerprints, relative paths,
-  snapshot consistency (PR #140-145)
+- **Phase 1 — Baseline integration (#136):** checkStep loads baseline, content-stable
+  fingerprints, relative paths, snapshot consistency (PR #140-145)
+- **Phase 2 — Test coverage:** 13 new test files, 112 tests for steps + generators (PR #148)
+- **Phase 3 — Docs cleanup:** README rewritten, bug docs marked RESOLVED, stale issues
+  closed (PR #149)
+- **Phase 4.1-4.2 — Release infrastructure:** Dynamic version from package.json, GitHub
+  Actions release workflow with pinned SHAs + SHA-256 checksums (PR #166)
+- **Codebase audit (#150-157):** 34 `as` casts removed, process.stdin abstracted, stale
+  hooks regenerated, TODOs cleaned (PR #163)
 - **BDD framework:** @questi0nm4rk/feats v1.0.1 on npm
 - **Config merge:** --config-strategy merge|replace|skip
 - **Unified ignore_paths:** One config feeds check, biome, lefthook
 
 ---
 
-## Phase 2: Test Coverage Gaps
+## Phase 4 (remaining): Release Polish
 
-Fill gaps in command, step, and generator tests. Required for confidence before release.
+### 4.3 Cross-platform builds
 
-### 2.1 Command tests
+Matrix build for Linux x64, macOS arm64, macOS x64. Bun supports cross-compilation
+via `--target`. Each platform binary uploaded to the same GitHub Release.
 
-Add tests for `generate`, `init`, `snapshot`, `status`, `report`, `hook` commands.
+### 4.4 Install script
 
-**Files:** `tests/commands/{generate,init,snapshot,status,report,hook}.test.ts` (6 new)
-
-Use FakeFileManager, FakeCommandRunner, FakeConsole to test command dispatch,
-flag parsing, error handling without real I/O.
-
-### 2.2 Step tests
-
-Add tests for `load-config`, `run-linters`, `report-step`, `setup-agent-instructions`,
-`setup-hooks`, `validate-configs`.
-
-**Files:** `tests/steps/*.test.ts` (6 new — setup-ci and check-step already have tests)
-
-### 2.3 Generator snapshot tests
-
-Add snapshot tests for `codespell`, `editorconfig`, `markdownlint` generators.
-
-**Files:** `tests/generators/{codespell,editorconfig,markdownlint}.test.ts` (3 new)
-
----
-
-## Phase 3: Stale Docs Cleanup
-
-### 3.1 Mark hook-bypass-regex-limitations as RESOLVED
-
-All 3 issues fixed by AST engine. Update `docs/bugs/hook-bypass-regex-limitations.md`.
-
-### 3.2 Mark fresh-install-bugs as RESOLVED
-
-All 6 bugs from Python era eliminated by TS rewrite. Update `docs/bugs/fresh-install-bugs.md`.
-
-### 3.3 Update README
-
-Rewrite to reflect TS binary, current CLI commands, hook system. Separate shipped (v3) from planned.
-
-### 3.4 Close stale issues
-
-- #41: Publish to PyPI — obsolete (TS rewrite, no Python)
-- #45: Review and close/update medium/low priority items
-
----
-
-## Phase 4: Release Infrastructure
-
-### 4.1 Version management — `npm version` + git tags
-
-### 4.2 Release workflow — GitHub Actions on tag push, binary in release
-
-### 4.3 Cross-platform builds — Linux x64, macOS arm64, macOS x64
-
-### 4.4 Install script — curl | sh with SHA-256 checksum verification
-
-### 4.5 Changelog generation — conventional commits → CHANGELOG.md
+`curl -fsSL https://raw.githubusercontent.com/.../install.sh | sh` — detects
+platform, downloads correct binary, verifies SHA-256 checksum.
 
 ---
 
 ## Phase 5: Shell Completion
 
-Replace stub in `src/cli.ts` with real bash/zsh/fish completion.
+Replace stub in `src/cli.ts` with real bash/zsh/fish completion generation.
+Commander.js has built-in completion support — wire it.
 
 ---
 
-## Phase 6: Hook System Improvements
+## Phase 6: Baseline Diff & Trend Reporting
 
-### 6.1 Code injection rules (eval, python -c)
+### 6.1 Baseline diff command
 
-### 6.2 Generator respects disabled_groups for deny globs
+`ai-guardrails diff` — compare current issues against baseline and show:
+- New issues introduced since snapshot
+- Issues fixed (in baseline but no longer present)
+- Unchanged baseline issues
 
-### 6.3 Per-language PostToolUse lint hooks
+Human-readable table + JSON output. More informative than `check` which
+only says pass/fail.
 
----
+### 6.2 Suppression expiry
 
-## Phase 7: .NET Runner
+Extend `ai-guardrails-allow` comments with optional expiry:
+`ai-guardrails-allow: rule/X "reason" expires:2026-06-01`
 
-### 7.1 MSBuild JSON log parser
+Pre-commit hook warns 7 days before expiry. Check fails after expiry.
+Forces teams to revisit exceptions instead of letting them rot.
 
-### 7.2 dotnet-format runner
+### 6.3 Per-rule exception budgets
 
----
-
-## Phase 8: ai-guardrails-allow Integration
-
-### 8.1 Wire allow comments into checkStep
-
-### 8.2 allow command
-
-### 8.3 query command
-
----
-
-## Phase 9: Interactive Init Wizard
-
-### 9.1 Branch protection setup prompt
-
-### 9.2 Pre-commit hook level selection
-
-### 9.3 TypeScript strictness profile prompt
-
-### 9.4 Language confirmation
-
-### 9.5 CI setup prompt
+Config option per rule: `max_exceptions = 3`. Check fails if more than N
+`ai-guardrails-allow` comments exist for that rule. Gradual debt reduction.
 
 ---
 
-## Phase 10+: Advanced Features (v4+)
+## Phase 7: Hook Audit Trail
 
-### 10.1 Governance hierarchy
+### 7.1 Hook invocation logging
 
-### 10.2 Agent attribution + auto-strict
+Log every hook invocation to `.ai-guardrails/hook-audit.jsonl`:
+command, decision (allow/block/ask), timestamp, rule matched.
 
-### 10.3 Team features
+### 7.2 Hook audit report
 
-### 10.4 Baseline burn-down
+`ai-guardrails hook-report` — summarize hook activity: most blocked patterns,
+most common commands, agents that trigger the most blocks.
 
-### 10.5 Version pinning and drift detection (#42)
+### 7.3 Custom dangerous patterns in config
+
+Extend config.toml to allow project-specific dangerous patterns:
+```toml
+[[hooks.dangerous_patterns]]
+pattern = "sudo.*rm"
+reason = "never use sudo with destructive ops"
+```
+
+---
+
+## Phase 8: Hook System Improvements
+
+### 8.1 Code injection rules (eval, python -c)
+
+Add `code-injection` rule group to the check engine.
+
+### 8.2 Generator respects disabled_groups for deny globs
+
+Filter `collectDenyGlobs()` by active groups.
+
+### 8.3 Per-language PostToolUse lint hooks
+
+New hook entry point: `ai-guardrails hook post-lint`. Reads PostToolUse event,
+runs the appropriate linter on the edited file. Immediate feedback to agent.
+
+---
+
+## Phase 9: ai-guardrails-allow Integration
+
+### 9.1 Wire allow comments into checkStep
+
+Parse `ai-guardrails-allow` comments in source files. Filter matching issues
+from check results. Distinguish from baseline (allow = intentional, baseline = legacy).
+
+### 9.2 allow command
+
+`ai-guardrails allow <rule> <glob> "<reason>"` — add to config.toml programmatically.
+
+### 9.3 query command
+
+`ai-guardrails query <rule>` — show all files where this rule is allowed/suppressed.
+
+---
+
+## Phase 10: Interactive Init Wizard
+
+### 10.1 Language confirmation with auto-detection preview
+### 10.2 Profile selection (strict/standard/minimal) with diff preview
+### 10.3 Pre-commit hook level selection (format-only/standard/pedantic)
+### 10.4 CI provider detection (GitHub Actions/GitLab CI/none)
+### 10.5 Fix init --force overwriting config.toml — preserve user settings
+
+---
+
+## Phase 11: Cross-Tool Issue Deduplication
+
+When multiple linters report the same issue (e.g., both ruff and pyright flag
+an unused import), deduplicate in reports and baseline. Uses file+line+category
+matching. Prevents baseline pollution and noisy reports.
+
+---
+
+## Phase 12: Interactive Triage CLI
+
+`ai-guardrails triage` — interactive TUI that walks through new issues.
+Per-issue decisions: fix, allow, baseline, skip. Outputs a curated baseline
+instead of wholesale snapshot. For teams onboarding with existing debt.
+
+---
+
+## Phase 13: Monorepo / Workspace Support
+
+### 13.1 Workspace-level baseline
+
+Single baseline spanning a monorepo. Each package inherits from root but
+can override per-rule.
+
+### 13.2 Workspace-level config
+
+Root `.ai-guardrails/config.toml` inherited by packages. Package-level
+overrides for profile, ignore_paths, allow rules.
+
+---
+
+## Phase 14: .NET Runner
+
+### 14.1 MSBuild JSON log parser
+### 14.2 dotnet-format runner
+
+---
+
+## Phase 15+: Advanced Features (v4+)
+
+### 15.1 Governance hierarchy — org → team → project config inheritance
+### 15.2 Agent attribution — detect AI-generated commits, auto-apply strict profile
+### 15.3 Baseline burn-down dashboard — track issue reduction over time
+### 15.4 Version pinning and drift detection (#42)
+### 15.5 Linter version capture in baseline — warn on version drift between snapshot and check
+### 15.6 Issue context caching — store ±3 source lines per baseline entry for historical context
 
 ---
 
 ## Known Bugs
 
 - **cc-review can't submit formal reviews** — file write permission bug (cc-review#1)
-- **init --force overwrites config.toml** — should preserve user settings
-- **feats .d.ts files have unresolved @/ aliases** — skipLibCheck workaround
+- **init --force overwrites config.toml** — should preserve user settings (tracked in Phase 10.5)
+- **feats .d.ts files have unresolved @/ aliases** — skipLibCheck workaround in consumers
 
 ---
 
-## Current State (2026-03-19, PR #145 merge)
+## Current State (2026-03-20, PR #166 merge)
 
 | Component | Status |
 |-----------|--------|
 | CLI commands (8) | All working, completion is stub |
 | Language plugins (9) | 8 with runners, .NET stub |
 | Linter runners (12) | All functional, content-stable fingerprints |
-| Config generators (10) | All functional + ignore_paths + language gates |
+| Config generators (10) | Language-gated + ignore_paths + dynamic schema |
 | Hook system | AST engine + flag aliases + rule groups + config toggling |
-| Baseline | Fully wired — check respects baseline, portable fingerprints |
+| Baseline | Fully wired — hold-the-line with portable fingerprints |
 | Config merge | merge/replace/skip + stale cleanup on --force |
-| Tests | 786 passing (38 files, 5 snapshots) |
+| Tests | 896 passing (51 files, 17 snapshots) |
 | E2E fixtures | 8 languages, bare + preconfigured, monorepo combo |
 | BDD framework | @questi0nm4rk/feats v1.0.1 on npm |
 | SARIF output | Implemented |
 | CI | lint + test + semgrep + self-dogfood + cc-review |
-| Release automation | None (v3.0.0 hardcoded) |
+| Release | Tag-push workflow, binary + SHA-256, dynamic version |
+| Type safety | Zero `as` casts, strict mode, Zod at boundaries |
+| DI | Full — no direct process/infra access in domain code |
