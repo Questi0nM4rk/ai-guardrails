@@ -1,5 +1,17 @@
 # Bug: Baseline Filtering and Stable Fingerprints Not Wired into Check Pipeline
 
+## RESOLVED (2026-03-19)
+
+All 3 issues fixed:
+
+- Issue 1 (baseline not wired): PR #140
+- Issue 2 (absolute paths): PR #141  
+- Issue 3 (message-based fingerprints): PR #143
+
+Original content preserved below for reference.
+
+---
+
 **Discovered:** Round 7 full codebase scan (PR #95, 2026-03-08)
 **Severity:** Critical — the core "hold-the-line" feature of `ai-guardrails check` is non-functional
 **Status:** Deferred — models and utilities exist, integration is the missing piece
