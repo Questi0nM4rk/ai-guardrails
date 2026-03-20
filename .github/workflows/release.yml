@@ -18,12 +18,11 @@ on:
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-permissions:
-  contents: write # needed to create releases
-
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # needed to create releases
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -51,8 +50,8 @@ jobs:
       - name: Generate changelog
         id: changelog
         run: |
-          # Get the previous tag
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          # Get the previous tag (git tag --sort handles missing ancestors gracefully)
+          PREV_TAG=$(git tag --sort=-version:refname | sed -n '2p')
           if [ -z "$PREV_TAG" ]; then
             # First release — use all commits
             CHANGES=$(git log --oneline --no-decorate)
