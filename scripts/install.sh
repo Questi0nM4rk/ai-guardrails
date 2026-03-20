@@ -18,18 +18,18 @@ OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
 case "$OS" in
-  linux)  PLATFORM="linux" ;;
-  darwin) PLATFORM="darwin" ;;
-  *)
+linux) PLATFORM="linux" ;;
+darwin) PLATFORM="darwin" ;;
+*)
     printf 'Error: unsupported OS: %s\n' "$OS" >&2
     exit 1
     ;;
 esac
 
 case "$ARCH" in
-  x86_64|amd64)   ARCH="x64" ;;
-  aarch64|arm64)  ARCH="arm64" ;;
-  *)
+x86_64 | amd64) ARCH="x64" ;;
+aarch64 | arm64) ARCH="arm64" ;;
+*)
     printf 'Error: unsupported architecture: %s\n' "$ARCH" >&2
     exit 1
     ;;
@@ -41,19 +41,19 @@ BINARY="ai-guardrails-${PLATFORM}-${ARCH}"
 # Resolve latest release tag
 # ---------------------------------------------------------------------------
 
-TAG=$(curl -fsSL --max-time 30 "https://api.github.com/repos/${REPO}/releases/latest" \
-  | grep '"tag_name"' \
-  | sed 's/.*: "//;s/".*//')
+TAG=$(curl -fsSL --max-time 30 "https://api.github.com/repos/${REPO}/releases/latest" |
+    grep '"tag_name"' |
+    sed 's/.*: "//;s/".*//')
 
 if [ -z "$TAG" ]; then
-  printf 'Error: could not determine latest release\n' >&2
-  exit 1
+    printf 'Error: could not determine latest release\n' >&2
+    exit 1
 fi
 
 # Validate tag format (v followed by semver-like digits)
 case "$TAG" in
-  v[0-9]*.[0-9]*.[0-9]*) ;;
-  *)
+v[0-9]*.[0-9]*.[0-9]*) ;;
+*)
     printf 'Error: unexpected tag format: %s\n' "$TAG" >&2
     exit 1
     ;;
@@ -72,12 +72,12 @@ TMP_CHECKSUMS="${TMP_DIR}/checksums.sha256"
 
 # Cleanup helper — called on success and failure
 cleanup() {
-  rm -rf "$TMP_DIR"
+    rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
-curl -fsSL --max-time 300 "${DOWNLOAD_URL}/${BINARY}"          -o "$TMP_BINARY"
-curl -fsSL --max-time 60  "${DOWNLOAD_URL}/checksums.sha256"   -o "$TMP_CHECKSUMS"
+curl -fsSL --max-time 300 "${DOWNLOAD_URL}/${BINARY}" -o "$TMP_BINARY"
+curl -fsSL --max-time 60 "${DOWNLOAD_URL}/checksums.sha256" -o "$TMP_CHECKSUMS"
 
 # ---------------------------------------------------------------------------
 # SHA-256 verification
@@ -86,22 +86,22 @@ curl -fsSL --max-time 60  "${DOWNLOAD_URL}/checksums.sha256"   -o "$TMP_CHECKSUM
 EXPECTED=$(grep -F " ${BINARY}" "$TMP_CHECKSUMS" | awk '{print $1}')
 
 if [ -z "$EXPECTED" ]; then
-  printf 'Error: %s not found in checksums file\n' "$BINARY" >&2
-  exit 1
+    printf 'Error: %s not found in checksums file\n' "$BINARY" >&2
+    exit 1
 fi
 
 # sha256sum on Linux; shasum -a 256 on macOS
-if command -v sha256sum > /dev/null 2>&1; then
-  ACTUAL=$(sha256sum "$TMP_BINARY" | awk '{print $1}')
+if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL=$(sha256sum "$TMP_BINARY" | awk '{print $1}')
 else
-  ACTUAL=$(shasum -a 256 "$TMP_BINARY" | awk '{print $1}')
+    ACTUAL=$(shasum -a 256 "$TMP_BINARY" | awk '{print $1}')
 fi
 
 if [ "$EXPECTED" != "$ACTUAL" ]; then
-  printf 'Error: checksum mismatch!\n' >&2
-  printf '  Expected: %s\n' "$EXPECTED" >&2
-  printf '  Got:      %s\n' "$ACTUAL" >&2
-  exit 1
+    printf 'Error: checksum mismatch!\n' >&2
+    printf '  Expected: %s\n' "$EXPECTED" >&2
+    printf '  Got:      %s\n' "$ACTUAL" >&2
+    exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -122,8 +122,8 @@ printf '\n'
 # ---------------------------------------------------------------------------
 
 case ":${PATH}:" in
-  *":${INSTALL_DIR}:"*) ;;
-  *)
+*":${INSTALL_DIR}:"*) ;;
+*)
     printf 'Warning: %s is not in your PATH\n' "$INSTALL_DIR" >&2
     printf "Add it: export PATH=\"%s:\$PATH\"\n" "$INSTALL_DIR" >&2
     ;;

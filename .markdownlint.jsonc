@@ -1,4 +1,4 @@
-// ai-guardrails:sha256=123417be51461d24ccaac2ded9e3e1d3a6fe34633d0843a252c3d75159766ee3
+// ai-guardrails:sha256=3385090dbf8f39322bf811e91d048731bec1737eaeea11e41a2f146f0d4170f6
 {
   "default": true,
   "MD013": {
@@ -6,6 +6,9 @@
     "tables": false,
     "code_blocks": false
   },
+  "MD022": false,
+  "MD031": false,
+  "MD032": false,
   "MD033": false,
   "MD040": false,
   "MD041": false,

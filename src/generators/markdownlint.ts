@@ -6,6 +6,9 @@ function renderMarkdownlintJsonc(_config: ResolvedConfig): string {
   const body = `{
   "default": true,
   "MD013": { "line_length": 120, "tables": false, "code_blocks": false },
+  "MD022": false,
+  "MD031": false,
+  "MD032": false,
   "MD033": false,
   "MD040": false,
   "MD041": false,
