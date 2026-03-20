@@ -38,12 +38,21 @@ An agent can bypass one ring. It cannot bypass all three simultaneously.
 
 ## Quick Start
 
+**Install the binary:**
+
 ```bash
-# Initialize any project
-bunx ai-guardrails init
+curl -fsSL https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/main/scripts/install.sh | sh
+```
+
+Installs to `~/.local/bin/` by default. Override with `AI_GUARDRAILS_INSTALL_DIR=/usr/local/bin`.
+
+**Initialize any project:**
+
+```bash
+ai-guardrails init
 
 # Check for new lint issues (hold-the-line)
-bunx ai-guardrails check
+ai-guardrails check
 ```
 
 That's it. `init` detects your languages, generates linter configs, installs
