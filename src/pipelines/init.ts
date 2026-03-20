@@ -12,7 +12,7 @@ import { detectLanguagesStep } from "@/steps/detect-languages";
 import { installPrerequisites } from "@/steps/install-prerequisites";
 
 function isProfile(value: string): value is Profile {
-  return (PROFILES as readonly string[]).includes(value);
+  return PROFILES.some((p) => p === value);
 }
 
 function createStdinReader(): ReturnType<typeof createInterface> {

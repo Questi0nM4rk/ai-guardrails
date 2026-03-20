@@ -24,7 +24,8 @@ async function readTomlSafe(
   }
   if (!text.trim()) return {};
   // Let parse errors propagate so callers surface malformed config to the user
-  return parseToml(text) as Record<string, unknown>;
+  const parsed: Record<string, unknown> = parseToml(text);
+  return parsed;
 }
 
 export async function loadMachineConfig(
