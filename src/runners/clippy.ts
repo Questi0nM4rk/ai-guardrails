@@ -29,7 +29,7 @@ function isClippyEntry(value: unknown): value is ClippyEntry {
     typeof value === "object" &&
     value !== null &&
     "reason" in value &&
-    typeof (value as Record<string, unknown>).reason === "string"
+    typeof value.reason === "string"
   );
 }
 

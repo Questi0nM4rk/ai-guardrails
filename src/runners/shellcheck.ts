@@ -26,7 +26,7 @@ function isShellcheckOutput(value: unknown): value is ShellcheckOutput {
     typeof value === "object" &&
     value !== null &&
     "comments" in value &&
-    Array.isArray((value as ShellcheckOutput).comments)
+    Array.isArray(value.comments)
   );
 }
 

@@ -23,15 +23,25 @@ interface RuffItem {
 
 function isRuffItem(value: unknown): value is RuffItem {
   if (typeof value !== "object" || value === null) return false;
-  const v = value as RuffItem & { location: unknown };
+  if (
+    !("code" in value) ||
+    typeof value.code !== "string" ||
+    !("filename" in value) ||
+    typeof value.filename !== "string" ||
+    !("message" in value) ||
+    typeof value.message !== "string"
+  ) {
+    return false;
+  }
+  if (!("location" in value)) return false;
+  const loc = value.location;
   return (
-    typeof v.code === "string" &&
-    typeof v.filename === "string" &&
-    typeof v.location === "object" &&
-    v.location !== null &&
-    typeof (v.location as { row: unknown; column: unknown }).row === "number" &&
-    typeof (v.location as { row: unknown; column: unknown }).column === "number" &&
-    typeof v.message === "string"
+    typeof loc === "object" &&
+    loc !== null &&
+    "row" in loc &&
+    typeof loc.row === "number" &&
+    "column" in loc &&
+    typeof loc.column === "number"
   );
 }
 

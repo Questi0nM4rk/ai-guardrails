@@ -20,7 +20,10 @@ export async function runLinterCollection(
     languages.flatMap((plugin) =>
       plugin.runners().map(async (runner) => {
         const available = await runner.isAvailable(commandRunner, projectDir);
-        if (!available) return [] as LintIssue[];
+        if (!available) {
+          const empty: LintIssue[] = [];
+          return empty;
+        }
         return runner.run(opts);
       })
     )
