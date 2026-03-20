@@ -169,7 +169,7 @@ export function extractInlineScript(unwrapped: UnwrappedCall): string | null {
     if (args.length === 0) return null;
     const parts = args.map(wordToScript);
     if (parts.some((p) => p === null)) return null;
-    return (parts as string[]).join(" ");
+    return parts.filter((p): p is string => p !== null).join(" ");
   }
   if (unwrapped.cmd === "exec") {
     // exec replaces the process — does not re-parse shell syntax; inspect first arg only
