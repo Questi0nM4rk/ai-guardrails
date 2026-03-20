@@ -1,10 +1,8 @@
 # Release workflow — triggered on tag push matching v*
 #
 # Release process:
-#   1. Update version in package.json: npm version <patch|minor|major> --no-git-tag-version
-#   2. Commit: git commit -am "chore: release v<version>"
-#   3. Tag:    git tag v<version>
-#   4. Push:   git push origin main --tags
+#   1. npm version <patch|minor|major>   (bumps package.json, commits, creates git tag)
+#   2. git push origin main --tags       (triggers this workflow)
 #
 # Cross-platform builds are deferred to phase 4.3.
 # This workflow produces a Linux x64 binary only.
