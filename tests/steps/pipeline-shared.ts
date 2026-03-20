@@ -1,3 +1,4 @@
+import type { Interface as ReadlineInterface } from "node:readline";
 import type { World } from "@questi0nm4rk/feats";
 import {
   buildResolvedConfig,
@@ -22,6 +23,11 @@ function freshConfig() {
   );
 }
 
+/** Readline factory that throws if called — use in non-TTY test contexts. */
+export function noopReadline(): ReadlineInterface {
+  throw new Error("createReadline called in a non-TTY test context");
+}
+
 export function makeBaseCtx(overrides: Partial<PipelineContext> = {}): PipelineContext {
   const fm = new FakeFileManager();
   fm.seed("/project/pyproject.toml", "[tool.ruff]");
@@ -33,6 +39,8 @@ export function makeBaseCtx(overrides: Partial<PipelineContext> = {}): PipelineC
     commandRunner: new FakeCommandRunner(),
     console: new FakeConsole(),
     flags: {},
+    isTTY: false,
+    createReadline: noopReadline,
     ...overrides,
   };
 }

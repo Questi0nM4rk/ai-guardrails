@@ -1,3 +1,4 @@
+import { createInterface } from "node:readline";
 import {
   buildResolvedConfig,
   MachineConfigSchema,
@@ -23,5 +24,8 @@ export function buildContext(
     commandRunner: new RealCommandRunner(),
     console: new RealConsole(),
     flags,
+    isTTY: process.stdin.isTTY === true,
+    createReadline: () =>
+      createInterface({ input: process.stdin, output: process.stdout }),
   };
 }

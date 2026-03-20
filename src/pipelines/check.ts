@@ -43,7 +43,8 @@ export const checkPipeline: Pipeline = {
       cons
     );
 
-    const format = (ctx.flags.format as ReportFormat | undefined) ?? "text";
+    const rawFormat = ctx.flags.format;
+    const format: ReportFormat = rawFormat === "sarif" ? "sarif" : "text";
     await reportStep(issues, format, cons, fileManager);
 
     if (checkResult.status === "error") {

@@ -1,0 +1,69 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(sudo rm -rf *)",
+      "Bash(sudo rm -fr *)",
+      "Bash(git push --force)",
+      "Bash(git push --force *)",
+      "Bash(git push -f)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard*)",
+      "Bash(git checkout -- *)",
+      "Bash(git restore -- *)",
+      "Bash(git clean -f*)",
+      "Bash(git clean --force*)",
+      "Bash(git branch -D *)",
+      "Bash(git branch --delete --force *)",
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit -n *)",
+      "Bash(git commit -n)",
+      "Bash(chmod -R 777*)",
+      "Bash(chmod -R a+rwx*)",
+      "Bash(curl * | bash)",
+      "Bash(curl * | sh)",
+      "Bash(curl * | zsh)",
+      "Bash(curl * | dash)",
+      "Bash(curl * | ksh)",
+      "Bash(wget * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(wget * | zsh)",
+      "Bash(wget * | dash)",
+      "Bash(wget * | ksh)",
+      "Bash(eval $(*))",
+      "Bash(python -c*import os*system*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook dangerous-cmd"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-configs"
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-reads"
+          }
+        ]
+      }
+    ]
+  }
+}

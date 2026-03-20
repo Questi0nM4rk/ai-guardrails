@@ -8,6 +8,7 @@ import { DEFAULT_MANAGED_FILES, DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import type { CommandRule, HooksConfig, RuleSet } from "@/check/types";
 import { ProjectConfigSchema } from "@/config/schema";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
+import { isEnoent } from "@/utils/errors";
 
 export function buildRuleSet(config: HooksConfig): RuleSet {
   const disabled = new Set(config.disabledGroups ?? []);
@@ -78,8 +79,7 @@ export async function loadHookConfig(): Promise<HooksConfig> {
     // Other errors (bad TOML, Zod mismatch, permissions) deserve a warning so
     // users know their custom config isn't active. This function is only called
     // from hook processes (not pipeline domain code), so stderr is acceptable.
-    const isNotFound =
-      e instanceof Error && "code" in e && (e as { code: unknown }).code === "ENOENT";
+    const isNotFound = isEnoent(e);
     if (!isNotFound) {
       process.stderr.write(`[ai-guardrails] config load error: ${String(e)}\n`);
     }

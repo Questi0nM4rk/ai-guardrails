@@ -1,11 +1,7 @@
 import { promises as fs } from "node:fs";
 import { Glob } from "bun";
 import { minimatch } from "minimatch";
-
-function isEnoent(err: unknown): boolean {
-  if (typeof err !== "object" || err === null) return false;
-  return "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT";
-}
+import { isEnoent } from "@/utils/errors";
 
 export interface FileManager {
   readText(path: string): Promise<string>;

@@ -39,7 +39,8 @@ export async function checkStep(
               `  ${runner.name} not found — skipping (${runner.installHint.description})`
             );
             skipped++;
-            return [] as LintIssue[];
+            const empty: LintIssue[] = [];
+            return empty;
           }
           return runner.run(opts);
         })

@@ -21,10 +21,12 @@
 
 ## Naming
 
-- `test_<function>_<scenario>_<expected>` pattern
+- Descriptive names that read as a sentence — clarity is the requirement, not a rigid format
+- Common patterns: `"returns X when Y"`, `"<function> <scenario> <expected>"`
 - Examples:
-  - `test parseRuffOutput returns empty array for empty stdout`
-  - `test filterIssues removes issues matching isAllowed`
+  - `"parseRuffOutput returns empty array for empty stdout"`
+  - `"filterIssues removes issues matching isAllowed"`
+  - `"returns [] when stdout is empty"`
 
 ## Snapshot Tests
 
