@@ -50,6 +50,15 @@ if [ -z "$TAG" ]; then
   exit 1
 fi
 
+# Validate tag format (v followed by semver-like digits)
+case "$TAG" in
+  v[0-9]*) ;;
+  *)
+    printf 'Error: unexpected tag format: %s\n' "$TAG" >&2
+    exit 1
+    ;;
+esac
+
 printf 'Installing ai-guardrails %s (%s/%s)...\n' "$TAG" "$PLATFORM" "$ARCH"
 
 # ---------------------------------------------------------------------------
@@ -57,12 +66,13 @@ printf 'Installing ai-guardrails %s (%s/%s)...\n' "$TAG" "$PLATFORM" "$ARCH"
 # ---------------------------------------------------------------------------
 
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}"
-TMP_BINARY="/tmp/${BINARY}"
-TMP_CHECKSUMS="/tmp/checksums.sha256"
+TMP_DIR=$(mktemp -d)
+TMP_BINARY="${TMP_DIR}/${BINARY}"
+TMP_CHECKSUMS="${TMP_DIR}/checksums.sha256"
 
 # Cleanup helper — called on success and failure
 cleanup() {
-  rm -f "$TMP_BINARY" "$TMP_CHECKSUMS"
+  rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
@@ -73,7 +83,7 @@ curl -fsSL "${DOWNLOAD_URL}/checksums.sha256"   -o "$TMP_CHECKSUMS"
 # SHA-256 verification
 # ---------------------------------------------------------------------------
 
-EXPECTED=$(grep "${BINARY}" "$TMP_CHECKSUMS" | awk '{print $1}')
+EXPECTED=$(grep -F "${BINARY}" "$TMP_CHECKSUMS" | awk '{print $1}')
 
 if [ -z "$EXPECTED" ]; then
   printf 'Error: %s not found in checksums file\n' "$BINARY" >&2
