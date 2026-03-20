@@ -1,4 +1,4 @@
-import { createInterface } from "node:readline";
+import type { Interface as ReadlineInterface } from "node:readline";
 
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
@@ -58,7 +58,8 @@ export async function installPrerequisites(
   commandRunner: CommandRunner,
   report: PrereqReport,
   projectDir: string,
-  interactive = false
+  isTTY: boolean,
+  createReadline: () => ReadlineInterface
 ): Promise<StepResult> {
   if (report.missing.length === 0) {
     return ok("No missing prerequisites");
@@ -66,14 +67,12 @@ export async function installPrerequisites(
 
   printMissingTools(cons, report.missing);
 
-  const isTTY = process.stdin.isTTY === true || interactive;
-
   if (!isTTY) {
     cons.warning("\nRun the commands above, then re-run `ai-guardrails init`.");
     return ok("Missing tools listed — install manually and re-run init");
   }
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const rl = createReadline();
   let input: string;
   try {
     const answer = await new Promise<string>((resolve) => {

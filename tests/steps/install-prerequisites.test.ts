@@ -4,6 +4,7 @@ import type { PrereqReport } from "@/steps/check-prerequisites";
 import { installPrerequisites } from "@/steps/install-prerequisites";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeConsole } from "../fakes/fake-console";
+import { noopReadline } from "./pipeline-shared";
 
 function makeReport(missing: Array<{ id: string; hint: InstallHint }>): PrereqReport {
   return {
@@ -13,14 +14,21 @@ function makeReport(missing: Array<{ id: string; hint: InstallHint }>): PrereqRe
 }
 
 describe("installPrerequisites (non-TTY)", () => {
-  // All tests run in non-TTY (CI) context so the interactive branch is not exercised.
+  // All tests run with isTTY=false so the interactive branch is not exercised.
 
   test("returns ok immediately when no tools are missing", async () => {
     const cr = new FakeCommandRunner();
     const cons = new FakeConsole();
     const report: PrereqReport = { missing: [], available: ["ruff"] };
 
-    const result = await installPrerequisites(cons, cr, report, "/project");
+    const result = await installPrerequisites(
+      cons,
+      cr,
+      report,
+      "/project",
+      false,
+      noopReadline
+    );
 
     expect(result.status).toBe("ok");
     expect(cr.calls).toHaveLength(0);
@@ -36,8 +44,14 @@ describe("installPrerequisites (non-TTY)", () => {
       },
     ]);
 
-    // Ensure non-TTY path is taken (process.stdin.isTTY is undefined in test env)
-    const result = await installPrerequisites(cons, cr, report, "/project");
+    const result = await installPrerequisites(
+      cons,
+      cr,
+      report,
+      "/project",
+      false,
+      noopReadline
+    );
 
     expect(result.status).toBe("ok");
     // Should have warned about the missing tool and printed the hint
@@ -62,7 +76,7 @@ describe("installPrerequisites (non-TTY)", () => {
       },
     ]);
 
-    await installPrerequisites(cons, cr, report, "/project");
+    await installPrerequisites(cons, cr, report, "/project", false, noopReadline);
 
     const allWarnings = cons.warnings.join("\n");
     expect(allWarnings).toContain("npm install -D pyright");
@@ -75,7 +89,14 @@ describe("installPrerequisites (non-TTY)", () => {
       { id: "unknown-tool", hint: { description: "Some obscure tool" } },
     ]);
 
-    const result = await installPrerequisites(cons, cr, report, "/project");
+    const result = await installPrerequisites(
+      cons,
+      cr,
+      report,
+      "/project",
+      false,
+      noopReadline
+    );
 
     expect(result.status).toBe("ok");
   });
