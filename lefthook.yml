@@ -1,17 +1,17 @@
-# ai-guardrails:sha256=23384524c22675e7d7d6928d5f6520c8f6ede26f39c27140ef2035f25341cd47
+# ai-guardrails:sha256=ae7e506383fa4d75826a9d4dc6b1ae84aaa7001bd4a487cc1d1d6ae880b8448b
 pre-commit:
   commands:
 
     ruff-fix:
       glob: "*.py"
-      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*)'
+      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*|docs/specs/.[^/]*)'
       run: ruff check --fix {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
 
     biome-fix:
       glob: "*.{ts,tsx,js,jsx}"
-      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*)'
+      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*|docs/specs/.[^/]*)'
       run: biome check --write {staged_files} && git add {staged_files}
       stage_fixed: true
       priority: 1
@@ -23,21 +23,21 @@ pre-commit:
 
     codespell:
       glob: "*.{ts,md,txt,yaml,yml,toml,json,py,go,rs}"
-      exclude: 'tests/fixtures/.*|(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*)'
+      exclude: 'tests/fixtures/.*|(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*|docs/specs/.[^/]*)'
       run: codespell --check-filenames {staged_files}
       fail_text: "Spell errors found"
       priority: 2
 
     markdownlint:
       glob: "*.md"
-      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*)'
+      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*|docs/specs/.[^/]*)'
       run: markdownlint-cli2 {staged_files}
       fail_text: "Markdown lint errors found"
       priority: 2
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*)'
+      exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*|docs/specs/.[^/]*)'
       run: ai-guardrails hook suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
