@@ -1,8 +1,9 @@
 import { dirname, join } from "node:path";
-import { stringify as stringifyToml } from "smol-toml";
+import { parse as parseToml, stringify as stringifyToml } from "smol-toml";
 import { PROFILES, type Profile } from "@/config/schema";
 import type { InitContext, InitModule, InitModuleResult } from "@/init/types";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
+import { isPlainObject } from "@/utils/deep-merge";
 
 function isProfile(value: unknown): value is Profile {
   return typeof value === "string" && PROFILES.some((p) => p === value);
@@ -28,13 +29,43 @@ export const profileSelectionModule: InitModule = {
   async execute(ctx: InitContext): Promise<InitModuleResult> {
     const profile = resolveProfile(ctx.flags);
     const dest = join(ctx.projectDir, PROJECT_CONFIG_PATH);
+    const force = ctx.flags.force === true;
+    const upgrade = ctx.flags.upgrade === true;
 
-    const configData: Record<string, unknown> = { profile };
+    const exists = await ctx.fileManager.exists(dest);
+
+    if (exists && !force && !upgrade) {
+      return {
+        status: "skipped",
+        message: `${PROJECT_CONFIG_PATH} already exists — use --force to overwrite or --upgrade to update profile`,
+      };
+    }
+
+    // Read existing config to preserve all keys; only update the profile field.
+    let existing: Record<string, unknown> = {};
+    if (exists) {
+      try {
+        const text = await ctx.fileManager.readText(dest);
+        const parsed: unknown = parseToml(text);
+        existing = isPlainObject(parsed) ? parsed : {};
+      } catch {
+        // Cannot read existing file — start fresh
+      }
+    }
+
+    const configData: Record<string, unknown> = { ...existing, profile };
     const content = stringifyToml(configData);
 
     await ctx.fileManager.mkdir(dirname(dest), { parents: true });
     await ctx.fileManager.writeText(dest, content);
 
+    if (exists) {
+      return {
+        status: "ok",
+        message: `Config written with profile=${profile}`,
+        filesModified: [PROJECT_CONFIG_PATH],
+      };
+    }
     return {
       status: "ok",
       message: `Config written with profile=${profile}`,

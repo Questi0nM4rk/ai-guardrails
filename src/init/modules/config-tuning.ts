@@ -64,10 +64,18 @@ export const configTuningModule: InitModule = {
     const ignoreRules = readStringArray(ctx.flags, "ignore_rules");
     if (ignoreRules !== undefined) {
       const existingIgnore = Array.isArray(existing.ignore) ? existing.ignore : [];
-      const newEntries = ignoreRules.map((rule) => ({
-        rule,
-        reason: "user-configured at init",
-      }));
+      const existingRuleSet = new Set(
+        existingIgnore
+          .filter(isPlainObject)
+          .map((entry) => (typeof entry.rule === "string" ? entry.rule : null))
+          .filter((r): r is string => r !== null)
+      );
+      const newEntries = ignoreRules
+        .filter((rule) => !existingRuleSet.has(rule))
+        .map((rule) => ({
+          rule,
+          reason: "user-configured at init",
+        }));
       updated.ignore = [...existingIgnore, ...newEntries];
     }
 

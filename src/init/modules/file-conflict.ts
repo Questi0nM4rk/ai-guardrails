@@ -7,7 +7,8 @@ import { HASH_PREFIX, JSONC_HASH_PREFIX, MD_HASH_PREFIX } from "@/utils/hash";
  * written by ai-guardrails.
  */
 function hasOurHashHeader(content: string): boolean {
-  const firstLine = content.slice(0, content.indexOf("\n"));
+  const nlIdx = content.indexOf("\n");
+  const firstLine = nlIdx === -1 ? content : content.slice(0, nlIdx);
   return (
     firstLine.startsWith(HASH_PREFIX) ||
     firstLine.startsWith(JSONC_HASH_PREFIX) ||
