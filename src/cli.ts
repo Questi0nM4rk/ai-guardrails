@@ -1,6 +1,7 @@
 import { Command, Option } from "@commander-js/extra-typings";
 import { runAllow } from "@/commands/allow";
 import { runCheck } from "@/commands/check";
+import { getCompletionScript } from "@/commands/completion";
 import { runGenerate } from "@/commands/generate";
 import { runHook } from "@/commands/hook";
 import { runInit } from "@/commands/init";
@@ -165,7 +166,13 @@ program
   .description("Generate shell completion script")
   .argument("<shell>", "Shell: bash | zsh | fish")
   .action((shell) => {
-    process.stdout.write(`# Completion for ${shell} not yet implemented\n`);
+    try {
+      process.stdout.write(getCompletionScript(shell));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      process.stderr.write(`${msg}\n`);
+      process.exit(1);
+    }
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {
