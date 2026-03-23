@@ -141,6 +141,66 @@ describe("executeModules — dependency ordering", () => {
   });
 });
 
+describe("executeModules — dependency failure propagation", () => {
+  test("skips dependent when dependency errors", async () => {
+    const dep = makeModule("dep", {
+      executeResult: { status: "error", message: "dep failed" },
+    });
+    const dependent = makeModule("dependent", { dependsOn: ["dep"] });
+    const selections = new Map([
+      ["dep", true],
+      ["dependent", true],
+    ]);
+    const results = await executeModules([dep, dependent], makeCtx({ selections }));
+
+    expect(results[0]?.status).toBe("error");
+    expect(results[1]?.status).toBe("skipped");
+    expect(results[1]?.message).toMatch(/dep/);
+  });
+
+  test("skips dependent when dependency returns skipped", async () => {
+    const dep = makeModule("dep", {
+      executeResult: { status: "skipped", message: "already done" },
+    });
+    const dependent = makeModule("dependent", { dependsOn: ["dep"] });
+    const selections = new Map([
+      ["dep", true],
+      ["dependent", true],
+    ]);
+    const results = await executeModules([dep, dependent], makeCtx({ selections }));
+
+    expect(results[0]?.status).toBe("skipped");
+    expect(results[1]?.status).toBe("skipped");
+    expect(results[1]?.message).toMatch(/dep/);
+  });
+
+  test("does not skip dependent when dependency is not selected", async () => {
+    // dep not in selections — dependent should still run (user opted out of dep)
+    const dep = makeModule("dep");
+    const dependent = makeModule("dependent", { dependsOn: ["dep"] });
+    const selections = new Map([["dependent", true]]);
+    const results = await executeModules([dep, dependent], makeCtx({ selections }));
+
+    expect(results[0]?.status).toBe("skipped"); // dep not selected
+    expect(results[1]?.status).toBe("ok"); // dependent still runs
+  });
+
+  test("runs dependent when all dependencies succeed", async () => {
+    const dep = makeModule("dep", {
+      executeResult: { status: "ok", message: "dep done" },
+    });
+    const dependent = makeModule("dependent", { dependsOn: ["dep"] });
+    const selections = new Map([
+      ["dep", true],
+      ["dependent", true],
+    ]);
+    const results = await executeModules([dep, dependent], makeCtx({ selections }));
+
+    expect(results[0]?.status).toBe("ok");
+    expect(results[1]?.status).toBe("ok");
+  });
+});
+
 describe("executeModules — circular dependency detection", () => {
   test("throws on direct cycle", async () => {
     const a: InitModule = { ...makeModule("a"), dependsOn: ["b"] };

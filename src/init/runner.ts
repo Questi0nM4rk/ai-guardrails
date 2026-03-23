@@ -1,8 +1,8 @@
 import type { InitContext, InitModule, InitModuleResult } from "@/init/types";
 
 class CircularDependencyError extends Error {
-  constructor(cycle: string[]) {
-    super(`Circular dependency detected: ${cycle.join(" → ")}`);
+  constructor(remaining: string[]) {
+    super(`Circular dependency detected among modules: ${remaining.join(", ")}`);
     this.name = "CircularDependencyError";
   }
 }
@@ -64,6 +64,7 @@ export async function executeModules(
 ): Promise<InitModuleResult[]> {
   const sorted = topoSort(modules);
   const results: InitModuleResult[] = [];
+  const completed = new Set<string>();
 
   for (const mod of sorted) {
     if (ctx.selections.get(mod.id) !== true) {
@@ -71,6 +72,19 @@ export async function executeModules(
         status: "skipped",
         message: `${mod.name}: skipped (not selected)`,
       });
+      continue;
+    }
+
+    const failedDep = (mod.dependsOn ?? []).find(
+      (dep) => ctx.selections.get(dep) === true && !completed.has(dep)
+    );
+    if (failedDep !== undefined) {
+      const result: InitModuleResult = {
+        status: "skipped",
+        message: `${mod.name}: skipped (dependency ${failedDep} did not complete successfully)`,
+      };
+      ctx.console.info(`[${mod.name}] ${result.message}`);
+      results.push(result);
       continue;
     }
 
@@ -86,6 +100,7 @@ export async function executeModules(
 
     if (result.status === "ok") {
       ctx.console.success(`[${mod.name}] ${result.message}`);
+      completed.add(mod.id);
     } else if (result.status === "skipped") {
       ctx.console.info(`[${mod.name}] ${result.message}`);
     } else {
