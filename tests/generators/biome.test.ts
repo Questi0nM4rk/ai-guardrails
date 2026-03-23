@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { z } from "zod";
 import {
   buildResolvedConfig,
   MachineConfigSchema,
@@ -35,13 +36,41 @@ describe("biomeGenerator", () => {
     expect(biomeGenerator.languages).toEqual(["typescript"]);
   });
 
+  const StrictRulesSchema = z.object({
+    linter: z.object({
+      rules: z.object({
+        recommended: z.boolean(),
+        style: z.unknown().optional(),
+        suspicious: z.unknown().optional(),
+      }),
+    }),
+  });
+
+  const StandardRulesSchema = z.object({
+    linter: z.object({
+      rules: z.object({
+        recommended: z.boolean(),
+        style: z.unknown().optional(),
+        suspicious: z.unknown().optional(),
+        correctness: z.unknown().optional(),
+      }),
+    }),
+  });
+
+  const MinimalRulesSchema = z.object({
+    linter: z.object({
+      rules: z.object({
+        recommended: z.boolean(),
+        correctness: z.record(z.string(), z.string()).optional(),
+        suspicious: z.record(z.string(), z.string()).optional(),
+        style: z.unknown().optional(),
+      }),
+    }),
+  });
+
   test("strict profile has recommended true with explicit rule overrides", () => {
     const output = biomeGenerator.generate(makeConfig("strict"));
-    const parsed = parseJsonBody(output) as {
-      linter: {
-        rules: { recommended: boolean; style?: unknown; suspicious?: unknown };
-      };
-    };
+    const parsed = StrictRulesSchema.parse(parseJsonBody(output));
     expect(parsed.linter.rules.recommended).toBe(true);
     expect(parsed.linter.rules.style).toBeDefined();
     expect(parsed.linter.rules.suspicious).toBeDefined();
@@ -49,16 +78,7 @@ describe("biomeGenerator", () => {
 
   test("standard profile has recommended true with no category overrides", () => {
     const output = biomeGenerator.generate(makeConfig("standard"));
-    const parsed = parseJsonBody(output) as {
-      linter: {
-        rules: {
-          recommended: boolean;
-          style?: unknown;
-          suspicious?: unknown;
-          correctness?: unknown;
-        };
-      };
-    };
+    const parsed = StandardRulesSchema.parse(parseJsonBody(output));
     expect(parsed.linter.rules.recommended).toBe(true);
     expect(parsed.linter.rules.style).toBeUndefined();
     expect(parsed.linter.rules.suspicious).toBeUndefined();
@@ -67,16 +87,7 @@ describe("biomeGenerator", () => {
 
   test("minimal profile has recommended false with only critical rules", () => {
     const output = biomeGenerator.generate(makeConfig("minimal"));
-    const parsed = parseJsonBody(output) as {
-      linter: {
-        rules: {
-          recommended: boolean;
-          correctness?: Record<string, string>;
-          suspicious?: Record<string, string>;
-          style?: unknown;
-        };
-      };
-    };
+    const parsed = MinimalRulesSchema.parse(parseJsonBody(output));
     expect(parsed.linter.rules.recommended).toBe(false);
     expect(parsed.linter.rules.correctness).toBeDefined();
     expect(parsed.linter.rules.suspicious?.noExplicitAny).toBe("error");
