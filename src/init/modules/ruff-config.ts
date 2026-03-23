@@ -17,7 +17,9 @@ export const ruffConfigModule: InitModule = {
 
   async execute(ctx: InitContext): Promise<InitModuleResult> {
     const content = ruffGenerator.generate(ctx.config);
-    const force = ctx.flags.force === true;
+    // --config-strategy replace overwrites user-managed files (same as --force for lang configs).
+    const configStrategy = ctx.flags.configStrategy;
+    const force = ctx.flags.force === true || configStrategy === "replace";
 
     const result = await writeConfigFile(
       ctx.projectDir,

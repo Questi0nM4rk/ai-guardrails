@@ -50,7 +50,9 @@ export const biomeConfigModule: InitModule = {
     };
 
     const content = biomeGenerator.generate(configWithMeta);
-    const force = ctx.flags.force === true;
+    // --config-strategy replace overwrites user-managed files (same as --force for lang configs).
+    const configStrategy = ctx.flags.configStrategy;
+    const force = ctx.flags.force === true || configStrategy === "replace";
 
     const result = await writeConfigFile(
       ctx.projectDir,

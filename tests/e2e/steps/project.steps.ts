@@ -43,6 +43,10 @@ Given<E2EWorld>(
     world.project = await setupFixture("bare", {
       fixtureDir: resolve(FIXTURE_DIR, String(lang)),
     });
+    // lefthook install requires a git repo — initialize one in the temp dir.
+    await world.project.run("git", ["init"]);
+    await world.project.run("git", ["config", "user.email", "test@example.com"]);
+    await world.project.run("git", ["config", "user.name", "Test"]);
   }
 );
 
@@ -53,6 +57,10 @@ Given<E2EWorld>(
     world.project = await setupFixture("preconfigured", {
       fixtureDir: resolve(FIXTURE_DIR, String(lang)),
     });
+    // lefthook install requires a git repo — initialize one in the temp dir.
+    await world.project.run("git", ["init"]);
+    await world.project.run("git", ["config", "user.email", "test@example.com"]);
+    await world.project.run("git", ["config", "user.name", "Test"]);
   }
 );
 
@@ -63,6 +71,10 @@ Given<E2EWorld>(
     world.project = await composeFixtures([`${String(a)}/bare`, `${String(b)}/bare`], {
       fixtureDir: FIXTURE_DIR,
     });
+    // lefthook install requires a git repo — initialize one in the temp dir.
+    await world.project.run("git", ["init"]);
+    await world.project.run("git", ["config", "user.email", "test@example.com"]);
+    await world.project.run("git", ["config", "user.name", "Test"]);
   }
 );
 
@@ -76,6 +88,10 @@ Given<E2EWorld>(
       langs.map((l) => `${l}/bare`),
       { fixtureDir: FIXTURE_DIR }
     );
+    // lefthook install requires a git repo — initialize one in the temp dir.
+    await world.project.run("git", ["init"]);
+    await world.project.run("git", ["config", "user.email", "test@example.com"]);
+    await world.project.run("git", ["config", "user.name", "Test"]);
   }
 );
 
