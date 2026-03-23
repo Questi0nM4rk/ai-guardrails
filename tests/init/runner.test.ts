@@ -61,7 +61,7 @@ describe("executeModules — selection filtering", () => {
   test("skips modules not in selections", async () => {
     const modules = [makeModule("a"), makeModule("b")];
     const selections = new Map([["a", true]]);
-    const results = await executeModules(modules, selections, makeCtx({ selections }));
+    const results = await executeModules(modules, makeCtx({ selections }));
 
     expect(results).toHaveLength(2);
     expect(results[0]?.status).toBe("ok");
@@ -71,7 +71,7 @@ describe("executeModules — selection filtering", () => {
   test("skips modules with selections.get(id) === false", async () => {
     const modules = [makeModule("a")];
     const selections = new Map([["a", false]]);
-    const results = await executeModules(modules, selections, makeCtx({ selections }));
+    const results = await executeModules(modules, makeCtx({ selections }));
 
     expect(results[0]?.status).toBe("skipped");
   });
@@ -82,7 +82,7 @@ describe("executeModules — selection filtering", () => {
       ["a", true],
       ["b", true],
     ]);
-    const results = await executeModules(modules, selections, makeCtx({ selections }));
+    const results = await executeModules(modules, makeCtx({ selections }));
 
     expect(results.every((r) => r.status === "ok")).toBe(true);
   });
@@ -111,7 +111,7 @@ describe("executeModules — dependency ordering", () => {
       ["dep", true],
       ["main", true],
     ]);
-    await executeModules([main, dep], selections, makeCtx({ selections }));
+    await executeModules([main, dep], makeCtx({ selections }));
 
     expect(order).toEqual(["dep", "main"]);
   });
@@ -135,7 +135,7 @@ describe("executeModules — dependency ordering", () => {
       ["b", true],
       ["c", true],
     ]);
-    await executeModules([c, b, a], selections, makeCtx({ selections }));
+    await executeModules([c, b, a], makeCtx({ selections }));
 
     expect(order).toEqual(["a", "b", "c"]);
   });
@@ -150,7 +150,7 @@ describe("executeModules — circular dependency detection", () => {
       ["b", true],
     ]);
 
-    expect(() => executeModules([a, b], selections, makeCtx({ selections }))).toThrow(
+    await expect(executeModules([a, b], makeCtx({ selections }))).rejects.toThrow(
       /[Cc]ircular/
     );
   });
@@ -165,9 +165,9 @@ describe("executeModules — circular dependency detection", () => {
       ["c", true],
     ]);
 
-    expect(() =>
-      executeModules([a, b, c], selections, makeCtx({ selections }))
-    ).toThrow(/[Cc]ircular/);
+    await expect(executeModules([a, b, c], makeCtx({ selections }))).rejects.toThrow(
+      /[Cc]ircular/
+    );
   });
 });
 
@@ -176,7 +176,7 @@ describe("executeModules — console output", () => {
     const cons = new FakeConsole();
     const modules = [makeModule("linter")];
     const selections = new Map([["linter", true]]);
-    await executeModules(modules, selections, makeCtx({ selections, console: cons }));
+    await executeModules(modules, makeCtx({ selections, console: cons }));
 
     expect(cons.steps.some((s) => s.includes("linter"))).toBe(true);
     expect(cons.successes.some((s) => s.includes("linter done"))).toBe(true);
@@ -188,11 +188,7 @@ describe("executeModules — console output", () => {
       executeResult: { status: "error", message: "exploded" },
     });
     const selections = new Map([["bad", true]]);
-    await executeModules(
-      [errModule],
-      selections,
-      makeCtx({ selections, console: cons })
-    );
+    await executeModules([errModule], makeCtx({ selections, console: cons }));
 
     expect(cons.errors.some((s) => s.includes("exploded"))).toBe(true);
   });
@@ -203,11 +199,7 @@ describe("executeModules — console output", () => {
       executeResult: { status: "skipped", message: "already configured" },
     });
     const selections = new Map([["opt", true]]);
-    await executeModules(
-      [skippedModule],
-      selections,
-      makeCtx({ selections, console: cons })
-    );
+    await executeModules([skippedModule], makeCtx({ selections, console: cons }));
 
     expect(cons.infos.some((s) => s.includes("already configured"))).toBe(true);
   });

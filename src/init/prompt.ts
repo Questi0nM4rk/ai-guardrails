@@ -56,9 +56,10 @@ export async function askChoice<T extends string>(
     let prompt = `${question} [${hint}] (default: ${defaultChoice}): `;
     for (;;) {
       const input = await ask(rl, prompt);
-      const trimmed = input.trim().toLowerCase() as T;
-      if (trimmed === ("" as T)) return defaultChoice;
-      if ((choices as readonly string[]).includes(trimmed)) return trimmed;
+      const trimmed = input.trim().toLowerCase();
+      if (trimmed === "") return defaultChoice;
+      const match = (choices as readonly string[]).find((c) => c === trimmed);
+      if (match !== undefined) return match as T;
       prompt = `Invalid. Choose ${hint} (default: ${defaultChoice}): `;
     }
   } finally {
@@ -114,18 +115,5 @@ export async function askFileConflict(
   filename: string
 ): Promise<"merge" | "skip" | "replace"> {
   const choices = ["merge", "skip", "replace"] as const;
-  const rl = toHandle(createReadline);
-  try {
-    let prompt = `${filename} already exists. [merge/skip/replace] (default: skip): `;
-    for (;;) {
-      const input = await ask(rl, prompt);
-      const trimmed = input.trim().toLowerCase();
-      if (trimmed === "" || trimmed === "skip") return "skip";
-      if (trimmed === "merge") return "merge";
-      if (trimmed === "replace") return "replace";
-      prompt = `Invalid. Choose ${choices.join("/")} (default: skip): `;
-    }
-  } finally {
-    rl.close();
-  }
+  return askChoice(createReadline, `${filename} already exists`, choices, "skip");
 }

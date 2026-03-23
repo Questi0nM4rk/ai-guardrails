@@ -56,18 +56,17 @@ function topoSort(modules: readonly InitModule[]): InitModule[] {
 
 /**
  * Execute a set of init modules in dependency order.
- * Modules not selected (selections.get(id) !== true) are skipped.
+ * Modules not selected (ctx.selections.get(id) !== true) are skipped.
  */
 export async function executeModules(
   modules: readonly InitModule[],
-  selections: Map<string, boolean>,
   ctx: InitContext
 ): Promise<InitModuleResult[]> {
   const sorted = topoSort(modules);
   const results: InitModuleResult[] = [];
 
   for (const mod of sorted) {
-    if (selections.get(mod.id) !== true) {
+    if (ctx.selections.get(mod.id) !== true) {
       results.push({
         status: "skipped",
         message: `${mod.name}: skipped (not selected)`,
@@ -77,7 +76,13 @@ export async function executeModules(
 
     ctx.console.step(`[${mod.name}] ${mod.description}`);
 
-    const result = await mod.execute(ctx);
+    let result: InitModuleResult;
+    try {
+      result = await mod.execute(ctx);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      result = { status: "error", message: `[${mod.name}] crashed: ${message}` };
+    }
 
     if (result.status === "ok") {
       ctx.console.success(`[${mod.name}] ${result.message}`);
