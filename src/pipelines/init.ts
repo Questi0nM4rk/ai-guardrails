@@ -77,8 +77,7 @@ export const initPipeline: Pipeline = {
       ctx.console.info("Running non-interactive init with defaults...");
     }
 
-    // Build a preliminary InitContext with an empty selections map so detect()
-    // can inspect languages. We fill in the real selections afterwards.
+    // Build InitContext once for language detection and config loading.
     const preliminary = await buildInitContext(ctx, new Map());
     if (preliminary.initCtx === null) {
       return {
@@ -95,17 +94,16 @@ export const initPipeline: Pipeline = {
       selections = applyFlagDisables(ALL_INIT_MODULES, ctx.flags);
     }
 
-    // Rebuild InitContext with final selections
-    const { initCtx, error } = await buildInitContext(ctx, selections);
-    if (initCtx === null) {
-      return { status: "error", message: error ?? "Context build failed" };
-    }
+    // Reuse the already-built context — just swap in the final selections.
+    const initCtx = { ...preliminary.initCtx, selections };
 
     const results = await executeModules(ALL_INIT_MODULES, initCtx);
-    const hasError = results.some((r) => r.status === "error");
+    const errorMessages = results
+      .filter((r) => r.status === "error")
+      .map((r) => r.message);
 
-    return hasError
-      ? { status: "error", message: "One or more init modules failed" }
+    return errorMessages.length > 0
+      ? { status: "error", message: `Init failed: ${errorMessages.join("; ")}` }
       : { status: "ok" };
   },
 };

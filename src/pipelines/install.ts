@@ -8,8 +8,16 @@ import type { InitContext } from "@/init/types";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 
-async function buildInstallContext(ctx: PipelineContext): Promise<InitContext> {
-  const { languages } = await detectLanguagesStep(ctx.projectDir, ctx.fileManager);
+async function buildInstallContext(
+  ctx: PipelineContext
+): Promise<{ initCtx: InitContext | null; error?: string }> {
+  const { result: detectResult, languages } = await detectLanguagesStep(
+    ctx.projectDir,
+    ctx.fileManager
+  );
+  if (detectResult.status === "error") {
+    return { initCtx: null, error: detectResult.message };
+  }
 
   const machinePath = join(homedir(), ".ai-guardrails", "config.toml");
   const machine = await loadMachineConfig(machinePath, ctx.fileManager);
@@ -18,7 +26,7 @@ async function buildInstallContext(ctx: PipelineContext): Promise<InitContext> {
 
   const selections = applyFlagDisables(ALL_INIT_MODULES, ctx.flags);
 
-  return {
+  const initCtx: InitContext = {
     projectDir: ctx.projectDir,
     fileManager: ctx.fileManager,
     commandRunner: ctx.commandRunner,
@@ -30,16 +38,24 @@ async function buildInstallContext(ctx: PipelineContext): Promise<InitContext> {
     createReadline: ctx.createReadline,
     flags: ctx.flags,
   };
+
+  return { initCtx };
 }
 
 export const installPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
-    const initCtx = await buildInstallContext(ctx);
-    const results = await executeModules(ALL_INIT_MODULES, initCtx);
-    const hasError = results.some((r) => r.status === "error");
+    const { initCtx, error } = await buildInstallContext(ctx);
+    if (initCtx === null) {
+      return { status: "error", message: error ?? "Language detection failed" };
+    }
 
-    return hasError
-      ? { status: "error", message: "One or more install modules failed" }
+    const results = await executeModules(ALL_INIT_MODULES, initCtx);
+    const errorMessages = results
+      .filter((r) => r.status === "error")
+      .map((r) => r.message);
+
+    return errorMessages.length > 0
+      ? { status: "error", message: `Install failed: ${errorMessages.join("; ")}` }
       : { status: "ok" };
   },
 };

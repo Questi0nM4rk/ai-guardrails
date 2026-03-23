@@ -3,9 +3,10 @@ import type { InitModule } from "@/init/types";
 /**
  * Build a selections map from module defaults, honouring CLI `--no-X` disable flags.
  *
- * Each module may declare a `disableFlag` such as `"--no-ruff"`. Commander converts
- * these to camelCase flags (e.g. `noRuff`). If the flag is `true` the module is
- * disabled regardless of its `defaultEnabled` value.
+ * Each module may declare a `disableFlag` such as `"--no-ruff"`. Commander's negation
+ * flag syntax strips the `--no-` prefix and stores the positive camelCase key with a
+ * `false` value when the flag is supplied. For example, `--no-agent-hooks` causes
+ * Commander to store `flags.agentHooks = false`.
  */
 export function applyFlagDisables(
   modules: readonly InitModule[],
@@ -18,11 +19,12 @@ export function applyFlagDisables(
       selections.set(mod.id, mod.defaultEnabled);
       continue;
     }
-    // Convert "--no-foo-bar" → "noFooBar" for Commander flag lookup.
+    // Convert "--no-foo-bar" → "fooBar" (strip "--no-", then camelCase the rest).
     const camelKey = flagKey
-      .replace(/^--/, "")
+      .replace(/^--no-/, "")
       .replace(/-([a-z])/g, (_: string, c: string) => c.toUpperCase());
-    const disabled = flags[camelKey] === true;
+    // Commander sets flags[camelKey] = false when --no-X is supplied.
+    const disabled = flags[camelKey] === false;
     selections.set(mod.id, !disabled && mod.defaultEnabled);
   }
   return selections;
