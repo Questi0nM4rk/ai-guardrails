@@ -1,118 +1,69 @@
-import { dirname, join } from "node:path";
-import type { Interface as ReadlineInterface } from "node:readline";
-import { stringify as stringifyToml } from "smol-toml";
-import { PROFILES, type Profile } from "@/config/schema";
-import type { Console } from "@/infra/console";
-import type { FileManager } from "@/infra/file-manager";
+import { homedir } from "node:os";
+import { join } from "node:path";
+import { loadMachineConfig, loadProjectConfig, resolveConfig } from "@/config/loader";
+import { ALL_INIT_MODULES } from "@/init/registry";
+import { executeModules } from "@/init/runner";
+import { applyFlagDisables } from "@/init/selections";
+import type { InitContext } from "@/init/types";
+import { runWizard } from "@/init/wizard";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
-import { installPipeline } from "@/pipelines/install";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
-import { checkPrerequisites } from "@/steps/check-prerequisites";
 import { detectLanguagesStep } from "@/steps/detect-languages";
-import { installPrerequisites } from "@/steps/install-prerequisites";
 
-function isProfile(value: string): value is Profile {
-  return PROFILES.some((p) => p === value);
-}
-
-async function askQuestion(rl: ReadlineInterface, question: string): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(question, resolve);
-  });
-}
-
-async function promptProfile(
-  createReadline: () => ReadlineInterface
-): Promise<Profile> {
-  const rl = createReadline();
-  try {
-    let prompt = "Select profile [strict/standard/minimal] (default: standard): ";
-    for (;;) {
-      const input = await askQuestion(rl, prompt);
-      const trimmed = input.trim().toLowerCase();
-      if (trimmed === "") return "standard";
-      if (isProfile(trimmed)) return trimmed;
-      prompt = "Invalid. Choose strict/standard/minimal (default: standard): ";
-    }
-  } finally {
-    rl.close();
-  }
-}
-
-async function promptIgnoreRules(
-  createReadline: () => ReadlineInterface
-): Promise<string[]> {
-  const rl = createReadline();
-  try {
-    const input = await askQuestion(
-      rl,
-      "Rules to ignore (comma-separated linter/RULE, or press Enter to skip): "
-    );
-    const trimmed = input.trim();
-    if (!trimmed) return [];
-    return trimmed
-      .split(",")
-      .map((r) => r.trim())
-      .filter((r) => r.length > 0);
-  } finally {
-    rl.close();
-  }
-}
-
-async function writeProjectConfig(
+async function configExists(
   projectDir: string,
-  profile: Profile,
-  ignoreRules: string[],
-  fileManager: FileManager
-): Promise<void> {
-  const dest = join(projectDir, PROJECT_CONFIG_PATH);
-  await fileManager.mkdir(dirname(dest), { parents: true });
-
-  const ignoreEntries = ignoreRules.map((rule) => ({
-    rule,
-    reason: "user-configured at init",
-  }));
-
-  const configData: Record<string, unknown> = { profile, ignore: ignoreEntries };
-  await fileManager.writeText(dest, stringifyToml(configData));
-}
-
-async function checkConfigExists(
-  projectDir: string,
-  fileManager: FileManager
+  ctx: PipelineContext
 ): Promise<boolean> {
   try {
-    await fileManager.readText(join(projectDir, PROJECT_CONFIG_PATH));
+    await ctx.fileManager.readText(join(projectDir, PROJECT_CONFIG_PATH));
     return true;
   } catch {
     return false;
   }
 }
 
-function logInitStart(cons: Console, interactive: boolean): void {
-  if (interactive) {
-    cons.info("Running interactive init...");
-  } else {
-    cons.info("Running non-interactive init with defaults...");
+async function buildInitContext(
+  ctx: PipelineContext,
+  selections: Map<string, boolean>
+): Promise<{ initCtx: InitContext | null; error?: string }> {
+  const { result: detectResult, languages } = await detectLanguagesStep(
+    ctx.projectDir,
+    ctx.fileManager
+  );
+  if (detectResult.status === "error") {
+    return { initCtx: null, error: detectResult.message };
   }
+
+  const machinePath = join(homedir(), ".ai-guardrails", "config.toml");
+  const machine = await loadMachineConfig(machinePath, ctx.fileManager);
+  const project = await loadProjectConfig(ctx.projectDir, ctx.fileManager);
+  const config = resolveConfig(machine, project);
+
+  const initCtx: InitContext = {
+    projectDir: ctx.projectDir,
+    fileManager: ctx.fileManager,
+    commandRunner: ctx.commandRunner,
+    console: ctx.console,
+    config,
+    languages,
+    selections,
+    isTTY: ctx.isTTY,
+    createReadline: ctx.createReadline,
+    flags: ctx.flags,
+  };
+
+  return { initCtx };
 }
 
 export const initPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
-    const {
-      projectDir,
-      fileManager,
-      commandRunner,
-      console: cons,
-      isTTY,
-      createReadline,
-    } = ctx;
-
     const force = ctx.flags.force === true;
     const upgrade = ctx.flags.upgrade === true;
+    const yes = ctx.flags.yes === true;
+    const isInteractive = (ctx.isTTY || ctx.flags.interactive === true) && !yes;
 
-    const configExists = await checkConfigExists(projectDir, fileManager);
-    if (configExists && !force && !upgrade) {
+    const exists = await configExists(ctx.projectDir, ctx);
+    if (exists && !force && !upgrade) {
       return {
         status: "error",
         message:
@@ -120,48 +71,41 @@ export const initPipeline: Pipeline = {
       };
     }
 
-    const isInteractive = isTTY || ctx.flags.interactive === true;
-    logInitStart(cons, isInteractive);
-
-    let profile: Profile = "standard";
-    let ignoreRules: string[] = [];
-
     if (isInteractive) {
-      profile = await promptProfile(createReadline);
-      ignoreRules = await promptIgnoreRules(createReadline);
+      ctx.console.info("Running interactive init...");
     } else {
-      const flagProfile = ctx.flags.profile;
-      if (typeof flagProfile === "string" && isProfile(flagProfile)) {
-        profile = flagProfile;
-      }
+      ctx.console.info("Running non-interactive init with defaults...");
     }
 
-    cons.step(`Writing config: profile=${profile}...`);
-    await writeProjectConfig(projectDir, profile, ignoreRules, fileManager);
-    cons.success("Config written to .ai-guardrails/config.toml");
-
-    cons.step("Detecting languages...");
-    const { result: detectResult, languages } = await detectLanguagesStep(
-      projectDir,
-      fileManager
-    );
-    if (detectResult.status === "error") {
-      return { status: "error", message: detectResult.message };
+    // Build a preliminary InitContext with an empty selections map so detect()
+    // can inspect languages. We fill in the real selections afterwards.
+    const preliminary = await buildInitContext(ctx, new Map());
+    if (preliminary.initCtx === null) {
+      return {
+        status: "error",
+        message: preliminary.error ?? "Language detection failed",
+      };
     }
-    cons.success(detectResult.message);
 
-    cons.step("Checking prerequisites...");
-    const { report } = await checkPrerequisites(cons, commandRunner, languages);
+    let selections: Map<string, boolean>;
+    if (isInteractive) {
+      selections = await runWizard(preliminary.initCtx, ALL_INIT_MODULES);
+    } else {
+      // Apply --no-X flag disables on top of module defaults
+      selections = applyFlagDisables(ALL_INIT_MODULES, ctx.flags);
+    }
 
-    await installPrerequisites(
-      cons,
-      commandRunner,
-      report,
-      projectDir,
-      isInteractive,
-      createReadline
-    );
+    // Rebuild InitContext with final selections
+    const { initCtx, error } = await buildInitContext(ctx, selections);
+    if (initCtx === null) {
+      return { status: "error", message: error ?? "Context build failed" };
+    }
 
-    return installPipeline.run(ctx);
+    const results = await executeModules(ALL_INIT_MODULES, initCtx);
+    const hasError = results.some((r) => r.status === "error");
+
+    return hasError
+      ? { status: "error", message: "One or more init modules failed" }
+      : { status: "ok" };
   },
 };
