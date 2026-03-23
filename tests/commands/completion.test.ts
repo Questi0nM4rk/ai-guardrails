@@ -3,7 +3,7 @@ import {
   generateBashCompletion,
   generateFishCompletion,
   generateZshCompletion,
-  runCompletion,
+  getCompletionScript,
 } from "@/commands/completion";
 
 const ALL_COMMANDS = [
@@ -122,33 +122,25 @@ describe("generateFishCompletion", () => {
   });
 });
 
-describe("runCompletion unknown shell", () => {
-  test("writes error message and calls process.exit(1) for unknown shell", () => {
-    const stderrChunks: string[] = [];
-    const originalStderr = process.stderr.write.bind(process.stderr);
-    process.stderr.write = (chunk: string | Uint8Array): boolean => {
-      stderrChunks.push(
-        typeof chunk === "string" ? chunk : new TextDecoder().decode(chunk)
-      );
-      return true;
-    };
+describe("getCompletionScript", () => {
+  test("returns bash completion for bash shell", () => {
+    const script = getCompletionScript("bash");
+    expect(script).toContain("complete -F _ai_guardrails ai-guardrails");
+  });
 
-    let capturedExitCode: number | undefined;
-    const originalExit = process.exit;
-    process.exit = ((_code?: number) => {
-      capturedExitCode = _code;
-    }) as unknown as typeof process.exit;
+  test("returns zsh completion for zsh shell", () => {
+    const script = getCompletionScript("zsh");
+    expect(script).toContain("#compdef ai-guardrails");
+  });
 
-    try {
-      runCompletion("powershell");
-    } finally {
-      process.stderr.write = originalStderr;
-      process.exit = originalExit;
-    }
+  test("returns fish completion for fish shell", () => {
+    const script = getCompletionScript("fish");
+    expect(script).toContain("complete -c ai-guardrails");
+  });
 
-    const errOutput = stderrChunks.join("");
-    expect(errOutput).toContain("powershell");
-    expect(errOutput).toContain("bash, zsh, or fish");
-    expect(capturedExitCode).toBe(1);
+  test("throws for unknown shell", () => {
+    expect(() => getCompletionScript("powershell")).toThrow(
+      "Unknown shell: powershell. Use bash, zsh, or fish."
+    );
   });
 });
