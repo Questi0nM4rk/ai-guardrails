@@ -1,9 +1,11 @@
 import { Command, Option } from "@commander-js/extra-typings";
+import { runAllow } from "@/commands/allow";
 import { runCheck } from "@/commands/check";
 import { runGenerate } from "@/commands/generate";
 import { runHook } from "@/commands/hook";
 import { runInit } from "@/commands/init";
 import { runInstall } from "@/commands/install";
+import { runQuery } from "@/commands/query";
 import { runReport } from "@/commands/report";
 import { runSnapshot } from "@/commands/snapshot";
 import { runStatus } from "@/commands/status";
@@ -129,6 +131,30 @@ program
   .argument("[args...]", "Additional arguments (e.g. staged file paths)")
   .action(async (hookName, args) => {
     await runHook(hookName, args);
+  });
+
+// ---------------------------------------------------------------------------
+// allow
+// ---------------------------------------------------------------------------
+program
+  .command("allow")
+  .description("Add an inline allow rule to .ai-guardrails/config.toml")
+  .argument("<rule>", "Rule in linter/RULE_CODE format (e.g. biome/noConsole)")
+  .argument("<glob>", "File glob to apply the rule to (e.g. src/**/*.ts)")
+  .argument("<reason>", "Human-readable reason for allowing the rule")
+  .action(async (rule, glob, reason) => {
+    await runAllow(getProjectDir(), rule, glob, reason);
+  });
+
+// ---------------------------------------------------------------------------
+// query
+// ---------------------------------------------------------------------------
+program
+  .command("query")
+  .description("Show all files where a rule is allowed (config + inline comments)")
+  .argument("<rule>", "Rule in linter/RULE_CODE format (e.g. biome/noConsole)")
+  .action(async (rule) => {
+    await runQuery(getProjectDir(), rule);
   });
 
 // ---------------------------------------------------------------------------
