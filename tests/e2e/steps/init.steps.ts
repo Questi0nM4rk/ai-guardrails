@@ -5,8 +5,7 @@ import type { E2EWorld } from "./project.steps";
 // Base flags used for all E2E init runs:
 // --yes         — non-interactive (accept all defaults)
 // --no-baseline — skip linter snapshot step (linters may not be installed in CI)
-// --no-hooks    — skip lefthook install (lefthook not available in CI)
-const BASE_INIT_FLAGS = ["--yes", "--no-baseline", "--no-hooks"];
+const BASE_INIT_FLAGS = ["--yes", "--no-baseline"];
 
 When<E2EWorld>("I run ai-guardrails init", async (world: E2EWorld) => {
   world.result = await world.project.run(world.binaryPath, [

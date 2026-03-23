@@ -34,15 +34,20 @@ export const lefthookModule: InitModule = {
       return { status: "error", message: writeResult.message };
     }
 
-    const installResult = await ctx.commandRunner.run(["lefthook", "install"], {
-      cwd: ctx.projectDir,
-    });
+    try {
+      const installResult = await ctx.commandRunner.run(["lefthook", "install"], {
+        cwd: ctx.projectDir,
+      });
 
-    if (installResult.exitCode !== 0) {
-      return {
-        status: "error",
-        message: `lefthook install failed (exit ${installResult.exitCode}): ${installResult.stderr.trim()}`,
-      };
+      if (installResult.exitCode !== 0) {
+        ctx.console.warning(
+          `lefthook install failed (exit ${installResult.exitCode}) — install lefthook manually`
+        );
+      }
+    } catch {
+      ctx.console.warning(
+        "lefthook not found — install it to activate pre-commit hooks"
+      );
     }
 
     return {
