@@ -201,6 +201,29 @@ describe("snapshotStep — relative paths", () => {
     expect(baseline.has(fingerprint)).toBe(true);
   });
 
+  test("issues with inline allow comments are excluded from baseline", async () => {
+    const fm = new FakeFileManager();
+    const cr = new FakeCommandRunner();
+    const config = makeConfig();
+
+    // Seed source with allow comment on line 9 covering the issue on line 10
+    fm.seed(
+      "/project/src/foo.py",
+      Array.from({ length: 8 }, (_, i) => `line ${i + 1}`)
+        .concat(['# ai-guardrails-allow ruff/E501 "URL too long"', "url_line = True"])
+        .join("\n")
+    );
+
+    const issue = makeIssue({ file: "/project/src/foo.py", line: 10 });
+    const languages = [makePlugin([issue])];
+
+    const result = await snapshotStep("/project", languages, config, cr, fm);
+
+    expect(result.status).toBe("ok");
+    const entries = readBaseline(fm, "/project");
+    expect(entries).toHaveLength(0);
+  });
+
   test("returns ok with zero entries when no issues found", async () => {
     const fm = new FakeFileManager();
     const cr = new FakeCommandRunner();
