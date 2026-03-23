@@ -58,8 +58,8 @@ export async function askChoice<T extends string>(
       const input = await ask(rl, prompt);
       const trimmed = input.trim().toLowerCase();
       if (trimmed === "") return defaultChoice;
-      const match = (choices as readonly string[]).find((c) => c === trimmed);
-      if (match !== undefined) return match as T;
+      const match = choices.find((c) => c === trimmed);
+      if (match !== undefined) return match;
       prompt = `Invalid. Choose ${hint} (default: ${defaultChoice}): `;
     }
   } finally {
