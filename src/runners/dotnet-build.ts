@@ -11,7 +11,7 @@ const DOTNET_RULE_PREFIX = "dotnet-build/";
 // Matches: src/MyClass.cs(12,5): warning CS0168: Variable 'e' is declared but never used [/path/MyProject.csproj]
 // The project path suffix [...] is optional.
 const MSBUILD_LINE_PATTERN =
-  /^(.+?)\((\d+),(\d+)\):\s+(warning|error)\s+(CS\d+):\s+(.+?)(?:\s+\[.+\])?$/;
+  /^(.+?)\((\d+),(\d+)\):\s+(warning|error)\s+(CS\d+):\s+(.+?)(?:\s+\[[^\]]+\])?$/;
 
 interface MsBuildMatch {
   file: string;
@@ -49,7 +49,7 @@ export function parseDotnetBuildOutput(
   config: ResolvedConfig
 ): Omit<LintIssue, "fingerprint">[] {
   const issues: Omit<LintIssue, "fingerprint">[] = [];
-  for (const line of output.split("\n")) {
+  for (const line of output.split(/\r?\n/)) {
     const parsed = parseMsBuildLine(line);
     if (!parsed) continue;
     if (config.profile === "minimal" && parsed.severity !== "error") continue;
