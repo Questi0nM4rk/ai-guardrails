@@ -81,10 +81,20 @@ export const configTuningModule: InitModule = {
 
     const ignorePaths = readStringArray(ctx.flags, "ignore_paths");
     if (ignorePaths !== undefined) {
-      updated.ignore_paths = ignorePaths;
+      const existingPaths = Array.isArray(existing.ignore_paths)
+        ? existing.ignore_paths.filter((v): v is string => typeof v === "string")
+        : [];
+      const existingPathSet = new Set(existingPaths);
+      const newPaths = ignorePaths.filter((p) => !existingPathSet.has(p));
+      updated.ignore_paths = [...existingPaths, ...newPaths];
     }
 
-    await ctx.fileManager.writeText(dest, stringifyToml(updated));
+    try {
+      await ctx.fileManager.writeText(dest, stringifyToml(updated));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { status: "error", message: `Failed to write config: ${message}` };
+    }
 
     return {
       status: "ok",

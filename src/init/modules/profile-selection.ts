@@ -56,8 +56,13 @@ export const profileSelectionModule: InitModule = {
     const configData: Record<string, unknown> = { ...existing, profile };
     const content = stringifyToml(configData);
 
-    await ctx.fileManager.mkdir(dirname(dest), { parents: true });
-    await ctx.fileManager.writeText(dest, content);
+    try {
+      await ctx.fileManager.mkdir(dirname(dest), { parents: true });
+      await ctx.fileManager.writeText(dest, content);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { status: "error", message: `Failed to write config: ${message}` };
+    }
 
     if (exists) {
       return {
