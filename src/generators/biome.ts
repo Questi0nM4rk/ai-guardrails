@@ -2,6 +2,62 @@ import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 import { withJsoncHashHeader } from "@/utils/hash";
 
+type RuleSeverity = "error" | "warn" | "off";
+
+type BiomeCategoryRules = Readonly<Record<string, RuleSeverity>>;
+
+type BiomeLinterRules =
+  | {
+      recommended: true;
+      correctness?: BiomeCategoryRules;
+      style?: BiomeCategoryRules;
+      suspicious?: BiomeCategoryRules;
+    }
+  | {
+      recommended: false;
+      correctness?: BiomeCategoryRules;
+      suspicious?: BiomeCategoryRules;
+    };
+
+function buildLinterRules(config: ResolvedConfig): BiomeLinterRules {
+  if (config.profile === "minimal") {
+    return {
+      recommended: false,
+      correctness: {
+        noUnusedVariables: "error",
+        noUnusedImports: "error",
+      },
+      suspicious: {
+        noExplicitAny: "error",
+      },
+    };
+  }
+
+  if (config.profile === "standard") {
+    return {
+      recommended: true,
+    };
+  }
+
+  // strict: recommended + explicit overrides for all categories
+  return {
+    recommended: true,
+    correctness: {
+      noUnusedVariables: "error",
+      noUnusedImports: "error",
+    },
+    style: {
+      useConst: "error",
+      useTemplate: "error",
+    },
+    suspicious: {
+      noExplicitAny: "error",
+      noConsole: config.noConsoleLevel,
+      useBiomeIgnoreFolder: "off",
+    },
+  };
+}
+
 function renderBiomeJson(config: ResolvedConfig): string {
   const lineWidth = config.values.line_length ?? 100;
   const indentWidth = config.values.indent_width ?? 2;
@@ -27,22 +83,7 @@ function renderBiomeJson(config: ResolvedConfig): string {
       ...filesSection,
       linter: {
         enabled: true,
-        rules: {
-          recommended: true,
-          correctness: {
-            noUnusedVariables: "error",
-            noUnusedImports: "error",
-          },
-          style: {
-            useConst: "error",
-            useTemplate: "error",
-          },
-          suspicious: {
-            noExplicitAny: "error",
-            noConsole: config.noConsoleLevel,
-            useBiomeIgnoreFolder: "off",
-          },
-        },
+        rules: buildLinterRules(config),
       },
       formatter: {
         enabled: true,

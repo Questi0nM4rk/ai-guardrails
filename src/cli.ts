@@ -1,9 +1,12 @@
 import { Command, Option } from "@commander-js/extra-typings";
+import { runAllow } from "@/commands/allow";
 import { runCheck } from "@/commands/check";
+import { getCompletionScript } from "@/commands/completion";
 import { runGenerate } from "@/commands/generate";
 import { runHook } from "@/commands/hook";
 import { runInit } from "@/commands/init";
 import { runInstall } from "@/commands/install";
+import { runQuery } from "@/commands/query";
 import { runReport } from "@/commands/report";
 import { runSnapshot } from "@/commands/snapshot";
 import { runStatus } from "@/commands/status";
@@ -47,9 +50,17 @@ program
   .option("--profile <profile>", "Profile: strict | standard | minimal")
   .option("--force", "Overwrite existing managed files")
   .option("--upgrade", "Refresh all generated files, preserve config.toml")
+  .option("--yes", "Accept all defaults (non-interactive)")
   .option("--no-hooks", "Skip lefthook install")
   .option("--no-ci", "Skip CI workflow generation")
   .option("--no-agent-rules", "Skip AGENTS.md and IDE rule files")
+  .option("--no-baseline", "Skip baseline snapshot")
+  .option("--no-editorconfig", "Skip .editorconfig generation")
+  .option("--no-markdownlint", "Skip .markdownlint.jsonc generation")
+  .option("--no-codespell", "Skip .codespellrc generation")
+  .option("--no-ruff", "Skip ruff.toml generation")
+  .option("--no-biome", "Skip biome.jsonc generation")
+  .option("--no-agent-hooks", "Skip .claude/settings.json generation")
   .option("--interactive", "Prompt for each optional step")
   .addOption(
     new Option("--config-strategy <strategy>", "How to handle existing lang configs")
@@ -132,6 +143,30 @@ program
   });
 
 // ---------------------------------------------------------------------------
+// allow
+// ---------------------------------------------------------------------------
+program
+  .command("allow")
+  .description("Add an inline allow rule to .ai-guardrails/config.toml")
+  .argument("<rule>", "Rule in linter/RULE_CODE format (e.g. biome/noConsole)")
+  .argument("<glob>", "File glob to apply the rule to (e.g. src/**/*.ts)")
+  .argument("<reason>", "Human-readable reason for allowing the rule")
+  .action(async (rule, glob, reason) => {
+    await runAllow(getProjectDir(), rule, glob, reason);
+  });
+
+// ---------------------------------------------------------------------------
+// query
+// ---------------------------------------------------------------------------
+program
+  .command("query")
+  .description("Show all files where a rule is allowed (config + inline comments)")
+  .argument("<rule>", "Rule in linter/RULE_CODE format (e.g. biome/noConsole)")
+  .action(async (rule) => {
+    await runQuery(getProjectDir(), rule);
+  });
+
+// ---------------------------------------------------------------------------
 // completion
 // ---------------------------------------------------------------------------
 program
@@ -139,7 +174,13 @@ program
   .description("Generate shell completion script")
   .argument("<shell>", "Shell: bash | zsh | fish")
   .action((shell) => {
-    process.stdout.write(`# Completion for ${shell} not yet implemented\n`);
+    try {
+      process.stdout.write(getCompletionScript(shell));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      process.stderr.write(`${msg}\n`);
+      process.exit(1);
+    }
   });
 
 program.parseAsync(process.argv).catch((err: unknown) => {

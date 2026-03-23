@@ -1,0 +1,5 @@
+Build started...
+src/MyClass.cs(12,5): warning CS0168: Variable 'e' is declared but never used [/path/to/MyProject.csproj]
+src/Program.cs(3,1): error CS0103: The name 'x' does not exist in the current context [/path/to/MyProject.csproj]
+src/Utils/Helper.cs(25,9): warning CS0219: The variable 'result' is assigned but its value is never used [/path/to/MyProject.csproj]
+Build FAILED.

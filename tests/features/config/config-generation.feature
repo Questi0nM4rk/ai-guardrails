@@ -35,10 +35,22 @@ Feature: Config file generation
     When I generate with default config
     Then the output should not contain "$schema"
 
-  Scenario: biomeGenerator noExplicitAny is error
+  Scenario: biomeGenerator noExplicitAny is error in strict profile
+    Given the biome generator
+    When I generate with profile "strict"
+    Then the output should contain '"noExplicitAny": "error"'
+
+  Scenario: biomeGenerator standard profile has recommended true without category overrides
     Given the biome generator
     When I generate with default config
-    Then the output should contain '"noExplicitAny": "error"'
+    Then the output should contain '"recommended": true'
+    And the output should not contain '"style"'
+
+  Scenario: biomeGenerator minimal profile has recommended false
+    Given the biome generator
+    When I generate with profile "minimal"
+    Then the output should contain '"recommended": false'
+    And the output should contain '"noExplicitAny": "error"'
 
   Scenario: biomeGenerator no files section when ignorePaths is empty
     Given the biome generator
@@ -88,10 +100,20 @@ Feature: Config file generation
     When I generate with indent_width 2
     Then the output should contain "indent-width = 2"
 
-  Scenario: ruffGenerator output contains select all
+  Scenario: ruffGenerator strict profile selects ALL rules
+    Given the ruff generator
+    When I generate with profile "strict"
+    Then the output should contain 'select = ["ALL"]'
+
+  Scenario: ruffGenerator standard profile selects recommended ruleset
     Given the ruff generator
     When I generate with default config
-    Then the output should contain 'select = ["ALL"]'
+    Then the output should contain 'select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]'
+
+  Scenario: ruffGenerator minimal profile selects critical rules only
+    Given the ruff generator
+    When I generate with profile "minimal"
+    Then the output should contain 'select = ["E", "F", "S"]'
 
   # ─── lefthook generator ────────────────────────────────────────────────────
 

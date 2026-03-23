@@ -120,6 +120,17 @@ When<GeneratorWorld>("I generate with default config", (world: GeneratorWorld) =
 });
 
 When<GeneratorWorld>(
+  "I generate with profile {string}",
+  (world: GeneratorWorld, profile: unknown) => {
+    const p = String(profile);
+    if (p !== "strict" && p !== "standard" && p !== "minimal") {
+      throw new Error(`Unknown profile: "${p}". Expected: strict, standard, minimal`);
+    }
+    world.generatorOutput = world.generator.generate(makeDefaultConfig({ profile: p }));
+  }
+);
+
+When<GeneratorWorld>(
   "I generate with line_length {int}",
   (world: GeneratorWorld, lineLength: unknown) => {
     world.generatorOutput = world.generator.generate(

@@ -8,6 +8,7 @@ import type { LintIssue } from "@/models/lint-issue";
 import { BASELINE_PATH } from "@/models/paths";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
+import { filterAllowComments } from "@/steps/filter-allow-comments";
 import { runLinterCollection } from "@/steps/run-linters";
 
 function issueToEntry(issue: LintIssue, projectDir: string): BaselineEntry {
@@ -43,7 +44,8 @@ export async function snapshotStep(
       (issue) => !config.isAllowed(issue.rule, issue.file)
     );
 
-    const entries: BaselineEntry[] = filtered.map((issue) =>
+    const afterAllow = await filterAllowComments(filtered, fileManager);
+    const entries: BaselineEntry[] = afterAllow.map((issue) =>
       issueToEntry(issue, projectDir)
     );
     const dest = join(projectDir, baselinePath ?? BASELINE_PATH);

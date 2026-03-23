@@ -1,0 +1,6 @@
+# User-maintained ruff configuration — preserved during merge
+line-length = 120
+target-version = "py310"
+
+[lint]
+select = ["E", "W", "F", "I"]

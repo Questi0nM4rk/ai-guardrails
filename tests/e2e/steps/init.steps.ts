@@ -2,12 +2,17 @@ import { expect } from "bun:test";
 import { Given, Then, When } from "@questi0nm4rk/feats";
 import type { E2EWorld } from "./project.steps";
 
+// Base flags used for all E2E init runs:
+// --yes         — non-interactive (accept all defaults)
+// --no-baseline — skip linter snapshot step (linters may not be installed in CI)
+const BASE_INIT_FLAGS = ["--yes", "--no-baseline"];
+
 When<E2EWorld>("I run ai-guardrails init", async (world: E2EWorld) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-
     "--project-dir",
     ".",
+    ...BASE_INIT_FLAGS,
   ]);
 });
 
@@ -16,11 +21,11 @@ When<E2EWorld>(
   async (world: E2EWorld) => {
     world.result = await world.project.run(world.binaryPath, [
       "init",
-
       "--config-strategy",
       "merge",
       "--project-dir",
       ".",
+      ...BASE_INIT_FLAGS,
     ]);
   }
 );
@@ -30,11 +35,11 @@ When<E2EWorld>(
   async (world: E2EWorld) => {
     world.result = await world.project.run(world.binaryPath, [
       "init",
-
       "--config-strategy",
       "replace",
       "--project-dir",
       ".",
+      ...BASE_INIT_FLAGS,
     ]);
   }
 );
@@ -44,11 +49,11 @@ When<E2EWorld>(
   async (world: E2EWorld) => {
     world.result = await world.project.run(world.binaryPath, [
       "init",
-
       "--config-strategy",
       "skip",
       "--project-dir",
       ".",
+      ...BASE_INIT_FLAGS,
     ]);
   }
 );
@@ -56,9 +61,9 @@ When<E2EWorld>(
 Given<E2EWorld>("ai-guardrails has been initialized", async (world: E2EWorld) => {
   world.result = await world.project.run(world.binaryPath, [
     "init",
-
     "--project-dir",
     ".",
+    ...BASE_INIT_FLAGS,
   ]);
 });
 

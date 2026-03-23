@@ -10,6 +10,7 @@ import type { LintIssue } from "@/models/lint-issue";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import type { RunOptions } from "@/runners/types";
+import { filterAllowComments } from "@/steps/filter-allow-comments";
 
 export interface CheckStepResult {
   result: StepResult;
@@ -69,12 +70,15 @@ export async function checkStep(
       return true;
     });
 
+    // Filter by inline allow comments
+    const afterAllow = await filterAllowComments(filtered, fileManager);
+
     const baseline = (await loadBaselineFromFile(projectDir, fileManager)) ?? new Map();
 
-    const newIssues = filtered.filter(
+    const newIssues = afterAllow.filter(
       (issue) => classifyFingerprint(issue.fingerprint, baseline) === "new"
     );
-    const baselinedCount = filtered.length - newIssues.length;
+    const baselinedCount = afterAllow.length - newIssues.length;
 
     const msg =
       newIssues.length === 0
@@ -85,7 +89,7 @@ export async function checkStep(
 
     return {
       result: newIssues.length > 0 ? error(msg) : ok(msg),
-      issues: filtered,
+      issues: afterAllow,
       newIssueCount: newIssues.length,
       skipped,
     };

@@ -2,4 +2,4 @@ profile = "standard"
 
 # Paths excluded from all linters in the check pipeline.
 # Also propagated to biome.jsonc ignore, lefthook exclude, etc.
-ignore_paths = ["tests/e2e/fixtures/**", ".venv/**", "node_modules/**", ".claude/**", "docs/plans/**"]
+ignore_paths = ["tests/e2e/fixtures/**", ".venv/**", "node_modules/**", ".claude/**", "docs/plans/**", "docs/specs/**"]

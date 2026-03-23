@@ -15,14 +15,14 @@ Given<PipelineWorld>("a default install project", async (world: PipelineWorld) =
 Given<PipelineWorld>(
   "a default install project with noHooks flag",
   async (world: PipelineWorld) => {
-    world.ctx = makeBaseCtx({ flags: { noHooks: true } });
+    world.ctx = makeBaseCtx({ flags: { hooks: false } });
   }
 );
 
 Given<PipelineWorld>(
   "a default install project with noCi flag",
   async (world: PipelineWorld) => {
-    world.ctx = makeBaseCtx({ flags: { noCi: true } });
+    world.ctx = makeBaseCtx({ flags: { ci: false } });
   }
 );
 
