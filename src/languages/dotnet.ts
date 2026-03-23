@@ -1,4 +1,5 @@
 import type { DetectOptions, LanguagePlugin } from "@/languages/types";
+import { dotnetBuildRunner } from "@/runners/dotnet-build";
 import type { LinterRunner } from "@/runners/types";
 
 export const dotnetPlugin: LanguagePlugin = {
@@ -18,8 +19,6 @@ export const dotnetPlugin: LanguagePlugin = {
   },
 
   runners(): LinterRunner[] {
-    // TODO: implement dotnet-build + dotnet-format runners per SPEC-008
-    // Deferred past v1 MVP — requires MSBuild JSON log parsing.
-    return [];
+    return [dotnetBuildRunner];
   },
 };
