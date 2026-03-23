@@ -1,15 +1,147 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`ruffGenerator output matches snapshot 1`] = `
-"# ai-guardrails:sha256=1ce2b923697e986833cd9f6c09ab23a57b2fca946fc223bd0b27187bb1007007
+exports[`ruffGenerator strict output matches snapshot 1`] = `
+"# ai-guardrails:sha256=a6e0c59397bf71df77d26a4593f45a14da338540d3283a3e6ad0fb9298c71699
 target-version = "py311"
 line-length = 88
-indent-width = 4
+indent-width = 2
 fix = false
 unsafe-fixes = false
 
 [lint]
 select = ["ALL"]
+
+ignore = [
+  # --- Formatter conflicts ---
+  "W191", "E111", "E114", "E117", "D206", "D300",
+  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
+  "ISC001", "ISC002",
+  # --- Redundant with pyright ---
+  "ANN",
+  # --- Docstrings (opt-in) ---
+  "D",
+  # --- Development markers ---
+  "FIX001", "FIX002", "TD",
+  # --- High false-positive ---
+  "ERA001", "CPY001", "INP001", "T201",
+  "EM101", "EM102", "TRY003", "S101",
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["ARG001", "ARG002", "PLR2004"]
+"**/__init__.py" = ["F401"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.flake8-type-checking]
+strict = true
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[lint.isort]
+force-single-line = false
+force-sort-within-sections = true
+combine-as-imports = true
+split-on-trailing-comma = true
+force-to-top = ["__future__"]
+required-imports = ["from __future__ import annotations"]
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 5
+max-branches = 10
+max-locals = 10
+max-statements = 30
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+"
+`;
+
+exports[`ruffGenerator standard output matches snapshot 1`] = `
+"# ai-guardrails:sha256=a50f08c2d2f239d5ad239fd5ebc9dd5568fb1ee79d8a61babcfcc764996a3eae
+target-version = "py311"
+line-length = 88
+indent-width = 2
+fix = false
+unsafe-fixes = false
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]
+
+ignore = [
+  # --- Formatter conflicts ---
+  "W191", "E111", "E114", "E117", "D206", "D300",
+  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
+  "ISC001", "ISC002",
+  # --- Redundant with pyright ---
+  "ANN",
+  # --- Docstrings (opt-in) ---
+  "D",
+  # --- Development markers ---
+  "FIX001", "FIX002", "TD",
+  # --- High false-positive ---
+  "ERA001", "CPY001", "INP001", "T201",
+  "EM101", "EM102", "TRY003", "S101",
+]
+
+[lint.per-file-ignores]
+"tests/**/*.py" = ["ARG001", "ARG002", "PLR2004"]
+"**/__init__.py" = ["F401"]
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.flake8-type-checking]
+strict = true
+runtime-evaluated-base-classes = ["pydantic.BaseModel"]
+
+[lint.isort]
+force-single-line = false
+force-sort-within-sections = true
+combine-as-imports = true
+split-on-trailing-comma = true
+force-to-top = ["__future__"]
+required-imports = ["from __future__ import annotations"]
+
+[lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[lint.mccabe]
+max-complexity = 10
+
+[lint.pylint]
+max-args = 5
+max-branches = 10
+max-locals = 10
+max-statements = 30
+
+[format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "lf"
+"
+`;
+
+exports[`ruffGenerator minimal output matches snapshot 1`] = `
+"# ai-guardrails:sha256=ba5311004d340edb800f6f67011609d523585fbc7e8b2de9d302d00e0a1580f3
+target-version = "py311"
+line-length = 88
+indent-width = 2
+fix = false
+unsafe-fixes = false
+
+[lint]
+select = ["E", "F", "S"]
 
 ignore = [
   # --- Formatter conflicts ---
