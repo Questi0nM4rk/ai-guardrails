@@ -1,10 +1,6 @@
-import {
-  generateBashCompletion,
-  generateFishCompletion,
-  generateZshCompletion,
-} from "@/utils/completion-generators";
-
-export { generateBashCompletion, generateFishCompletion, generateZshCompletion };
+import { generateBashCompletion } from "@/utils/completion-bash";
+import { generateFishCompletion } from "@/utils/completion-fish";
+import { generateZshCompletion } from "@/utils/completion-zsh";
 
 const SUPPORTED_SHELLS = ["bash", "zsh", "fish"] as const;
 type SupportedShell = (typeof SUPPORTED_SHELLS)[number];

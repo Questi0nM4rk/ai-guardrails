@@ -1,10 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import {
-  generateBashCompletion,
-  generateFishCompletion,
-  generateZshCompletion,
-  getCompletionScript,
-} from "@/commands/completion";
+import { getCompletionScript } from "@/commands/completion";
+import { generateBashCompletion } from "@/utils/completion-bash";
+import { generateFishCompletion } from "@/utils/completion-fish";
+import { generateZshCompletion } from "@/utils/completion-zsh";
 
 const ALL_COMMANDS = [
   "init",
