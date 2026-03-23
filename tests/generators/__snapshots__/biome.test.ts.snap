@@ -1,9 +1,8 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`biomeGenerator output matches snapshot 1`] = `
-"// ai-guardrails:sha256=053aa28af53f4347e2e9dbc1ceb0eebd06be0820c256d875bc493448b58cdfd0
+exports[`biomeGenerator strict output matches snapshot 1`] = `
+"// ai-guardrails:sha256=8535b5a6aa8e4be8de148a1e715d2b8aaaa03bbbb12eda9858043a0d2c3796fb
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
   "linter": {
     "enabled": true,
     "rules": {
@@ -18,7 +17,7 @@ exports[`biomeGenerator output matches snapshot 1`] = `
       },
       "suspicious": {
         "noExplicitAny": "error",
-        "noConsole": "error",
+        "noConsole": "warn",
         "useBiomeIgnoreFolder": "off"
       }
     }
@@ -27,7 +26,62 @@ exports[`biomeGenerator output matches snapshot 1`] = `
     "enabled": true,
     "indentStyle": "space",
     "indentWidth": 2,
-    "lineWidth": 100
+    "lineWidth": 88
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5"
+    }
+  }
+}"
+`;
+
+exports[`biomeGenerator standard output matches snapshot 1`] = `
+"// ai-guardrails:sha256=216874db2bcff6252fc304cb4ecc3adf046a00c3e8a446854e091ee355827793
+{
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 88
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "es5"
+    }
+  }
+}"
+`;
+
+exports[`biomeGenerator minimal output matches snapshot 1`] = `
+"// ai-guardrails:sha256=8285ff76f22073876a9b85b87733e4aa7064cee255b96231d0487a6fd425a973
+{
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 88
   },
   "javascript": {
     "formatter": {

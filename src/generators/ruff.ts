@@ -2,9 +2,16 @@ import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 import { withHashHeader } from "@/utils/hash";
 
+const RUFF_SELECT_BY_PROFILE = {
+  strict: `["ALL"]`,
+  standard: `["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]`,
+  minimal: `["E", "F", "S"]`,
+} as const satisfies Record<"strict" | "standard" | "minimal", string>;
+
 function renderRuffToml(config: ResolvedConfig): string {
   const lineLength = config.values.line_length ?? 88;
   const indentWidth = config.values.indent_width ?? 4;
+  const selectRules = RUFF_SELECT_BY_PROFILE[config.profile];
   const content = `target-version = "py311"
 line-length = ${lineLength}
 indent-width = ${indentWidth}
@@ -12,7 +19,7 @@ fix = false
 unsafe-fixes = false
 
 [lint]
-select = ["ALL"]
+select = ${selectRules}
 
 ignore = [
   # --- Formatter conflicts ---
