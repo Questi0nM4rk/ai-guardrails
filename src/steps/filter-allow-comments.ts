@@ -1,11 +1,5 @@
 import type { LintIssue } from "@/models/lint-issue";
-
-/**
- * Matches: // ai-guardrails-allow biome/noConsole "reason"
- *          # ai-guardrails-allow ruff/E501 "reason"
- *          -- ai-guardrails-allow selene/shadowing "reason"
- */
-const ALLOW_COMMENT_RE = /ai-guardrails-allow\s+([\w-]+\/[\w\-.]+)\s+"([^"]+)"/;
+import { ALLOW_COMMENT_RE } from "@/utils/allow-comment-re";
 
 interface AllowDirective {
   /** 1-indexed line number of the directive itself */

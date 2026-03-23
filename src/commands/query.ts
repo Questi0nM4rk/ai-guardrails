@@ -1,18 +1,19 @@
 import { join } from "node:path";
 import { buildContext } from "@/commands/context";
 import { loadProjectConfig } from "@/config/loader";
+import type { Console } from "@/infra/console";
+import type { FileManager } from "@/infra/file-manager";
+import { ALLOW_COMMENT_RE } from "@/utils/allow-comment-re";
 
 /**
- * ai-guardrails query <rule>
- *
- * Shows all files where the given rule is allowed:
- *   - Config-level: [[allow]] entries in config.toml
- *   - Inline: ai-guardrails-allow comments in source files
+ * Core logic for querying allow entries — injectable for testing.
  */
-export async function runQuery(projectDir: string, rule: string): Promise<void> {
-  const ctx = buildContext(projectDir, {});
-  const { fileManager, console: cons } = ctx;
-
+export async function queryAllowEntries(
+  projectDir: string,
+  rule: string,
+  fileManager: FileManager,
+  cons: Console
+): Promise<void> {
   // --- Config-level allows ---
   const project = await loadProjectConfig(projectDir, fileManager);
   const configMatches = project.allow.filter((entry) => entry.rule === rule);
@@ -33,8 +34,6 @@ export async function runQuery(projectDir: string, rule: string): Promise<void> 
     "dist/**",
   ]);
 
-  const ALLOW_RE = /ai-guardrails-allow\s+([\w-]+\/[\w\-.]+)\s+"([^"]+)"/;
-
   const inlineMatches: Array<{ file: string; line: number; reason: string }> = [];
 
   await Promise.all(
@@ -50,7 +49,7 @@ export async function runQuery(projectDir: string, rule: string): Promise<void> 
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         if (line === undefined) continue;
-        const match = ALLOW_RE.exec(line);
+        const match = ALLOW_COMMENT_RE.exec(line);
         if (match !== null && match[1] === rule) {
           const reason = match[2] ?? "";
           inlineMatches.push({ file: relativePath, line: i + 1, reason });
@@ -71,4 +70,16 @@ export async function runQuery(projectDir: string, rule: string): Promise<void> 
   if (configMatches.length === 0 && inlineMatches.length === 0) {
     cons.info(`\nRule "${rule}" is not suppressed anywhere.`);
   }
+}
+
+/**
+ * ai-guardrails query <rule>
+ *
+ * Shows all files where the given rule is allowed:
+ *   - Config-level: [[allow]] entries in config.toml
+ *   - Inline: ai-guardrails-allow comments in source files
+ */
+export async function runQuery(projectDir: string, rule: string): Promise<void> {
+  const ctx = buildContext(projectDir, {});
+  await queryAllowEntries(projectDir, rule, ctx.fileManager, ctx.console);
 }
