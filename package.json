@@ -2,6 +2,15 @@
   "name": "ai-guardrails",
   "version": "3.0.0",
   "type": "module",
+  "files": [
+    "dist/ai-guardrails",
+    "scripts/install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "ai-guardrails": "./dist/ai-guardrails"
   },

@@ -185,6 +185,66 @@ function makeBaselineEntry(overrides: Partial<BaselineEntry> = {}): BaselineEntr
   };
 }
 
+describe("checkStep — inline allow comments", () => {
+  test("issue with inline allow comment is not counted as new", async () => {
+    const fm = new FakeFileManager();
+    const cr = new FakeCommandRunner();
+    const config = makeConfig();
+
+    // Allow comment on line 1 covers the issue on line 2
+    fm.seed(
+      "/project/foo.py",
+      '# ai-guardrails-allow ruff/E501 "URL too long"\nsome_very_long_line_here = True\n'
+    );
+
+    const issue = makeIssue({
+      rule: "ruff/E501",
+      file: "/project/foo.py",
+      line: 2,
+      fingerprint: "fp-allowed",
+    });
+    const languages = [makePlugin([issue])];
+
+    const { result, newIssueCount } = await checkStep(
+      "/project",
+      languages,
+      config,
+      cr,
+      fm
+    );
+
+    expect(result.status).toBe("ok");
+    expect(newIssueCount).toBe(0);
+  });
+
+  test("issue without allow comment still counted as new", async () => {
+    const fm = new FakeFileManager();
+    const cr = new FakeCommandRunner();
+    const config = makeConfig();
+
+    fm.seed("/project/foo.py", "some_very_long_line_here = True\n");
+
+    const issue = makeIssue({
+      rule: "ruff/E501",
+      file: "/project/foo.py",
+      line: 1,
+      fingerprint: "fp-not-allowed",
+    });
+    const languages = [makePlugin([issue])];
+
+    const { result, newIssueCount } = await checkStep(
+      "/project",
+      languages,
+      config,
+      cr,
+      fm
+    );
+
+    expect(result.status).toBe("error");
+    expect(newIssueCount).toBe(1);
+  });
+});
+
 describe("checkStep — baseline", () => {
   test("returns ok when all issue fingerprints are in baseline", async () => {
     const fm = new FakeFileManager();

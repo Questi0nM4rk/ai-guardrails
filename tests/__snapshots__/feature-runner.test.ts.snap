@@ -1,25 +1,12 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
-"// ai-guardrails:sha256=8535b5a6aa8e4be8de148a1e715d2b8aaaa03bbbb12eda9858043a0d2c3796fb
+"// ai-guardrails:sha256=216874db2bcff6252fc304cb4ecc3adf046a00c3e8a446854e091ee355827793
 {
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
-      "correctness": {
-        "noUnusedVariables": "error",
-        "noUnusedImports": "error"
-      },
-      "style": {
-        "useConst": "error",
-        "useTemplate": "error"
-      },
-      "suspicious": {
-        "noExplicitAny": "error",
-        "noConsole": "warn",
-        "useBiomeIgnoreFolder": "off"
-      }
+      "recommended": true
     }
   },
   "formatter": {
@@ -38,7 +25,7 @@ exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
 `;
 
 exports[`Config file generation ruffGenerator output matches snapshot 1`] = `
-"# ai-guardrails:sha256=a6e0c59397bf71df77d26a4593f45a14da338540d3283a3e6ad0fb9298c71699
+"# ai-guardrails:sha256=a50f08c2d2f239d5ad239fd5ebc9dd5568fb1ee79d8a61babcfcc764996a3eae
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -46,7 +33,7 @@ fix = false
 unsafe-fixes = false
 
 [lint]
-select = ["ALL"]
+select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]
 
 ignore = [
   # --- Formatter conflicts ---
