@@ -3,6 +3,11 @@ import type { FileManager } from "@/infra/file-manager";
 import { setupCiStep } from "@/steps/setup-ci";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
+const TS_ONLY = new Set(["typescript"]);
+const PY_ONLY = new Set(["python"]);
+const BOTH = new Set(["typescript", "python"]);
+const NONE = new Set<string>();
+
 /** A FileManager that delegates to FakeFileManager but throws on writeText */
 function makeFailingFileManager(): FileManager {
   const inner = new FakeFileManager();
@@ -23,7 +28,7 @@ function makeFailingFileManager(): FileManager {
 describe("setupCiStep", () => {
   test("writes workflow file to .github/workflows/ai-guardrails.yml", async () => {
     const fm = new FakeFileManager();
-    const result = await setupCiStep("/project", fm);
+    const result = await setupCiStep("/project", fm, TS_ONLY);
 
     expect(result.status).toBe("ok");
     expect(fm.written).toHaveLength(1);
@@ -31,42 +36,147 @@ describe("setupCiStep", () => {
     expect(path).toBe("/project/.github/workflows/ai-guardrails.yml");
   });
 
-  test("workflow contains bun install --frozen-lockfile step", async () => {
+  test("typescript project emits biome + tsc steps", async () => {
     const fm = new FakeFileManager();
-    await setupCiStep("/project", fm);
+    await setupCiStep("/project", fm, TS_ONLY);
 
     const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toContain("bunx biome check .");
+    expect(content).toContain("bunx tsc --noEmit");
+    expect(content).toContain("oven-sh/setup-bun@v2");
     expect(content).toContain("bun install --frozen-lockfile");
-  });
-
-  test("install step has hashFiles condition", async () => {
-    const fm = new FakeFileManager();
-    await setupCiStep("/project", fm);
-
-    const [, content] = fm.written[0] ?? ["", ""];
     expect(content).toContain("hashFiles('bun.lock', 'bun.lockb') != ''");
   });
 
-  test("step ordering: checkout then setup-bun then install then check", async () => {
+  test("typescript project does not emit python-specific steps", async () => {
     const fm = new FakeFileManager();
-    await setupCiStep("/project", fm);
+    await setupCiStep("/project", fm, TS_ONLY);
 
     const [, content] = fm.written[0] ?? ["", ""];
-    const checkoutIdx = content.indexOf("actions/checkout@v4");
-    const setupBunIdx = content.indexOf("oven-sh/setup-bun@v2");
-    const installIdx = content.indexOf("bun install --frozen-lockfile");
-    const checkIdx = content.indexOf("bunx ai-guardrails check");
+    expect(content).not.toContain("ruff check");
+    expect(content).not.toContain("pyright");
+    expect(content).not.toContain("setup-python");
+    // pip install codespell is universal — only ruff/pyright are Python-specific
+    expect(content).toContain("pip install codespell");
+    expect(content).not.toContain("pip install ruff");
+  });
 
-    expect(checkoutIdx).toBeGreaterThanOrEqual(0);
-    expect(setupBunIdx).toBeGreaterThan(checkoutIdx);
-    expect(installIdx).toBeGreaterThan(setupBunIdx);
-    expect(checkIdx).toBeGreaterThan(installIdx);
+  test("python project emits ruff + pyright steps", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, PY_ONLY);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toContain("ruff check .");
+    expect(content).toContain("pyright");
+    expect(content).toContain("actions/setup-python@v5");
+    expect(content).toContain('python-version: "3.12"');
+    expect(content).toContain("pip install ruff pyright codespell");
+  });
+
+  test("python project does not emit typescript-specific steps", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, PY_ONLY);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).not.toContain("biome check");
+    expect(content).not.toContain("tsc --noEmit");
+    expect(content).not.toContain("bun install");
+    // bun IS present (needed for bunx markdownlint-cli2)
+    expect(content).toContain("oven-sh/setup-bun@v2");
+  });
+
+  test("multi-language project emits all steps", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, BOTH);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toContain("bunx biome check .");
+    expect(content).toContain("bunx tsc --noEmit");
+    expect(content).toContain("ruff check .");
+    expect(content).toContain("pyright");
+    expect(content).toContain("oven-sh/setup-bun@v2");
+    expect(content).toContain("actions/setup-python@v5");
+    expect(content).toContain("pip install ruff pyright codespell");
+    expect(content).toContain("bun install --frozen-lockfile");
+  });
+
+  test("empty language set emits only universal checks", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, NONE);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toContain("codespell");
+    expect(content).toContain("markdownlint-cli2");
+    expect(content).toContain("gitleaks-action@v2");
+    expect(content).not.toContain("biome");
+    expect(content).not.toContain("tsc");
+    expect(content).not.toContain("ruff");
+    expect(content).not.toContain("pyright");
+    // bun IS present unconditionally (needed for markdownlint)
+    expect(content).toContain("oven-sh/setup-bun@v2");
+    expect(content).not.toContain("setup-python");
+  });
+
+  test("universal checks always present regardless of language", async () => {
+    for (const langs of [TS_ONLY, PY_ONLY, BOTH, NONE]) {
+      const fm = new FakeFileManager();
+      await setupCiStep("/project", fm, langs);
+
+      const [, content] = fm.written[0] ?? ["", ""];
+      expect(content).toContain('codespell --skip="*.lock,node_modules,dist" .');
+      expect(content).toContain('bunx markdownlint-cli2 "**/*.md" "#node_modules"');
+      expect(content).toContain("gitleaks-action@v2");
+      expect(content).toContain("actions/checkout@v4");
+    }
+  });
+
+  test("workflow does not reference ai-guardrails binary", async () => {
+    for (const langs of [TS_ONLY, PY_ONLY, BOTH, NONE]) {
+      const fm = new FakeFileManager();
+      await setupCiStep("/project", fm, langs);
+
+      const [, content] = fm.written[0] ?? ["", ""];
+      expect(content).not.toContain("ai-guardrails");
+      expect(content).not.toContain("install.sh");
+    }
+  });
+
+  test("typescript workflow matches snapshot", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, TS_ONLY);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toMatchSnapshot();
+  });
+
+  test("python workflow matches snapshot", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, PY_ONLY);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toMatchSnapshot();
+  });
+
+  test("multi-language workflow matches snapshot", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, BOTH);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toMatchSnapshot();
+  });
+
+  test("empty language workflow matches snapshot", async () => {
+    const fm = new FakeFileManager();
+    await setupCiStep("/project", fm, NONE);
+
+    const [, content] = fm.written[0] ?? ["", ""];
+    expect(content).toMatchSnapshot();
   });
 
   test("returns error when fileManager throws", async () => {
     const fm = makeFailingFileManager();
 
-    const result = await setupCiStep("/project", fm);
+    const result = await setupCiStep("/project", fm, TS_ONLY);
 
     expect(result.status).toBe("error");
     if (result.status === "error") {
