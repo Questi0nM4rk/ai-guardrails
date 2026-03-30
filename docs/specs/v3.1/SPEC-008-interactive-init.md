@@ -79,12 +79,12 @@ in `src/init/modules/` and one line in the registry. No other files change.
    modules. The runner enforces the order structurally — declaring a dependency
    is sufficient, no human needs to remember the execution order.
 
-5. **Backward compatibility is non-negotiable.** `--yes` must produce identical
-   output to the current `init` command. Every existing `--no-X` flag must still
-   work. No existing CI pipeline that calls `ai-guardrails init --yes` should
-   break.
-   WHY: Tooling that breaks existing workflows gets ripped out. Backward compat
-   is a social contract with all existing adopters.
+5. **`--yes` means full setup, always.** `--yes` runs all applicable modules —
+   original 13 and v3.2 additions. If a module is not applicable (editor not
+   detected, GitHub not authenticated), it is skipped automatically.
+   WHY: A `--yes` flag that does less than what the wizard offers is a trap.
+   Users who run `--yes` in CI or automation expect the complete recommended
+   setup, not a frozen subset from a previous version.
 
 6. **Under 30 seconds, end to end.** The interactive wizard — from launch to
    "Done!" — must complete within 30 seconds of user input on a standard laptop
@@ -132,7 +132,6 @@ in `src/init/modules/` and one line in the registry. No other files change.
 ### Hard Constraints
 
 - No new `src/init/` code exists until implementation starts — this spec is design only
-- `--yes` produces output identical to current `ai-guardrails init` behavior (13 original modules only)
 - Each `--no-X` flag disables exactly one module
 - Modules may not import from other modules (only from generators and steps)
 - Module `id` values are stable after shipping — they are CLI-facing identifiers
@@ -152,8 +151,8 @@ in `src/init/modules/` and one line in the registry. No other files change.
 - Wizard groups modules by category in the display order defined in this spec
 - Each module file stays under 200 lines
 - Conflict resolution prompt uses three options: Merge (Y), Skip (n), Replace (r, only with --force)
-- New modules added in v3.2 have `defaultEnabled: false` unless `--yes` is passed with `--all`
-  (WHY: existing adopters using `--yes` must not get new behavior silently)
+- New modules added in v3.2 have `defaultEnabled: true` when applicable (detect() returns true)
+  and `defaultEnabled: false` only when the module is explicitly opt-in by nature (e.g., `nvim-on-save`)
 
 ### Assumptions
 
@@ -853,9 +852,10 @@ ai-guardrails init
 Each `--no-X` flag maps to `selections.set(moduleId, false)` before the
 wizard runs. The wizard never prompts for a module that has been pre-disabled.
 
-**`--yes` backward compatibility:** When `--yes` is passed, only the original 13
-modules run (v3.1 behavior). The 7 new v3.2 modules are only included in `--yes`
-mode when `--all` is also passed: `ai-guardrails init --yes --all`.
+**`--yes` runs all applicable modules.** All modules with `defaultEnabled: true`
+run when `--yes` is passed. Modules where `detect()` returns false are skipped
+automatically — no GitHub modules run if not authenticated, no editor modules
+run if no editor is detected.
 
 ---
 
@@ -867,8 +867,7 @@ The migration preserves backward compatibility at every step.
 
 - `src/generators/` — untouched; modules call generators, not replace them
 - `src/steps/` — untouched; modules call steps, not replace them
-- All existing `ai-guardrails init` CLI flags continue to work
-- `--yes` produces identical output to current behavior
+- All existing `--no-X` flags continue to disable their respective modules
 
 ### What changes
 
@@ -914,10 +913,10 @@ The migration preserves backward compatibility at every step.
 | 5 | Tests (unit + integration) | Parallel with Phase 4 |
 | 6 | Original CLI flag additions | Parallel with Phase 4 |
 | 7 | 7 new v3.2 modules | Requires Phase 3 complete |
-| 8 | `--all` flag + v3.2 wizard sections | Requires Phase 7 |
+| 8 | v3.2 wizard sections + full test suite | Requires Phase 7 |
 
 Phases 1 and 2 can be developed in parallel. Phase 3 requires both to complete.
-Phases 7 and 8 are gated on Phase 3 — they must not block the original 13-module delivery.
+Phases 7 and 8 are gated on Phase 3 — they must not block the original delivery.
 
 ---
 
@@ -939,8 +938,7 @@ Phases 7 and 8 are gated on Phase 3 — they must not block the original 13-modu
 | `tests/init/modules/nvim-on-save.test.ts` | defaultEnabled false, detect false when no nvim |
 | `tests/init/modules/zed-on-save.test.ts` | detect false when no .config/zed, execute merges .zed/settings.json |
 | `tests/init/modules/*.test.ts` | All 20 modules: detect + execute with fakes |
-| `tests/pipelines/init.test.ts` | `--yes` produces same output as current init (backward-compat) |
-| `tests/pipelines/init-all.test.ts` | `--yes --all` runs all 20 modules |
+| `tests/pipelines/init.test.ts` | `--yes` runs all 20 applicable modules |
 
 **FakeReadline:** A test double that feeds pre-programmed responses to readline
 prompts. Required for wizard integration tests.
@@ -962,8 +960,7 @@ editor detected = `.vscode/` exists).
 | Category display order | UX research shows different grouping preferred | Update `wizard.ts` category order, update this spec |
 | `dependsOn` string IDs | Module renamed after shipping | Never rename a module ID — add an alias instead |
 | readline-based prompts | Windows terminal issues reported | Evaluate `@inquirer/prompts`, update `prompt.ts` only |
-| `--yes` backward compat | Major version bump (v4.0) | Acceptable break — document in migration guide |
-| `--yes --all` for new modules | v3.2 modules proven stable | Promote to `defaultEnabled: true` in v3.3 |
+| `--yes` runs all applicable modules | Module adds unwanted side effect | Add `--no-X` flag to opt out; never restrict `--yes` |
 | GitHub module API calls | GitHub API changes | Pin `gh` CLI version in CI, test against mock API |
 | Editor detection paths | New OS/config locations | Extend `detect()` with additional path checks |
 | `.coderabbit.yaml` schema | CodeRabbit updates config format | Pin schema version in header comment |
