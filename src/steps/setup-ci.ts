@@ -28,7 +28,8 @@ function buildCiWorkflow(languages: ReadonlySet<string>): string {
   // pip installs: Python tools + codespell (always needed)
   const pipPackages: string[] = ["codespell"];
   if (hasPython) pipPackages.unshift("ruff", "pyright");
-  steps.push("      - name: Install Python tools");
+  const pipStepName = hasPython ? "Install Python tools" : "Install codespell";
+  steps.push(`      - name: ${pipStepName}`);
   steps.push(`        run: pip install ${pipPackages.join(" ")}`);
 
   // Language-specific checks

@@ -15,7 +15,7 @@ jobs:
       - name: Install JS dependencies
         run: bun install --frozen-lockfile
         if: hashFiles('bun.lock', 'bun.lockb') != ''
-      - name: Install Python tools
+      - name: Install codespell
         run: pip install codespell
       - name: Lint (biome)
         run: bunx biome check .
@@ -115,7 +115,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
-      - name: Install Python tools
+      - name: Install codespell
         run: pip install codespell
       - name: Spell check
         run: codespell --skip="*.lock,node_modules,dist" .
