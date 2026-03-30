@@ -1,8 +1,8 @@
 # SPEC-008: Interactive Init
 
 ## Status: Draft — NOT YET IMPLEMENTED
-## Version: 3.1
-## Last Updated: 2026-03-20
+## Version: 3.2
+## Last Updated: 2026-03-31
 ## Depends on: SPEC-000 (Overview), SPEC-001 (Architecture), SPEC-002 (Config), SPEC-004 (CLI Commands), SPEC-006 (Config Generators)
 
 > **This spec describes a planned feature. No code in `src/init/` exists yet.**
@@ -25,6 +25,10 @@ Specifically:
 - A team not using Claude Code does not want `.claude/settings.json` created
 - A project using GitLab CI, not GitHub Actions, gets a GitHub workflow it will never use
 - There is no way to capture an initial baseline as part of init
+- No branch protection rules are created on GitHub — PRs can be merged without CI passing
+- No code review bot (CodeRabbit / CC-Reviewer) is configured — AI reviews are opt-in by hand
+- No on-save linting — feedback only arrives at commit time, not during editing
+- Missing tools are reported but never installed — requires manual follow-up
 
 Adding a new init feature today means modifying `init.ts` or `install.ts`
 directly — monolithic files that are hard to test in isolation. Feature flags
@@ -100,12 +104,26 @@ in `src/init/modules/` and one line in the registry. No other files change.
    Per-file prompts give users control over each generated file individually,
    without requiring them to know the `--config-strategy` flag in advance.
 
-6. **Existing generators and steps are not replaced.** Modules wrap them. The
+8. **Existing generators and steps are not replaced.** Modules wrap them. The
    `src/generators/` and `src/steps/` directories are stable. Only the
    orchestration layer changes.
    WHY: Generators are well-tested, battle-tested, and snapshot-tested. Rewriting
    them to fit a new architecture is unnecessary risk. The module interface is
    an orchestration boundary, not a reimplementation boundary.
+
+9. **Network-requiring modules are optional and last.** Modules that call GitHub
+   API or install packages are in categories `github` and `tools`, appear after
+   all local config modules, and default to `true` only when the required
+   credentials/context are detected (e.g., `GH_TOKEN` present, `gh` CLI authenticated).
+   WHY: Init should succeed offline for the local config path. Network failures
+   in optional modules should not abort the entire wizard.
+
+10. **On-save feedback is editor-agnostic.** The on-save module generates
+    config files consumed by editors (`.vscode/settings.json`, `.helix/languages.toml`)
+    but does not mandate an editor. Each editor config is its own sub-section,
+    prompted separately.
+    WHY: Mandating VS Code in a tool used across neovim/Helix/Zed/VS Code teams
+    causes immediate rejection. Generate what's applicable, skip the rest.
 
 ---
 
@@ -114,7 +132,7 @@ in `src/init/modules/` and one line in the registry. No other files change.
 ### Hard Constraints
 
 - No new `src/init/` code exists until implementation starts — this spec is design only
-- `--yes` produces output identical to current `ai-guardrails init` behavior
+- `--yes` produces output identical to current `ai-guardrails init` behavior (13 original modules only)
 - Each `--no-X` flag disables exactly one module
 - Modules may not import from other modules (only from generators and steps)
 - Module `id` values are stable after shipping — they are CLI-facing identifiers
@@ -124,6 +142,8 @@ in `src/init/modules/` and one line in the registry. No other files change.
 - Non-interactive (`--yes`) must complete in under 10 seconds
 - Every module that writes a file must check for existence and prompt before overwrite
   (format: `"<filename> exists. Merge? [Y/n]"`, default Y = merge)
+- GitHub modules must gracefully degrade if `gh` CLI is not authenticated
+- On-save modules must not install editor extensions — only generate config files
 
 ### Soft Constraints
 
@@ -132,16 +152,20 @@ in `src/init/modules/` and one line in the registry. No other files change.
 - Wizard groups modules by category in the display order defined in this spec
 - Each module file stays under 200 lines
 - Conflict resolution prompt uses three options: Merge (Y), Skip (n), Replace (r, only with --force)
+- New modules added in v3.2 have `defaultEnabled: false` unless `--yes` is passed with `--all`
+  (WHY: existing adopters using `--yes` must not get new behavior silently)
 
 ### Assumptions
 
 | Assumption | If Wrong | Action |
 |------------|----------|--------|
 | Node readline is sufficient for wizard prompts | Windows terminal incompatibility | Evaluate `enquirer` or `@inquirer/prompts` as readline wrapper |
-| 13 modules covers all init scenarios | New init feature does not fit any module | Add a new module file and category if needed, update this spec — 13 is correct for v3.1 |
+| 20 modules covers all init scenarios for v3.2 | New init feature does not fit any module | Add a new module file and category if needed, update this spec |
 | Topological sort is sufficient for dependency management | Circular dependencies introduced by future module | Detect cycle at startup, fail with clear error listing the cycle |
 | `--yes` flag is the right backward-compat path | Some CI pipelines use flags incompatible with `--yes` | Audit all known usages, add alias if needed |
 | Generators stay stable during implementation | Generator signature changes | Update module wrappers, not the generators themselves |
+| `gh` CLI is the GitHub API surface | Team uses GitLab/Bitbucket | GitHub modules detect `origin` remote URL; skip if not github.com |
+| On-save config files are per-editor | Editor stores config elsewhere | Module detects editor markers before writing |
 
 ---
 
@@ -185,7 +209,9 @@ type InitCategory =
   | "universal-config"  // .editorconfig, .markdownlint.jsonc, .codespellrc
   | "hooks"             // lefthook, claude-settings
   | "agent"             // agent-rules, tool-specific symlinks
-  | "ci"                // GitHub Actions, GitLab CI
+  | "ci"                // GitHub Actions, CI workflows
+  | "github"            // branch protection, reviewer bots, PR settings
+  | "editor"            // on-save linting, LSP config, editor integration
   | "tools"             // per-tool installation prompts
   | "baseline";         // initial snapshot
 
@@ -207,6 +233,8 @@ interface InitContext {
   isTTY: boolean;
   createReadline: () => ReadlineInterface;
   flags: Record<string, unknown>;
+  /** GitHub repo info, populated by detect() of github modules. Null if not github.com. */
+  github?: { owner: string; repo: string; authenticated: boolean };
 }
 ```
 
@@ -221,6 +249,7 @@ display order within a category.
 // src/init/registry.ts
 
 export const ALL_INIT_MODULES: readonly InitModule[] = [
+  // Original 13 modules (v3.1)
   profileSelectionModule,    // profile
   configTuningModule,        // profile
   ruffConfigModule,          // language-config
@@ -234,10 +263,23 @@ export const ALL_INIT_MODULES: readonly InitModule[] = [
   githubActionsModule,       // ci
   toolInstallModule,         // tools
   baselineModule,            // baseline
+
+  // New modules (v3.2)
+  githubBranchProtectionModule,  // github
+  githubCcReviewerModule,        // github
+  githubPrTemplateModule,        // github
+  vscodeOnSaveModule,            // editor
+  helixOnSaveModule,             // editor
+  nvimOnSaveModule,              // editor
+  zedOnSaveModule,               // editor
 ];
 ```
 
-### Module Specifications (13 modules)
+---
+
+## 3. Module Specifications
+
+### Original 13 Modules (v3.1 — unchanged)
 
 | Module ID | Category | detect() | defaultEnabled | disableFlag | dependsOn |
 |-----------|----------|----------|----------------|-------------|-----------|
@@ -251,69 +293,488 @@ export const ALL_INIT_MODULES: readonly InitModule[] = [
 | `lefthook` | `hooks` | always true | true | `--no-hooks` | `config-tuning` |
 | `claude-settings` | `hooks` | always true | true | `--no-agent-hooks` | `config-tuning` |
 | `agent-rules` | `agent` | any AI tool detected | true | `--no-agent-rules` | none |
-| `github-actions` | `ci` | `.git` directory exists | true | `--no-ci` | none |
+| `github-actions` | `ci` | `.git` exists | true | `--no-ci` | none |
 | `tool-install` | `tools` | any runner missing | true | — | `profile-selection` |
-| `baseline` | `baseline` | always true | true | `--no-baseline` | all config modules + `tool-install` |
-
-### Module Details
-
-**profile-selection**: Prompts for strict / standard / minimal (default: standard).
-Writes `.ai-guardrails/config.toml`. All other modules that generate configs
-depend on this running first so `config.profile` is set.
-
-**config-tuning**: Prompts for `line_length` (60–200, default: 88),
-`indent_width` (2 or 4, default: 2), rules to ignore (comma-separated),
-and paths to exclude (comma-separated). Updates the config file written by
-`profile-selection`.
-
-**ruff-config**: Calls `ruffGenerator.generate(config)` → writes `ruff.toml`.
-Respects `configStrategy` (merge / replace / skip).
-
-**biome-config**: Detects biome version via `getBiomeVersion()` and `noConsole`
-level via `detectNoConsoleLevel()`. Calls `biomeGenerator.generate(config)` →
-writes `biome.jsonc`.
-
-**editorconfig**, **markdownlint-config**, **codespell-config**: Call the
-corresponding generator → write the config file.
-
-**lefthook**: Generates `lefthook.yml` then runs `lefthook install` via
-`commandRunner`.
-
-**claude-settings**: Generates `.claude/settings.json` with PreToolUse hooks
-pointing at the binary.
-
-**agent-rules**: Detects AI tool markers (`.claude/`, `.cursor/`, `.codeium/`,
-`.github/copilot-instructions.md`, `.clinerules`). Calls `setupAgentInstructionsStep`.
-
-**github-actions**: Checks for `.git/` directory. Calls `setupCiStep` →
-writes `.github/workflows/ai-guardrails.yml`.
-
-**tool-install**: Runs `checkPrerequisites` to find missing tools. For each
-missing tool, prompts Y/N with the install command. Runs approved installs.
-In non-interactive mode, installs all missing tools if platform supports it.
-
-**baseline**: Runs the full linter collection (same as `snapshotStep`). Writes
-`.ai-guardrails/baseline.json`. Reports count: "Baseline: N issues captured."
-This must be the last module to execute so all configs are in place.
+| `baseline` | `baseline` | always true | true | `--no-baseline` | all config + `tool-install` |
 
 ---
 
-## 3. Wizard Flow
+### New Module: `github-branch-protection`
 
-### Category Display Order
+| Field | Value |
+|-------|-------|
+| id | `github-branch-protection` |
+| category | `github` |
+| detect | `.git/` exists AND `gh auth status` succeeds AND remote is `github.com` |
+| defaultEnabled | true |
+| disableFlag | `--no-branch-protection` |
+| dependsOn | `github-actions` |
+
+**Problem it solves:** Without branch protection, the `no-commits-to-main` lefthook
+is the only guard — and it only fires locally. A developer on a different machine,
+or using `git push` with a GUI client, can still push directly to `main` and merge
+without CI passing.
+
+**Prompts:**
+- Y/N: Set up branch protection on `main`? Shows what will be configured.
+- Y/N: Require PRs before merging? [Y/n]
+- Y/N: Require CI status checks to pass? [Y/n] (only if `github-actions` was enabled)
+- Y/N: Require at least 1 approving review? [Y/n]
+- Y/N: Dismiss stale reviews on new push? [Y/n]
+- Y/N: Prevent force pushes? [Y/n]
+
+**Execute:**
+```
+gh api repos/{owner}/{repo}/branches/main/protection \
+  --method PUT \
+  --field required_status_checks[strict]=true \
+  --field required_status_checks[contexts][]="test" \
+  --field required_status_checks[contexts][]="check" \
+  --field enforce_admins=false \
+  --field required_pull_request_reviews[required_approving_review_count]=1 \
+  --field required_pull_request_reviews[dismiss_stale_reviews]=true \
+  --field restrictions=null \
+  --field allow_force_pushes=false \
+  --field allow_deletions=false
+```
+
+Status check names are inferred from the workflow jobs in `.github/workflows/ci.yml`
+and `.github/workflows/ai-guardrails.yml` (parsed from the generated file).
+
+**Error handling:**
+- If `gh` is not authenticated: prints hint `gh auth login`, marks module as skipped (not error)
+- If repo is private and no billing: prints note about free-tier branch protection limits
+- If `main` branch does not exist yet: skips with message "branch protection will be applied on first push to main"
+
+**Files created/modified:** None (GitHub API only, no local files)
+
+---
+
+### New Module: `github-cc-reviewer`
+
+| Field | Value |
+|-------|-------|
+| id | `github-cc-reviewer` |
+| category | `github` |
+| detect | `.git/` exists AND `gh auth status` succeeds AND remote is `github.com` |
+| defaultEnabled | true |
+| disableFlag | `--no-reviewer` |
+| dependsOn | `github-branch-protection` |
+
+**Problem it solves:** Without an automated code reviewer, PRs get merged without
+any review of logic, style, or security issues. CodeRabbit (the "CC reviewer"
+or `coderabbit[bot]`) provides free AI-powered PR reviews. Without this module,
+setup requires navigating `coderabbit.ai`, creating an account, and manually
+adding the bot — friction that causes most users to skip it.
+
+**What is CC-Reviewer:**
+CodeRabbit is a GitHub App that comments on PRs with a line-by-line review summary,
+issues, and suggestions. It is free for open source repositories. The bot is
+enabled by either: (a) installing the GitHub App from the marketplace, or
+(b) adding a `.coderabbit.yaml` config file to the repo (triggers auto-installation
+on first PR).
+
+**Prompts:**
+- Y/N: Add CodeRabbit AI reviewer to PRs? Shows what it does. [Y/n]
+- Choice: Review profile [auto/chill/assertive] (default: auto)
+- Y/N: Block PR merge until CodeRabbit review passes? [y/N] (default: false, requires Pro plan)
+
+**Execute (path A — YAML config only, no GitHub App install required):**
+- Writes `.coderabbit.yaml` to project root:
+
+```yaml
+# ai-guardrails managed — CodeRabbit AI reviewer config
+language: "en-US"
+tone_instructions: ""
+early_access: false
+enable_free_tier: true
+reviews:
+  profile: "auto"           # auto | chill | assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: ["main"]
+chat:
+  auto_reply: true
+```
+
+**Files created:** `.coderabbit.yaml`
+
+**Notes:**
+- `.coderabbit.yaml` presence triggers CodeRabbit auto-install on first PR open (no manual GitHub App install needed for public repos)
+- The `block_merge` option (if selected Y) adds `coderabbit` to required status checks in branch protection — requires `github-branch-protection` module to have run first
+
+---
+
+### New Module: `github-pr-template`
+
+| Field | Value |
+|-------|-------|
+| id | `github-pr-template` |
+| category | `github` |
+| detect | `.git/` exists AND remote is `github.com` |
+| defaultEnabled | true |
+| disableFlag | `--no-pr-template` |
+| dependsOn | none |
+
+**Problem it solves:** Without a PR template, developers open PRs with empty
+descriptions. CodeRabbit and other review bots perform better when context is
+provided. A standard template enforces: summary, test plan, and checklist.
+
+**Prompts:**
+- Y/N: Add PR description template? [Y/n]
+
+**Execute:**
+- Creates `.github/pull_request_template.md`:
+
+```markdown
+## Summary
+
+<!-- 1-3 bullet points describing what changed and why -->
+
+## Test plan
+
+<!-- Checklist of steps to verify the change works -->
+- [ ]
+
+## Notes
+
+<!-- Anything reviewers should know: breaking changes, migration steps, known issues -->
+```
+
+**Files created:** `.github/pull_request_template.md`
+
+---
+
+### New Module: `vscode-on-save`
+
+| Field | Value |
+|-------|-------|
+| id | `vscode-on-save` |
+| category | `editor` |
+| detect | `.vscode/` directory exists OR `code` CLI is in PATH |
+| defaultEnabled | true |
+| disableFlag | `--no-vscode` |
+| dependsOn | `biome-config`, `ruff-config` |
+
+**Problem it solves:** Without on-save config, developers only see lint errors
+at commit time (pre-commit hook) or when running `ai-guardrails check` manually.
+Errors discovered 10 minutes after writing code are harder to fix than errors
+caught in real time. VS Code's `editor.formatOnSave` + `editor.codeActionsOnSave`
+enables immediate feedback on every file save.
+
+**Prompts:**
+- Y/N: Configure VS Code to lint and format on save? [Y/n]
+
+**Execute:**
+- Creates or merges `.vscode/settings.json`:
+
+```json
+{
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.biome": "explicit",
+    "source.organizeImports.biome": "explicit"
+  },
+  "[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[javascript]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[json]": { "editor.defaultFormatter": "biomejs.biome" },
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
+  },
+  "python.linting.enabled": true,
+  "ruff.enable": true,
+  "ruff.fixAll": true,
+  "ruff.organizeImports": true
+}
+```
+
+Only includes language sections for detected languages (no Python section in a
+TypeScript-only project).
+
+- Creates `.vscode/extensions.json` recommending relevant extensions:
+
+```json
+{
+  "recommendations": [
+    "biomejs.biome",
+    "charliermarsh.ruff"
+  ]
+}
+```
+
+Only adds extensions for detected languages.
+
+**Files created/modified:** `.vscode/settings.json`, `.vscode/extensions.json`
+
+**Merge strategy:** Deep merge — does not overwrite existing keys, only adds
+missing ones. User's formatter preferences are preserved.
+
+---
+
+### New Module: `helix-on-save`
+
+| Field | Value |
+|-------|-------|
+| id | `helix-on-save` |
+| category | `editor` |
+| detect | `~/.config/helix/` exists OR `hx` CLI is in PATH |
+| defaultEnabled | true |
+| disableFlag | `--no-helix` |
+| dependsOn | `biome-config`, `ruff-config` |
+
+**Problem it solves:** Helix has first-class LSP support but requires per-language
+server configuration in the project's `.helix/languages.toml`. Without this file,
+Helix uses system defaults which may not match the project's biome/ruff config paths.
+
+**Prompts:**
+- Y/N: Configure Helix LSP for on-save linting? [Y/n]
+
+**Execute:**
+- Creates `.helix/languages.toml` with LSP configuration for detected languages:
+
+```toml
+# TypeScript/JavaScript via biome
+[[language]]
+name = "typescript"
+formatter = { command = "biome", args = ["format", "--write", "--stdin-file-path", "file.ts"] }
+auto-format = true
+
+[[language]]
+name = "javascript"
+formatter = { command = "biome", args = ["format", "--write", "--stdin-file-path", "file.js"] }
+auto-format = true
+
+# Python via ruff
+[[language]]
+name = "python"
+formatter = { command = "ruff", args = ["format", "-"] }
+auto-format = true
+language-servers = ["pylsp"]
+```
+
+**Files created:** `.helix/languages.toml`
+
+---
+
+### New Module: `nvim-on-save`
+
+| Field | Value |
+|-------|-------|
+| id | `nvim-on-save` |
+| category | `editor` |
+| detect | `~/.config/nvim/` exists OR `nvim` CLI is in PATH |
+| defaultEnabled | false |
+| disableFlag | `--no-nvim` |
+| dependsOn | `biome-config`, `ruff-config` |
+
+**Note:** `defaultEnabled: false` because nvim configs are highly personal and
+opinionated. Users who want this will opt in explicitly.
+
+**Prompts:**
+- Y/N: Generate nvim null-ls / conform.nvim config snippet for on-save linting? [y/N]
+
+**Execute:**
+- Creates `.nvim/conform.lua` (a project-local config snippet, not a global nvim config):
+
+```lua
+-- ai-guardrails: project on-save config for conform.nvim
+-- Add to your init.lua: require("conform").setup(require(".nvim.conform"))
+return {
+  formatters_by_ft = {
+    typescript = { "biome" },
+    javascript = { "biome" },
+    python = { "ruff_format" },
+  },
+  format_on_save = {
+    timeout_ms = 500,
+    lsp_fallback = true,
+  },
+}
+```
+
+Prints install hint: `# Requires conform.nvim: https://github.com/stevearc/conform.nvim`
+
+**Files created:** `.nvim/conform.lua`
+
+---
+
+### New Module: `zed-on-save`
+
+| Field | Value |
+|-------|-------|
+| id | `zed-on-save` |
+| category | `editor` |
+| detect | `~/.config/zed/` exists OR `zed` CLI is in PATH |
+| defaultEnabled | true |
+| disableFlag | `--no-zed` |
+| dependsOn | `biome-config`, `ruff-config` |
+
+**Prompts:**
+- Y/N: Configure Zed to format on save? [Y/n]
+
+**Execute:**
+- Creates or merges `.zed/settings.json`:
+
+```json
+{
+  "format_on_save": "on",
+  "formatter": "language_server",
+  "languages": {
+    "TypeScript": { "formatter": { "external": { "command": "biome", "arguments": ["format", "--write", "--stdin-file-path", "{buffer_path}"] } } },
+    "JavaScript": { "formatter": { "external": { "command": "biome", "arguments": ["format", "--write", "--stdin-file-path", "{buffer_path}"] } } },
+    "Python": { "formatter": { "external": { "command": "ruff", "arguments": ["format", "-"] } } }
+  }
+}
+```
+
+**Files created/modified:** `.zed/settings.json`
+
+---
+
+## 4. Full Module Table (v3.2 — 20 modules)
+
+| Module ID | Category | detect() | defaultEnabled | disableFlag | dependsOn |
+|-----------|----------|----------|----------------|-------------|-----------|
+| `profile-selection` | `profile` | always | true | — | — |
+| `config-tuning` | `profile` | always | true | — | `profile-selection` |
+| `ruff-config` | `language-config` | Python | true | `--no-ruff` | `config-tuning` |
+| `biome-config` | `language-config` | TypeScript | true | `--no-biome` | `config-tuning` |
+| `editorconfig` | `universal-config` | always | true | `--no-editorconfig` | `config-tuning` |
+| `markdownlint-config` | `universal-config` | always | true | `--no-markdownlint` | `config-tuning` |
+| `codespell-config` | `universal-config` | always | true | `--no-codespell` | `config-tuning` |
+| `lefthook` | `hooks` | always | true | `--no-hooks` | `config-tuning` |
+| `claude-settings` | `hooks` | always | true | `--no-agent-hooks` | `config-tuning` |
+| `agent-rules` | `agent` | AI tool detected | true | `--no-agent-rules` | — |
+| `github-actions` | `ci` | `.git` exists | true | `--no-ci` | — |
+| `github-branch-protection` | `github` | git + gh auth + github.com | true | `--no-branch-protection` | `github-actions` |
+| `github-cc-reviewer` | `github` | git + gh auth + github.com | true | `--no-reviewer` | `github-branch-protection` |
+| `github-pr-template` | `github` | git + github.com | true | `--no-pr-template` | — |
+| `vscode-on-save` | `editor` | `.vscode/` or `code` in PATH | true | `--no-vscode` | `biome-config`, `ruff-config` |
+| `helix-on-save` | `editor` | `~/.config/helix/` or `hx` in PATH | true | `--no-helix` | `biome-config`, `ruff-config` |
+| `nvim-on-save` | `editor` | `~/.config/nvim/` or `nvim` in PATH | false | `--no-nvim` | `biome-config`, `ruff-config` |
+| `zed-on-save` | `editor` | `~/.config/zed/` or `zed` in PATH | true | `--no-zed` | `biome-config`, `ruff-config` |
+| `tool-install` | `tools` | any runner missing | true | — | `profile-selection` |
+| `baseline` | `baseline` | always | true | `--no-baseline` | all config + `tool-install` |
+
+---
+
+## 5. Wizard Flow (v3.2)
 
 ```
-1. profile          → "Profile & Config"
-2. language-config  → "Language Configs"
-3. universal-config → "Universal Configs"
-4. hooks            → "Pre-commit & Agent Hooks"
-5. agent            → "Agent Instructions"
-6. ci               → "CI Pipeline"
-7. tools            → "Tool Installation"
-8. baseline         → "Baseline"
+AI Guardrails Setup
+═══════════════════
+
+Detected: TypeScript
+Tools: Claude Code
+Editor: VS Code
+Git remote: github.com/Questi0nM4rk/tagen (authenticated)
+
+── Profile & Config ──────────────────────
+? Enforcement profile [strict/standard/minimal]: standard
+? Line length (60-200): 88
+? Indent width [2/4]: 2
+? Rules to ignore (comma-separated):
+? Paths to exclude (comma-separated):
+
+── Language Configs ──────────────────────
+? Generate biome.jsonc (TypeScript)?        [Y/n]
+
+── Universal Configs ─────────────────────
+? Generate .editorconfig?                   [Y/n]
+? Generate .markdownlint.jsonc?             [Y/n]
+? Generate .codespellrc?                    [Y/n]
+
+── Pre-commit & Agent Hooks ──────────────
+? Install lefthook pre-commit hooks?        [Y/n]
+? Generate .claude/settings.json?           [Y/n]
+
+── Agent Instructions ────────────────────
+? Generate agent rule files?                [Y/n]
+  (Detected: Claude Code)
+
+── CI Pipeline ───────────────────────────
+? Generate GitHub Actions workflow?         [Y/n]
+
+── GitHub Setup ──────────────────────────
+? Set up branch protection on main?         [Y/n]
+    Will require: PRs, passing CI, 1 review, no force-push
+? Add CodeRabbit AI reviewer to PRs?        [Y/n]
+    Free for open source — adds .coderabbit.yaml
+? Add PR description template?              [Y/n]
+
+── Editor: VS Code ───────────────────────
+? Configure VS Code to lint/format on save? [Y/n]
+    Writes .vscode/settings.json + extensions.json
+
+── Tool Installation ─────────────────────
+(All tools already installed)
+
+── Baseline ──────────────────────────────
+? Capture initial baseline snapshot?        [Y/n]
+
+═════════════════════════════════════════
+
+✓ Config: .ai-guardrails/config.toml
+✓ biome.jsonc
+✓ .editorconfig
+✓ lefthook.yml (8 hooks installed)
+✓ .claude/settings.json
+✓ GitHub: branch protection set on main
+✓ GitHub: .coderabbit.yaml added
+✓ GitHub: .github/pull_request_template.md added
+✓ Editor: .vscode/settings.json, .vscode/extensions.json
+✓ Baseline: 0 issues captured
+
+Done! Run `ai-guardrails check` to verify.
 ```
 
-### Prompt Helpers (src/init/prompt.ts)
+---
+
+## 6. Dependency Graph (v3.2)
+
+```
+profile-selection
+    │
+config-tuning
+    │
+    ├── ruff-config ──────────────────────┐
+    ├── biome-config ─────────────────────┤
+    ├── editorconfig                      │
+    ├── markdownlint-config               │ (editor modules depend on
+    ├── codespell-config                  │  language config modules)
+    ├── lefthook                          │
+    └── claude-settings                   │
+                                          │
+agent-rules    (independent)             │
+                                          │
+github-actions (independent)             │
+    │                                     │
+github-branch-protection                 │
+    │                                     │
+github-cc-reviewer                       │
+                                          │
+github-pr-template (independent)         │
+                                          │
+vscode-on-save ←─────────────────────────┤
+helix-on-save  ←─────────────────────────┤
+nvim-on-save   ←─────────────────────────┤
+zed-on-save    ←─────────────────────────┘
+
+tool-install   (depends on: profile-selection)
+
+baseline       (depends on: ALL config + tool-install)
+```
+
+---
+
+## 7. Prompt Helpers (src/init/prompt.ts)
 
 ```typescript
 async function askYesNo(
@@ -354,114 +815,9 @@ mode; `"<filename> exists. [M]erge / [s]kip / [r]eplace:"` when `force` is
 true. Default is always merge. Modules call this before calling any generator
 `generate()` method when the output file already exists.
 
-### Example Wizard Session
-
-```
-AI Guardrails Setup
-═══════════════════
-
-Detected: TypeScript, Python
-Tools: Claude Code, Cursor
-
-── Profile & Config ──────────────────────
-? Enforcement profile [strict/standard/minimal]: standard
-? Line length (60-200): 88
-? Indent width [2/4]: 2
-? Rules to ignore (comma-separated):
-? Paths to exclude (comma-separated):
-
-── Language Configs ──────────────────────
-? Generate ruff.toml (Python)?              [Y/n]
-? Generate biome.jsonc (TypeScript)?        [Y/n]
-
-── Universal Configs ─────────────────────
-? Generate .editorconfig?                   [Y/n]
-? Generate .markdownlint.jsonc?             [Y/n]
-? Generate .codespellrc?                    [Y/n]
-
-── Pre-commit & Agent Hooks ──────────────
-? Install lefthook pre-commit hooks?        [Y/n]
-? Generate .claude/settings.json?           [Y/n]
-
-── Agent Instructions ────────────────────
-? Generate agent rule files?                [Y/n]
-  (Detected: Claude Code, Cursor)
-
-── CI Pipeline ───────────────────────────
-? Generate GitHub Actions workflow?         [Y/n]
-
-── Tool Installation ─────────────────────
-? Install ruff (Python linter)?             [Y/n]
-? Install pyright (Python type checker)?    [Y/n]
-
-── Baseline ──────────────────────────────
-? Capture initial baseline snapshot?        [Y/n]
-
-═════════════════════════════════════════
-
-✓ Config: .ai-guardrails/config.toml
-✓ ruff.toml
-✓ biome.jsonc
-✓ .editorconfig
-✓ lefthook.yml (8 hooks installed)
-✓ .claude/settings.json
-✓ Baseline: 12 issues captured
-
-Done! Run `ai-guardrails check` to verify.
-```
-
 ---
 
-## 4. Dependency Graph
-
-```
-profile-selection
-    │
-config-tuning
-    │
-    ├── ruff-config
-    ├── biome-config
-    ├── editorconfig
-    ├── markdownlint-config
-    ├── codespell-config
-    ├── lefthook
-    └── claude-settings
-
-agent-rules    (no config deps — independent)
-github-actions (no config deps — independent)
-
-tool-install   (depends on: profile-selection)
-
-baseline       (depends on: ruff-config, biome-config, editorconfig,
-                markdownlint-config, codespell-config, lefthook,
-                claude-settings, tool-install)
-```
-
-The runner performs a topological sort over `dependsOn` declarations. Circular
-dependencies are detected at startup with a clear error. Modules with no `dependsOn`
-may execute in any order relative to each other.
-
-### Runner (src/init/runner.ts)
-
-```typescript
-async function executeModules(
-  modules: readonly InitModule[],
-  selections: Map<string, boolean>,
-  ctx: InitContext
-): Promise<InitModuleResult[]>
-```
-
-1. Topological sort of `modules` by `dependsOn`
-2. For each module in sorted order: skip if `selections.get(mod.id) !== true`
-3. Call `mod.execute(ctx)`
-4. Log result via `ctx.console`
-5. Collect results; continue even if a module errors (non-fatal by default)
-
----
-
-## 5. CLI Flag Mapping
-
-Updated init flags (extending current SPEC-004 flags):
+## 8. CLI Flags
 
 ```
 ai-guardrails init
@@ -471,6 +827,8 @@ ai-guardrails init
   --upgrade               Refresh generated files, preserve config.toml
   --interactive           Force interactive mode even in non-TTY
   --config-strategy <s>   merge | replace | skip (default: merge)
+
+  -- Original module flags --
   --no-hooks              Disable lefthook module
   --no-ci                 Disable github-actions module
   --no-agent-rules        Disable agent-rules module
@@ -481,14 +839,27 @@ ai-guardrails init
   --no-codespell          Disable codespell-config module
   --no-ruff               Disable ruff-config module
   --no-biome              Disable biome-config module
+
+  -- New module flags (v3.2) --
+  --no-branch-protection  Disable github-branch-protection module
+  --no-reviewer           Disable github-cc-reviewer module
+  --no-pr-template        Disable github-pr-template module
+  --no-vscode             Disable vscode-on-save module
+  --no-helix              Disable helix-on-save module
+  --no-nvim               Disable nvim-on-save module
+  --no-zed                Disable zed-on-save module
 ```
 
 Each `--no-X` flag maps to `selections.set(moduleId, false)` before the
 wizard runs. The wizard never prompts for a module that has been pre-disabled.
 
+**`--yes` backward compatibility:** When `--yes` is passed, only the original 13
+modules run (v3.1 behavior). The 7 new v3.2 modules are only included in `--yes`
+mode when `--all` is also passed: `ai-guardrails init --yes --all`.
+
 ---
 
-## 6. Migration Path
+## 9. Migration Path
 
 The migration preserves backward compatibility at every step.
 
@@ -505,64 +876,101 @@ The migration preserves backward compatibility at every step.
 |------|--------|
 | `src/pipelines/init.ts` | Rewritten to use module system |
 | `src/pipelines/install.ts` | Becomes thin wrapper (all modules enabled) |
-| `src/cli.ts` | New `--yes`, `--no-baseline`, `--no-ruff`, `--no-biome` flags added |
+| `src/cli.ts` | New flags added (see section 8) |
 | New: `src/init/types.ts` | `InitModule`, `InitContext`, `InitCategory`, `InitModuleResult` |
 | New: `src/init/registry.ts` | `ALL_INIT_MODULES` |
 | New: `src/init/wizard.ts` | Interactive prompt loop grouped by category |
 | New: `src/init/runner.ts` | Topological sort + module executor |
-| New: `src/init/prompt.ts` | `askYesNo`, `askChoice`, `askText`, `askCommaSeparated` |
-| New: `src/init/modules/*.ts` | 13 module files |
+| New: `src/init/prompt.ts` | `askYesNo`, `askChoice`, `askText`, `askCommaSeparated`, `askFileConflict` |
+| New: `src/init/modules/profile-selection.ts` | |
+| New: `src/init/modules/config-tuning.ts` | |
+| New: `src/init/modules/ruff-config.ts` | |
+| New: `src/init/modules/biome-config.ts` | |
+| New: `src/init/modules/editorconfig.ts` | |
+| New: `src/init/modules/markdownlint-config.ts` | |
+| New: `src/init/modules/codespell-config.ts` | |
+| New: `src/init/modules/lefthook.ts` | |
+| New: `src/init/modules/claude-settings.ts` | |
+| New: `src/init/modules/agent-rules.ts` | |
+| New: `src/init/modules/github-actions.ts` | |
+| New: `src/init/modules/github-branch-protection.ts` | v3.2 |
+| New: `src/init/modules/github-cc-reviewer.ts` | v3.2 |
+| New: `src/init/modules/github-pr-template.ts` | v3.2 |
+| New: `src/init/modules/vscode-on-save.ts` | v3.2 |
+| New: `src/init/modules/helix-on-save.ts` | v3.2 |
+| New: `src/init/modules/nvim-on-save.ts` | v3.2 |
+| New: `src/init/modules/zed-on-save.ts` | v3.2 |
+| New: `src/init/modules/tool-install.ts` | |
+| New: `src/init/modules/baseline.ts` | |
 
 ### Phased Delivery
 
 | Phase | Content | Deliverable |
 |-------|---------|-------------|
 | 1 | Core framework (types, prompt, runner, empty registry) | Mergeable in isolation, no behavior change |
-| 2 | 13 module files | Each module tested independently |
+| 2 | 13 original module files | Each module tested independently |
 | 3 | Rewrite `init.ts` pipeline | Full replacement, backward-compat tested |
 | 4 | Wizard UI (grouped prompts, summary) | Requires Phase 3 |
 | 5 | Tests (unit + integration) | Parallel with Phase 4 |
-| 6 | CLI flag additions | Parallel with Phase 4 |
+| 6 | Original CLI flag additions | Parallel with Phase 4 |
+| 7 | 7 new v3.2 modules | Requires Phase 3 complete |
+| 8 | `--all` flag + v3.2 wizard sections | Requires Phase 7 |
 
 Phases 1 and 2 can be developed in parallel. Phase 3 requires both to complete.
+Phases 7 and 8 are gated on Phase 3 — they must not block the original 13-module delivery.
 
 ---
 
-## Testing Strategy
+## 10. Testing Strategy
 
 | Test file | Coverage |
 |-----------|----------|
-| `tests/init/prompt.test.ts` | `askYesNo`, `askChoice`, `askText` with `FakeReadline` |
+| `tests/init/prompt.test.ts` | `askYesNo`, `askChoice`, `askText`, `askFileConflict` with `FakeReadline` |
 | `tests/init/runner.test.ts` | Topological sort correct order, skip disabled modules, dependency chain |
 | `tests/init/wizard.test.ts` | Integration: wizard with pre-programmed answers produces expected selections |
 | `tests/init/modules/profile-selection.test.ts` | detect always true, execute writes config.toml |
 | `tests/init/modules/ruff-config.test.ts` | detect false for non-Python, execute calls generator |
 | `tests/init/modules/baseline.test.ts` | execute runs linters, writes baseline.json |
-| `tests/init/modules/*.test.ts` | Each of the 13 modules: detect + execute with fakes |
+| `tests/init/modules/github-branch-protection.test.ts` | detect false when no gh auth, execute calls gh API, graceful skip when unauthenticated |
+| `tests/init/modules/github-cc-reviewer.test.ts` | execute writes .coderabbit.yaml, detect false for non-github remotes |
+| `tests/init/modules/github-pr-template.test.ts` | execute writes pull_request_template.md |
+| `tests/init/modules/vscode-on-save.test.ts` | detect false when no .vscode/ and no code CLI, execute merges settings.json |
+| `tests/init/modules/helix-on-save.test.ts` | detect false when no helix, execute writes .helix/languages.toml |
+| `tests/init/modules/nvim-on-save.test.ts` | defaultEnabled false, detect false when no nvim |
+| `tests/init/modules/zed-on-save.test.ts` | detect false when no .config/zed, execute merges .zed/settings.json |
+| `tests/init/modules/*.test.ts` | All 20 modules: detect + execute with fakes |
 | `tests/pipelines/init.test.ts` | `--yes` produces same output as current init (backward-compat) |
+| `tests/pipelines/init-all.test.ts` | `--yes --all` runs all 20 modules |
 
 **FakeReadline:** A test double that feeds pre-programmed responses to readline
 prompts. Required for wizard integration tests.
 
+**FakeCommandRunner:** Used to stub `gh api` calls in GitHub module tests without
+making real network requests.
+
 **FakeFileManager seeding:** Each module test seeds the fake filesystem with
-prerequisite state (e.g., Python detected = `requirements.txt` present).
+prerequisite state (e.g., Python detected = `requirements.txt` present,
+editor detected = `.vscode/` exists).
 
 ---
 
-## Evolution
+## 11. Evolution
 
 | Stable While | Revisit If | Impact |
 |-------------|------------|--------|
-| 13-module registry | New init feature needed | Add one module file + registry entry — no other changes |
+| 20-module registry | New init feature needed | Add one module file + registry entry — no other changes |
 | Category display order | UX research shows different grouping preferred | Update `wizard.ts` category order, update this spec |
 | `dependsOn` string IDs | Module renamed after shipping | Never rename a module ID — add an alias instead |
 | readline-based prompts | Windows terminal issues reported | Evaluate `@inquirer/prompts`, update `prompt.ts` only |
 | `--yes` backward compat | Major version bump (v4.0) | Acceptable break — document in migration guide |
-| Phase delivery order | Resource constraints | Phases are independent PRs, order can shift |
+| `--yes --all` for new modules | v3.2 modules proven stable | Promote to `defaultEnabled: true` in v3.3 |
+| GitHub module API calls | GitHub API changes | Pin `gh` CLI version in CI, test against mock API |
+| Editor detection paths | New OS/config locations | Extend `detect()` with additional path checks |
+| `.coderabbit.yaml` schema | CodeRabbit updates config format | Pin schema version in header comment |
 
 ---
 
-## Cross-References
+## 12. Cross-References
 
 - SPEC-000: Philosophy principles 6 (composition over inheritance), technology stack
 - SPEC-001: `PipelineContext`, `StepResult`, `FileManager`, `CommandRunner`, `Console` interfaces
