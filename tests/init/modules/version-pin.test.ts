@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { Interface as ReadlineInterface } from "node:readline";
 import { stringify as stringifyToml } from "smol-toml";
 import {
   buildResolvedConfig,
@@ -30,11 +29,10 @@ function makeCtx(overrides?: Partial<InitContext>): InitContext {
     languages: [],
     selections: new Map(),
     isTTY: false,
-    createReadline: () =>
-      ({
-        question: (_q: string, cb: (a: string) => void) => cb(""),
-        close: () => {},
-      }) as unknown as ReadlineInterface,
+    createReadline: () => ({
+      question: (_q: string, cb: (a: string) => void) => cb(""),
+      close: () => {},
+    }),
     flags: {},
     ...overrides,
   };

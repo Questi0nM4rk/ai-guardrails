@@ -18,7 +18,7 @@ export function printVersionStatus(
 ): string | undefined {
   if (minVersion !== undefined && semverLt(installed, minVersion)) {
     const warning = `Version mismatch: project requires >=${minVersion}, installed ${installed}`;
-    process.stderr.write(`${warning}\n`);
+    cons.warning(warning);
     cons.info(`Version: ${installed} (pinned: >=${minVersion})`);
     return warning;
   }
