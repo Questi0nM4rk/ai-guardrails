@@ -3,7 +3,51 @@ import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 
-const CI_WORKFLOW = `name: AI Guardrails Check
+function buildCiWorkflow(languages: ReadonlySet<string>): string {
+  const hasTs = languages.has("typescript");
+  const hasPython = languages.has("python");
+
+  const steps: string[] = [];
+  steps.push("      - uses: actions/checkout@v4");
+
+  if (hasTs) steps.push("      - uses: oven-sh/setup-bun@v2");
+  if (hasPython) {
+    steps.push("      - uses: actions/setup-python@v5");
+    steps.push("        with:");
+    steps.push('          python-version: "3.12"');
+  }
+
+  if (hasTs) {
+    steps.push("      - name: Install JS dependencies");
+    steps.push("        run: bun install --frozen-lockfile");
+    steps.push("        if: hashFiles('bun.lock', 'bun.lockb') != ''");
+  }
+  if (hasPython) {
+    steps.push("      - name: Install Python tools");
+    steps.push("        run: pip install ruff pyright codespell");
+  }
+
+  if (hasTs) {
+    steps.push("      - name: Lint (biome)");
+    steps.push("        run: bunx biome check .");
+    steps.push("      - name: Typecheck (tsc)");
+    steps.push("        run: bunx tsc --noEmit");
+  }
+  if (hasPython) {
+    steps.push("      - name: Lint (ruff)");
+    steps.push("        run: ruff check .");
+    steps.push("      - name: Typecheck (pyright)");
+    steps.push("        run: pyright");
+  }
+
+  steps.push("      - name: Spell check");
+  steps.push('        run: codespell --skip="*.lock,node_modules,dist" .');
+  steps.push("      - name: Markdown lint");
+  steps.push('        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"');
+  steps.push("      - name: Secret scan");
+  steps.push("        run: gitleaks detect --no-banner");
+
+  return `name: AI Guardrails Check
 on:
   push:
     branches: ["**"]
@@ -12,24 +56,21 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-        if: hashFiles('bun.lock', 'bun.lockb') != ''
-      - run: bunx ai-guardrails check
+${steps.join("\n")}
 `;
+}
 
 export async function setupCiStep(
   projectDir: string,
-  fileManager: FileManager
+  fileManager: FileManager,
+  languages: ReadonlySet<string>
 ): Promise<StepResult> {
   try {
     const workflowDir = join(projectDir, ".github", "workflows");
     await fileManager.mkdir(workflowDir, { parents: true });
 
     const dest = join(workflowDir, "ai-guardrails.yml");
-    await fileManager.writeText(dest, CI_WORKFLOW);
+    await fileManager.writeText(dest, buildCiWorkflow(languages));
 
     return ok("CI workflow written to .github/workflows/ai-guardrails.yml");
   } catch (err) {

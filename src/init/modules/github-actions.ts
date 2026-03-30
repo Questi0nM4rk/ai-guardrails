@@ -15,7 +15,8 @@ export const githubActionsModule: InitModule = {
   },
 
   async execute(ctx: InitContext): Promise<InitModuleResult> {
-    const result = await setupCiStep(ctx.projectDir, ctx.fileManager);
+    const languageIds = new Set(ctx.languages.map((l) => l.id));
+    const result = await setupCiStep(ctx.projectDir, ctx.fileManager, languageIds);
 
     if (result.status === "error") {
       return { status: "error", message: result.message };
