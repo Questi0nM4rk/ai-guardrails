@@ -117,4 +117,4 @@ Feature: CI workflow generation
     When the CI workflow is generated
     Then the workflow should contain "codespell"
     And the workflow should contain "markdownlint-cli2"
-    And the workflow should contain "gitleaks detect --no-banner"
+    And the workflow should contain "gitleaks-action@v2"

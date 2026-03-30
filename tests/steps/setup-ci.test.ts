@@ -48,7 +48,7 @@ describe("setupCiStep", () => {
     expect(content).toContain("hashFiles('bun.lock', 'bun.lockb') != ''");
   });
 
-  test("typescript project does not emit python steps", async () => {
+  test("typescript project does not emit python-specific steps", async () => {
     const fm = new FakeFileManager();
     await setupCiStep("/project", fm, TS_ONLY);
 
@@ -56,7 +56,9 @@ describe("setupCiStep", () => {
     expect(content).not.toContain("ruff check");
     expect(content).not.toContain("pyright");
     expect(content).not.toContain("setup-python");
-    expect(content).not.toContain("pip install");
+    // pip install codespell is universal — only ruff/pyright are Python-specific
+    expect(content).toContain("pip install codespell");
+    expect(content).not.toContain("pip install ruff");
   });
 
   test("python project emits ruff + pyright steps", async () => {
@@ -71,15 +73,16 @@ describe("setupCiStep", () => {
     expect(content).toContain("pip install ruff pyright codespell");
   });
 
-  test("python project does not emit typescript steps", async () => {
+  test("python project does not emit typescript-specific steps", async () => {
     const fm = new FakeFileManager();
     await setupCiStep("/project", fm, PY_ONLY);
 
     const [, content] = fm.written[0] ?? ["", ""];
     expect(content).not.toContain("biome check");
     expect(content).not.toContain("tsc --noEmit");
-    expect(content).not.toContain("setup-bun");
     expect(content).not.toContain("bun install");
+    // bun IS present (needed for bunx markdownlint-cli2)
+    expect(content).toContain("oven-sh/setup-bun@v2");
   });
 
   test("multi-language project emits all steps", async () => {
@@ -104,12 +107,13 @@ describe("setupCiStep", () => {
     const [, content] = fm.written[0] ?? ["", ""];
     expect(content).toContain("codespell");
     expect(content).toContain("markdownlint-cli2");
-    expect(content).toContain("gitleaks detect --no-banner");
+    expect(content).toContain("gitleaks-action@v2");
     expect(content).not.toContain("biome");
     expect(content).not.toContain("tsc");
     expect(content).not.toContain("ruff");
     expect(content).not.toContain("pyright");
-    expect(content).not.toContain("setup-bun");
+    // bun IS present unconditionally (needed for markdownlint)
+    expect(content).toContain("oven-sh/setup-bun@v2");
     expect(content).not.toContain("setup-python");
   });
 
@@ -121,7 +125,7 @@ describe("setupCiStep", () => {
       const [, content] = fm.written[0] ?? ["", ""];
       expect(content).toContain('codespell --skip="*.lock,node_modules,dist" .');
       expect(content).toContain('bunx markdownlint-cli2 "**/*.md" "#node_modules"');
-      expect(content).toContain("gitleaks detect --no-banner");
+      expect(content).toContain("gitleaks-action@v2");
       expect(content).toContain("actions/checkout@v4");
     }
   });

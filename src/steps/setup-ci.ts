@@ -10,23 +10,28 @@ function buildCiWorkflow(languages: ReadonlySet<string>): string {
   const steps: string[] = [];
   steps.push("      - uses: actions/checkout@v4");
 
-  if (hasTs) steps.push("      - uses: oven-sh/setup-bun@v2");
+  // Bun is always needed for universal tools (markdownlint-cli2 via bunx)
+  steps.push("      - uses: oven-sh/setup-bun@v2");
   if (hasPython) {
     steps.push("      - uses: actions/setup-python@v5");
     steps.push("        with:");
     steps.push('          python-version: "3.12"');
   }
 
+  // Install dependencies
   if (hasTs) {
     steps.push("      - name: Install JS dependencies");
     steps.push("        run: bun install --frozen-lockfile");
     steps.push("        if: hashFiles('bun.lock', 'bun.lockb') != ''");
   }
-  if (hasPython) {
-    steps.push("      - name: Install Python tools");
-    steps.push("        run: pip install ruff pyright codespell");
-  }
 
+  // pip installs: Python tools + codespell (always needed)
+  const pipPackages: string[] = ["codespell"];
+  if (hasPython) pipPackages.unshift("ruff", "pyright");
+  steps.push("      - name: Install Python tools");
+  steps.push(`        run: pip install ${pipPackages.join(" ")}`);
+
+  // Language-specific checks
   if (hasTs) {
     steps.push("      - name: Lint (biome)");
     steps.push("        run: bunx biome check .");
@@ -40,12 +45,16 @@ function buildCiWorkflow(languages: ReadonlySet<string>): string {
     steps.push("        run: pyright");
   }
 
+  // Universal checks (always)
   steps.push("      - name: Spell check");
   steps.push('        run: codespell --skip="*.lock,node_modules,dist" .');
   steps.push("      - name: Markdown lint");
   steps.push('        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"');
   steps.push("      - name: Secret scan");
-  steps.push("        run: gitleaks detect --no-banner");
+  steps.push("        uses: gitleaks/gitleaks-action@v2");
+  steps.push("        env:");
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: GitHub Actions expression syntax, not JS template
+  steps.push("          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}");
 
   return `name: AI Guardrails Check
 on:
