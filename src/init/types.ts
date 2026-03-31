@@ -12,6 +12,8 @@ export type InitCategory =
   | "hooks"
   | "agent"
   | "ci"
+  | "github"
+  | "editor"
   | "tools"
   | "baseline";
 
@@ -33,6 +35,8 @@ export interface InitContext {
   isTTY: boolean;
   createReadline: () => ReadlineHandle;
   flags: Record<string, unknown>;
+  /** GitHub repo info, populated before module execution. Absent if not github.com. */
+  github?: { owner: string; repo: string; authenticated: boolean };
 }
 
 export interface InitModule {
