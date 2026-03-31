@@ -1,36 +1,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { InitContext, InitModule, InitModuleResult } from "@/init/types";
-
-type JsonObject = Record<string, unknown>;
-
-function mergeWithoutOverwrite(base: JsonObject, additions: JsonObject): JsonObject {
-  const result: JsonObject = { ...base };
-  for (const [key, value] of Object.entries(additions)) {
-    if (!(key in result)) {
-      result[key] = value;
-    }
-  }
-  return result;
-}
-
-async function readJsonObject(
-  path: string,
-  fileManager: InitContext["fileManager"]
-): Promise<JsonObject> {
-  const exists = await fileManager.exists(path);
-  if (!exists) return {};
-  const text = await fileManager.readText(path);
-  try {
-    const parsed: unknown = JSON.parse(text);
-    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as JsonObject;
-    }
-    return {};
-  } catch {
-    return {};
-  }
-}
+import type { JsonObject } from "@/utils/json-merge";
+import { mergeWithoutOverwrite, readJsonObject } from "@/utils/json-merge";
 
 export const zedOnSaveModule: InitModule = {
   id: "zed-on-save",

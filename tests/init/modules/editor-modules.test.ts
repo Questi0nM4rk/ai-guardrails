@@ -205,6 +205,19 @@ describe("vscode-on-save writes extensions.json with detected language extension
   });
 });
 
+describe("vscode-on-save skips when no supported languages", () => {
+  test("returns skipped for empty languages array", async () => {
+    const fm = new FakeFileManager();
+    const ctx = makeCtx({ fileManager: fm, languages: [] });
+
+    const result = await vscodeOnSaveModule.execute(ctx);
+
+    expect(result.status).toBe("skipped");
+    // Must not write any files
+    expect(fm.written.find(([p]) => p.includes(".vscode"))).toBeUndefined();
+  });
+});
+
 // ---------------------------------------------------------------------------
 // helix-on-save
 // ---------------------------------------------------------------------------
