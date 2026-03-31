@@ -92,9 +92,7 @@ export const vscodeOnSaveModule: InitModule = {
       ...existingRecs,
       ...recommendations.filter((r) => !existingRecs.includes(r)),
     ];
-    const mergedExtensions = mergeWithoutOverwrite(baseExtensions, {
-      recommendations: mergedRecs,
-    });
+    const mergedExtensions = { ...baseExtensions, recommendations: mergedRecs };
     await ctx.fileManager.writeText(
       extensionsPath,
       JSON.stringify(mergedExtensions, null, 2)
