@@ -136,6 +136,7 @@ export const AGENT_SYMLINKS: Readonly<Record<string, string>> = {
   windsurf: ".windsurfrules",
   copilot: ".github/copilot-instructions.md",
   cline: ".clinerules",
+  agents: "AGENTS.md",
 } as const;
 
 const TOOL_ADDITIONS: Partial<Record<keyof DetectedAgentTools, string>> = {
@@ -147,8 +148,10 @@ const TOOL_ADDITIONS: Partial<Record<keyof DetectedAgentTools, string>> = {
   aider: AIDER_ADDITIONS,
 };
 
-/** Build the combined rules content for a specific agent tool */
-export function buildAgentRules(tool: keyof DetectedAgentTools): string {
+/** Build the combined rules content for a specific agent tool.
+ * The "agents" key produces BASE_RULES only (no tool-specific additions). */
+export function buildAgentRules(tool: keyof DetectedAgentTools | "agents"): string {
+  if (tool === "agents") return BASE_RULES;
   return BASE_RULES + (TOOL_ADDITIONS[tool] ?? "");
 }
 

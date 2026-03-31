@@ -1,10 +1,10 @@
-import type { Interface as ReadlineInterface } from "node:readline";
 import type { World } from "@questi0nm4rk/feats";
 import {
   buildResolvedConfig,
   MachineConfigSchema,
   ProjectConfigSchema,
 } from "@/config/schema";
+import type { ReadlineHandle } from "@/init/prompt";
 import type { PipelineContext, PipelineResult } from "@/pipelines/types";
 import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeConsole } from "../fakes/fake-console";
@@ -24,7 +24,7 @@ function freshConfig() {
 }
 
 /** Readline factory that throws if called — use in non-TTY test contexts. */
-export function noopReadline(): ReadlineInterface {
+export function noopReadline(): ReadlineHandle {
   throw new Error("createReadline called in a non-TTY test context");
 }
 

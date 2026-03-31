@@ -1,7 +1,34 @@
 import { buildContext } from "@/commands/context";
+import type { Console } from "@/infra/console";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { loadConfigStep } from "@/steps/load-config";
 import { statusStep } from "@/steps/status-step";
+import { getVersion, semverLt } from "@/utils/version";
+
+/**
+ * Print version status to console and optionally write a warning to stderr.
+ * Extracted for unit testability — pure side-effects, no process.exit.
+ *
+ * Returns the stderr warning string if one was emitted, or undefined.
+ */
+export function printVersionStatus(
+  installed: string,
+  minVersion: string | undefined,
+  cons: Console
+): string | undefined {
+  if (minVersion !== undefined && semverLt(installed, minVersion)) {
+    const warning = `Version mismatch: project requires >=${minVersion}, installed ${installed}`;
+    cons.warning(warning);
+    cons.info(`Version: ${installed} (pinned: >=${minVersion})`);
+    return warning;
+  }
+  if (minVersion !== undefined) {
+    cons.info(`Version: ${installed} (pinned: >=${minVersion})`);
+    return undefined;
+  }
+  cons.info(`Version: ${installed} (not pinned — run init to pin)`);
+  return undefined;
+}
 
 export async function runStatus(
   projectDir: string,
@@ -31,6 +58,8 @@ export async function runStatus(
     process.exit(2);
   }
   cons.success(configResult.message);
+
+  printVersionStatus(getVersion(), config.minVersion, cons);
 
   await statusStep(projectDir, languages, config, commandRunner, fileManager, cons);
   // status never exits 1 — informational only

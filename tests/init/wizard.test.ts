@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { Interface as ReadlineInterface } from "node:readline";
 import {
   buildResolvedConfig,
   MachineConfigSchema,
@@ -12,21 +11,14 @@ import { FakeCommandRunner } from "../fakes/fake-command-runner";
 import { FakeConsole } from "../fakes/fake-console";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
-/**
- * Creates a readline factory that returns answers in sequence.
- * Each call to the factory returns a fresh readline using the next answer.
- */
-function fakeReadline(answers: string[]): () => ReadlineInterface {
+function fakeReadline(answers: string[]): () => ReadlineHandle {
   let idx = 0;
-  return () => {
-    const handle: ReadlineHandle = {
-      question(_prompt: string, cb: (answer: string) => void): void {
-        cb(answers[idx++] ?? "");
-      },
-      close(): void {},
-    };
-    return handle as unknown as ReadlineInterface;
-  };
+  return () => ({
+    question(_prompt: string, cb: (answer: string) => void): void {
+      cb(answers[idx++] ?? "");
+    },
+    close(): void {},
+  });
 }
 
 function makeCtx(answers: string[], overrides?: Partial<InitContext>): InitContext {

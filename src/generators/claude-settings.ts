@@ -29,7 +29,8 @@ function renderClaudeSettings(_config: ResolvedConfig): string {
   // Always emit ALL deny globs regardless of disabled_groups config.
   // settings.json deny patterns are a first-layer static safety net,
   // independent of hook-level config toggling.
-  const guard = "[ ! -f ./dist/ai-guardrails ] && exit 0";
+  const guard = "command -v ai-guardrails >/dev/null 2>&1 || exit 0";
+  const bin = "ai-guardrails";
   const settings: ClaudeSettings = {
     permissions: {
       deny: collectDenyGlobs(ALL_RULE_GROUPS),
@@ -41,7 +42,7 @@ function renderClaudeSettings(_config: ResolvedConfig): string {
           hooks: [
             {
               type: "command",
-              command: `${guard}; ./dist/ai-guardrails hook dangerous-cmd`,
+              command: `${guard}; ${bin} hook dangerous-cmd`,
             },
           ],
         },
@@ -50,7 +51,7 @@ function renderClaudeSettings(_config: ResolvedConfig): string {
           hooks: [
             {
               type: "command",
-              command: `${guard}; ./dist/ai-guardrails hook protect-configs`,
+              command: `${guard}; ${bin} hook protect-configs`,
             },
           ],
         },
@@ -59,7 +60,7 @@ function renderClaudeSettings(_config: ResolvedConfig): string {
           hooks: [
             {
               type: "command",
-              command: `${guard}; ./dist/ai-guardrails hook protect-reads`,
+              command: `${guard}; ${bin} hook protect-reads`,
             },
           ],
         },

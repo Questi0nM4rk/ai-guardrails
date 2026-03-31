@@ -4,7 +4,11 @@ import {
   MachineConfigSchema,
   ProjectConfigSchema,
 } from "@/config/schema";
-import { agentRulesGenerator, buildAgentRules } from "@/generators/agent-rules";
+import {
+  AGENT_SYMLINKS,
+  agentRulesGenerator,
+  buildAgentRules,
+} from "@/generators/agent-rules";
 
 function makeConfig() {
   return buildResolvedConfig(
@@ -48,7 +52,24 @@ describe("agentRulesGenerator", () => {
   });
 });
 
+describe("AGENT_SYMLINKS", () => {
+  test("contains AGENTS.md entry under agents key", () => {
+    expect(AGENT_SYMLINKS.agents).toBe("AGENTS.md");
+  });
+});
+
 describe("buildAgentRules", () => {
+  test("agents variant returns base rules only without tool-specific sections", () => {
+    const output = buildAgentRules("agents");
+    expect(output).toContain("## Core Principles");
+    expect(output).not.toContain("## Claude Code Specific");
+    expect(output).not.toContain("## Cursor Specific");
+    expect(output).not.toContain("## Windsurf Specific");
+    expect(output).not.toContain("## GitHub Copilot Specific");
+    expect(output).not.toContain("## Cline Specific");
+    expect(output).not.toContain("## Aider Specific");
+  });
+
   test("claude variant contains Claude Code specific section", () => {
     const output = buildAgentRules("claude");
     expect(output).toContain("## Claude Code Specific");

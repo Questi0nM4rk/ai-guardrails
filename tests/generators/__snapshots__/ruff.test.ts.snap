@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`ruffGenerator strict output matches snapshot 1`] = `
-"# ai-guardrails:sha256=a6e0c59397bf71df77d26a4593f45a14da338540d3283a3e6ad0fb9298c71699
+"# ai-guardrails:sha256=69601edae6db6ada4fc25f48df030cdeff97da9032b75487ec45c56b07f70c24
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -12,19 +12,35 @@ unsafe-fixes = false
 select = ["ALL"]
 
 ignore = [
-  # --- Formatter conflicts ---
-  "W191", "E111", "E114", "E117", "D206", "D300",
-  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
-  "ISC001", "ISC002",
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
   # --- Redundant with pyright ---
   "ANN",
   # --- Docstrings (opt-in) ---
   "D",
   # --- Development markers ---
-  "FIX001", "FIX002", "TD",
+  "FIX001",
+  "FIX002",
+  "TD",
   # --- High false-positive ---
-  "ERA001", "CPY001", "INP001", "T201",
-  "EM101", "EM102", "TRY003", "S101",
+  "CPY001",
+  "INP001",
+  "EM101",
+  "EM102",
+  "TRY003",
 ]
 
 [lint.per-file-ignores]
@@ -49,25 +65,50 @@ required-imports = ["from __future__ import annotations"]
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+[lint.flake8-tidy-imports.banned-api]
+"typing.Optional".msg = "Use \`X | None\` instead"
+"typing.Union".msg   = "Use \`X | Y\` instead"
+"typing.List".msg    = "Use \`list[X]\` instead"
+"typing.Dict".msg    = "Use \`dict[X, Y]\` instead"
+"typing.Set".msg     = "Use \`set[X]\` instead"
+"typing.Tuple".msg   = "Use \`tuple[X, ...]\` instead"
+
 [lint.mccabe]
 max-complexity = 10
 
 [lint.pylint]
 max-args = 5
+max-bool-expr = 3
 max-branches = 10
 max-locals = 10
+max-nested-blocks = 3
+max-positional-args = 5
+max-public-methods = 15
+max-returns = 4
 max-statements = 30
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "csv"
+parametrize-values-type = "list"
+raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]
 
 [format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
+docstring-code-format = true
+docstring-code-line-length = 80
 "
 `;
 
 exports[`ruffGenerator standard output matches snapshot 1`] = `
-"# ai-guardrails:sha256=a50f08c2d2f239d5ad239fd5ebc9dd5568fb1ee79d8a61babcfcc764996a3eae
+"# ai-guardrails:sha256=3ebc733600147c5f503166a7219694147a25d83477485aa602a618cc9ba3506d
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -78,19 +119,38 @@ unsafe-fixes = false
 select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]
 
 ignore = [
-  # --- Formatter conflicts ---
-  "W191", "E111", "E114", "E117", "D206", "D300",
-  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
-  "ISC001", "ISC002",
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
   # --- Redundant with pyright ---
   "ANN",
   # --- Docstrings (opt-in) ---
   "D",
   # --- Development markers ---
-  "FIX001", "FIX002", "TD",
+  "FIX001",
+  "FIX002",
+  "TD",
   # --- High false-positive ---
-  "ERA001", "CPY001", "INP001", "T201",
-  "EM101", "EM102", "TRY003", "S101",
+  "ERA001",
+  "CPY001",
+  "INP001",
+  "T201",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "S101",
 ]
 
 [lint.per-file-ignores]
@@ -115,25 +175,50 @@ required-imports = ["from __future__ import annotations"]
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+[lint.flake8-tidy-imports.banned-api]
+"typing.Optional".msg = "Use \`X | None\` instead"
+"typing.Union".msg   = "Use \`X | Y\` instead"
+"typing.List".msg    = "Use \`list[X]\` instead"
+"typing.Dict".msg    = "Use \`dict[X, Y]\` instead"
+"typing.Set".msg     = "Use \`set[X]\` instead"
+"typing.Tuple".msg   = "Use \`tuple[X, ...]\` instead"
+
 [lint.mccabe]
 max-complexity = 10
 
 [lint.pylint]
 max-args = 5
+max-bool-expr = 3
 max-branches = 10
 max-locals = 10
+max-nested-blocks = 3
+max-positional-args = 5
+max-public-methods = 15
+max-returns = 4
 max-statements = 30
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "csv"
+parametrize-values-type = "list"
+raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]
 
 [format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
+docstring-code-format = true
+docstring-code-line-length = 80
 "
 `;
 
 exports[`ruffGenerator minimal output matches snapshot 1`] = `
-"# ai-guardrails:sha256=ba5311004d340edb800f6f67011609d523585fbc7e8b2de9d302d00e0a1580f3
+"# ai-guardrails:sha256=c1a750fbb8cbbdd5c2320de4c04e3cd914b42714e7d4de92a38e149f78883294
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -144,19 +229,38 @@ unsafe-fixes = false
 select = ["E", "F", "S"]
 
 ignore = [
-  # --- Formatter conflicts ---
-  "W191", "E111", "E114", "E117", "D206", "D300",
-  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
-  "ISC001", "ISC002",
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
   # --- Redundant with pyright ---
   "ANN",
   # --- Docstrings (opt-in) ---
   "D",
   # --- Development markers ---
-  "FIX001", "FIX002", "TD",
+  "FIX001",
+  "FIX002",
+  "TD",
   # --- High false-positive ---
-  "ERA001", "CPY001", "INP001", "T201",
-  "EM101", "EM102", "TRY003", "S101",
+  "ERA001",
+  "CPY001",
+  "INP001",
+  "T201",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "S101",
 ]
 
 [lint.per-file-ignores]
@@ -181,19 +285,44 @@ required-imports = ["from __future__ import annotations"]
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+[lint.flake8-tidy-imports.banned-api]
+"typing.Optional".msg = "Use \`X | None\` instead"
+"typing.Union".msg   = "Use \`X | Y\` instead"
+"typing.List".msg    = "Use \`list[X]\` instead"
+"typing.Dict".msg    = "Use \`dict[X, Y]\` instead"
+"typing.Set".msg     = "Use \`set[X]\` instead"
+"typing.Tuple".msg   = "Use \`tuple[X, ...]\` instead"
+
 [lint.mccabe]
 max-complexity = 10
 
 [lint.pylint]
 max-args = 5
+max-bool-expr = 3
 max-branches = 10
 max-locals = 10
+max-nested-blocks = 3
+max-positional-args = 5
+max-public-methods = 15
+max-returns = 4
 max-statements = 30
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "csv"
+parametrize-values-type = "list"
+raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]
 
 [format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
+docstring-code-format = true
+docstring-code-line-length = 80
 "
 `;

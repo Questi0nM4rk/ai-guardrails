@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import type { Interface as ReadlineInterface } from "node:readline";
 import type { ReadlineHandle } from "@/init/prompt";
 import {
   askChoice,
@@ -9,24 +8,14 @@ import {
   askYesNo,
 } from "@/init/prompt";
 
-/**
- * Creates a `() => ReadlineInterface` factory from a sequence of answers.
- * The returned readline only implements question() and close() — the two
- * methods our prompt helpers actually use. Cast is at the factory boundary
- * and is safe because ReadlineInterface satisfies ReadlineHandle structurally.
- */
-function fakeReadline(answers: string[]): () => ReadlineInterface {
+function fakeReadline(answers: string[]): () => ReadlineHandle {
   let idx = 0;
-  return () => {
-    const handle: ReadlineHandle = {
-      question(_prompt: string, cb: (answer: string) => void): void {
-        cb(answers[idx++] ?? "");
-      },
-      close(): void {},
-    };
-    // Single cast at factory boundary — safe: ReadlineInterface satisfies ReadlineHandle.
-    return handle as unknown as ReadlineInterface;
-  };
+  return () => ({
+    question(_prompt: string, cb: (answer: string) => void): void {
+      cb(answers[idx++] ?? "");
+    },
+    close(): void {},
+  });
 }
 
 describe("askYesNo", () => {

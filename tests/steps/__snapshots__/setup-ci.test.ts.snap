@@ -1,0 +1,129 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`setupCiStep typescript workflow matches snapshot 1`] = `
+"name: AI Guardrails Check
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install JS dependencies
+        run: bun install --frozen-lockfile
+        if: hashFiles('bun.lock', 'bun.lockb') != ''
+      - name: Install codespell
+        run: pip install codespell
+      - name: Lint (biome)
+        run: bunx biome check .
+      - name: Typecheck (tsc)
+        run: bunx tsc --noEmit
+      - name: Spell check
+        run: codespell --skip="*.lock,node_modules,dist" .
+      - name: Markdown lint
+        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+"
+`;
+
+exports[`setupCiStep python workflow matches snapshot 1`] = `
+"name: AI Guardrails Check
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Python tools
+        run: pip install ruff pyright codespell
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Typecheck (pyright)
+        run: pyright
+      - name: Spell check
+        run: codespell --skip="*.lock,node_modules,dist" .
+      - name: Markdown lint
+        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+"
+`;
+
+exports[`setupCiStep multi-language workflow matches snapshot 1`] = `
+"name: AI Guardrails Check
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install JS dependencies
+        run: bun install --frozen-lockfile
+        if: hashFiles('bun.lock', 'bun.lockb') != ''
+      - name: Install Python tools
+        run: pip install ruff pyright codespell
+      - name: Lint (biome)
+        run: bunx biome check .
+      - name: Typecheck (tsc)
+        run: bunx tsc --noEmit
+      - name: Lint (ruff)
+        run: ruff check .
+      - name: Typecheck (pyright)
+        run: pyright
+      - name: Spell check
+        run: codespell --skip="*.lock,node_modules,dist" .
+      - name: Markdown lint
+        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+"
+`;
+
+exports[`setupCiStep empty language workflow matches snapshot 1`] = `
+"name: AI Guardrails Check
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install codespell
+        run: pip install codespell
+      - name: Spell check
+        run: codespell --skip="*.lock,node_modules,dist" .
+      - name: Markdown lint
+        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"
+      - name: Secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+"
+`;

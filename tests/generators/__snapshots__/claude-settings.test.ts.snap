@@ -45,7 +45,7 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook dangerous-cmd"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook dangerous-cmd"
           }
         ]
       },
@@ -54,7 +54,7 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-configs"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-configs"
           }
         ]
       },
@@ -63,7 +63,7 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-reads"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-reads"
           }
         ]
       }

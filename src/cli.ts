@@ -62,6 +62,10 @@ program
   .option("--no-biome", "Skip biome.jsonc generation")
   .option("--no-agent-hooks", "Skip .claude/settings.json generation")
   .option("--interactive", "Prompt for each optional step")
+  .option(
+    "--min-version <version>",
+    "Pin a specific min_version (defaults to installed version)"
+  )
   .addOption(
     new Option("--config-strategy <strategy>", "How to handle existing lang configs")
       .choices(["merge", "replace", "skip"])

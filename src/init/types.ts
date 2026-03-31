@@ -1,8 +1,8 @@
-import type { Interface as ReadlineInterface } from "node:readline";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
+import type { ReadlineHandle } from "@/init/prompt";
 import type { LanguagePlugin } from "@/languages/types";
 
 export type InitCategory =
@@ -31,7 +31,7 @@ export interface InitContext {
   languages: LanguagePlugin[];
   selections: Map<string, boolean>;
   isTTY: boolean;
-  createReadline: () => ReadlineInterface;
+  createReadline: () => ReadlineHandle;
   flags: Record<string, unknown>;
 }
 

@@ -25,7 +25,7 @@ exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
 `;
 
 exports[`Config file generation ruffGenerator output matches snapshot 1`] = `
-"# ai-guardrails:sha256=a50f08c2d2f239d5ad239fd5ebc9dd5568fb1ee79d8a61babcfcc764996a3eae
+"# ai-guardrails:sha256=3ebc733600147c5f503166a7219694147a25d83477485aa602a618cc9ba3506d
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -36,19 +36,38 @@ unsafe-fixes = false
 select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]
 
 ignore = [
-  # --- Formatter conflicts ---
-  "W191", "E111", "E114", "E117", "D206", "D300",
-  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
-  "ISC001", "ISC002",
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
   # --- Redundant with pyright ---
   "ANN",
   # --- Docstrings (opt-in) ---
   "D",
   # --- Development markers ---
-  "FIX001", "FIX002", "TD",
+  "FIX001",
+  "FIX002",
+  "TD",
   # --- High false-positive ---
-  "ERA001", "CPY001", "INP001", "T201",
-  "EM101", "EM102", "TRY003", "S101",
+  "ERA001",
+  "CPY001",
+  "INP001",
+  "T201",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "S101",
 ]
 
 [lint.per-file-ignores]
@@ -73,25 +92,50 @@ required-imports = ["from __future__ import annotations"]
 [lint.flake8-tidy-imports]
 ban-relative-imports = "all"
 
+[lint.flake8-tidy-imports.banned-api]
+"typing.Optional".msg = "Use \`X | None\` instead"
+"typing.Union".msg   = "Use \`X | Y\` instead"
+"typing.List".msg    = "Use \`list[X]\` instead"
+"typing.Dict".msg    = "Use \`dict[X, Y]\` instead"
+"typing.Set".msg     = "Use \`set[X]\` instead"
+"typing.Tuple".msg   = "Use \`tuple[X, ...]\` instead"
+
 [lint.mccabe]
 max-complexity = 10
 
 [lint.pylint]
 max-args = 5
+max-bool-expr = 3
 max-branches = 10
 max-locals = 10
+max-nested-blocks = 3
+max-positional-args = 5
+max-public-methods = 15
+max-returns = 4
 max-statements = 30
+
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
+
+[lint.flake8-pytest-style]
+fixture-parentheses = true
+mark-parentheses = true
+parametrize-names-type = "csv"
+parametrize-values-type = "list"
+raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]
 
 [format]
 quote-style = "double"
 indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "lf"
+docstring-code-format = true
+docstring-code-line-length = 80
 "
 `;
 
 exports[`Config file generation lefthook output matches snapshot for python and typescript plugins 1`] = `
-"# ai-guardrails:sha256=b6c8ade2fd39f455819a397861fa96e32076329002bc0438c1e582cf56e2a534
+"# ai-guardrails:sha256=1478adbe287cbdd96bd59447c6306e647e3bac24bbf59568d59d7f1d1dcfba22
 pre-commit:
   commands:
 
@@ -133,6 +177,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -150,7 +195,7 @@ commit-msg:
 `;
 
 exports[`Config file generation lefthook output matches snapshot for no plugins 1`] = `
-"# ai-guardrails:sha256=5972c2b1018a0004966903c703c80ce6ecba537cfdc1652bfbf63aa9f5b9c685
+"# ai-guardrails:sha256=5e52d35b8fda182ab442232761decb64538cb4128c86712ec2d67c37ba59cf06
 pre-commit:
   commands:
 
@@ -180,6 +225,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -241,7 +287,7 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook dangerous-cmd"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook dangerous-cmd"
           }
         ]
       },
@@ -250,7 +296,7 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-configs"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-configs"
           }
         ]
       },
@@ -259,7 +305,7 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-reads"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-reads"
           }
         ]
       }
