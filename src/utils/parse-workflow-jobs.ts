@@ -2,11 +2,6 @@ import { join } from "node:path";
 import type { FileManager } from "@/infra/file-manager";
 
 /**
- * Matches a job block: the key at indent 2, and optionally a name at indent 4.
- * We parse line-by-line to associate each name with its parent job key.
- */
-
-/**
  * Parse GitHub workflow files and extract job names for status check contexts.
  *
  * For each job, returns the `name:` value if present, otherwise the job key.
@@ -16,7 +11,11 @@ export async function parseWorkflowJobNames(
   projectDir: string,
   fileManager: FileManager
 ): Promise<readonly string[]> {
-  const workflowFiles = await fileManager.glob(".github/workflows/*.yml", projectDir);
+  const [ymlFiles, yamlFiles] = await Promise.all([
+    fileManager.glob(".github/workflows/*.yml", projectDir),
+    fileManager.glob(".github/workflows/*.yaml", projectDir),
+  ]);
+  const workflowFiles = [...ymlFiles, ...yamlFiles];
 
   const jobNames: string[] = [];
 
