@@ -84,10 +84,16 @@ function matchesGlob(path: string, pattern: string): boolean {
       matchesGlob(path, pattern.replace(braceMatch[0], alt))
     );
   }
-  const escaped = pattern
+  let escaped = pattern
     .replace(/[.+^${}()|[\]\\]/g, "\\$&")
     .replace(/\*\*/g, "__DOUBLE_STAR__")
     .replace(/\*/g, "[^/]*")
     .replace(/__DOUBLE_STAR__/g, ".*");
+  // A leading `**/` (converted to `.*\/`) should also match zero leading
+  // path-segments so that relative paths like ".cursor/rules/base.md" are
+  // correctly matched by "**/.cursor/rules/**" after the cwd prefix is stripped.
+  if (escaped.startsWith(".*/")) {
+    escaped = `(.*/)?${escaped.slice(3)}`;
+  }
   return new RegExp(`^${escaped}$`).test(path);
 }
