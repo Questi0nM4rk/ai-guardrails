@@ -29,6 +29,10 @@ export const zedOnSaveModule: InitModule = {
     const hasTs = ctx.languages.some((l) => l.id === "typescript");
     const hasPython = ctx.languages.some((l) => l.id === "python");
 
+    if (!hasTs && !hasPython) {
+      return { status: "skipped", message: "No supported languages detected" };
+    }
+
     const zedDir = join(ctx.projectDir, ".zed");
     const settingsPath = join(zedDir, "settings.json");
 

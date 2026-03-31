@@ -59,8 +59,6 @@ export const helixOnSaveModule: InitModule = {
       };
     }
 
-    await ctx.fileManager.mkdir(helixDir, { parents: true });
-
     const sections: string[] = [];
     if (hasTs) sections.push(TS_LANGUAGE_SECTION);
     if (hasPython) sections.push(PYTHON_LANGUAGE_SECTION);
@@ -68,6 +66,8 @@ export const helixOnSaveModule: InitModule = {
     if (sections.length === 0) {
       return { status: "skipped", message: "No supported languages detected" };
     }
+
+    await ctx.fileManager.mkdir(helixDir, { parents: true });
 
     const header = "# ai-guardrails: project on-save config for Helix\n";
     const content = header + sections.join("\n");
