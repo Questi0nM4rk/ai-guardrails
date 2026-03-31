@@ -4,6 +4,7 @@ import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { ReadlineHandle } from "@/init/prompt";
 import type { LanguagePlugin } from "@/languages/types";
+import type { GitHubRepoInfo } from "@/utils/github-repo";
 
 export type InitCategory =
   | "profile"
@@ -36,7 +37,7 @@ export interface InitContext {
   createReadline: () => ReadlineHandle;
   flags: Record<string, unknown>;
   /** GitHub repo info, populated before module execution. Absent if not github.com. */
-  github?: { owner: string; repo: string; authenticated: boolean };
+  github?: GitHubRepoInfo;
 }
 
 export interface InitModule {

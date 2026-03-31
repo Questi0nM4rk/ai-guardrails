@@ -1,17 +1,16 @@
 import { join } from "node:path";
 import type { FileManager } from "@/infra/file-manager";
 
-// Matches a top-level job key under "jobs:" — exactly 2 leading spaces, word chars.
-const JOB_KEY_REGEX = /^ {2}(\w[\w-]*):\s*$/gm;
-// Matches a "name:" property under a job — exactly 4 leading spaces.
-const JOB_NAME_REGEX = /^ {4}name:\s*["']?([^"'\n]+?)["']?\s*$/gm;
+/**
+ * Matches a job block: the key at indent 2, and optionally a name at indent 4.
+ * We parse line-by-line to associate each name with its parent job key.
+ */
 
 /**
  * Parse GitHub workflow files and extract job names for status check contexts.
  *
- * Returns human-readable job names (from `name:` fields) when present,
- * falling back to job keys when no `name:` is set. These are the exact
- * strings GitHub registers as required status check contexts.
+ * For each job, returns the `name:` value if present, otherwise the job key.
+ * These are the exact strings GitHub registers as required status check contexts.
  */
 export async function parseWorkflowJobNames(
   projectDir: string,
@@ -30,26 +29,64 @@ export async function parseWorkflowJobNames(
       continue;
     }
 
-    const keys = extractMatches(JOB_KEY_REGEX, content);
-    const names = extractMatches(JOB_NAME_REGEX, content).map((n) => n.trim());
-
-    if (names.length > 0) {
-      jobNames.push(...names);
-    } else {
-      jobNames.push(...keys);
-    }
+    jobNames.push(...extractJobNames(content));
   }
 
   return jobNames;
 }
 
-/** Extract first capture group from all matches of a global regex against content. */
-function extractMatches(regex: RegExp, content: string): string[] {
-  regex.lastIndex = 0;
+/**
+ * Extract job display names from a workflow YAML string.
+ * For each job under `jobs:`, uses the `name:` field if present, otherwise the job key.
+ */
+function extractJobNames(content: string): string[] {
+  const lines = content.split("\n");
   const results: string[] = [];
-  const matches = content.matchAll(regex);
-  for (const match of matches) {
-    if (match[1] !== undefined) results.push(match[1]);
+  let currentJobKey: string | undefined;
+  let currentJobName: string | undefined;
+  let inJobs = false;
+
+  for (const line of lines) {
+    // Detect "jobs:" section
+    if (/^jobs:\s*$/.test(line)) {
+      inJobs = true;
+      continue;
+    }
+
+    if (!inJobs) continue;
+
+    // A line at indent 0 that isn't blank ends the jobs section
+    if (/^\S/.test(line) && line.trim().length > 0) {
+      // Flush last job
+      if (currentJobKey !== undefined) {
+        results.push(currentJobName ?? currentJobKey);
+      }
+      break;
+    }
+
+    // Job key at exactly 2 spaces indent
+    const keyMatch = /^ {2}(\w[\w-]*):\s*$/.exec(line);
+    if (keyMatch?.[1] !== undefined) {
+      // Flush previous job
+      if (currentJobKey !== undefined) {
+        results.push(currentJobName ?? currentJobKey);
+      }
+      currentJobKey = keyMatch[1];
+      currentJobName = undefined;
+      continue;
+    }
+
+    // Job name at exactly 4 spaces indent
+    const nameMatch = /^ {4}name:\s*["']?([^"'\n]+?)["']?\s*$/.exec(line);
+    if (nameMatch?.[1] !== undefined && currentJobKey !== undefined) {
+      currentJobName = nameMatch[1].trim();
+    }
   }
+
+  // Flush last job
+  if (currentJobKey !== undefined) {
+    results.push(currentJobName ?? currentJobKey);
+  }
+
   return results;
 }
