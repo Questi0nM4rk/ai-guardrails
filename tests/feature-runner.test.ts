@@ -11,6 +11,7 @@ import "./steps/generator-filtering.steps";
 import "./steps/ci-workflow.steps";
 import "./steps/no-console.steps";
 import "./steps/github-modules.steps";
+import "./steps/editor-modules.steps";
 
 const features = await loadFeatures("tests/features/**/*.feature", {
   cwd: process.cwd(),
