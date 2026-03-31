@@ -323,22 +323,31 @@ without CI passing.
 - Y/N: Prevent force pushes? [Y/n]
 
 **Execute:**
+
+Step 1 — collect required status check names by parsing all workflow files under
+`.github/workflows/`. For each file, extract every `jobs.<id>.name` value (the
+human-readable job name used by GitHub status checks). If no `name:` is set,
+fall back to the job key. This produces the exact strings GitHub registers as
+status checks (e.g. `"Test & Coverage"`, `"Lint & Static Analysis"`, `"check"`).
+
+Step 2 — apply protection:
 ```
 gh api repos/{owner}/{repo}/branches/main/protection \
   --method PUT \
   --field required_status_checks[strict]=true \
-  --field required_status_checks[contexts][]="test" \
-  --field required_status_checks[contexts][]="check" \
+  --field required_status_checks[contexts][]=<job-name-1> \
+  --field required_status_checks[contexts][]=<job-name-2> \
   --field enforce_admins=false \
   --field required_pull_request_reviews[required_approving_review_count]=1 \
   --field required_pull_request_reviews[dismiss_stale_reviews]=true \
   --field restrictions=null \
   --field allow_force_pushes=false \
-  --field allow_deletions=false
+  --field allow_deletions=false \
+  --field required_conversation_resolution=true
 ```
 
-Status check names are inferred from the workflow jobs in `.github/workflows/ci.yml`
-and `.github/workflows/ai-guardrails.yml` (parsed from the generated file).
+`required_conversation_resolution=true` ensures all PR review comments must be
+resolved before merge — matching the ai-guardrails repo's own protection config.
 
 **Error handling:**
 - If `gh` is not authenticated: prints hint `gh auth login`, marks module as skipped (not error)
