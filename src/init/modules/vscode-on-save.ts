@@ -80,7 +80,9 @@ export const vscodeOnSaveModule: InitModule = {
     const extensionsPath = join(vscodeDir, "extensions.json");
     const existingExtensions = await readJsonObject(extensionsPath, ctx.fileManager);
     const existingRecs = Array.isArray(existingExtensions.recommendations)
-      ? (existingExtensions.recommendations as string[])
+      ? existingExtensions.recommendations.filter(
+          (r): r is string => typeof r === "string"
+        )
       : [];
     const mergedRecs = [
       ...existingRecs,

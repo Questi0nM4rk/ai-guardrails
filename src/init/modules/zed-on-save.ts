@@ -65,14 +65,24 @@ export const zedOnSaveModule: InitModule = {
       };
     }
 
-    const additions: JsonObject = {
+    const existing = await readJsonObject(settingsPath, ctx.fileManager);
+
+    // Merge top-level keys without overwriting existing user values.
+    const topLevelAdditions: JsonObject = {
       format_on_save: "on",
       formatter: "language_server",
-      languages,
     };
+    const merged = mergeWithoutOverwrite(existing, topLevelAdditions);
 
-    const existing = await readJsonObject(settingsPath, ctx.fileManager);
-    const merged = mergeWithoutOverwrite(existing, additions);
+    // Merge languages at 2 levels: preserve user's existing per-language configs,
+    // but add any language keys we're introducing that aren't already present.
+    const existingLanguages =
+      existing.languages !== null &&
+      typeof existing.languages === "object" &&
+      !Array.isArray(existing.languages)
+        ? (existing.languages as JsonObject)
+        : {};
+    merged.languages = mergeWithoutOverwrite(existingLanguages, languages);
     await ctx.fileManager.writeText(settingsPath, JSON.stringify(merged, null, 2));
 
     return {

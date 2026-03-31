@@ -468,4 +468,36 @@ describe("zed-on-save merges without overwriting", () => {
     expect(obj.format_on_save).toBe("on");
     expect(obj.languages).toBeDefined();
   });
+
+  test("2-level merge: preserves existing language key while adding absent languages", async () => {
+    const fm = new FakeFileManager();
+    fm.seed(
+      "/project/.zed/settings.json",
+      JSON.stringify({
+        languages: {
+          TypeScript: { formatter: { external: { command: "prettier" } } },
+        },
+      })
+    );
+    const ctx = makeCtx({
+      fileManager: fm,
+      languages: [makePlugin("typescript"), makePlugin("python")],
+    });
+
+    await zedOnSaveModule.execute(ctx);
+
+    const written = fm.written.find(([p]) => p === "/project/.zed/settings.json");
+    const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
+    const obj = parsed as Record<string, unknown>;
+    const langs = obj.languages as Record<string, unknown>;
+    // User's existing TypeScript formatter config is preserved (not overwritten by biome)
+    const ts = langs.TypeScript as Record<string, unknown>;
+    const formatter = ts.formatter as Record<string, unknown>;
+    const ext = formatter.external as Record<string, unknown>;
+    expect(ext.command).toBe("prettier");
+    // Python was added because it was absent in the existing languages object
+    expect(langs.Python).toBeDefined();
+    // JavaScript was added because it was also absent
+    expect(langs.JavaScript).toBeDefined();
+  });
 });
