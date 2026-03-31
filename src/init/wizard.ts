@@ -8,6 +8,8 @@ const CATEGORY_ORDER: readonly InitCategory[] = [
   "hooks",
   "agent",
   "ci",
+  "github",
+  "editor",
   "tools",
   "baseline",
 ];
@@ -19,6 +21,8 @@ const CATEGORY_LABELS: Record<InitCategory, string> = {
   hooks: "Hooks",
   agent: "Agent Instructions",
   ci: "CI Pipeline",
+  github: "GitHub Setup",
+  editor: "Editor Integration",
   tools: "Tool Installation",
   baseline: "Baseline",
 };
