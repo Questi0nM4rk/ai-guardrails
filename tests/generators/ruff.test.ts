@@ -55,6 +55,56 @@ describe("ruffGenerator", () => {
     expect(strict).not.toBe(minimal);
   });
 
+  test("includes banned-api section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-tidy-imports.banned-api]");
+    expect(output).toContain('"typing.Optional".msg');
+    expect(output).toContain('"typing.Union".msg');
+    expect(output).toContain('"typing.List".msg');
+    expect(output).toContain('"typing.Dict".msg');
+    expect(output).toContain('"typing.Set".msg');
+    expect(output).toContain('"typing.Tuple".msg');
+  });
+
+  test("includes flake8-bugbear section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-bugbear]");
+    expect(output).toContain(
+      'extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]'
+    );
+  });
+
+  test("includes flake8-quotes section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-quotes]");
+    expect(output).toContain('inline-quotes = "double"');
+    expect(output).toContain('multiline-quotes = "double"');
+    expect(output).toContain('docstring-quotes = "double"');
+  });
+
+  test("includes flake8-pytest-style section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-pytest-style]");
+    expect(output).toContain("fixture-parentheses = true");
+    expect(output).toContain("mark-parentheses = true");
+    expect(output).toContain('parametrize-names-type = "csv"');
+    expect(output).toContain('parametrize-values-type = "list"');
+    expect(output).toContain(
+      'raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]'
+    );
+  });
+
+  test("strict profile removes T201 from ignore list", () => {
+    const strict = ruffGenerator.generate(makeConfig("strict"));
+    const standard = ruffGenerator.generate(makeConfig("standard"));
+    expect(strict).not.toContain('"T201"');
+    expect(strict).not.toContain('"S101"');
+    expect(strict).not.toContain('"ERA001"');
+    expect(standard).toContain('"T201"');
+    expect(standard).toContain('"S101"');
+    expect(standard).toContain('"ERA001"');
+  });
+
   test("strict output matches snapshot", () => {
     expect(ruffGenerator.generate(makeConfig("strict"))).toMatchSnapshot();
   });
