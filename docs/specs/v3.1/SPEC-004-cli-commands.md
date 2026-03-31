@@ -100,6 +100,7 @@ function — no business logic lives in command files.
 | `allow` | Register a permanent per-glob rule exception | `allowStep` | 0 = ok, 2 = error |
 | `query` | Inspect active allow entries for a rule | `queryStep` | 0 = always (informational) |
 | `hook` | Internal hook dispatcher | `runHook` dispatcher | per-hook (see §5) |
+| `branch` | Create a protected branch matching a configured pattern | `branchStep` | 0 = ok, 2 = error |
 | `completion` | Generate shell completion script | completion generator | 0 = always |
 
 ### install
@@ -317,6 +318,98 @@ Rule: ruff/E501
 
 No flags beyond globals. Always exits 0 (informational).
 
+### branch
+
+```
+ai-guardrails branch <name> [--from <base>] [--push] [--dry-run]
+```
+
+Creates a new Git branch whose name is guaranteed to match a protected pattern
+from the repository ruleset created by `github-protected-patterns` during init.
+If the name doesn't match any configured pattern, the command warns and asks
+for confirmation before continuing.
+
+**Why this command exists:** The GitHub Rulesets API protects branches
+automatically when they're pushed — no re-running `init` needed. But
+developers don't always know what patterns are active. Running
+`ai-guardrails branch release/v2` creates the branch, validates the name
+against known patterns, pushes it, and confirms the ruleset is enforcing.
+This replaces the error-prone workflow of `git checkout -b`, pushing, then
+manually checking GitHub settings.
+
+**Pattern resolution:**
+
+The command reads the active ruleset name `"ai-guardrails protected branches"`
+via `gh api repos/{owner}/{repo}/rulesets` and extracts the `ref_name.include`
+patterns. If no ruleset is found (init not run, or `--no-protected-patterns`
+was used), the command warns and falls back to create the branch without
+pattern validation.
+
+**Name suggestion:**
+
+If `<name>` is provided without a prefix and no pattern matches, the command
+suggests the closest matching pattern:
+
+```
+"dev" does not match any protected pattern.
+Protected patterns: release/*, hotfix/*, v*
+
+Suggestions:
+  release/dev
+  hotfix/dev
+
+Create as "release/dev"? [Y/n]
+```
+
+If `<name>` already matches a pattern, no prompt is shown.
+
+**Flags:**
+
+| Flag | Type | Default | Effect |
+|------|------|---------|--------|
+| `--from <base>` | string | current HEAD | Base branch/commit for the new branch |
+| `--push` | boolean | true | Push to origin after creating locally |
+| `--dry-run` | boolean | false | Print what would happen, make no changes |
+
+**Execution steps:**
+
+1. Read active rulesets from GitHub API (skip if not authenticated)
+2. Validate `<name>` against extracted patterns
+3. If no match: print warning + suggestion prompt
+4. `git checkout -b <name> [--from <base>]`
+5. If `--push`: `git push -u origin <name>`
+6. If authenticated: verify ruleset is active on the pushed branch via
+   `gh api repos/{owner}/{repo}/branches/<name>/protection`
+7. Print confirmation: `Branch <name> created and protected by ruleset "ai-guardrails protected branches"`
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| 0 | Branch created (and pushed if `--push`) |
+| 2 | Git error, branch already exists, or user aborted name prompt |
+
+**Example:**
+
+```
+$ ai-guardrails branch release/v2
+✓ "release/v2" matches pattern release/*
+✓ Branch created: release/v2
+✓ Pushed to origin/release/v2
+✓ Protected by ruleset: required PRs, CI, 1 review, no force-push
+```
+
+```
+$ ai-guardrails branch dev
+⚠ "dev" does not match any protected pattern.
+  Protected patterns: release/*, hotfix/*, v*
+  Suggestion: release/dev
+Create as "release/dev"? [Y/n] y
+✓ Branch created: release/dev
+✓ Pushed to origin/release/dev
+✓ Protected by ruleset: required PRs, CI, 1 review, no force-push
+```
+
 ### completion
 
 ```
@@ -486,3 +579,4 @@ fakes (`FakeFileManager`, `FakeCommandRunner`, `FakeConsole`) by constructing
 - SPEC-002: Config System — `ConfigStrategy`, `ProjectConfigSchema`, `buildResolvedConfig`
 - SPEC-005: Hook System — hook implementations invoked by the `hook` dispatcher
 - SPEC-006: Config Generators — generators invoked by `generate` and `init`
+- SPEC-008: Interactive Init — `github-protected-patterns` module that creates the ruleset `branch` reads
