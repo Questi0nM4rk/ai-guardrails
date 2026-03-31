@@ -59,6 +59,7 @@ program
   .option("--no-markdownlint", "Skip .markdownlint.jsonc generation")
   .option("--no-codespell", "Skip .codespellrc generation")
   .option("--no-ruff", "Skip ruff.toml generation")
+  .option("--no-staticcheck", "Skip staticcheck.conf generation")
   .option("--no-biome", "Skip biome.jsonc generation")
   .option("--no-agent-hooks", "Skip .claude/settings.json generation")
   .option("--no-branch-protection", "Skip GitHub branch protection setup")
