@@ -20,6 +20,8 @@ const PROJECT_DIR = "/project";
 interface GithubModulesWorld extends World {
   ctx: InitContext;
   result: InitModuleResult;
+  fm: FakeFileManager;
+  cr: FakeCommandRunner;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -66,48 +68,62 @@ function makeCtxNoGithub(
 Given<GithubModulesWorld>(
   "a GitHub project for PR template testing",
   (world: GithubModulesWorld) => {
-    world.ctx = makeCtx();
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
 Given<GithubModulesWorld>(
   "a GitHub project with existing PR template",
   (world: GithubModulesWorld) => {
-    const fm = new FakeFileManager();
-    fm.seed(`${PROJECT_DIR}/.git`, "");
-    fm.seed(`${PROJECT_DIR}/.github/pull_request_template.md`, "# existing");
-    world.ctx = makeCtx({ fileManager: fm });
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.fm.seed(`${PROJECT_DIR}/.github/pull_request_template.md`, "# existing");
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
 Given<GithubModulesWorld>(
   "a GitHub project with authentication",
   (world: GithubModulesWorld) => {
-    world.ctx = makeCtx();
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
 Given<GithubModulesWorld>(
   "a GitHub project with existing .coderabbit.yaml",
   (world: GithubModulesWorld) => {
-    const fm = new FakeFileManager();
-    fm.seed(`${PROJECT_DIR}/.git`, "");
-    fm.seed(`${PROJECT_DIR}/.coderabbit.yaml`, "# existing");
-    world.ctx = makeCtx({ fileManager: fm });
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.fm.seed(`${PROJECT_DIR}/.coderabbit.yaml`, "# existing");
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
 Given<GithubModulesWorld>(
   "a GitHub project without authentication",
   (world: GithubModulesWorld) => {
-    world.ctx = makeCtxNoGithub();
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.ctx = makeCtxNoGithub({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
 Given<GithubModulesWorld>(
   "a GitHub project with authentication and workflows",
   (world: GithubModulesWorld) => {
-    world.ctx = makeCtx();
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
@@ -115,19 +131,22 @@ Given<GithubModulesWorld>(
   "a GitHub project with authentication and a workflow named {string}",
   (world: GithubModulesWorld, jobName: unknown) => {
     const name = String(jobName);
-    const fm = new FakeFileManager();
-    fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
     const workflowContent = `jobs:\n  ci:\n    name: "${name}"\n`;
-    fm.seed(".github/workflows/ci.yml", workflowContent);
-    fm.seed(`${PROJECT_DIR}/.github/workflows/ci.yml`, workflowContent);
-    world.ctx = makeCtx({ fileManager: fm });
+    world.fm.seed(`${PROJECT_DIR}/.github/workflows/ci.yml`, workflowContent);
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
 Given<GithubModulesWorld>(
   "a GitHub project with authentication and branch protection",
   (world: GithubModulesWorld) => {
-    world.ctx = makeCtx();
+    world.fm = new FakeFileManager();
+    world.cr = new FakeCommandRunner();
+    world.fm.seed(`${PROJECT_DIR}/.git`, "");
+    world.ctx = makeCtx({ fileManager: world.fm, commandRunner: world.cr });
   }
 );
 
@@ -176,9 +195,8 @@ Then<GithubModulesWorld>(
 Then<GithubModulesWorld>(
   "the github module should write {string}",
   (world: GithubModulesWorld, relativePath: unknown) => {
-    const fm = world.ctx.fileManager as FakeFileManager;
     const suffix = String(relativePath);
-    const written = fm.written.map(([p]) => p);
+    const written = world.fm.written.map(([p]) => p);
     expect(written.some((p) => p.endsWith(suffix))).toBe(true);
   }
 );
@@ -186,8 +204,9 @@ Then<GithubModulesWorld>(
 Then<GithubModulesWorld>(
   "the template should contain {string}",
   (world: GithubModulesWorld, text: unknown) => {
-    const fm = world.ctx.fileManager as FakeFileManager;
-    const entry = fm.written.find(([p]) => p.endsWith("pull_request_template.md"));
+    const entry = world.fm.written.find(([p]) =>
+      p.endsWith("pull_request_template.md")
+    );
     expect(entry).toBeDefined();
     const content = entry?.[1] ?? "";
     expect(content).toContain(String(text));
@@ -197,8 +216,7 @@ Then<GithubModulesWorld>(
 Then<GithubModulesWorld>(
   "the config should contain {string}",
   (world: GithubModulesWorld, text: unknown) => {
-    const fm = world.ctx.fileManager as FakeFileManager;
-    const entry = fm.written.find(([p]) => p.endsWith(".coderabbit.yaml"));
+    const entry = world.fm.written.find(([p]) => p.endsWith(".coderabbit.yaml"));
     expect(entry).toBeDefined();
     const content = entry?.[1] ?? "";
     expect(content).toContain(String(text));
@@ -208,9 +226,8 @@ Then<GithubModulesWorld>(
 Then<GithubModulesWorld>(
   "gh api should be called with {string}",
   (world: GithubModulesWorld, urlFragment: unknown) => {
-    const cr = world.ctx.commandRunner as FakeCommandRunner;
     const fragment = String(urlFragment);
-    const match = cr.calls.find(
+    const match = world.cr.calls.find(
       (c) => c[0] === "gh" && c.some((arg) => arg.includes(fragment))
     );
     expect(match).toBeDefined();
@@ -220,9 +237,10 @@ Then<GithubModulesWorld>(
 Then<GithubModulesWorld>(
   "the call should include {string}",
   (world: GithubModulesWorld, text: unknown) => {
-    const cr = world.ctx.commandRunner as FakeCommandRunner;
     const fragment = String(text);
-    const match = cr.calls.find((c) => c[0] === "gh" && c.join(" ").includes(fragment));
+    const match = world.cr.calls.find(
+      (c) => c[0] === "gh" && c.join(" ").includes(fragment)
+    );
     expect(match).toBeDefined();
   }
 );
@@ -230,9 +248,8 @@ Then<GithubModulesWorld>(
 Then<GithubModulesWorld>(
   "the call should include {string} in required status checks",
   (world: GithubModulesWorld, jobName: unknown) => {
-    const cr = world.ctx.commandRunner as FakeCommandRunner;
     const name = String(jobName);
-    const match = cr.calls.find(
+    const match = world.cr.calls.find(
       (c) =>
         c[0] === "gh" &&
         c.some((arg) => arg.includes("branches/main/protection")) &&
