@@ -27,7 +27,7 @@ Feature: Install hooks merge
   Scenario: Hook commands use command -v guard
     Given no settings.json exists
     When install hooks step runs
-    Then all hook commands should contain "command -v ai-guardrails"
+    Then all installed hook commands should contain "command -v ai-guardrails"
 
   Scenario: Handles malformed JSON gracefully
     Given settings.json contains invalid JSON
