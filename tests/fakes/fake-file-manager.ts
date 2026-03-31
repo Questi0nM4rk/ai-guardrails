@@ -42,21 +42,23 @@ export class FakeFileManager implements FileManager {
     cwd: string,
     ignore?: readonly string[]
   ): Promise<string[]> {
-    const prefix = cwd.endsWith("/") ? cwd : `${cwd}/`;
+    // Normalize the cwd prefix so we can strip it from absolute-path keys.
+    // When cwd is empty or "/", there is no meaningful prefix to strip.
+    const prefix =
+      cwd !== "" && cwd !== "/" ? (cwd.endsWith("/") ? cwd : `${cwd}/`) : null;
     const results: string[] = [];
     for (const key of this.files.keys()) {
-      if (matchesGlob(key, pattern)) {
-        results.push(key);
+      // Resolve the key to a relative path for pattern matching, mirroring
+      // how RealFileManager returns relative paths from Bun's Glob.scan.
+      const relative =
+        prefix !== null && key.startsWith(prefix) ? key.slice(prefix.length) : key;
+      if (matchesGlob(relative, pattern)) {
+        results.push(relative);
       }
     }
     if (ignore === undefined || ignore.length === 0) return results;
-    // Strip the cwd prefix before testing ignore patterns so that relative
-    // patterns (e.g. "node_modules/**") match correctly — mirroring how
-    // RealFileManager returns and filters relative paths from Bun's Glob.scan.
-    return results.filter((f) => {
-      const relative = f.startsWith(prefix) ? f.slice(prefix.length) : f;
-      return !ignore.some((ig) => matchesGlob(relative, ig));
-    });
+    // Filter out ignored paths using relative patterns.
+    return results.filter((f) => !ignore.some((ig) => matchesGlob(f, ig)));
   }
 
   async isSymlink(_path: string): Promise<boolean> {

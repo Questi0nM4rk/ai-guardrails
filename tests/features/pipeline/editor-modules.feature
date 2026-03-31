@@ -27,36 +27,36 @@ Feature: Editor on-save modules
   Scenario: VS Code skips when no supported languages
     Given a project with no supported languages for vscode
     When the vscode-on-save module executes
-    Then the module should return status "skipped"
+    Then the editor module should return status "skipped"
 
   # Helix
   Scenario: Generates Helix config for TypeScript
     Given a TypeScript project for helix on-save testing
     When the helix-on-save module executes
     Then the editor module should write ".helix/languages.toml"
-    And the config should contain "biome"
+    And the editor config should contain "biome"
 
   Scenario: Helix skips when file exists
     Given a project with an existing helix languages config
     When the helix-on-save module executes
-    Then the module should return status "skipped"
+    Then the editor module should return status "skipped"
 
   Scenario: Helix skips when no supported languages
     Given a project with no supported languages for helix
     When the helix-on-save module executes
-    Then the module should return status "skipped"
+    Then the editor module should return status "skipped"
 
   # Neovim
   Scenario: Generates nvim config for TypeScript
     Given a TypeScript project for nvim on-save testing
     When the nvim-on-save module executes
     Then the editor module should write ".nvim/conform.lua"
-    And the config should contain "biome"
+    And the editor config should contain "biome"
 
   Scenario: Nvim skips when file exists
     Given a project with an existing nvim conform config
     When the nvim-on-save module executes
-    Then the module should return status "skipped"
+    Then the editor module should return status "skipped"
 
   # Zed
   Scenario: Generates Zed settings for TypeScript
@@ -73,4 +73,4 @@ Feature: Editor on-save modules
   Scenario: Zed skips when no supported languages
     Given a project with no supported languages for zed
     When the zed-on-save module executes
-    Then the module should return status "skipped"
+    Then the editor module should return status "skipped"

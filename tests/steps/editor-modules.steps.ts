@@ -204,9 +204,11 @@ Then<EditorWorld>(
 );
 
 Then<EditorWorld>(
-  "the config should contain {string}",
+  "the editor config should contain {string}",
   async (world: EditorWorld, token: unknown) => {
-    const entry = world.fm.written[0];
+    const entry = world.fm.written.find(
+      ([p]) => !p.endsWith("settings.json") && !p.endsWith("extensions.json")
+    );
     expect(entry).toBeDefined();
     expect(entry?.[1]).toContain(String(token));
   }
@@ -250,7 +252,7 @@ Then<EditorWorld>(
 );
 
 Then<EditorWorld>(
-  "the module should return status {string}",
+  "the editor module should return status {string}",
   async (world: EditorWorld, status: unknown) => {
     if (world.result === undefined) throw new Error("module result not set");
     const s: string = world.result.status;
