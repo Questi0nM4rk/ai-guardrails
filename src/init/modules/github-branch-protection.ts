@@ -97,12 +97,17 @@ function buildProtectionArgs(
     `repos/${owner}/${repo}/branches/main/protection`,
     "--method",
     "PUT",
-    "--field",
-    "required_status_checks[strict]=true",
   ];
 
-  for (const name of jobNames) {
-    args.push("--field", `required_status_checks[contexts][]=${name}`);
+  if (jobNames.length > 0) {
+    // GitHub API requires `contexts` when `strict` is set — omit the whole
+    // required_status_checks block when there are no jobs to avoid an API error.
+    args.push("--field", "required_status_checks[strict]=true");
+    for (const name of jobNames) {
+      args.push("--field", `required_status_checks[contexts][]=${name}`);
+    }
+  } else {
+    args.push("--field", "required_status_checks=null");
   }
 
   args.push(

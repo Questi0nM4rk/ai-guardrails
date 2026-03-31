@@ -260,7 +260,7 @@ describe("github-branch-protection — calls gh api with correct args", () => {
     const cr = new FakeCommandRunner();
     // All commands return 404
     const ctx = makeCtx({ fileManager: fm, commandRunner: cr });
-    // Override: make run return 404 error
+    // No workflow files seeded — jobNames is empty, so required_status_checks=null
     cr.register(
       [
         "gh",
@@ -269,7 +269,7 @@ describe("github-branch-protection — calls gh api with correct args", () => {
         "--method",
         "PUT",
         "--field",
-        "required_status_checks[strict]=true",
+        "required_status_checks=null",
         "--field",
         "enforce_admins=false",
         "--field",
