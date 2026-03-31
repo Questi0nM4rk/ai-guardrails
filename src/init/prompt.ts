@@ -1,6 +1,4 @@
-import type { Interface as ReadlineInterface } from "node:readline";
-
-type CreateReadline = () => ReadlineInterface;
+type CreateReadline = () => ReadlineHandle;
 
 /** Minimal subset of readline.Interface used by prompt helpers. */
 export interface ReadlineHandle {

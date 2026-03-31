@@ -1,8 +1,8 @@
-import type { Interface as ReadlineInterface } from "node:readline";
 import type { ResolvedConfig } from "@/config/schema";
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
+import type { ReadlineHandle } from "@/init/prompt";
 
 export interface PipelineContext {
   projectDir: string;
@@ -12,7 +12,7 @@ export interface PipelineContext {
   console: Console;
   flags: Record<string, unknown>;
   isTTY: boolean;
-  createReadline: () => ReadlineInterface;
+  createReadline: () => ReadlineHandle;
 }
 
 export interface PipelineResult {

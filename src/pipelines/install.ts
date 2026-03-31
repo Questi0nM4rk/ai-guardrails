@@ -7,6 +7,7 @@ import { applyFlagDisables } from "@/init/selections";
 import type { InitContext } from "@/init/types";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { detectLanguagesStep } from "@/steps/detect-languages";
+import { installHooksStep } from "@/steps/install-hooks";
 
 async function buildInstallContext(
   ctx: PipelineContext
@@ -54,8 +55,18 @@ export const installPipeline: Pipeline = {
       .filter((r) => r.status === "error")
       .map((r) => r.message);
 
-    return errorMessages.length > 0
-      ? { status: "error", message: `Install failed: ${errorMessages.join("; ")}` }
-      : { status: "ok" };
+    if (errorMessages.length > 0) {
+      return {
+        status: "error",
+        message: `Install failed: ${errorMessages.join("; ")}`,
+      };
+    }
+
+    const hooksResult = await installHooksStep(ctx.fileManager, ctx.console);
+    if (hooksResult.status === "error") {
+      return { status: "error", message: hooksResult.message };
+    }
+
+    return { status: "ok" };
   },
 };

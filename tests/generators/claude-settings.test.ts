@@ -68,6 +68,17 @@ describe("claudeSettingsGenerator", () => {
     expect(editHook).toBeDefined();
   });
 
+  test("hook commands use command -v guard not file-existence guard", () => {
+    const output = claudeSettingsGenerator.generate(makeConfig());
+    expect(output).toContain("command -v ai-guardrails");
+    expect(output).not.toContain("[ ! -f");
+  });
+
+  test("hook commands do not reference ./dist/", () => {
+    const output = claudeSettingsGenerator.generate(makeConfig());
+    expect(output).not.toContain("./dist/");
+  });
+
   test("generate output matches snapshot", () => {
     const output = claudeSettingsGenerator.generate(makeConfig());
     expect(output).toMatchSnapshot();

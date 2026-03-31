@@ -122,6 +122,16 @@ describe("generateLefthookConfig", () => {
     expect(output).toMatchSnapshot();
   });
 
+  test("no-commits-to-main script includes fresh repo guard", () => {
+    const output = generateLefthookConfig(makeConfig(), []);
+    expect(output).toContain("git rev-list --count HEAD >/dev/null 2>&1 || exit 0");
+    const revListIndex = output.indexOf("git rev-list --count HEAD");
+    const branchIndex = output.indexOf("git rev-parse --abbrev-ref HEAD");
+    expect(revListIndex).toBeGreaterThan(-1);
+    expect(branchIndex).toBeGreaterThan(-1);
+    expect(revListIndex).toBeLessThan(branchIndex);
+  });
+
   test("output contains exclude when ignorePaths configured", () => {
     const output = generateLefthookConfig(makeConfig(["vendor/**"]), []);
     expect(output).toContain("exclude:");

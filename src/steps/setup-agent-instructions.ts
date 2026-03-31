@@ -8,6 +8,9 @@ import {
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
+import { withMarkdownHashHeader } from "@/utils/hash";
+
+const GUARDRAILS_SECTION = `\n\n## AI Guardrails - Code Standards\n\nThis project uses [ai-guardrails](https://github.com/Questi0nM4rk/ai-guardrails) for pedantic code enforcement.\nPre-commit hooks auto-fix formatting, then run security scans, linting, and type checks.\n`;
 
 async function writeToolRules(
   projectDir: string,
@@ -21,6 +24,34 @@ async function writeToolRules(
   await fileManager.mkdir(dirname(dest), { parents: true });
   await fileManager.writeText(dest, buildAgentRules(toolKey));
   return symlinkTarget;
+}
+
+async function writeAgentsMd(
+  projectDir: string,
+  fileManager: FileManager
+): Promise<void> {
+  const dest = join(projectDir, AGENT_SYMLINKS.agents ?? "AGENTS.md");
+  await fileManager.writeText(dest, withMarkdownHashHeader(buildAgentRules("agents")));
+}
+
+async function appendGuardrailsToCLAUDEMd(
+  projectDir: string,
+  fileManager: FileManager
+): Promise<string | null> {
+  const claudeMdPath = join(projectDir, "CLAUDE.md");
+  const claudeMdExists = await fileManager.exists(claudeMdPath);
+
+  if (claudeMdExists) {
+    const existing = await fileManager.readText(claudeMdPath);
+    if (existing.includes("## AI Guardrails")) {
+      return null;
+    }
+    await fileManager.appendText(claudeMdPath, GUARDRAILS_SECTION);
+    return "CLAUDE.md (appended)";
+  }
+
+  await fileManager.writeText(claudeMdPath, `# Project${GUARDRAILS_SECTION}`);
+  return "CLAUDE.md (created)";
 }
 
 export async function setupAgentInstructionsStep(
@@ -39,13 +70,19 @@ export async function setupAgentInstructionsStep(
     ];
     const activeKeys = knownKeys.filter((key) => tools[key]);
 
-    const results = await Promise.all(
+    const toolResults = await Promise.all(
       activeKeys.map((key) => writeToolRules(projectDir, fileManager, key))
     );
-    const written = results.filter((r): r is string => r !== null);
+    const written = toolResults.filter((r): r is string => r !== null);
 
-    if (written.length === 0) {
-      return ok("No AI agent tool config detected — skipped agent instructions");
+    // Always generate AGENTS.md regardless of which tools are detected
+    await writeAgentsMd(projectDir, fileManager);
+    written.push(AGENT_SYMLINKS.agents ?? "AGENTS.md");
+
+    // Append guardrails section to CLAUDE.md (create if absent, skip if already present)
+    const claudeMdEntry = await appendGuardrailsToCLAUDEMd(projectDir, fileManager);
+    if (claudeMdEntry !== null) {
+      written.push(claudeMdEntry);
     }
 
     return ok(`Agent instructions written: ${written.join(", ")}`);

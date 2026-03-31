@@ -12,17 +12,36 @@ interface CiWorkflowWorld extends World {
   workflowContent: string;
   workflowPath: string;
   stepResult: StepResult;
+  languages: ReadonlySet<string>;
 }
 
-Given<CiWorkflowWorld>("a project for CI setup", (world: CiWorkflowWorld) => {
+Given<CiWorkflowWorld>(
+  "a typescript project for CI setup",
+  (world: CiWorkflowWorld) => {
+    world.fm = new FakeFileManager();
+    world.languages = new Set(["typescript"]);
+  }
+);
+
+Given<CiWorkflowWorld>("a python project for CI setup", (world: CiWorkflowWorld) => {
   world.fm = new FakeFileManager();
+  world.languages = new Set(["python"]);
 });
+
+Given<CiWorkflowWorld>(
+  "an empty language project for CI setup",
+  (world: CiWorkflowWorld) => {
+    world.fm = new FakeFileManager();
+    world.languages = new Set<string>();
+  }
+);
 
 When<CiWorkflowWorld>(
   "the CI workflow is generated",
   async (world: CiWorkflowWorld) => {
     const fm = world.fm ?? new FakeFileManager();
-    world.stepResult = await setupCiStep(PROJECT_DIR, fm);
+    const languages = world.languages ?? new Set(["typescript"]);
+    world.stepResult = await setupCiStep(PROJECT_DIR, fm, languages);
     const entry = fm.written[0];
     if (entry === undefined) {
       world.workflowContent = "";
@@ -39,6 +58,13 @@ Then<CiWorkflowWorld>(
   "the workflow should contain {string}",
   (world: CiWorkflowWorld, text: unknown) => {
     expect(world.workflowContent).toContain(String(text));
+  }
+);
+
+Then<CiWorkflowWorld>(
+  "the workflow should not contain {string}",
+  (world: CiWorkflowWorld, text: unknown) => {
+    expect(world.workflowContent).not.toContain(String(text));
   }
 );
 
