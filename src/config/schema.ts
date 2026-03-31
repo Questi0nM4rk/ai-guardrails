@@ -62,6 +62,10 @@ export type HooksSchemaConfig = z.infer<typeof HooksConfigSchema>;
 
 const ProjectConfigSchema = z.object({
   profile: z.enum(["strict", "standard", "minimal"]).optional(),
+  min_version: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .optional(),
   config: ConfigValuesSchema.default({}),
   ignore: z.array(IgnoreEntrySchema).default([]),
   allow: z.array(AllowEntrySchema).default([]),
@@ -75,6 +79,7 @@ export { ProjectConfigSchema };
 
 export interface ResolvedConfig {
   profile: "strict" | "standard" | "minimal";
+  minVersion?: string;
   ignore: ReadonlyArray<{ rule: string; reason: string }>;
   allow: ReadonlyArray<{ rule: string; glob: string; reason: string }>;
   values: {
@@ -120,6 +125,7 @@ export function buildResolvedConfig(
 
   return {
     profile,
+    ...(project.min_version !== undefined && { minVersion: project.min_version }),
     ignore,
     allow,
     values,

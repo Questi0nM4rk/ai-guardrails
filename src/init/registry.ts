@@ -11,10 +11,12 @@ import { markdownlintConfigModule } from "@/init/modules/markdownlint-config";
 import { profileSelectionModule } from "@/init/modules/profile-selection";
 import { ruffConfigModule } from "@/init/modules/ruff-config";
 import { toolInstallModule } from "@/init/modules/tool-install";
+import { versionPinModule } from "@/init/modules/version-pin";
 import type { InitModule } from "@/init/types";
 
 export const ALL_INIT_MODULES: readonly InitModule[] = [
   profileSelectionModule,
+  versionPinModule,
   configTuningModule,
   ruffConfigModule,
   biomeConfigModule,

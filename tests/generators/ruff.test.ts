@@ -55,6 +55,67 @@ describe("ruffGenerator", () => {
     expect(strict).not.toBe(minimal);
   });
 
+  test("includes banned-api section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-tidy-imports.banned-api]");
+    expect(output).toContain('"typing.Optional".msg');
+    expect(output).toContain('"typing.Union".msg');
+    expect(output).toContain('"typing.List".msg');
+    expect(output).toContain('"typing.Dict".msg');
+    expect(output).toContain('"typing.Set".msg');
+    expect(output).toContain('"typing.Tuple".msg');
+  });
+
+  test("includes flake8-bugbear section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-bugbear]");
+    expect(output).toContain(
+      'extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]'
+    );
+  });
+
+  test("does not include redundant flake8-quotes section (Q rules are ignored)", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).not.toContain("[lint.flake8-quotes]");
+    // Q000-Q003 must be in the ignore list (handled by formatter)
+    expect(output).toContain('"Q000"');
+    expect(output).toContain('"Q001"');
+    expect(output).toContain('"Q002"');
+    expect(output).toContain('"Q003"');
+  });
+
+  test("ignore list contains category comments", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("# --- Formatter conflicts");
+    expect(output).toContain("# --- Redundant with pyright ---");
+    expect(output).toContain("# --- Docstrings (opt-in) ---");
+    expect(output).toContain("# --- Development markers ---");
+    expect(output).toContain("# --- High false-positive ---");
+  });
+
+  test("includes flake8-pytest-style section", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("[lint.flake8-pytest-style]");
+    expect(output).toContain("fixture-parentheses = true");
+    expect(output).toContain("mark-parentheses = true");
+    expect(output).toContain('parametrize-names-type = "csv"');
+    expect(output).toContain('parametrize-values-type = "list"');
+    expect(output).toContain(
+      'raises-require-match-for = ["ValueError", "TypeError", "KeyError", "RuntimeError"]'
+    );
+  });
+
+  test("strict profile removes T201 from ignore list", () => {
+    const strict = ruffGenerator.generate(makeConfig("strict"));
+    const standard = ruffGenerator.generate(makeConfig("standard"));
+    expect(strict).not.toContain('"T201"');
+    expect(strict).not.toContain('"S101"');
+    expect(strict).not.toContain('"ERA001"');
+    expect(standard).toContain('"T201"');
+    expect(standard).toContain('"S101"');
+    expect(standard).toContain('"ERA001"');
+  });
+
   test("strict output matches snapshot", () => {
     expect(ruffGenerator.generate(makeConfig("strict"))).toMatchSnapshot();
   });

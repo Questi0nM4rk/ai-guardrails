@@ -87,6 +87,7 @@ ${pythonSection}${tsSection}
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"

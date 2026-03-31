@@ -1,7 +1,6 @@
-import type { Interface as ReadlineInterface } from "node:readline";
-
 import type { CommandRunner } from "@/infra/command-runner";
 import type { Console } from "@/infra/console";
+import type { ReadlineHandle } from "@/init/prompt";
 import type { StepResult } from "@/models/step-result";
 import { ok } from "@/models/step-result";
 import type { InstallHint } from "@/runners/types";
@@ -59,7 +58,7 @@ export async function installPrerequisites(
   report: PrereqReport,
   projectDir: string,
   isTTY: boolean,
-  createReadline: () => ReadlineInterface
+  createReadline: () => ReadlineHandle
 ): Promise<StepResult> {
   if (report.missing.length === 0) {
     return ok("No missing prerequisites");

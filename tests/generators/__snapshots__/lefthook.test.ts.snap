@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`generateLefthookConfig output matches snapshot with no active plugins 1`] = `
-"# ai-guardrails:sha256=5972c2b1018a0004966903c703c80ce6ecba537cfdc1652bfbf63aa9f5b9c685
+"# ai-guardrails:sha256=5e52d35b8fda182ab442232761decb64538cb4128c86712ec2d67c37ba59cf06
 pre-commit:
   commands:
 
@@ -31,6 +31,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -48,7 +49,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with TypeScript plugin 1`] = `
-"# ai-guardrails:sha256=5e80cb9e5816489f5709b958b11e480e5e5255f3195ede89a81efefba6f5ef30
+"# ai-guardrails:sha256=33af3c97523e521c5c32d156b0a6c3e735643843cc13241046cfc1c0e910aa86
 pre-commit:
   commands:
 
@@ -84,6 +85,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -101,7 +103,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with Python plugin 1`] = `
-"# ai-guardrails:sha256=6038748e201ff44b36cc96a916909598db6a493793f418ddedd51a8e38dbe3fa
+"# ai-guardrails:sha256=756ba4eeb615cf5bf274affd96cb7dd81f2a090673928fa19c86427e436b9264
 pre-commit:
   commands:
 
@@ -137,6 +139,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -154,7 +157,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with TypeScript and Python plugins 1`] = `
-"# ai-guardrails:sha256=b6c8ade2fd39f455819a397861fa96e32076329002bc0438c1e582cf56e2a534
+"# ai-guardrails:sha256=1478adbe287cbdd96bd59447c6306e647e3bac24bbf59568d59d7f1d1dcfba22
 pre-commit:
   commands:
 
@@ -196,6 +199,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -213,7 +217,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with ignorePaths 1`] = `
-"# ai-guardrails:sha256=62485b889b3195a00697c871c773baddaff7ac8bd00c059364b355e9b7684e5b
+"# ai-guardrails:sha256=be47f13adf649e60a74ba2c92ad66a8450303845793f615510ac89f3d5a221de
 pre-commit:
   commands:
 
@@ -245,6 +249,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
