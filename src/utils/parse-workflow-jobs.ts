@@ -11,7 +11,11 @@ export async function parseWorkflowJobNames(
   projectDir: string,
   fileManager: FileManager
 ): Promise<readonly string[]> {
-  const workflowFiles = await fileManager.glob(".github/workflows/*.yml", projectDir);
+  const [ymlFiles, yamlFiles] = await Promise.all([
+    fileManager.glob(".github/workflows/*.yml", projectDir),
+    fileManager.glob(".github/workflows/*.yaml", projectDir),
+  ]);
+  const workflowFiles = [...ymlFiles, ...yamlFiles];
 
   const jobNames: string[] = [];
 
