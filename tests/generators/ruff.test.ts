@@ -74,12 +74,23 @@ describe("ruffGenerator", () => {
     );
   });
 
-  test("includes flake8-quotes section", () => {
+  test("does not include redundant flake8-quotes section (Q rules are ignored)", () => {
     const output = ruffGenerator.generate(makeConfig("standard"));
-    expect(output).toContain("[lint.flake8-quotes]");
-    expect(output).toContain('inline-quotes = "double"');
-    expect(output).toContain('multiline-quotes = "double"');
-    expect(output).toContain('docstring-quotes = "double"');
+    expect(output).not.toContain("[lint.flake8-quotes]");
+    // Q000-Q003 must be in the ignore list (handled by formatter)
+    expect(output).toContain('"Q000"');
+    expect(output).toContain('"Q001"');
+    expect(output).toContain('"Q002"');
+    expect(output).toContain('"Q003"');
+  });
+
+  test("ignore list contains category comments", () => {
+    const output = ruffGenerator.generate(makeConfig("standard"));
+    expect(output).toContain("# --- Formatter conflicts");
+    expect(output).toContain("# --- Redundant with pyright ---");
+    expect(output).toContain("# --- Docstrings (opt-in) ---");
+    expect(output).toContain("# --- Development markers ---");
+    expect(output).toContain("# --- High false-positive ---");
   });
 
   test("includes flake8-pytest-style section", () => {

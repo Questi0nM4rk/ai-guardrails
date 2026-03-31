@@ -14,49 +14,66 @@ const RUFF_SELECT_BY_PROFILE = {
  */
 const RUFF_STRICT_UNENFORCE = new Set(["T201", "S101", "ERA001"]);
 
-const BASE_IGNORE_RULES = [
-  // --- Formatter conflicts ---
-  "W191",
-  "E111",
-  "E114",
-  "E117",
-  "D206",
-  "D300",
-  "Q000",
-  "Q001",
-  "Q002",
-  "Q003",
-  "COM812",
-  "COM819",
-  "ISC001",
-  "ISC002",
-  // --- Redundant with pyright ---
-  "ANN",
-  // --- Docstrings (opt-in) ---
-  "D",
-  // --- Development markers ---
-  "FIX001",
-  "FIX002",
-  "TD",
-  // --- High false-positive ---
-  "ERA001",
-  "CPY001",
-  "INP001",
-  "T201",
-  "EM101",
-  "EM102",
-  "TRY003",
-  "S101",
+type IgnoreCategory = {
+  readonly comment: string;
+  readonly rules: readonly string[];
+};
+
+const BASE_IGNORE_CATEGORIES: readonly IgnoreCategory[] = [
+  {
+    comment: "# --- Formatter conflicts (handled by ruff format) ---",
+    rules: [
+      "W191",
+      "E111",
+      "E114",
+      "E117",
+      "D206",
+      "D300",
+      "Q000",
+      "Q001",
+      "Q002",
+      "Q003",
+      "COM812",
+      "COM819",
+      "ISC001",
+      "ISC002",
+    ],
+  },
+  {
+    comment: "# --- Redundant with pyright ---",
+    rules: ["ANN"],
+  },
+  {
+    comment: "# --- Docstrings (opt-in) ---",
+    rules: ["D"],
+  },
+  {
+    comment: "# --- Development markers ---",
+    rules: ["FIX001", "FIX002", "TD"],
+  },
+  {
+    comment: "# --- High false-positive ---",
+    rules: ["ERA001", "CPY001", "INP001", "T201", "EM101", "EM102", "TRY003", "S101"],
+  },
 ] as const;
 
 function buildIgnoreList(profile: "strict" | "standard" | "minimal"): string {
-  const rules =
-    profile === "strict"
-      ? BASE_IGNORE_RULES.filter((r) => !RUFF_STRICT_UNENFORCE.has(r))
-      : [...BASE_IGNORE_RULES];
-
-  const quoted = rules.map((r) => `"${r}"`).join(", ");
-  return `[${quoted}]`;
+  const lines: string[] = ["["];
+  for (const category of BASE_IGNORE_CATEGORIES) {
+    const filteredRules =
+      profile === "strict"
+        ? category.rules.filter((r) => !RUFF_STRICT_UNENFORCE.has(r))
+        : [...category.rules];
+    if (filteredRules.length === 0) {
+      continue;
+    }
+    lines.push(`  ${category.comment}`);
+    for (const rule of filteredRules) {
+      lines.push(`  "${rule}",`);
+    }
+  }
+  lines.push("]");
+  return lines.join("\n");
 }
 
 function renderRuffToml(config: ResolvedConfig): string {
@@ -122,11 +139,6 @@ max-statements = 30
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
-
-[lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
 
 [lint.flake8-pytest-style]
 fixture-parentheses = true

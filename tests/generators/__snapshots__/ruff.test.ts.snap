@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`ruffGenerator strict output matches snapshot 1`] = `
-"# ai-guardrails:sha256=eecf4603db02f32c9832174c52ff8cccba292ecdbb43da09fd681e4e18257941
+"# ai-guardrails:sha256=69601edae6db6ada4fc25f48df030cdeff97da9032b75487ec45c56b07f70c24
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -11,7 +11,37 @@ unsafe-fixes = false
 [lint]
 select = ["ALL"]
 
-ignore = ["W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002", "ANN", "D", "FIX001", "FIX002", "TD", "CPY001", "INP001", "EM101", "EM102", "TRY003"]
+ignore = [
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
+  # --- Redundant with pyright ---
+  "ANN",
+  # --- Docstrings (opt-in) ---
+  "D",
+  # --- Development markers ---
+  "FIX001",
+  "FIX002",
+  "TD",
+  # --- High false-positive ---
+  "CPY001",
+  "INP001",
+  "EM101",
+  "EM102",
+  "TRY003",
+]
 
 [lint.per-file-ignores]
 "tests/**/*.py" = ["ARG001", "ARG002", "PLR2004"]
@@ -59,11 +89,6 @@ max-statements = 30
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
-
-[lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
 
 [lint.flake8-pytest-style]
 fixture-parentheses = true
@@ -83,7 +108,7 @@ docstring-code-line-length = 80
 `;
 
 exports[`ruffGenerator standard output matches snapshot 1`] = `
-"# ai-guardrails:sha256=bf07781e3bde4a09f33663187be9431b3ca06a9ebda8cc0c5f726fcbbc8f31e4
+"# ai-guardrails:sha256=3ebc733600147c5f503166a7219694147a25d83477485aa602a618cc9ba3506d
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -93,7 +118,40 @@ unsafe-fixes = false
 [lint]
 select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]
 
-ignore = ["W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002", "ANN", "D", "FIX001", "FIX002", "TD", "ERA001", "CPY001", "INP001", "T201", "EM101", "EM102", "TRY003", "S101"]
+ignore = [
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
+  # --- Redundant with pyright ---
+  "ANN",
+  # --- Docstrings (opt-in) ---
+  "D",
+  # --- Development markers ---
+  "FIX001",
+  "FIX002",
+  "TD",
+  # --- High false-positive ---
+  "ERA001",
+  "CPY001",
+  "INP001",
+  "T201",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "S101",
+]
 
 [lint.per-file-ignores]
 "tests/**/*.py" = ["ARG001", "ARG002", "PLR2004"]
@@ -141,11 +199,6 @@ max-statements = 30
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
-
-[lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
 
 [lint.flake8-pytest-style]
 fixture-parentheses = true
@@ -165,7 +218,7 @@ docstring-code-line-length = 80
 `;
 
 exports[`ruffGenerator minimal output matches snapshot 1`] = `
-"# ai-guardrails:sha256=f0cd4164ceeb9399d10140f7625063dc5a535e530119a19e1e25163f0bf22a2a
+"# ai-guardrails:sha256=c1a750fbb8cbbdd5c2320de4c04e3cd914b42714e7d4de92a38e149f78883294
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -175,7 +228,40 @@ unsafe-fixes = false
 [lint]
 select = ["E", "F", "S"]
 
-ignore = ["W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002", "ANN", "D", "FIX001", "FIX002", "TD", "ERA001", "CPY001", "INP001", "T201", "EM101", "EM102", "TRY003", "S101"]
+ignore = [
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
+  # --- Redundant with pyright ---
+  "ANN",
+  # --- Docstrings (opt-in) ---
+  "D",
+  # --- Development markers ---
+  "FIX001",
+  "FIX002",
+  "TD",
+  # --- High false-positive ---
+  "ERA001",
+  "CPY001",
+  "INP001",
+  "T201",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "S101",
+]
 
 [lint.per-file-ignores]
 "tests/**/*.py" = ["ARG001", "ARG002", "PLR2004"]
@@ -223,11 +309,6 @@ max-statements = 30
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
-
-[lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
 
 [lint.flake8-pytest-style]
 fixture-parentheses = true

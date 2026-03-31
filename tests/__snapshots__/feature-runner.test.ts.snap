@@ -25,7 +25,7 @@ exports[`Config file generation biomeGenerator output matches snapshot 1`] = `
 `;
 
 exports[`Config file generation ruffGenerator output matches snapshot 1`] = `
-"# ai-guardrails:sha256=bf07781e3bde4a09f33663187be9431b3ca06a9ebda8cc0c5f726fcbbc8f31e4
+"# ai-guardrails:sha256=3ebc733600147c5f503166a7219694147a25d83477485aa602a618cc9ba3506d
 target-version = "py311"
 line-length = 88
 indent-width = 2
@@ -35,7 +35,40 @@ unsafe-fixes = false
 [lint]
 select = ["E", "F", "W", "I", "UP", "S", "B", "A", "C4", "ICN", "PIE", "PT", "RSE", "SIM", "TID"]
 
-ignore = ["W191", "E111", "E114", "E117", "D206", "D300", "Q000", "Q001", "Q002", "Q003", "COM812", "COM819", "ISC001", "ISC002", "ANN", "D", "FIX001", "FIX002", "TD", "ERA001", "CPY001", "INP001", "T201", "EM101", "EM102", "TRY003", "S101"]
+ignore = [
+  # --- Formatter conflicts (handled by ruff format) ---
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC001",
+  "ISC002",
+  # --- Redundant with pyright ---
+  "ANN",
+  # --- Docstrings (opt-in) ---
+  "D",
+  # --- Development markers ---
+  "FIX001",
+  "FIX002",
+  "TD",
+  # --- High false-positive ---
+  "ERA001",
+  "CPY001",
+  "INP001",
+  "T201",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "S101",
+]
 
 [lint.per-file-ignores]
 "tests/**/*.py" = ["ARG001", "ARG002", "PLR2004"]
@@ -83,11 +116,6 @@ max-statements = 30
 
 [lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path"]
-
-[lint.flake8-quotes]
-inline-quotes = "double"
-multiline-quotes = "double"
-docstring-quotes = "double"
 
 [lint.flake8-pytest-style]
 fixture-parentheses = true
