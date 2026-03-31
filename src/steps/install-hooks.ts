@@ -1,10 +1,14 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { z } from "zod";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
 import { type ClaudeSettings, mergeHooks } from "@/utils/merge-claude-settings";
+
+/** Lenient schema — accepts any valid JSON object as ClaudeSettings */
+const ClaudeSettingsSchema: z.ZodType<ClaudeSettings> = z.object({}).passthrough();
 
 const GUARDRAILS_HOOKS = [
   {
@@ -52,8 +56,9 @@ export async function installHooksStep(
     if (await fileManager.exists(settingsPath)) {
       const content = await fileManager.readText(settingsPath);
       const parsed: unknown = JSON.parse(content);
-      if (typeof parsed === "object" && parsed !== null) {
-        existing = parsed as ClaudeSettings;
+      const result = ClaudeSettingsSchema.safeParse(parsed);
+      if (result.success) {
+        existing = result.data;
       }
     }
 
