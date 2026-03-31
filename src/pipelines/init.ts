@@ -9,6 +9,7 @@ import { runWizard } from "@/init/wizard";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { detectLanguagesStep } from "@/steps/detect-languages";
+import { detectGitHubRepo } from "@/utils/github-repo";
 
 async function configExists(
   projectDir: string,
@@ -39,6 +40,8 @@ async function buildInitContext(
   const project = await loadProjectConfig(ctx.projectDir, ctx.fileManager);
   const config = resolveConfig(machine, project);
 
+  const github = await detectGitHubRepo(ctx.commandRunner, ctx.projectDir);
+
   const initCtx: InitContext = {
     projectDir: ctx.projectDir,
     fileManager: ctx.fileManager,
@@ -50,6 +53,7 @@ async function buildInitContext(
     isTTY: ctx.isTTY,
     createReadline: ctx.createReadline,
     flags: ctx.flags,
+    ...(github !== undefined ? { github } : {}),
   };
 
   return { initCtx };
