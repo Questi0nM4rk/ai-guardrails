@@ -30,7 +30,7 @@ async function writeAgentsMd(
   projectDir: string,
   fileManager: FileManager
 ): Promise<void> {
-  const dest = join(projectDir, "AGENTS.md");
+  const dest = join(projectDir, AGENT_SYMLINKS.agents ?? "AGENTS.md");
   await fileManager.writeText(dest, withMarkdownHashHeader(buildAgentRules("agents")));
 }
 
@@ -77,7 +77,7 @@ export async function setupAgentInstructionsStep(
 
     // Always generate AGENTS.md regardless of which tools are detected
     await writeAgentsMd(projectDir, fileManager);
-    written.push("AGENTS.md");
+    written.push(AGENT_SYMLINKS.agents ?? "AGENTS.md");
 
     // Append guardrails section to CLAUDE.md (create if absent, skip if already present)
     const claudeMdEntry = await appendGuardrailsToCLAUDEMd(projectDir, fileManager);
