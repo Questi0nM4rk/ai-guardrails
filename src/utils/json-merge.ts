@@ -31,7 +31,8 @@ export function mergeWithoutOverwrite(
 
 /**
  * Read a file and parse it as a JSON object.
- * Returns an empty object if the file does not exist, is not valid JSON, or is not an object.
+ * Returns undefined if the file has invalid JSON or is not an object (caller decides how to handle).
+ * Returns an empty object if the file does not exist.
  */
 export async function readJsonObject(
   path: string,
@@ -39,16 +40,16 @@ export async function readJsonObject(
     exists(path: string): Promise<boolean>;
     readText(path: string): Promise<string>;
   }
-): Promise<JsonObject> {
+): Promise<JsonObject | undefined> {
   const exists = await fileManager.exists(path);
   if (!exists) return {};
   const text = await fileManager.readText(path);
   try {
     const parsed: unknown = JSON.parse(text);
     const result = JsonObjectSchema.safeParse(parsed);
-    if (!result.success) return {};
+    if (!result.success) return undefined;
     return result.data;
   } catch {
-    return {};
+    return undefined;
   }
 }

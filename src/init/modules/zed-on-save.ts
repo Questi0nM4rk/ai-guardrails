@@ -73,7 +73,10 @@ export const zedOnSaveModule: InitModule = {
       };
     }
 
-    const existing = await readJsonObject(settingsPath, ctx.fileManager);
+    const settingsExisted = await ctx.fileManager.exists(settingsPath);
+    const rawExisting = await readJsonObject(settingsPath, ctx.fileManager);
+    // undefined means the file exists but has malformed JSON — write fresh
+    const existing = rawExisting ?? {};
 
     // Merge top-level keys without overwriting existing user values.
     const topLevelAdditions: JsonObject = {
@@ -93,7 +96,9 @@ export const zedOnSaveModule: InitModule = {
     return {
       status: "ok",
       message: ".zed/settings.json written",
-      filesCreated: [".zed/settings.json"],
+      ...(settingsExisted
+        ? { filesModified: [".zed/settings.json"] as const }
+        : { filesCreated: [".zed/settings.json"] as const }),
     };
   },
 };

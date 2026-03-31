@@ -65,8 +65,11 @@ export const vscodeOnSaveModule: InitModule = {
 
     // Deep merge: only add keys not already present in user's file
     const settingsPath = join(vscodeDir, "settings.json");
+    const settingsExisted = await ctx.fileManager.exists(settingsPath);
     const existingSettings = await readJsonObject(settingsPath, ctx.fileManager);
-    const mergedSettings = mergeWithoutOverwrite(existingSettings, settingsAdditions);
+    // undefined means the file exists but has malformed JSON — write fresh
+    const baseSettings = existingSettings ?? {};
+    const mergedSettings = mergeWithoutOverwrite(baseSettings, settingsAdditions);
     await ctx.fileManager.writeText(
       settingsPath,
       JSON.stringify(mergedSettings, null, 2)
@@ -78,17 +81,18 @@ export const vscodeOnSaveModule: InitModule = {
     if (hasPython) recommendations.push("charliermarsh.ruff");
 
     const extensionsPath = join(vscodeDir, "extensions.json");
+    const extensionsExisted = await ctx.fileManager.exists(extensionsPath);
     const existingExtensions = await readJsonObject(extensionsPath, ctx.fileManager);
-    const existingRecs = Array.isArray(existingExtensions.recommendations)
-      ? existingExtensions.recommendations.filter(
-          (r): r is string => typeof r === "string"
-        )
+    // undefined means the file exists but has malformed JSON — write fresh
+    const baseExtensions = existingExtensions ?? {};
+    const existingRecs = Array.isArray(baseExtensions.recommendations)
+      ? baseExtensions.recommendations.filter((r): r is string => typeof r === "string")
       : [];
     const mergedRecs = [
       ...existingRecs,
       ...recommendations.filter((r) => !existingRecs.includes(r)),
     ];
-    const mergedExtensions = mergeWithoutOverwrite(existingExtensions, {
+    const mergedExtensions = mergeWithoutOverwrite(baseExtensions, {
       recommendations: mergedRecs,
     });
     await ctx.fileManager.writeText(
@@ -96,10 +100,24 @@ export const vscodeOnSaveModule: InitModule = {
       JSON.stringify(mergedExtensions, null, 2)
     );
 
+    const filesCreated: string[] = [];
+    const filesModified: string[] = [];
+    if (settingsExisted) {
+      filesModified.push(".vscode/settings.json");
+    } else {
+      filesCreated.push(".vscode/settings.json");
+    }
+    if (extensionsExisted) {
+      filesModified.push(".vscode/extensions.json");
+    } else {
+      filesCreated.push(".vscode/extensions.json");
+    }
+
     return {
       status: "ok",
       message: ".vscode/settings.json and .vscode/extensions.json written",
-      filesCreated: [".vscode/settings.json", ".vscode/extensions.json"],
+      ...(filesCreated.length > 0 && { filesCreated }),
+      ...(filesModified.length > 0 && { filesModified }),
     };
   },
 };

@@ -9,6 +9,7 @@ import { nvimOnSaveModule } from "@/init/modules/nvim-on-save";
 import { vscodeOnSaveModule } from "@/init/modules/vscode-on-save";
 import { zedOnSaveModule } from "@/init/modules/zed-on-save";
 import type { InitContext } from "@/init/types";
+import { isJsonObject } from "@/utils/json-merge";
 import { FakeCommandRunner } from "../../fakes/fake-command-runner";
 import { FakeConsole } from "../../fakes/fake-console";
 import { FakeFileManager } from "../../fakes/fake-file-manager";
@@ -67,9 +68,10 @@ describe("vscode-on-save writes settings.json for typescript project", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    expect(obj["ruff.enable"]).toBeUndefined();
-    expect(obj["[python]"]).toBeUndefined();
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(parsed["ruff.enable"]).toBeUndefined();
+    expect(parsed["[python]"]).toBeUndefined();
   });
 });
 
@@ -100,9 +102,10 @@ describe("vscode-on-save writes settings.json for python project", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    expect(obj["[typescript]"]).toBeUndefined();
-    expect(obj["editor.codeActionsOnSave"]).toBeUndefined();
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(parsed["[typescript]"]).toBeUndefined();
+    expect(parsed["editor.codeActionsOnSave"]).toBeUndefined();
   });
 });
 
@@ -120,10 +123,13 @@ describe("vscode-on-save merges without overwriting existing keys", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
     // User's values are preserved
-    expect(obj["editor.formatOnSave"]).toBe(false);
-    const tsSection = obj["[typescript]"] as Record<string, unknown>;
+    expect(parsed["editor.formatOnSave"]).toBe(false);
+    const tsSection = parsed["[typescript]"];
+    expect(isJsonObject(tsSection)).toBe(true);
+    if (!isJsonObject(tsSection)) return;
     expect(tsSection["editor.defaultFormatter"]).toBe("esbenp.prettier-vscode");
   });
 
@@ -136,9 +142,10 @@ describe("vscode-on-save merges without overwriting existing keys", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    expect(obj["editor.tabSize"]).toBe(2);
-    expect(obj["editor.formatOnSave"]).toBe(true);
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(parsed["editor.tabSize"]).toBe(2);
+    expect(parsed["editor.formatOnSave"]).toBe(true);
   });
 });
 
@@ -152,9 +159,10 @@ describe("vscode-on-save writes extensions.json with detected language extension
     const written = fm.written.find(([p]) => p === "/project/.vscode/extensions.json");
     expect(written).toBeDefined();
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    expect(Array.isArray(obj.recommendations)).toBe(true);
-    expect(obj.recommendations).toContain("biomejs.biome");
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(Array.isArray(parsed.recommendations)).toBe(true);
+    expect(parsed.recommendations).toContain("biomejs.biome");
   });
 
   test("includes charliermarsh.ruff for python", async () => {
@@ -165,8 +173,9 @@ describe("vscode-on-save writes extensions.json with detected language extension
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/extensions.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    expect(obj.recommendations).toContain("charliermarsh.ruff");
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(parsed.recommendations).toContain("charliermarsh.ruff");
   });
 
   test("includes both extensions for typescript + python project", async () => {
@@ -180,8 +189,11 @@ describe("vscode-on-save writes extensions.json with detected language extension
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/extensions.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    const recs = obj.recommendations as string[];
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    const recs = Array.isArray(parsed.recommendations)
+      ? parsed.recommendations.filter((r): r is string => typeof r === "string")
+      : [];
     expect(recs).toContain("biomejs.biome");
     expect(recs).toContain("charliermarsh.ruff");
   });
@@ -198,8 +210,11 @@ describe("vscode-on-save writes extensions.json with detected language extension
 
     const written = fm.written.find(([p]) => p === "/project/.vscode/extensions.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    const recs = obj.recommendations as string[];
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    const recs = Array.isArray(parsed.recommendations)
+      ? parsed.recommendations.filter((r): r is string => typeof r === "string")
+      : [];
     const biomeCount = recs.filter((r) => r === "biomejs.biome").length;
     expect(biomeCount).toBe(1);
   });
@@ -394,11 +409,13 @@ describe("zed-on-save writes settings.json", () => {
       format_on_save: "on",
       formatter: "language_server",
     });
-    const obj = parsed as Record<string, unknown>;
-    const langs = obj.languages as Record<string, unknown>;
-    expect(langs.TypeScript).toBeDefined();
-    expect(langs.JavaScript).toBeDefined();
-    expect(langs.Python).toBeUndefined();
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(isJsonObject(parsed.languages)).toBe(true);
+    if (!isJsonObject(parsed.languages)) return;
+    expect(parsed.languages.TypeScript).toBeDefined();
+    expect(parsed.languages.JavaScript).toBeDefined();
+    expect(parsed.languages.Python).toBeUndefined();
   });
 
   test("creates .zed/settings.json for python project", async () => {
@@ -410,10 +427,12 @@ describe("zed-on-save writes settings.json", () => {
     expect(result.status).toBe("ok");
     const written = fm.written.find(([p]) => p === "/project/.zed/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    const langs = obj.languages as Record<string, unknown>;
-    expect(langs.Python).toBeDefined();
-    expect(langs.TypeScript).toBeUndefined();
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(isJsonObject(parsed.languages)).toBe(true);
+    if (!isJsonObject(parsed.languages)) return;
+    expect(parsed.languages.Python).toBeDefined();
+    expect(parsed.languages.TypeScript).toBeUndefined();
   });
 
   test("includes both language sections for typescript + python project", async () => {
@@ -427,10 +446,12 @@ describe("zed-on-save writes settings.json", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.zed/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    const langs = obj.languages as Record<string, unknown>;
-    expect(langs.TypeScript).toBeDefined();
-    expect(langs.Python).toBeDefined();
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(isJsonObject(parsed.languages)).toBe(true);
+    if (!isJsonObject(parsed.languages)) return;
+    expect(parsed.languages.TypeScript).toBeDefined();
+    expect(parsed.languages.Python).toBeDefined();
   });
 });
 
@@ -447,11 +468,12 @@ describe("zed-on-save merges without overwriting", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.zed/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
     // User's value is preserved
-    expect(obj.format_on_save).toBe("off");
+    expect(parsed.format_on_save).toBe("off");
     // New key added
-    expect(obj.tab_size).toBe(4);
+    expect(parsed.tab_size).toBe(4);
   });
 
   test("adds missing keys that are not already present", async () => {
@@ -463,10 +485,11 @@ describe("zed-on-save merges without overwriting", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.zed/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    expect(obj.tab_size).toBe(2);
-    expect(obj.format_on_save).toBe("on");
-    expect(obj.languages).toBeDefined();
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(parsed.tab_size).toBe(2);
+    expect(parsed.format_on_save).toBe("on");
+    expect(parsed.languages).toBeDefined();
   });
 
   test("2-level merge: preserves existing language key while adding absent languages", async () => {
@@ -488,16 +511,24 @@ describe("zed-on-save merges without overwriting", () => {
 
     const written = fm.written.find(([p]) => p === "/project/.zed/settings.json");
     const parsed: unknown = JSON.parse(written?.[1] ?? "{}");
-    const obj = parsed as Record<string, unknown>;
-    const langs = obj.languages as Record<string, unknown>;
+    expect(isJsonObject(parsed)).toBe(true);
+    if (!isJsonObject(parsed)) return;
+    expect(isJsonObject(parsed.languages)).toBe(true);
+    if (!isJsonObject(parsed.languages)) return;
     // User's existing TypeScript formatter config is preserved (not overwritten by biome)
-    const ts = langs.TypeScript as Record<string, unknown>;
-    const formatter = ts.formatter as Record<string, unknown>;
-    const ext = formatter.external as Record<string, unknown>;
+    const ts = parsed.languages.TypeScript;
+    expect(isJsonObject(ts)).toBe(true);
+    if (!isJsonObject(ts)) return;
+    const formatter = ts.formatter;
+    expect(isJsonObject(formatter)).toBe(true);
+    if (!isJsonObject(formatter)) return;
+    const ext = formatter.external;
+    expect(isJsonObject(ext)).toBe(true);
+    if (!isJsonObject(ext)) return;
     expect(ext.command).toBe("prettier");
     // Python was added because it was absent in the existing languages object
-    expect(langs.Python).toBeDefined();
+    expect(parsed.languages.Python).toBeDefined();
     // JavaScript was added because it was also absent
-    expect(langs.JavaScript).toBeDefined();
+    expect(parsed.languages.JavaScript).toBeDefined();
   });
 });
