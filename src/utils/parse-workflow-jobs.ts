@@ -2,11 +2,6 @@ import { join } from "node:path";
 import type { FileManager } from "@/infra/file-manager";
 
 /**
- * Matches a job block: the key at indent 2, and optionally a name at indent 4.
- * We parse line-by-line to associate each name with its parent job key.
- */
-
-/**
  * Parse GitHub workflow files and extract job names for status check contexts.
  *
  * For each job, returns the `name:` value if present, otherwise the job key.
