@@ -102,30 +102,37 @@ function buildRulesetArgs(
     "--field",
     "rules[0][parameters][dismiss_stale_reviews_on_push]=true",
     "--field",
-    "rules[0][parameters][require_last_push_approval]=false",
-    "--field",
-    "rules[1][type]=required_status_checks",
-    "--field",
-    "rules[1][parameters][strict_required_status_checks_policy]=true"
+    "rules[0][parameters][require_last_push_approval]=false"
   );
 
-  for (let i = 0; i < jobNames.length; i++) {
-    const name = jobNames[i];
-    if (name !== undefined) {
-      args.push(
-        "--field",
-        `rules[1][parameters][required_status_checks][${i}][context]=${name}`
-      );
+  let ruleIndex = 1;
+
+  if (jobNames.length > 0) {
+    args.push(
+      "--field",
+      `rules[${ruleIndex}][type]=required_status_checks`,
+      "--field",
+      `rules[${ruleIndex}][parameters][strict_required_status_checks_policy]=true`
+    );
+    for (let i = 0; i < jobNames.length; i++) {
+      const name = jobNames[i];
+      if (name !== undefined) {
+        args.push(
+          "--field",
+          `rules[${ruleIndex}][parameters][required_status_checks][${i}][context]=${name}`
+        );
+      }
     }
+    ruleIndex++;
   }
 
   args.push(
     "--field",
-    "rules[2][type]=non_fast_forward",
+    `rules[${ruleIndex}][type]=non_fast_forward`,
     "--field",
-    "rules[3][type]=deletion",
+    `rules[${ruleIndex + 1}][type]=deletion`,
     "--field",
-    "rules[4][type]=required_conversation_resolution"
+    `rules[${ruleIndex + 2}][type]=required_conversation_resolution`
   );
 
   return args;
