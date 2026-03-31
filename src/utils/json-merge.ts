@@ -1,4 +1,16 @@
+import { z } from "zod";
+
 export type JsonObject = Record<string, unknown>;
+
+const JsonObjectSchema = z.record(z.unknown());
+
+/**
+ * Returns true when `v` is a plain (non-null, non-array) object.
+ * Use this instead of `as JsonObject` casts at runtime boundaries.
+ */
+export function isJsonObject(v: unknown): v is JsonObject {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
 
 /**
  * Shallow merge two JSON objects without overwriting keys already present in base.
@@ -33,10 +45,9 @@ export async function readJsonObject(
   const text = await fileManager.readText(path);
   try {
     const parsed: unknown = JSON.parse(text);
-    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-      return parsed as JsonObject;
-    }
-    return {};
+    const result = JsonObjectSchema.safeParse(parsed);
+    if (!result.success) return {};
+    return result.data;
   } catch {
     return {};
   }

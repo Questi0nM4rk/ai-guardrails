@@ -2,7 +2,11 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { InitContext, InitModule, InitModuleResult } from "@/init/types";
 import type { JsonObject } from "@/utils/json-merge";
-import { mergeWithoutOverwrite, readJsonObject } from "@/utils/json-merge";
+import {
+  isJsonObject,
+  mergeWithoutOverwrite,
+  readJsonObject,
+} from "@/utils/json-merge";
 
 export const zedOnSaveModule: InitModule = {
   id: "zed-on-save",
@@ -80,12 +84,9 @@ export const zedOnSaveModule: InitModule = {
 
     // Merge languages at 2 levels: preserve user's existing per-language configs,
     // but add any language keys we're introducing that aren't already present.
-    const existingLanguages =
-      existing.languages !== null &&
-      typeof existing.languages === "object" &&
-      !Array.isArray(existing.languages)
-        ? (existing.languages as JsonObject)
-        : {};
+    const existingLanguages = isJsonObject(existing.languages)
+      ? existing.languages
+      : {};
     merged.languages = mergeWithoutOverwrite(existingLanguages, languages);
     await ctx.fileManager.writeText(settingsPath, JSON.stringify(merged, null, 2));
 
