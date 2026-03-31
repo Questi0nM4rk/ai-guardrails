@@ -27,7 +27,7 @@ Given<FreshRepoGuardWorld>(
 );
 
 Then<FreshRepoGuardWorld>(
-  "the config should contain {string}",
+  "the lefthook config should contain {string}",
   (world: FreshRepoGuardWorld, text: unknown) => {
     expect(world.lefthookConfig).toContain(String(text));
   }

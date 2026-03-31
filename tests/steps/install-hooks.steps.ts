@@ -144,7 +144,7 @@ Then<InstallHooksWorld>(
 );
 
 Then<InstallHooksWorld>(
-  "all hook commands should contain {string}",
+  "all installed hook commands should contain {string}",
   (world: InstallHooksWorld, guard: unknown) => {
     const settings = readSettings(world.fm);
     const ptus = settings.hooks?.PreToolUse;
