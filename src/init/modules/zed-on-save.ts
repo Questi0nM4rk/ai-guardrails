@@ -48,7 +48,7 @@ export const zedOnSaveModule: InitModule = {
         formatter: {
           external: {
             command: "biome",
-            arguments: ["format", "--write", "--stdin-file-path", "{buffer_path}"],
+            arguments: ["format", "--stdin-file-path", "{buffer_path}"],
           },
         },
       };
@@ -56,7 +56,7 @@ export const zedOnSaveModule: InitModule = {
         formatter: {
           external: {
             command: "biome",
-            arguments: ["format", "--write", "--stdin-file-path", "{buffer_path}"],
+            arguments: ["format", "--stdin-file-path", "{buffer_path}"],
           },
         },
       };

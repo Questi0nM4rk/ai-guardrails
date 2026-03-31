@@ -30,9 +30,18 @@ export function mergeWithoutOverwrite(
 }
 
 /**
+ * Strip single-line (//) and multi-line (/* *\/) comments from a JSON string.
+ * Enables parsing JSONC files (e.g. VS Code's settings.json, extensions.json).
+ */
+function stripJsonComments(text: string): string {
+  return text.replace(/\/\/.*$/gm, "").replace(/\/\*[\s\S]*?\*\//g, "");
+}
+
+/**
  * Read a file and parse it as a JSON object.
  * Returns undefined if the file has invalid JSON or is not an object (caller decides how to handle).
  * Returns an empty object if the file does not exist.
+ * Supports JSONC (JSON with comments) — strips line comments and block comments before parsing.
  */
 export async function readJsonObject(
   path: string,
@@ -45,7 +54,7 @@ export async function readJsonObject(
   if (!exists) return {};
   const text = await fileManager.readText(path);
   try {
-    const parsed: unknown = JSON.parse(text);
+    const parsed: unknown = JSON.parse(stripJsonComments(text));
     const result = JsonObjectSchema.safeParse(parsed);
     if (!result.success) return undefined;
     return result.data;

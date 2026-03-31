@@ -187,7 +187,7 @@ describe("github-branch-protection — calls gh api with correct args", () => {
     const fm = new FakeFileManager();
     fm.seed("/project/.git", "");
     const cr = new FakeCommandRunner();
-    // gh api succeeds
+    // gh api succeeds — no workflow files seeded so required_status_checks=null
     cr.register(
       [
         "gh",
@@ -196,7 +196,7 @@ describe("github-branch-protection — calls gh api with correct args", () => {
         "--method",
         "PUT",
         "--field",
-        "required_status_checks[strict]=true",
+        "required_status_checks=null",
         "--field",
         "enforce_admins=false",
         "--field",

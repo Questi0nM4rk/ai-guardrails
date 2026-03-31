@@ -5,12 +5,12 @@ import type { InitContext, InitModule, InitModuleResult } from "@/init/types";
 const TS_LANGUAGE_SECTION = `\
 [[language]]
 name = "typescript"
-formatter = { command = "biome", args = ["format", "--write", "--stdin-file-path", "file.ts"] }
+formatter = { command = "biome", args = ["format", "--stdin-file-path", "file.ts"] }
 auto-format = true
 
 [[language]]
 name = "javascript"
-formatter = { command = "biome", args = ["format", "--write", "--stdin-file-path", "file.js"] }
+formatter = { command = "biome", args = ["format", "--stdin-file-path", "file.js"] }
 auto-format = true
 `;
 
