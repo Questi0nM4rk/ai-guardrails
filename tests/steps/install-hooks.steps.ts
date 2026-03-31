@@ -3,6 +3,8 @@ import type { World } from "@questi0nm4rk/feats";
 import { Given, Then, When } from "@questi0nm4rk/feats";
 import type { StepResult } from "@/models/step-result";
 import { installHooksStep } from "@/steps/install-hooks";
+import type { ClaudeSettings } from "@/utils/merge-claude-settings";
+import { ClaudeSettingsSchema } from "@/utils/merge-claude-settings";
 import { FakeConsole } from "../fakes/fake-console";
 import { FakeFileManager } from "../fakes/fake-file-manager";
 
@@ -13,6 +15,16 @@ interface InstallHooksWorld extends World {
   fm: FakeFileManager;
   cons: FakeConsole;
   stepResult: StepResult;
+}
+
+/** Parse settings.json from the fake file manager. Throws if absent or invalid. */
+function readSettings(fm: FakeFileManager): ClaudeSettings {
+  const entry = fm.written.find(([p]) => p === SETTINGS_PATH);
+  if (entry === undefined) {
+    throw new Error(`installHooksStep did not write ${SETTINGS_PATH}`);
+  }
+  const [, content] = entry;
+  return ClaudeSettingsSchema.parse(JSON.parse(content));
 }
 
 // ── Given steps ──────────────────────────────────────────────────────────────
@@ -81,36 +93,24 @@ Then<InstallHooksWorld>(
 Then<InstallHooksWorld>(
   "it should contain PreToolUse hooks",
   (world: InstallHooksWorld) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const hooks = parsed.hooks as Record<string, unknown> | undefined;
-    expect(hooks?.PreToolUse).toBeDefined();
+    const settings = readSettings(world.fm);
+    expect(settings.hooks?.PreToolUse).toBeDefined();
   }
 );
 
 Then<InstallHooksWorld>(
   "the existing permissions should be preserved",
   (world: InstallHooksWorld) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const permissions = parsed.permissions as { deny?: string[] } | undefined;
-    expect(permissions?.deny).toEqual(["/secret/**"]);
+    const settings = readSettings(world.fm);
+    expect(settings.permissions?.deny).toEqual(["/secret/**"]);
   }
 );
 
 Then<InstallHooksWorld>(
   "PreToolUse hooks should be added",
   (world: InstallHooksWorld) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const hooks = parsed.hooks as Record<string, unknown> | undefined;
-    const ptus = hooks?.PreToolUse as Array<{ matcher: string }> | undefined;
+    const settings = readSettings(world.fm);
+    const ptus = settings.hooks?.PreToolUse;
     expect(ptus).toBeDefined();
     expect((ptus ?? []).length).toBeGreaterThan(0);
   }
@@ -119,21 +119,15 @@ Then<InstallHooksWorld>(
 Then<InstallHooksWorld>(
   "PreToolUse hooks should not be duplicated",
   (world: InstallHooksWorld) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const hooks = parsed.hooks as Record<string, unknown> | undefined;
-    const ptus = hooks?.PreToolUse as
-      | Array<{ matcher: string; hooks: unknown[] }>
-      | undefined;
+    const settings = readSettings(world.fm);
+    const ptus = settings.hooks?.PreToolUse;
     expect(ptus).toBeDefined();
     const matchers = (ptus ?? []).map((e) => e.matcher);
     const uniqueMatchers = new Set(matchers);
     expect(uniqueMatchers.size).toBe(matchers.length);
     // Also verify hook commands are not duplicated within each matcher
-    for (const entry of ptus ?? []) {
-      const commands = entry.hooks.map((h) => (h as { command: string }).command);
+    for (const ptu of ptus ?? []) {
+      const commands = ptu.hooks.map((h) => h.command);
       const uniqueCommands = new Set(commands);
       expect(uniqueCommands.size).toBe(commands.length);
     }
@@ -143,12 +137,8 @@ Then<InstallHooksWorld>(
 Then<InstallHooksWorld>(
   "hooks should include matcher {string}",
   (world: InstallHooksWorld, matcher: unknown) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const hooks = parsed.hooks as Record<string, unknown> | undefined;
-    const ptus = hooks?.PreToolUse as Array<{ matcher: string }> | undefined;
+    const settings = readSettings(world.fm);
+    const ptus = settings.hooks?.PreToolUse;
     expect((ptus ?? []).some((e) => e.matcher === String(matcher))).toBe(true);
   }
 );
@@ -156,14 +146,9 @@ Then<InstallHooksWorld>(
 Then<InstallHooksWorld>(
   "all hook commands should contain {string}",
   (world: InstallHooksWorld, guard: unknown) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const hooks = parsed.hooks as Record<string, unknown> | undefined;
-    const ptus =
-      (hooks?.PreToolUse as Array<{ hooks: Array<{ command: string }> }>) ?? [];
-    for (const ptu of ptus) {
+    const settings = readSettings(world.fm);
+    const ptus = settings.hooks?.PreToolUse;
+    for (const ptu of ptus ?? []) {
       for (const hook of ptu.hooks) {
         expect(hook.command).toContain(String(guard));
       }
@@ -178,13 +163,8 @@ Then<InstallHooksWorld>("the step should succeed", (world: InstallHooksWorld) =>
 Then<InstallHooksWorld>(
   "settings.json should contain valid hooks",
   (world: InstallHooksWorld) => {
-    const entry = world.fm.written.find(([p]) => p === SETTINGS_PATH);
-    expect(entry).toBeDefined();
-    const [, content] = entry ?? ["", ""];
-    // Must parse as valid JSON
-    const parsed = JSON.parse(content) as Record<string, unknown>;
-    const hooks = parsed.hooks as Record<string, unknown> | undefined;
-    const ptus = hooks?.PreToolUse as Array<{ matcher: string }> | undefined;
+    const settings = readSettings(world.fm);
+    const ptus = settings.hooks?.PreToolUse;
     expect((ptus ?? []).length).toBeGreaterThan(0);
   }
 );
