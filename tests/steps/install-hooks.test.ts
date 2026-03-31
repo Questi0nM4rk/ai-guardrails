@@ -139,8 +139,11 @@ describe("installHooksStep", () => {
 
     const result = await installHooksStep(fm, cons, CLAUDE_DIR);
 
-    // JSON.parse throws, caught by try/catch → error result
-    expect(result.status).toBe("error");
-    expect(result.message).toContain("Failed to merge hooks");
+    // Invalid JSON is caught — merges from scratch with empty settings
+    expect(result.status).toBe("ok");
+    const written = fm.written.find(([p]) => p === SETTINGS_PATH);
+    expect(written).toBeDefined();
+    const output = JSON.parse(written?.[1] ?? "{}");
+    expect(output.hooks?.PreToolUse).toHaveLength(3);
   });
 });

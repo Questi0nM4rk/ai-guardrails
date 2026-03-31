@@ -55,10 +55,17 @@ export async function installHooksStep(
 
     if (await fileManager.exists(settingsPath)) {
       const content = await fileManager.readText(settingsPath);
-      const parsed: unknown = JSON.parse(content);
-      const result = ClaudeSettingsSchema.safeParse(parsed);
-      if (result.success) {
-        existing = result.data;
+      try {
+        const parsed: unknown = JSON.parse(content);
+        const result = ClaudeSettingsSchema.safeParse(parsed);
+        if (result.success) {
+          existing = result.data;
+        }
+      } catch {
+        // Malformed JSON — treat as empty settings, merge will overwrite
+        cons.warning(
+          "~/.claude/settings.json contains invalid JSON — merging from scratch"
+        );
       }
     }
 
