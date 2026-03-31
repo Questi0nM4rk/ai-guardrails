@@ -1,0 +1,8 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`staticcheckGenerator output matches snapshot 1`] = `
+"# ai-guardrails:sha256=63b82c4417ffba60aabab183e5b9a98214021fdd26d6ef3351619083f9e1791d
+[checks]
+enabled = ["all"]
+"
+`;

@@ -16,6 +16,7 @@ import { markdownlintConfigModule } from "@/init/modules/markdownlint-config";
 import { nvimOnSaveModule } from "@/init/modules/nvim-on-save";
 import { profileSelectionModule } from "@/init/modules/profile-selection";
 import { ruffConfigModule } from "@/init/modules/ruff-config";
+import { staticcheckConfigModule } from "@/init/modules/staticcheck-config";
 import { toolInstallModule } from "@/init/modules/tool-install";
 import { versionPinModule } from "@/init/modules/version-pin";
 import { vscodeOnSaveModule } from "@/init/modules/vscode-on-save";
@@ -28,6 +29,7 @@ export const ALL_INIT_MODULES: readonly InitModule[] = [
   versionPinModule,
   configTuningModule,
   ruffConfigModule,
+  staticcheckConfigModule,
   biomeConfigModule,
   editorconfigModule,
   markdownlintConfigModule,
