@@ -265,6 +265,7 @@ export const ALL_INIT_MODULES: readonly InitModule[] = [
 
   // New modules (v3.2)
   githubBranchProtectionModule,  // github
+  githubProtectedPatternsModule, // github
   githubCcReviewerModule,        // github
   githubPrTemplateModule,        // github
   vscodeOnSaveModule,            // editor
@@ -355,6 +356,81 @@ resolved before merge — matching the ai-guardrails repo's own protection confi
 - If `main` branch does not exist yet: skips with message "branch protection will be applied on first push to main"
 
 **Files created/modified:** None (GitHub API only, no local files)
+
+---
+
+### New Module: `github-protected-patterns`
+
+| Field | Value |
+|-------|-------|
+| id | `github-protected-patterns` |
+| category | `github` |
+| detect | `.git/` exists AND `gh auth status` succeeds AND remote is `github.com` |
+| defaultEnabled | true |
+| disableFlag | `--no-protected-patterns` |
+| dependsOn | `github-branch-protection` |
+
+**Problem it solves:** Branch protection rules on `main` only protect `main`.
+Long-lived development branches (`dev`, `staging`, `release/v2`) get none of
+the same guards — anyone can force-push, skip CI, or merge without review on
+those branches. The GitHub Rulesets API supports fnmatch patterns, so the same
+protection set can apply to branches that don't exist yet.
+
+**Why rulesets, not branch protection rules:**
+Classic branch protection rules (`PUT /branches/{name}/protection`) require the
+branch to already exist. The Rulesets API (`POST /repos/{owner}/{repo}/rulesets`)
+accepts patterns like `release/*` and applies protection the moment a matching
+branch is created. It also supports multiple patterns in a single ruleset,
+making it the right tool for a naming-convention approach.
+
+**Prompts:**
+- Display: "Branch protection is set on `main`. Add patterns for other protected branches?"
+- Text (comma-separated): Additional patterns to protect with the same rules.
+  Default: `release/*`
+  Examples: `dev`, `staging`, `release/*`, `v*`
+- Y/N: Allow empty pattern list (skip ruleset creation)? [y/N]
+
+**Execute:**
+
+Step 1 — collect patterns from user input plus `main` (always included).
+
+Step 2 — create a repository ruleset via the Rulesets API:
+
+```
+gh api repos/{owner}/{repo}/rulesets \
+  --method POST \
+  --field name="ai-guardrails protected branches" \
+  --field target="branch" \
+  --field enforcement="active" \
+  --field conditions[ref_name][include][]=<pattern-1> \
+  --field conditions[ref_name][include][]=<pattern-2> \
+  --field rules[0][type]="pull_request" \
+  --field rules[0][parameters][required_approving_review_count]=1 \
+  --field rules[0][parameters][dismiss_stale_reviews_on_push]=true \
+  --field rules[0][parameters][require_last_push_approval]=false \
+  --field rules[1][type]="required_status_checks" \
+  --field rules[1][parameters][strict_required_status_checks_policy]=true \
+  --field rules[1][parameters][required_status_checks][0][context]=<job-name-1> \
+  --field rules[1][parameters][required_status_checks][1][context]=<job-name-2> \
+  --field rules[2][type]="non_fast_forward" \
+  --field rules[3][type]="deletion" \
+  --field rules[4][type]="required_conversation_resolution"
+```
+
+Status check names are inherited from the same workflow job name parse used by
+`github-branch-protection` (shared helper: `parseWorkflowJobNames()`).
+
+Patterns use GitHub's fnmatch syntax:
+- `release/*` — any branch starting with `release/`
+- `v*` — any branch starting with `v` (version tags-style branches)
+- `dev` — exact match
+- `~DEFAULT_BRANCH` — shorthand for the repo's default branch (covers renames)
+
+**Note on `main`:** The classic branch protection rule on `main` (applied by
+`github-branch-protection`) is kept as-is. The ruleset covers additional patterns
+only. Both coexist — GitHub evaluates the strictest rule when both apply.
+
+**Files created/modified:** None (GitHub API only)
 
 ---
 
@@ -646,7 +722,7 @@ Prints install hint: `# Requires conform.nvim: https://github.com/stevearc/confo
 
 ---
 
-## 4. Full Module Table (v3.2 — 20 modules)
+## 4. Full Module Table (v3.2 — 21 modules)
 
 | Module ID | Category | detect() | defaultEnabled | disableFlag | dependsOn |
 |-----------|----------|----------|----------------|-------------|-----------|
@@ -662,6 +738,7 @@ Prints install hint: `# Requires conform.nvim: https://github.com/stevearc/confo
 | `agent-rules` | `agent` | AI tool detected | true | `--no-agent-rules` | — |
 | `github-actions` | `ci` | `.git` exists | true | `--no-ci` | — |
 | `github-branch-protection` | `github` | git + gh auth + github.com | true | `--no-branch-protection` | `github-actions` |
+| `github-protected-patterns` | `github` | git + gh auth + github.com | true | `--no-protected-patterns` | `github-branch-protection` |
 | `github-cc-reviewer` | `github` | git + gh auth + github.com | true | `--no-reviewer` | `github-branch-protection` |
 | `github-pr-template` | `github` | git + github.com | true | `--no-pr-template` | — |
 | `vscode-on-save` | `editor` | `.vscode/` or `code` in PATH | true | `--no-vscode` | `biome-config`, `ruff-config` |
@@ -850,6 +927,7 @@ ai-guardrails init
 
   -- New module flags (v3.2) --
   --no-branch-protection  Disable github-branch-protection module
+  --no-protected-patterns Disable github-protected-patterns module
   --no-reviewer           Disable github-cc-reviewer module
   --no-pr-template        Disable github-pr-template module
   --no-vscode             Disable vscode-on-save module
@@ -940,6 +1018,7 @@ Phases 7 and 8 are gated on Phase 3 — they must not block the original deliver
 | `tests/init/modules/ruff-config.test.ts` | detect false for non-Python, execute calls generator |
 | `tests/init/modules/baseline.test.ts` | execute runs linters, writes baseline.json |
 | `tests/init/modules/github-branch-protection.test.ts` | detect false when no gh auth, execute calls gh API, graceful skip when unauthenticated |
+| `tests/init/modules/github-protected-patterns.test.ts` | execute calls rulesets API with parsed patterns, skip when empty pattern list, inherit job names from workflow files |
 | `tests/init/modules/github-cc-reviewer.test.ts` | execute writes .coderabbit.yaml, detect false for non-github remotes |
 | `tests/init/modules/github-pr-template.test.ts` | execute writes pull_request_template.md |
 | `tests/init/modules/vscode-on-save.test.ts` | detect false when no .vscode/ and no code CLI, execute merges settings.json |
