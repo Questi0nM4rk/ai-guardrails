@@ -91,7 +91,7 @@ line-ending = "lf"
 `;
 
 exports[`Config file generation lefthook output matches snapshot for python and typescript plugins 1`] = `
-"# ai-guardrails:sha256=b6c8ade2fd39f455819a397861fa96e32076329002bc0438c1e582cf56e2a534
+"# ai-guardrails:sha256=1478adbe287cbdd96bd59447c6306e647e3bac24bbf59568d59d7f1d1dcfba22
 pre-commit:
   commands:
 
@@ -133,6 +133,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -150,7 +151,7 @@ commit-msg:
 `;
 
 exports[`Config file generation lefthook output matches snapshot for no plugins 1`] = `
-"# ai-guardrails:sha256=5972c2b1018a0004966903c703c80ce6ecba537cfdc1652bfbf63aa9f5b9c685
+"# ai-guardrails:sha256=5e52d35b8fda182ab442232761decb64538cb4128c86712ec2d67c37ba59cf06
 pre-commit:
   commands:
 
@@ -180,6 +181,7 @@ pre-commit:
 
     no-commits-to-main:
       run: |
+        git rev-list --count HEAD >/dev/null 2>&1 || exit 0
         branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
         if [ "$branch" = "main" ] || [ "$branch" = "master" ]; then
           echo "Direct commits to main are not allowed"
@@ -241,7 +243,7 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook dangerous-cmd"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook dangerous-cmd"
           }
         ]
       },
@@ -250,7 +252,7 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-configs"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-configs"
           }
         ]
       },
@@ -259,7 +261,7 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
         "hooks": [
           {
             "type": "command",
-            "command": "[ ! -f ./dist/ai-guardrails ] && exit 0; ./dist/ai-guardrails hook protect-reads"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-reads"
           }
         ]
       }
