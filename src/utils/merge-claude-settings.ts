@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export interface HookEntry {
   readonly type: string;
   readonly command: string;
@@ -23,6 +25,11 @@ export interface ClaudeSettings {
   readonly hooks?: ClaudeSettingsHooks;
   readonly [key: string]: unknown;
 }
+
+/** Lenient schema — accepts any valid JSON object as ClaudeSettings */
+export const ClaudeSettingsSchema: z.ZodType<ClaudeSettings> = z
+  .object({})
+  .passthrough();
 
 /**
  * Merge ai-guardrails hooks into an existing settings object.

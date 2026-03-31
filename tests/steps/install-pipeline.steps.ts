@@ -102,3 +102,11 @@ Then<PipelineWorld>(
     expect(written.length).toBeGreaterThanOrEqual(ALL_GENERATORS.length);
   }
 );
+
+Then<PipelineWorld>(
+  "hooks should be merged into settings.json",
+  async (world: PipelineWorld) => {
+    const written = (world.ctx.fileManager as FakeFileManager).written.map(([p]) => p);
+    expect(written.some((p) => p.endsWith("settings.json"))).toBe(true);
+  }
+);

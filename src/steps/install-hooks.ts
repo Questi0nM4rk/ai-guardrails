@@ -1,14 +1,14 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { z } from "zod";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
 import { error, ok } from "@/models/step-result";
-import { type ClaudeSettings, mergeHooks } from "@/utils/merge-claude-settings";
-
-/** Lenient schema — accepts any valid JSON object as ClaudeSettings */
-const ClaudeSettingsSchema: z.ZodType<ClaudeSettings> = z.object({}).passthrough();
+import {
+  type ClaudeSettings,
+  ClaudeSettingsSchema,
+  mergeHooks,
+} from "@/utils/merge-claude-settings";
 
 const GUARDRAILS_HOOKS = [
   {

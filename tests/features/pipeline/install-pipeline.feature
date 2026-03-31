@@ -44,3 +44,8 @@ Feature: Install pipeline
   Scenario: Install exit code 2 on error
     Given an install result with status "error"
     Then the install exit code should be 2
+
+  Scenario: Install merges hooks into ~/.claude/settings.json
+    Given a default install project
+    When the install pipeline runs
+    Then hooks should be merged into settings.json
