@@ -13,6 +13,11 @@ import "./steps/no-console.steps";
 import "./steps/github-modules.steps";
 import "./steps/editor-modules.steps";
 import "./steps/install-hooks.steps";
+import "./steps/version-pinning.steps";
+import "./steps/agent-instructions.steps";
+import "./steps/fresh-repo-guard.steps";
+import "./steps/hook-binary-resolution.steps";
+import "./steps/staticcheck.steps";
 
 const features = await loadFeatures("tests/features/**/*.feature", {
   cwd: process.cwd(),
