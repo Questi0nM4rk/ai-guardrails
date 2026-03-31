@@ -61,6 +61,14 @@ program
   .option("--no-ruff", "Skip ruff.toml generation")
   .option("--no-biome", "Skip biome.jsonc generation")
   .option("--no-agent-hooks", "Skip .claude/settings.json generation")
+  .option("--no-branch-protection", "Skip GitHub branch protection setup")
+  .option("--no-protected-patterns", "Skip GitHub branch pattern ruleset creation")
+  .option("--no-reviewer", "Skip CodeRabbit AI reviewer configuration")
+  .option("--no-pr-template", "Skip .github/pull_request_template.md creation")
+  .option("--no-vscode", "Skip VS Code on-save configuration")
+  .option("--no-helix", "Skip Helix LSP on-save configuration")
+  .option("--no-nvim", "Skip Neovim conform.nvim config generation")
+  .option("--no-zed", "Skip Zed on-save configuration")
   .option("--interactive", "Prompt for each optional step")
   .option(
     "--min-version <version>",
