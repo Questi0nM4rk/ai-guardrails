@@ -31,7 +31,6 @@ export const githubCcReviewerModule: InitModule = {
   category: "github",
   defaultEnabled: true,
   disableFlag: "--no-reviewer",
-  dependsOn: ["github-branch-protection"],
 
   async detect(ctx: InitContext): Promise<boolean> {
     const hasGit = await ctx.fileManager.exists(join(ctx.projectDir, ".git"));
