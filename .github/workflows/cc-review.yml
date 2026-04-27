@@ -8,35 +8,30 @@ on:
       pr_number:
         description: "PR number to review"
         required: true
-      mode:
-        description: "Review mode"
-        required: false
-        default: "standard"
-        type: choice
-        options:
-          - standard
-          - strict
-          - bug-hunt
-          - simplify
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+concurrency:
+  group: cc-review-memory-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   review:
     runs-on: ubuntu-latest
     if: >-
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event.action == 'opened' && !contains(github.event.pull_request.user.login, '[bot]')) ||
-      (github.event.action == 'labeled' && contains(fromJson('["bug-hunt","simplify","strict"]'), github.event.label.name))
-    timeout-minutes: 20
+      !contains(github.event.pull_request.labels.*.name, 'no-review') &&
+      ((github.event_name == 'workflow_dispatch') ||
+       (github.event.action == 'opened'
+         && !github.event.pull_request.draft
+         && !contains(github.event.pull_request.user.login, '[bot]')) ||
+       (github.event.action == 'labeled'
+         && github.event.label.name == 'cc-review'))
+    timeout-minutes: 30
 
     permissions:
       contents: write
       pull-requests: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout consumer repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -49,66 +44,38 @@ jobs:
           private-key: ${{ secrets.REVIEWER_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
 
-      - name: Fetch bot intelligence
+      - name: Clone bot repo with marketplace submodule
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
-          git clone --depth 1 https://x-access-token:${GH_TOKEN}@github.com/Questi0nM4rk/cc-review.git /tmp/cc-review-bot
-          mkdir -p .claude
-          cp -r /tmp/cc-review-bot/.claude/commands .claude/
-          cp -r /tmp/cc-review-bot/.claude/agents .claude/
-          cp -r /tmp/cc-review-bot/.claude/skills .claude/
-          cp -r /tmp/cc-review-bot/.claude/hooks .claude/
-          cp /tmp/cc-review-bot/.claude/CLAUDE.md .claude/CLAUDE.md
-          cp /tmp/cc-review-bot/.claude/settings.json .claude/settings.json
+          git config --global url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf "https://github.com/"
+          git clone --depth 1 --recurse-submodules --shallow-submodules \
+            https://github.com/Questi0nM4rk/cc-review.git /tmp/cc-review-bot
 
-      - name: Fetch memory branch
-        run: git fetch origin claude-reviewer/memory:claude-reviewer/memory 2>/dev/null || true
-
-      - name: Determine PR number and review mode
+      - name: Determine PR number
         id: config
-        env:
-          INPUT_PR_NUMBER: ${{ github.event.inputs.pr_number }}
-          PR_NUMBER_FROM_EVENT: ${{ github.event.pull_request.number }}
-          INPUT_MODE: ${{ github.event.inputs.mode }}
-          EVENT_ACTION: ${{ github.event.action }}
-          LABEL_NAME: ${{ github.event.label.name }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "pr_number=$INPUT_PR_NUMBER" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "pr_number=${{ github.event.inputs.pr_number }}" >> "$GITHUB_OUTPUT"
           else
-            echo "pr_number=$PR_NUMBER_FROM_EVENT" >> "$GITHUB_OUTPUT"
+            echo "pr_number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
           fi
 
-          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
-            MODE="$INPUT_MODE"
-          elif [ "$EVENT_ACTION" = "labeled" ]; then
-            MODE="$LABEL_NAME"
-          else
-            MODE=$(grep -oP '(?<=^mode:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "standard")
-            [ -z "$MODE" ] && MODE="standard"
-          fi
-          echo "mode=$MODE" >> "$GITHUB_OUTPUT"
-
-          if [ "$EVENT_ACTION" = "opened" ]; then
-            AUTO=$(grep -oP '(?<=^auto_review:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "true")
-            if [ "$AUTO" = "false" ]; then
-              echo "skip=true" >> "$GITHUB_OUTPUT"
-            fi
+          AUTO=$(grep -oP '(?<=^auto_review:\s).*' .cc-review.yaml 2>/dev/null | tr -d ' "' || echo "true")
+          if [ "${{ github.event.action }}" = "opened" ] && [ "$AUTO" = "false" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Pre-fetch PR diff
         if: steps.config.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.config.outputs.pr_number }}
         run: |
-          PR_NUMBER="${{ steps.config.outputs.pr_number }}"
-          # Get PR metadata
           gh pr view "$PR_NUMBER" --json title,body,author,baseRefName,headRefName,files > /tmp/pr-meta.json
 
-          # Try gh pr diff first, fallback to local git diff for large PRs
           if ! gh pr diff "$PR_NUMBER" > /tmp/pr-diff.txt 2>/dev/null; then
-            echo "PR diff too large for API, using local git diff..."
+            echo "PR diff too large for API, falling back to local git diff..."
             BASE=$(jq -r '.baseRefName' /tmp/pr-meta.json)
             HEAD=$(jq -r '.headRefName' /tmp/pr-meta.json)
             git fetch origin "$HEAD" 2>/dev/null || true
@@ -117,9 +84,29 @@ jobs:
               echo "Could not compute diff" > /tmp/pr-diff.txt
           fi
 
-          DIFF_LINES=$(wc -l < /tmp/pr-diff.txt)
-          FILE_COUNT=$(jq '.files | length' /tmp/pr-meta.json)
-          echo "Diff: ${DIFF_LINES} lines, ${FILE_COUNT} files"
+          echo "Diff: $(wc -l < /tmp/pr-diff.txt) lines, $(jq '.files | length' /tmp/pr-meta.json) files"
+
+      - name: Pre-fetch project memory
+        if: steps.config.outputs.skip != 'true'
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          BOT_DIR=/tmp/cc-review-bot
+          mkdir -p /tmp/memory
+
+          # Pull the global memory branch from cc-review and extract just
+          # this consumer repo's slice into /tmp/memory/.
+          if git -C "$BOT_DIR" fetch origin claude-reviewer/memory:claude-reviewer/memory 2>/dev/null; then
+            git -C "$BOT_DIR" archive claude-reviewer/memory "${REPO}/" 2>/dev/null \
+              | tar -x -C /tmp/memory --strip-components=2 2>/dev/null || true
+          fi
+
+          if [ ! -f /tmp/memory/MEMORY.md ]; then
+            printf '%s\n\n%s\n' "# Project Memory: ${REPO}" "(empty — populated as the bot learns)" > /tmp/memory/MEMORY.md
+          fi
+          mkdir -p /tmp/memory/notes /tmp/memory/reviews /tmp/memory/advice
+
+          echo "Memory: $(find /tmp/memory -type f | wc -l) files"
 
       - name: Install Claude Code
         if: steps.config.outputs.skip != 'true'
@@ -128,53 +115,167 @@ jobs:
           curl -fsSL https://claude.ai/install.sh | bash
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Run review
+      - name: Run strict review
+        id: review
         if: steps.config.outputs.skip != 'true'
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.config.outputs.pr_number }}
+          REPO: ${{ github.repository }}
         run: |
-          PR_NUMBER="${{ steps.config.outputs.pr_number }}"
-          REPO="$GITHUB_REPOSITORY"
-          MODE="${{ steps.config.outputs.mode }}"
+          MARKETPLACE="/tmp/cc-review-bot/vendor/qsm-marketplace/plugins"
 
-          case "$MODE" in
-            strict)
-              COMMAND="review-pr"
-              EXTRA="STRICT RULES: No severity levels. Every finding = required change. No dead code, no duplicates, modular approach required."
-              ;;
-            bug-hunt)
-              COMMAND="bug-hunt"
-              EXTRA=""
-              ;;
-            simplify)
-              COMMAND="simplify-review"
-              EXTRA=""
-              ;;
-            *)
-              COMMAND="review-pr"
-              EXTRA=""
-              ;;
-          esac
+          {
+            printf '%s\n' "You are the cc-review bot for ${REPO}, reviewing PR #${PR_NUMBER}."
+            printf '%s\n' ""
+            printf '%s\n' "Pre-fetched context (use these — do NOT call gh pr view/diff):"
+            printf '%s\n' "  /tmp/pr-meta.json   PR title, body, author, files"
+            printf '%s\n' "  /tmp/pr-diff.txt    full diff"
+            printf '%s\n' ""
+            printf '%s\n' "Project memory at /tmp/memory/ (read AND writable):"
+            printf '%s\n' "  MEMORY.md   long-form learnings — read for context, append/edit if you discover something the next review should know"
+            printf '%s\n' "  notes/      bot self-improvement notes — feel free to add a brief note about what worked or didn't"
+            printf '%s\n' "  reviews/    past PR reviews on this repo (read-only context)"
+            printf '%s\n' "  advice/    past research-phase advice (read-only context)"
+            printf '%s\n' ""
+            printf '%s\n' "If .cc-review.yaml exists at the repo root, read it for"
+            printf '%s\n' "project-specific languages, ignore_paths, instructions, and known_patterns."
+            printf '%s\n' ""
+            printf '%s\n' "Run the qsm-strict-review skill on PR #${PR_NUMBER} now."
+            printf '%s\n' "When the review is posted, STOP — do not add commentary or repeat work."
+          } > /tmp/prompt.txt
 
-          cat > /tmp/prompt.txt <<EOF
-          You are the cc-review bot for ${REPO}, reviewing PR #${PR_NUMBER}.
-          Follow .claude/commands/${COMMAND}.md for the review methodology.
-          The .cc-review.yaml has project-specific config.
-
-          IMPORTANT: The PR diff and metadata are pre-fetched for you:
-          - /tmp/pr-meta.json — PR title, body, author, files list
-          - /tmp/pr-diff.txt — the full diff
-
-          Read these files instead of calling gh pr view/diff. This saves turns.
-          Do NOT call gh pr diff — it may fail on large PRs. Use /tmp/pr-diff.txt.
-
-          The PR number is: ${PR_NUMBER}
-          ${EXTRA}
-          EOF
-
-          cat /tmp/prompt.txt | claude -p \
-            --max-turns 75 \
+          claude -p \
+            --max-turns 200 \
             --model claude-sonnet-4-6 \
-            --allowedTools "Bash(gh:*),Bash(git:*),Bash(cat:*),Bash(npx:*),Bash(tsx:*),Bash(jq:*),Bash(for:*),Read,Glob,Grep,Agent,WebSearch,WebFetch"
+            --output-format stream-json \
+            --verbose \
+            --plugin-dir "${MARKETPLACE}/strict-review" \
+            --plugin-dir "${MARKETPLACE}/qsm-git-tools" \
+            --allowedTools "Bash(gh:*),Bash(git:*),Bash(cat:*),Bash(npx:*),Bash(tsx:*),Bash(jq:*),Bash(node:*),Read,Write,Edit,Glob,Grep,Agent,WebSearch,WebFetch" \
+            < /tmp/prompt.txt | tee /tmp/session.jsonl
+
+          # Extract human-readable text from assistant messages for the memory log
+          jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="text") | .text' \
+            /tmp/session.jsonl > /tmp/review-output.txt 2>/dev/null || true
+
+      - name: Save project memory and transcript
+        if: always() && steps.config.outputs.skip != 'true'
+        env:
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ steps.config.outputs.pr_number }}
+          REVIEW_STATUS: ${{ steps.review.outcome }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          BOT_DIR=/tmp/cc-review-bot
+          SLICE="${REPO}"
+
+          cd "$BOT_DIR"
+          git config user.name "cc-review[bot]"
+          git config user.email "cc-review[bot]@users.noreply.github.com"
+          git checkout --detach 2>/dev/null || true
+
+          # ---- Write project memory to cc-review:claude-reviewer/memory ----
+          memory_push() {
+            git fetch origin claude-reviewer/memory 2>/dev/null || true
+            if git rev-parse --verify origin/claude-reviewer/memory >/dev/null 2>&1; then
+              git checkout -B claude-reviewer/memory origin/claude-reviewer/memory
+            else
+              git checkout --orphan claude-reviewer/memory
+              git rm -rf . 2>/dev/null || true
+              printf '%s\n\n%s\n' "# cc-review memory" "Per-project review state. Each top-level directory is one consumer repository (\`<owner>/<repo>/\`)." > README.md
+              git add README.md
+              git commit -m "Initialize memory branch"
+            fi
+
+            # Replace the slice with the freshly-edited /tmp/memory/ tree
+            mkdir -p "${SLICE}"
+            rm -rf "${SLICE}/MEMORY.md" "${SLICE}/notes" "${SLICE}/advice" "${SLICE}/reviews" 2>/dev/null || true
+            cp -r /tmp/memory/. "${SLICE}/" 2>/dev/null || true
+
+            # Always (re)write the latest review log
+            {
+              printf '%s\n' "# Last Review Log — PR #${PR_NUMBER}"
+              printf '%s\n' ""
+              printf '%s\n' "| Field | Value |"
+              printf '%s\n' "|-------|-------|"
+              printf '%s\n' "| Status | ${REVIEW_STATUS} |"
+              printf '%s\n' "| Date | $(date -u '+%Y-%m-%d %H:%M UTC') |"
+              printf '%s\n' "| Run | https://github.com/${REPO}/actions/runs/${RUN_ID} |"
+              printf '%s\n' ""
+              printf '%s\n' "## Claude Output"
+              printf '%s\n' ""
+              printf '%s\n' '```'
+              cat /tmp/review-output.txt 2>/dev/null || echo "No output captured"
+              printf '%s\n' '```'
+            } > "${SLICE}/REVIEW_LOG.md"
+
+            git add "${SLICE}/"
+            if git diff --cached --quiet; then
+              echo "No memory changes."
+              return 0
+            fi
+            git commit -m "Update memory for ${REPO} PR #${PR_NUMBER}"
+            git push origin claude-reviewer/memory
+          }
+
+          for attempt in 1 2 3; do
+            if memory_push; then
+              break
+            fi
+            echo "Memory push attempt $attempt failed; sleeping then retrying..."
+            sleep $((attempt * 5))
+          done
+
+          # ---- Write transcript to consumer:claude-reviewer/transcripts ----
+          # Only the last run for each PR is kept (overwritten in place).
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "cc-review[bot]"
+          git config user.email "cc-review[bot]@users.noreply.github.com"
+
+          # Working tree currently has the PR's checkout — wipe before switching.
+          git reset --hard HEAD 2>/dev/null || true
+          git clean -fdx 2>/dev/null || true
+
+          transcript_push() {
+            git fetch origin claude-reviewer/transcripts 2>/dev/null || true
+            if git rev-parse --verify origin/claude-reviewer/transcripts >/dev/null 2>&1; then
+              git checkout -B claude-reviewer/transcripts origin/claude-reviewer/transcripts
+            else
+              git checkout --orphan claude-reviewer/transcripts
+              git rm -rf . 2>/dev/null || true
+              git clean -fdx 2>/dev/null || true
+              printf '%s\n\n%s\n' "# cc-review transcripts" "JSONL chat transcripts for the most recent run on each PR. Updated in place — only the last run per PR is kept." > README.md
+              git add README.md
+              git commit -m "Initialize transcripts branch"
+            fi
+
+            mkdir -p "PR-${PR_NUMBER}"
+            cp /tmp/session.jsonl "PR-${PR_NUMBER}/session.jsonl" 2>/dev/null || true
+            {
+              printf '%s\n' "{"
+              printf '  "pr": %s,\n' "${PR_NUMBER}"
+              printf '  "status": "%s",\n' "${REVIEW_STATUS}"
+              printf '  "date": "%s",\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              printf '  "run_url": "https://github.com/%s/actions/runs/%s"\n' "${REPO}" "${RUN_ID}"
+              printf '%s\n' "}"
+            } > "PR-${PR_NUMBER}/meta.json"
+
+            git add "PR-${PR_NUMBER}/"
+            if git diff --cached --quiet; then
+              echo "No transcript changes."
+              return 0
+            fi
+            git commit -m "Update transcript for PR #${PR_NUMBER}"
+            git push origin claude-reviewer/transcripts
+          }
+
+          for attempt in 1 2 3; do
+            if transcript_push; then
+              break
+            fi
+            echo "Transcript push attempt $attempt failed; sleeping then retrying..."
+            sleep $((attempt * 5))
+          done
