@@ -1,5 +1,9 @@
 export type CheckDecision = "allow" | "ask" | "deny";
 
+/** Rule-side decisions never include "allow" — a rule that didn't fire returns
+ *  no decision; "allow" is only meaningful as the absence-of-match result. */
+export type RuleDecision = "ask" | "deny";
+
 export type CheckResult =
   | { decision: "allow" }
   | { decision: "ask"; reason: string }
@@ -18,7 +22,7 @@ export interface CallRule {
   noFlags?: string[];
   args?: string[]; // all of these must appear in non-flag args
   hasDdash?: boolean;
-  decision: CheckDecision;
+  decision: RuleDecision;
   reason: string;
 }
 
@@ -26,14 +30,14 @@ export interface PipeRule {
   kind: "pipe";
   from: string[];
   into: string[];
-  decision: CheckDecision;
+  decision: RuleDecision;
   reason: string;
 }
 
 export interface RedirectRule {
   kind: "redirect";
   pathPattern?: RegExp;
-  decision: CheckDecision;
+  decision: RuleDecision;
   reason: string;
 }
 
@@ -47,7 +51,7 @@ export interface PathRule {
   kind: "path";
   event: "write" | "read" | "both";
   pattern: RegExp;
-  decision: CheckDecision;
+  decision: RuleDecision;
   reason: string;
 }
 

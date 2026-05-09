@@ -1,9 +1,9 @@
 import type {
   CallRule,
-  CheckDecision,
   PipeRule,
   RecurseRule,
   RedirectRule,
+  RuleDecision,
 } from "@/check/types";
 
 export function callRule(
@@ -14,7 +14,7 @@ export function callRule(
     noFlags?: string[];
     args?: string[];
     hasDdash?: boolean;
-    decision?: CheckDecision;
+    decision?: RuleDecision;
     reason: string;
   }
 ): CallRule {
@@ -25,14 +25,14 @@ export function pipeRule(
   from: string[],
   into: string[],
   reason: string,
-  decision: CheckDecision = "ask"
+  decision: RuleDecision = "ask"
 ): PipeRule {
   return { kind: "pipe", from, into, decision, reason };
 }
 
 export function redirectRule(
   reason: string,
-  opts: { pathPattern?: RegExp; decision?: CheckDecision } = {}
+  opts: { pathPattern?: RegExp; decision?: RuleDecision } = {}
 ): RedirectRule {
   return { kind: "redirect", decision: opts.decision ?? "ask", reason, ...opts };
 }

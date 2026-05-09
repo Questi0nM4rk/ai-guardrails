@@ -1,6 +1,6 @@
 # Overnight Session State
 
-## Status: FINAL_REVIEW
+## Status: COMPLETE
 
 ## Feature: init-improvements (SPEC-010 through SPEC-013)
 ## Branch: feat/spec-010-013-init-improvements
@@ -20,7 +20,7 @@
 #199: feat/spec-010-013-init-improvements → main (awaiting cc-review)
 
 ## Current Action
-All 7 phases merged into feature branch. Final PR #199 open for review.
+COMPLETE — PR #199 merged to main. All 7 phases shipped.
 
 ## Next Steps
 1. Get PR #188 approved and merged

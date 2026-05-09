@@ -55,10 +55,9 @@ complete -c ai-guardrails -n '__fish_seen_subcommand_from status' -l project-dir
 complete -c ai-guardrails -n '__fish_seen_subcommand_from report' -l project-dir -d 'Override working directory' -r
 
 # hook subcommands
-complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'dangerous-cmd' -d 'Check for dangerous shell commands'
-complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'protect-configs' -d 'Protect managed config files'
-complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'protect-reads' -d 'Protect sensitive file reads'
-complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'suppress-comments' -d 'Remove AI comment markers'
+complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'run' -d 'Evaluate a tool event against AG rules'
+complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'suppress-comments' -d 'Detect linter-suppression comments'
+complete -c ai-guardrails -n '__fish_seen_subcommand_from hook' -a 'format-stage' -d 'Format and re-stage files'
 
 # completion subcommands
 complete -c ai-guardrails -n '__fish_seen_subcommand_from completion' -a 'bash' -d 'Bash completion'

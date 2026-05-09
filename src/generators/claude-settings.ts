@@ -1,6 +1,7 @@
 import { ALL_RULE_GROUPS, collectDenyGlobs } from "@/check/rules/groups";
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
+import { HOOK_COMMAND } from "@/hooks/command";
 
 interface HookEntry {
   type: string;
@@ -22,48 +23,21 @@ interface ClaudeSettings {
 }
 
 function renderClaudeSettings(_config: ResolvedConfig): string {
-  // settings.json must be strict JSON (no comments) for all JSON parsers.
-  // Staleness/tamper detection is handled by validate-configs comparing
-  // regenerated content against on-disk content directly.
-  //
-  // Always emit ALL deny globs regardless of disabled_groups config.
-  // settings.json deny patterns are a first-layer static safety net,
-  // independent of hook-level config toggling.
-  const guard = "command -v ai-guardrails >/dev/null 2>&1 || exit 0";
-  const bin = "ai-guardrails";
+  // Deny globs always include every group regardless of disabled_groups —
+  // settings.json deny patterns are a static safety net independent of the
+  // hook-level config toggle.
   const settings: ClaudeSettings = {
     permissions: {
       deny: collectDenyGlobs(ALL_RULE_GROUPS),
     },
     hooks: {
       PreToolUse: [
-        {
-          matcher: "Bash",
-          hooks: [
-            {
-              type: "command",
-              command: `${guard}; ${bin} hook dangerous-cmd`,
-            },
-          ],
-        },
+        { matcher: "Bash", hooks: [{ type: "command", command: HOOK_COMMAND }] },
         {
           matcher: "Edit|Write|NotebookEdit",
-          hooks: [
-            {
-              type: "command",
-              command: `${guard}; ${bin} hook protect-configs`,
-            },
-          ],
+          hooks: [{ type: "command", command: HOOK_COMMAND }],
         },
-        {
-          matcher: "Read",
-          hooks: [
-            {
-              type: "command",
-              command: `${guard}; ${bin} hook protect-reads`,
-            },
-          ],
-        },
+        { matcher: "Read", hooks: [{ type: "command", command: HOOK_COMMAND }] },
       ],
     },
   };

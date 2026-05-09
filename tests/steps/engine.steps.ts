@@ -1,7 +1,7 @@
 import { expect } from "bun:test";
 import type { World } from "@questi0nm4rk/feats";
 import { Given, Then, When } from "@questi0nm4rk/feats";
-import { evaluate } from "@/check/engine";
+import { evaluate as hkEvaluate } from "@questi0nm4rk/hook-kit";
 import {
   ALL_RULE_GROUPS,
   COMMAND_RULES,
@@ -11,7 +11,18 @@ import {
 } from "@/check/rules/groups";
 import { DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import { buildRuleSet } from "@/check/ruleset";
-import type { CheckResult, RuleSet } from "@/check/types";
+import { buildAllModules, fromHookKit, synthesizeHookEvent } from "@/check/to-hook-kit";
+import type { CheckResult, RuleSet, ToolEvent } from "@/check/types";
+
+const TEST_LABEL = "[test]";
+
+/** Drop-in for the old `evaluate(toolEvent, ruleset)` — runs through hook-kit
+ *  and maps the Decision back to AG's CheckResult so the BDD assertions are
+ *  unchanged. */
+async function evaluate(event: ToolEvent, ruleset: RuleSet): Promise<CheckResult> {
+  const modules = buildAllModules(ruleset, TEST_LABEL);
+  return fromHookKit(await hkEvaluate(synthesizeHookEvent(event, "test"), modules));
+}
 
 interface EngineWorld extends World {
   ruleset: RuleSet;

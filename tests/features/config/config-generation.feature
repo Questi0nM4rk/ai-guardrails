@@ -208,22 +208,22 @@ Feature: Config file generation
     When I generate with default config
     Then the output should match the snapshot
 
-  Scenario: claudeSettingsGenerator includes dangerous-cmd hook for Bash
+  Scenario: claudeSettingsGenerator wires the unified hook for Bash
     Given the claude-settings generator
     When I generate with default config
-    Then the output should contain "dangerous-cmd"
+    Then the output should contain "hook run"
     And the output should contain '"Bash"'
 
-  Scenario: claudeSettingsGenerator includes protect-configs hook
+  Scenario: claudeSettingsGenerator wires the unified hook for Edit/Write/NotebookEdit
     Given the claude-settings generator
     When I generate with default config
-    Then the output should contain "protect-configs"
+    Then the output should contain "hook run"
     And the output should contain "Edit|Write|NotebookEdit"
 
-  Scenario: claudeSettingsGenerator includes protect-reads hook for Read
+  Scenario: claudeSettingsGenerator wires the unified hook for Read
     Given the claude-settings generator
     When I generate with default config
-    Then the output should contain "protect-reads"
+    Then the output should contain "hook run"
     And the output should contain '"Read"'
 
   Scenario: claudeSettingsGenerator includes DANGEROUS_DENY_GLOBS in permissions.deny
