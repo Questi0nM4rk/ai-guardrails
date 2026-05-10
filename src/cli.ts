@@ -146,10 +146,7 @@ program
 program
   .command("hook")
   .description("Internal hook dispatcher (invoked by lefthook / Claude Code)")
-  .argument(
-    "<hook-name>",
-    "Hook to run: dangerous-cmd | protect-configs | suppress-comments | format-stage"
-  )
+  .argument("<hook-name>", "Hook to run: run | suppress-comments | format-stage")
   .argument("[args...]", "Additional arguments (e.g. staged file paths)")
   .action(async (hookName, args) => {
     await runHook(hookName, args);

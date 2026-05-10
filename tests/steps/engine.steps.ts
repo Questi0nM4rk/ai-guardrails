@@ -1,7 +1,7 @@
 import { expect } from "bun:test";
 import type { World } from "@questi0nm4rk/feats";
 import { Given, Then, When } from "@questi0nm4rk/feats";
-import { evaluate } from "@/check/engine";
+import { evaluate as hkEvaluate } from "@questi0nm4rk/hook-kit";
 import {
   ALL_RULE_GROUPS,
   COMMAND_RULES,
@@ -11,7 +11,15 @@ import {
 } from "@/check/rules/groups";
 import { DEFAULT_PATH_RULES } from "@/check/rules/paths";
 import { buildRuleSet } from "@/check/ruleset";
-import type { CheckResult, RuleSet } from "@/check/types";
+import { buildAllModules, fromHookKit, synthesizeHookEvent } from "@/check/to-hook-kit";
+import type { CheckResult, RuleSet, ToolEvent } from "@/check/types";
+
+const TEST_LABEL = "[test]";
+
+async function evaluate(event: ToolEvent, ruleset: RuleSet): Promise<CheckResult> {
+  const modules = buildAllModules(ruleset, TEST_LABEL);
+  return fromHookKit(await hkEvaluate(synthesizeHookEvent(event, "test"), modules));
+}
 
 interface EngineWorld extends World {
   ruleset: RuleSet;
@@ -275,10 +283,6 @@ Then<EngineWorld>(
   }
 );
 
-Then<EngineWorld>("it should not contain a recurse rule", (_world: EngineWorld) => {
-  expect(COMMAND_RULES.some((r) => r.kind === "recurse")).toBe(false);
-});
-
 Then<EngineWorld>(
   "it should contain an rm call rule with --recursive and --force",
   (_world: EngineWorld) => {
@@ -329,13 +333,6 @@ Then<EngineWorld>("the ruleset should have path rules", (world: EngineWorld) => 
 });
 
 Then<EngineWorld>(
-  "the first command rule should be a recurse rule",
-  (world: EngineWorld) => {
-    expect(world.ruleset.commandRules[0]?.kind).toBe("recurse");
-  }
-);
-
-Then<EngineWorld>(
   "the path rules should match {string} for write",
   (world: EngineWorld, file: unknown) => {
     const r = world.ruleset.pathRules.find(
@@ -346,10 +343,10 @@ Then<EngineWorld>(
 );
 
 Then<EngineWorld>(
-  "the command rule count should equal 1 plus the total domain rules",
+  "the command rule count should equal the total domain rules",
   (world: EngineWorld) => {
     const totalDomain = collectCommandRules(ALL_RULE_GROUPS).length;
-    expect(world.ruleset.commandRules.length).toBe(1 + totalDomain);
+    expect(world.ruleset.commandRules.length).toBe(totalDomain);
   }
 );
 
@@ -359,7 +356,7 @@ Then<EngineWorld>(
     const groupRules =
       ALL_RULE_GROUPS.find((g) => g.id === String(groupId))?.commandRules.length ?? 0;
     const totalDomain = collectCommandRules(ALL_RULE_GROUPS).length;
-    expect(world.ruleset.commandRules.length).toBe(1 + totalDomain - groupRules);
+    expect(world.ruleset.commandRules.length).toBe(totalDomain - groupRules);
   }
 );
 
@@ -372,14 +369,12 @@ Then<EngineWorld>(
       ALL_RULE_GROUPS.find((g) => g.id === "chmod-world-writable")?.commandRules
         .length ?? 0;
     const totalDomain = collectCommandRules(ALL_RULE_GROUPS).length;
-    expect(world.ruleset.commandRules.length).toBe(
-      1 + totalDomain - rmRules - chmodRules
-    );
+    expect(world.ruleset.commandRules.length).toBe(totalDomain - rmRules - chmodRules);
   }
 );
 
-Then<EngineWorld>("the command rule count should be 1", (world: EngineWorld) => {
-  expect(world.ruleset.commandRules.length).toBe(1);
+Then<EngineWorld>("the command rule count should be 0", (world: EngineWorld) => {
+  expect(world.ruleset.commandRules.length).toBe(0);
 });
 
 Then<EngineWorld>(

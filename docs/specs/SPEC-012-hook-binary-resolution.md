@@ -98,11 +98,22 @@ const bin = "ai-guardrails";
 
 All three hook entries (lines 44, 53, 62) update from `./dist/ai-guardrails` to `${bin}`:
 
-| Matcher | Command |
-|---------|---------|
-| `Bash` | `${guard}; ${bin} hook dangerous-cmd` |
-| `Edit\|Write\|NotebookEdit` | `${guard}; ${bin} hook protect-configs` |
-| `Read` | `${guard}; ${bin} hook protect-reads` |
+Post hook-kit dogfood: a single subcommand handles every matcher; hook-kit's
+matcher filtering routes the event to the relevant rules. The command also
+guards `hook-kit` (a hard prereq, verified at install time) and exports
+`HOOK_KIT_ASKPASS` so escalations route through the broker tree:
+
+```bash
+command -v ai-guardrails >/dev/null 2>&1 || exit 0;
+command -v hook-kit >/dev/null 2>&1 || exit 0;
+HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run
+```
+
+| Matcher | Subcommand |
+|---------|------------|
+| `Bash` | `ai-guardrails hook run` |
+| `Edit\|Write\|NotebookEdit` | `ai-guardrails hook run` |
+| `Read` | `ai-guardrails hook run` |
 
 ---
 

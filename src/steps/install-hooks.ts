@@ -1,5 +1,6 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { HOOK_COMMAND } from "@/hooks/command";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
@@ -11,36 +12,12 @@ import {
 } from "@/utils/merge-claude-settings";
 
 const GUARDRAILS_HOOKS = [
-  {
-    matcher: "Bash",
-    hooks: [
-      {
-        type: "command",
-        command:
-          "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook dangerous-cmd",
-      },
-    ],
-  },
+  { matcher: "Bash", hooks: [{ type: "command", command: HOOK_COMMAND }] },
   {
     matcher: "Edit|Write|NotebookEdit",
-    hooks: [
-      {
-        type: "command",
-        command:
-          "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-configs",
-      },
-    ],
+    hooks: [{ type: "command", command: HOOK_COMMAND }],
   },
-  {
-    matcher: "Read",
-    hooks: [
-      {
-        type: "command",
-        command:
-          "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-reads",
-      },
-    ],
-  },
+  { matcher: "Read", hooks: [{ type: "command", command: HOOK_COMMAND }] },
 ] as const;
 
 export async function installHooksStep(

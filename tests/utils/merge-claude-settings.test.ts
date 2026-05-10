@@ -4,11 +4,11 @@ import { type ClaudeSettings, mergeHooks } from "@/utils/merge-claude-settings";
 const SAMPLE_HOOKS = [
   {
     matcher: "Bash",
-    hooks: [{ type: "command", command: "ai-guardrails hook dangerous-cmd" }],
+    hooks: [{ type: "command", command: "ai-guardrails hook run" }],
   },
   {
     matcher: "Edit|Write|NotebookEdit",
-    hooks: [{ type: "command", command: "ai-guardrails hook protect-configs" }],
+    hooks: [{ type: "command", command: "ai-guardrails hook run" }],
   },
 ] as const;
 
@@ -48,7 +48,7 @@ describe("mergeHooks", () => {
         PreToolUse: [
           {
             matcher: "Bash",
-            hooks: [{ type: "command", command: "ai-guardrails hook dangerous-cmd" }],
+            hooks: [{ type: "command", command: "ai-guardrails hook run" }],
           },
         ],
       },

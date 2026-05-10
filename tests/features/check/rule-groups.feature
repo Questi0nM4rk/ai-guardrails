@@ -47,10 +47,6 @@ Feature: Rule groups structure and toggling
     When I collect deny globs from no groups
     Then the result should be empty
 
-  Scenario: COMMAND_RULES does not contain a RecurseRule
-    Given the COMMAND_RULES export
-    Then it should not contain a recurse rule
-
   Scenario: COMMAND_RULES contains rm CallRule
     Given the COMMAND_RULES export
     Then it should contain an rm call rule with --recursive and --force
@@ -72,17 +68,13 @@ Feature: Rule groups structure and toggling
     Then the ruleset should have command rules
     And the ruleset should have path rules
 
-  Scenario: buildRuleSet injects recurse rule
-    Given a ruleset built with empty config
-    Then the first command rule should be a recurse rule
-
   Scenario: buildRuleSet adds protectWrite for custom managedFiles
     Given a ruleset built with managedFiles containing "custom.lock"
     Then the path rules should match "custom.lock" for write
 
   Scenario: buildRuleSet with empty config returns all rules
     Given a ruleset built with empty config
-    Then the command rule count should equal 1 plus the total domain rules
+    Then the command rule count should equal the total domain rules
 
   Scenario: Disabling destructive-rm removes its rules
     Given a ruleset built with disabledGroups "destructive-rm"
@@ -92,18 +84,17 @@ Feature: Rule groups structure and toggling
     Given a ruleset built with disabledGroups "destructive-rm" and "chmod-world-writable"
     Then the command rule count should be reduced by those groups combined
 
-  Scenario: Recurse rule always present when all groups disabled
+  Scenario: Disabling all groups produces an empty command ruleset
     Given a ruleset built with all groups disabled
-    Then the command rule count should be 1
-    And the first command rule should be a recurse rule
+    Then the command rule count should be 0
 
   Scenario: Unknown group names do not break buildRuleSet
     Given a ruleset built with disabledGroups "nonexistent"
-    Then the command rule count should equal 1 plus the total domain rules
+    Then the command rule count should equal the total domain rules
 
   Scenario: Empty disabledGroups enables all groups
     Given a ruleset built with empty disabledGroups
-    Then the command rule count should equal 1 plus the total domain rules
+    Then the command rule count should equal the total domain rules
 
   Scenario: Path rules unaffected by disabledGroups
     Given a ruleset built with disabledGroups "destructive-rm"

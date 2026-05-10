@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@commander-js/extra-typings": "^13.0.0",
+    "@questi0nm4rk/hook-kit": "^0.2.0",
     "@questi0nm4rk/shell-ast": "^0.1.0",
     "minimatch": "^10.0.0",
     "smol-toml": "^1.5.1",
