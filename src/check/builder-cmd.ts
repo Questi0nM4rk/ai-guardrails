@@ -1,10 +1,4 @@
-import type {
-  CallRule,
-  PipeRule,
-  RecurseRule,
-  RedirectRule,
-  RuleDecision,
-} from "@/check/types";
+import type { CallRule, PipeRule, RedirectRule, RuleDecision } from "@/check/types";
 
 export function callRule(
   cmd: string,
@@ -35,8 +29,4 @@ export function redirectRule(
   opts: { pathPattern?: RegExp; decision?: RuleDecision } = {}
 ): RedirectRule {
   return { kind: "redirect", decision: opts.decision ?? "ask", reason, ...opts };
-}
-
-export function recurseRule(): RecurseRule {
-  return { kind: "recurse" };
 }

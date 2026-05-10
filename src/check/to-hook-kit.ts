@@ -21,10 +21,23 @@ import type {
   ToolEvent,
 } from "@/check/types";
 
+/** Tool-name vocabulary the rules speak. These match Claude Code's tool names
+ *  today; a non-Claude harness adapter would translate its native names into
+ *  this vocabulary before hook-kit's matcher filter runs. */
+export const CC_TOOL = {
+  BASH: "Bash",
+  EDIT: "Edit",
+  WRITE: "Write",
+  NOTEBOOK_EDIT: "NotebookEdit",
+  READ: "Read",
+} as const;
+
+const PRETOOLUSE = "PreToolUse" as const;
+
 const TOOL_BY_EVENT_TYPE = {
-  bash: "Bash",
-  write: "Write",
-  read: "Read",
+  bash: CC_TOOL.BASH,
+  write: CC_TOOL.WRITE,
+  read: CC_TOOL.READ,
 } as const;
 
 function toHookKitTerminal(
@@ -59,8 +72,6 @@ function redirectToHkRule(r: RedirectRule, label: string): Rule {
   return toHookKitTerminal(b, r.decision, r.reason, label);
 }
 
-/** `recurse` is handled natively by hook-kit's engine (default-on), so it's a
- *  no-op in the translator. */
 export function toCommandModule(
   rules: readonly CommandRule[],
   label: string
@@ -75,8 +86,8 @@ export function toCommandModule(
     {
       id: "ai-guardrails-bash",
       name: "ai-guardrails Bash rules",
-      events: ["PreToolUse"],
-      matchers: ["Bash"],
+      events: [PRETOOLUSE],
+      matchers: [CC_TOOL.BASH],
     },
     hkRules
   );
@@ -111,8 +122,8 @@ export function toPathModules(rules: readonly PathRule[], label: string): HookMo
         {
           id: "ai-guardrails-paths-write",
           name: "ai-guardrails write protection",
-          events: ["PreToolUse"],
-          matchers: ["Edit", "Write", "NotebookEdit"],
+          events: [PRETOOLUSE],
+          matchers: [CC_TOOL.EDIT, CC_TOOL.WRITE, CC_TOOL.NOTEBOOK_EDIT],
         },
         writeRules
       )
@@ -124,8 +135,8 @@ export function toPathModules(rules: readonly PathRule[], label: string): HookMo
         {
           id: "ai-guardrails-paths-read",
           name: "ai-guardrails read protection",
-          events: ["PreToolUse"],
-          matchers: ["Read"],
+          events: [PRETOOLUSE],
+          matchers: [CC_TOOL.READ],
         },
         readRules
       )
@@ -137,8 +148,8 @@ export function toPathModules(rules: readonly PathRule[], label: string): HookMo
         {
           id: "ai-guardrails-redirects",
           name: "ai-guardrails Bash redirect protection",
-          events: ["PreToolUse"],
-          matchers: ["Bash"],
+          events: [PRETOOLUSE],
+          matchers: [CC_TOOL.BASH],
         },
         redirectRules
       )
@@ -169,7 +180,7 @@ export function fromHookKit(
  *  claudeCodeAdapter, which constructs HookEvents from real stdin instead. */
 export function synthesizeHookEvent(event: ToolEvent, sessionId: string): HookEvent {
   const base = {
-    eventName: "PreToolUse" as const,
+    eventName: PRETOOLUSE,
     sessionId,
     cwd: process.cwd(),
     transcriptPath: "",

@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse as parseToml } from "smol-toml";
-import { recurseRule } from "@/check/builder-cmd";
 import { protectRead, protectWrite } from "@/check/builder-path";
 import { ALL_RULE_GROUPS, collectCommandRules } from "@/check/rules/groups";
 import { DEFAULT_MANAGED_FILES, DEFAULT_PATH_RULES } from "@/check/rules/paths";
@@ -14,10 +13,9 @@ export function buildRuleSet(config: HooksConfig): RuleSet {
   const disabled = new Set(config.disabledGroups ?? []);
   const activeGroups = ALL_RULE_GROUPS.filter((g) => !disabled.has(g.id));
 
-  const commandRules: CommandRule[] = [
-    recurseRule(), // always active regardless of disabled groups
-    ...collectCommandRules(activeGroups),
-  ];
+  // Inline-shell recursion is a hook-kit engine default; AG no longer needs to
+  // synthesize a recurse marker rule.
+  const commandRules: readonly CommandRule[] = collectCommandRules(activeGroups);
 
   const extraPathRules = [
     ...DEFAULT_MANAGED_FILES.map((f) =>

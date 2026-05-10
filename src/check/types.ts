@@ -41,11 +41,7 @@ export interface RedirectRule {
   reason: string;
 }
 
-export interface RecurseRule {
-  kind: "recurse";
-}
-
-export type CommandRule = CallRule | PipeRule | RedirectRule | RecurseRule;
+export type CommandRule = CallRule | PipeRule | RedirectRule;
 
 export interface PathRule {
   kind: "path";

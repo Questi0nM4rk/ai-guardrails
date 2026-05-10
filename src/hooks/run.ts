@@ -1,4 +1,8 @@
-// Hook entrypoint — delegates to hook-kit's claudeCodeAdapter.
+// Hook entrypoint.
+//
+// Adapter is hardcoded to Claude Code today because that's the only harness
+// AG ships wiring for. Swap (or select via env) here when other harnesses
+// arrive — modules, rules, translator, broker contract are already neutral.
 
 import { evaluate as hkEvaluate, run } from "@questi0nm4rk/hook-kit";
 import { claudeCodeAdapter } from "@questi0nm4rk/hook-kit/adapters/claude-code";
