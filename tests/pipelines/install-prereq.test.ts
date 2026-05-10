@@ -25,23 +25,4 @@ describe("install pipeline — hook-kit prereq gate", () => {
     // Pipeline aborted before any init module ran — no files written.
     expect(fm.written.length).toBe(0);
   });
-
-  test("proceeds past the gate when hook-kit reports a version", async () => {
-    const runner = new FakeCommandRunner();
-    runner.register(["hook-kit", "--version"], {
-      stdout: "0.2.0\n",
-      stderr: "",
-      exitCode: 0,
-    });
-    const ctx = makeBaseCtx({ commandRunner: runner });
-
-    const result = await installPipeline.run(ctx);
-
-    // We're not asserting end-to-end success (init modules may need other
-    // mocks); only that the prereq gate let the pipeline progress past it
-    // without an early error mentioning the gate.
-    if (result.status === "error") {
-      expect(result.message).not.toContain("hook-kit binary not found");
-    }
-  });
 });

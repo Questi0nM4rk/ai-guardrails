@@ -34,12 +34,6 @@ export const CC_TOOL = {
 
 const PRETOOLUSE = "PreToolUse" as const;
 
-const TOOL_BY_EVENT_TYPE = {
-  bash: CC_TOOL.BASH,
-  write: CC_TOOL.WRITE,
-  read: CC_TOOL.READ,
-} as const;
-
 function toHookKitTerminal(
   builder: {
     deny: (r: string, l?: string) => Rule;
@@ -189,13 +183,13 @@ export function synthesizeHookEvent(event: ToolEvent, sessionId: string): HookEv
   if (event.type === "bash") {
     return {
       ...base,
-      toolName: TOOL_BY_EVENT_TYPE.bash,
+      toolName: CC_TOOL.BASH,
       toolInput: { command: event.command },
     };
   }
   return {
     ...base,
-    toolName: TOOL_BY_EVENT_TYPE[event.type],
+    toolName: event.type === "write" ? CC_TOOL.WRITE : CC_TOOL.READ,
     toolInput: { file_path: event.path },
   };
 }

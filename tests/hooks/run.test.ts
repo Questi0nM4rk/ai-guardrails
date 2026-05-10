@@ -14,14 +14,25 @@ interface Output {
   exitCode: number;
 }
 
-async function runHook(input: Record<string, unknown>): Promise<Output> {
+interface ParsedDecision {
+  hookSpecificOutput?: {
+    hookEventName?: string;
+    permissionDecision?: string;
+    permissionDecisionReason?: string;
+  };
+}
+
+async function runHook(
+  input: Record<string, unknown>,
+  envOverrides: Record<string, string> = {}
+): Promise<Output> {
   const proc = Bun.spawn(["bun", "run", CLI, "hook", "run"], {
     stdin: new Response(JSON.stringify(input)),
     stdout: "pipe",
     stderr: "pipe",
-    // Don't let the subprocess pick up HOOK_KIT_ASKPASS from the test env;
-    // unset askpass = harness-ask fallback, which is what we assert against.
-    env: { ...process.env, HOOK_KIT_ASKPASS: "" },
+    // Default: unset askpass so we exercise the harness-ask fallback. Tests
+    // that want the broker-failure path override with HOOK_KIT_ASKPASS.
+    env: { ...process.env, HOOK_KIT_ASKPASS: "", ...envOverrides },
   });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(proc.stdout).text(),
@@ -29,6 +40,10 @@ async function runHook(input: Record<string, unknown>): Promise<Output> {
     proc.exited,
   ]);
   return { stdout, stderr, exitCode };
+}
+
+function parseDecision(stdout: string): ParsedDecision {
+  return JSON.parse(stdout) as ParsedDecision;
 }
 
 const baseEvent = {
@@ -56,20 +71,10 @@ describe("hook run — subprocess smoke", () => {
       tool_input: { command: "git push --force" },
     });
     expect(out.exitCode).toBe(0);
-    const parsed = JSON.parse(out.stdout) as {
-      hookSpecificOutput?: {
-        hookEventName?: string;
-        permissionDecision?: string;
-        permissionDecisionReason?: string;
-      };
-    };
-    expect(parsed.hookSpecificOutput?.permissionDecision).toBe("ask");
-    expect(parsed.hookSpecificOutput?.permissionDecisionReason).toContain(
-      "[ai-guardrails]"
-    );
-    expect(parsed.hookSpecificOutput?.permissionDecisionReason).toContain(
-      "git push --force"
-    );
+    const decision = parseDecision(out.stdout).hookSpecificOutput;
+    expect(decision?.permissionDecision).toBe("ask");
+    expect(decision?.permissionDecisionReason).toContain("[ai-guardrails]");
+    expect(decision?.permissionDecisionReason).toContain("git push --force");
   });
 
   test("write to .env triggers a path-rule decision", async () => {
@@ -79,10 +84,9 @@ describe("hook run — subprocess smoke", () => {
       tool_input: { file_path: "/tmp/.env" },
     });
     expect(out.exitCode).toBe(0);
-    const parsed = JSON.parse(out.stdout) as {
-      hookSpecificOutput?: { permissionDecision?: string };
-    };
-    expect(parsed.hookSpecificOutput?.permissionDecision).toBe("ask");
+    expect(parseDecision(out.stdout).hookSpecificOutput?.permissionDecision).toBe(
+      "ask"
+    );
   });
 
   test("read of /home/.../.ssh/ triggers a path-rule decision", async () => {
@@ -92,34 +96,24 @@ describe("hook run — subprocess smoke", () => {
       tool_input: { file_path: "/home/me/.ssh/id_rsa" },
     });
     expect(out.exitCode).toBe(0);
-    const parsed = JSON.parse(out.stdout) as {
-      hookSpecificOutput?: { permissionDecision?: string };
-    };
-    expect(parsed.hookSpecificOutput?.permissionDecision).toBe("ask");
+    expect(parseDecision(out.stdout).hookSpecificOutput?.permissionDecision).toBe(
+      "ask"
+    );
   });
 
   test("misconfigured askpass denies (Iron Law 3 fail-closed)", async () => {
-    const proc = Bun.spawn(["bun", "run", CLI, "hook", "run"], {
-      stdin: new Response(
-        JSON.stringify({
-          ...baseEvent,
-          tool_name: "Bash",
-          tool_input: { command: "git push --force" },
-        })
-      ),
-      stdout: "pipe",
-      stderr: "pipe",
-      env: { ...process.env, HOOK_KIT_ASKPASS: "/bin/false" },
-    });
-    const [stdout, exitCode] = await Promise.all([
-      new Response(proc.stdout).text(),
-      proc.exited,
-    ]);
-    expect(exitCode).toBe(0);
-    const parsed = JSON.parse(stdout) as {
-      hookSpecificOutput?: { permissionDecision?: string };
-    };
+    const out = await runHook(
+      {
+        ...baseEvent,
+        tool_name: "Bash",
+        tool_input: { command: "git push --force" },
+      },
+      { HOOK_KIT_ASKPASS: "/bin/false" }
+    );
+    expect(out.exitCode).toBe(0);
     // Iron Law 3 exception: broker infra expected but broken → deny, not ask.
-    expect(parsed.hookSpecificOutput?.permissionDecision).toBe("block");
+    expect(parseDecision(out.stdout).hookSpecificOutput?.permissionDecision).toBe(
+      "block"
+    );
   });
 });
