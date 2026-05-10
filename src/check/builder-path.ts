@@ -1,10 +1,10 @@
-import type { CheckDecision, PathRule } from "@/check/types";
+import type { PathRule, RuleDecision } from "@/check/types";
 
 export function pathRule(
   pattern: RegExp,
   event: "write" | "read" | "both",
   reason: string,
-  decision: CheckDecision = "ask"
+  decision: RuleDecision = "ask"
 ): PathRule {
   return { kind: "path", pattern, event, decision, reason };
 }

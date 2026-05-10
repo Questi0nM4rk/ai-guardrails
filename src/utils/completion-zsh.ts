@@ -76,10 +76,9 @@ _ai_guardrails() {
         hook)
           local -a hooks
           hooks=(
-            'dangerous-cmd:Check for dangerous shell commands'
-            'protect-configs:Protect managed config files'
-            'protect-reads:Protect sensitive file reads'
-            'suppress-comments:Remove AI comment markers'
+            'run:Evaluate a tool event from a host harness against AG rules'
+            'suppress-comments:Detect linter-suppression comments'
+            'format-stage:Format and re-stage files'
           )
           _describe 'hook' hooks
           ;;

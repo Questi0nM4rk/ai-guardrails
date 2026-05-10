@@ -27,7 +27,6 @@ export function collectDenyGlobs(groups: readonly RuleGroup[]): readonly string[
   return groups.flatMap((g) => g.denyGlobs);
 }
 
-/** Backward-compatible exports — domain rules only (recurseRule is injected by buildRuleSet). */
 export const COMMAND_RULES: readonly CommandRule[] =
   collectCommandRules(ALL_RULE_GROUPS);
 export const DANGEROUS_DENY_GLOBS: readonly string[] =

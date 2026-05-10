@@ -6,6 +6,7 @@ import { executeModules } from "@/init/runner";
 import { applyFlagDisables } from "@/init/selections";
 import type { InitContext } from "@/init/types";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
+import { checkHookKitStep } from "@/steps/check-hook-kit";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { installHooksStep } from "@/steps/install-hooks";
 
@@ -45,6 +46,12 @@ async function buildInstallContext(
 
 export const installPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
+    const hkCheck = await checkHookKitStep(ctx.commandRunner);
+    if (hkCheck.status === "error") {
+      return { status: "error", message: hkCheck.message };
+    }
+    ctx.console.info(hkCheck.message);
+
     const { initCtx, error } = await buildInstallContext(ctx);
     if (initCtx === null) {
       return { status: "error", message: error ?? "Language detection failed" };

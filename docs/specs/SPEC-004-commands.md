@@ -27,9 +27,11 @@ ai-guardrails install [--upgrade]
 **What it does:**
 
 1. Scaffolds `~/.ai-guardrails/config.toml` with default profile (skip if exists, overwrite if `--upgrade`)
-2. Merges Claude Code PreToolUse hooks into `~/.claude/settings.json`:
-   - `ai-guardrails hook dangerous-cmd`
-   - `ai-guardrails hook protect-configs`
+2. Merges Claude Code PreToolUse hooks into `~/.claude/settings.json` —
+   one unified subcommand for every matcher (Bash, Edit/Write/NotebookEdit, Read):
+   - `HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run`
+3. Verifies `hook-kit` binary is on PATH (install fails if missing — AG
+   delegates rule evaluation and escalation routing to hook-kit at runtime).
 3. Prints confirmation of what was created/updated
 
 **Idempotent:** Re-running without `--upgrade` is safe — skips existing files,

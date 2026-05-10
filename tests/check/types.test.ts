@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { callRule, pipeRule, recurseRule, redirectRule } from "@/check/builder-cmd";
+import { callRule, pipeRule, redirectRule } from "@/check/builder-cmd";
 import { protectRead, protectWrite } from "@/check/builder-path";
 
 describe("callRule", () => {
@@ -32,13 +32,6 @@ describe("redirectRule", () => {
     const r = redirectRule("redirect to config");
     expect(r.kind).toBe("redirect");
     expect(r.decision).toBe("ask");
-  });
-});
-
-describe("recurseRule", () => {
-  test("returns kind recurse", () => {
-    const r = recurseRule();
-    expect(r.kind).toBe("recurse");
   });
 });
 

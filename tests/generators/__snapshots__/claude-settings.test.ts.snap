@@ -45,7 +45,7 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook dangerous-cmd"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
           }
         ]
       },
@@ -54,7 +54,7 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-configs"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
           }
         ]
       },
@@ -63,7 +63,7 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; ai-guardrails hook protect-reads"
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
           }
         ]
       }

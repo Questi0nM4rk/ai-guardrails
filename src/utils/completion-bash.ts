@@ -33,7 +33,7 @@ _ai_guardrails() {
       COMPREPLY=($(compgen -W "--project-dir" -- "$cur"))
       ;;
     hook)
-      COMPREPLY=($(compgen -W "dangerous-cmd protect-configs protect-reads suppress-comments" -- "$cur"))
+      COMPREPLY=($(compgen -W "run suppress-comments format-stage" -- "$cur"))
       ;;
     completion)
       COMPREPLY=($(compgen -W "bash zsh fish" -- "$cur"))

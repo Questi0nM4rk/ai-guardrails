@@ -2,6 +2,16 @@
 
 ## Status: Draft
 
+> **Hook-kit dogfood update (post-rewrite):** the three Claude Code PreToolUse
+> subcommands (`hook dangerous-cmd`, `hook protect-configs`, `hook protect-reads`)
+> are consolidated into a single `hook run` entrypoint. Rule evaluation is
+> delegated to `@questi0nm4rk/hook-kit`'s engine and `claudeCodeAdapter`;
+> escalation routes through `hook-kit broker --askpass` so risky-command
+> approvals stay out of Claude's native ask UI when a listener is reachable
+> in the parent session chain. The per-subcommand sections below describe
+> the **legacy** shell-protocol implementation prior to that consolidation;
+> the wire shape of `hook run` is hook-kit's `claudeCodeAdapter` output.
+
 ---
 
 ## Overview
@@ -10,6 +20,8 @@ Two hook categories:
 
 1. **Claude Code PreToolUse hooks** — intercept tool calls in-process before
    execution. Installed globally into `~/.claude/settings.json` by `ai-guardrails install`.
+   One unified `hook run` subcommand handles every matcher; rule selection is
+   driven by `[hooks].disabled_groups` in the project config.
 2. **Lefthook commit hooks** — run at pre-commit time. Installed per-project by
    `ai-guardrails init` via `lefthook.yml` generation.
 
@@ -30,8 +42,10 @@ Installed into `~/.claude/settings.json`:
       {
         "matcher": "Bash",
         "hooks": [
-          { "type": "command", "command": "ai-guardrails hook dangerous-cmd" },
-          { "type": "command", "command": "ai-guardrails hook protect-configs" }
+          {
+            "type": "command",
+            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
+          }
         ]
       }
     ]
@@ -51,7 +65,7 @@ The two supported patterns:
 - Used in `~/.claude/settings.json` after `ai-guardrails install`
 
 ```json
-{ "type": "command", "command": "ai-guardrails hook dangerous-cmd" }
+{ "type": "command", "command": "ai-guardrails hook run" }
 ```
 
 The binary invokes the hook subcommand directly — no separate script needed.
