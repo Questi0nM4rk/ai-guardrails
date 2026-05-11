@@ -223,10 +223,10 @@ Feature: Config file generation
     When I generate with default config
     Then the output should contain "Edit|Write|NotebookEdit"
 
-  Scenario: claudeSettingsGenerator includes DANGEROUS_DENY_GLOBS in permissions.deny
+  Scenario: claudeSettingsGenerator does not duplicate hook rules in permissions.deny (BUG-009)
     Given the claude-settings generator
     When I generate with default config
-    Then the permissions.deny array should be non-empty
+    Then the output should not contain "permissions"
 
   # ─── agent-rules generator ─────────────────────────────────────────────────
 

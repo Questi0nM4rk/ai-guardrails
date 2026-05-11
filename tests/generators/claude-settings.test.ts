@@ -50,9 +50,12 @@ describe("claudeSettingsGenerator", () => {
     expect(() => JSON.parse(output)).not.toThrow();
   });
 
-  test("generate output contains permissions.deny array", () => {
-    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
-    expect(Array.isArray(parsed.permissions?.deny)).toBe(true);
+  test("generate output does not duplicate hook rules in permissions.deny (BUG-009)", () => {
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig())) as Record<
+      string,
+      unknown
+    >;
+    expect(parsed.permissions).toBeUndefined();
   });
 
   test("generate output contains exactly one PreToolUse and one PostToolUse hook", () => {

@@ -23,7 +23,12 @@ export const agentRulesModule: InitModule = {
   },
 
   async execute(ctx: InitContext): Promise<InitModuleResult> {
-    const result = await setupAgentInstructionsStep(ctx.projectDir, ctx.fileManager);
+    const force = ctx.flags.force === true;
+    const result = await setupAgentInstructionsStep(
+      ctx.projectDir,
+      ctx.fileManager,
+      force
+    );
 
     if (result.status === "error") {
       return { status: "error", message: result.message };

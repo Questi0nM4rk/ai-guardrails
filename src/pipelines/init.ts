@@ -8,6 +8,7 @@ import type { InitContext } from "@/init/types";
 import { runWizard } from "@/init/wizard";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
+import { checkHkBinariesStep } from "@/steps/check-hk-binaries";
 import { detectLanguagesStep } from "@/steps/detect-languages";
 import { detectGitHubRepo } from "@/utils/github-repo";
 
@@ -74,6 +75,16 @@ export const initPipeline: Pipeline = {
           ".ai-guardrails/config.toml already exists. Use --force to overwrite or --upgrade to refresh.",
       };
     }
+
+    // BUG-008: Generated CC hooks reference `ai-guardrails-hk-cc-tools` by
+    // unqualified name. If that binary isn't on PATH (e.g. user is running
+    // init from a local dev tree but their PATH still has v3.x), the hooks
+    // would silently fail to launch. Fail loud at init time instead.
+    const hkBinCheck = await checkHkBinariesStep(ctx.commandRunner);
+    if (hkBinCheck.status === "error") {
+      return { status: "error", message: hkBinCheck.message };
+    }
+    ctx.console.info(hkBinCheck.message);
 
     if (isInteractive) {
       ctx.console.info("Running interactive init...");
