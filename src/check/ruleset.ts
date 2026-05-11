@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { HookModule, Rule } from "@questi0nm4rk/hook-kit";
 import { createModule, path, redirect } from "@questi0nm4rk/hook-kit";
@@ -156,10 +156,10 @@ export function buildAllModules(config: HooksConfig = {}): HookModule[] {
   ];
 }
 
-export async function loadHookConfig(): Promise<HooksConfig> {
+export function loadHookConfig(): HooksConfig {
   try {
     const configPath = join(process.cwd(), PROJECT_CONFIG_PATH);
-    const text = await readFile(configPath, "utf8");
+    const text = readFileSync(configPath, "utf8");
     const raw = parseToml(text);
     const config = ProjectConfigSchema.parse(raw);
     const hooks = config.hooks;

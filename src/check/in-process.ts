@@ -42,7 +42,7 @@ export async function isDangerous(command: string): Promise<CheckResult | null> 
 
 /** Generic in-process evaluation — used by BDD step files. */
 export async function evaluateInProcess(event: ToolEvent): Promise<CheckResult> {
-  const modules = buildAllModules(await loadHookConfig());
+  const modules = buildAllModules(loadHookConfig());
   const decision = await evaluate(synthesizeEvent(event, "ag-in-process"), modules);
   if (decision === null) return { decision: "allow" };
   if (decision.kind === "deny") return { decision: "deny", reason: decision.reason };

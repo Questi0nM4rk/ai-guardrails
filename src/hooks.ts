@@ -4,7 +4,7 @@ import { suppressCommentsRule } from "@/check/rules/suppress-comments";
 import { buildAllModules, loadHookConfig } from "@/check/ruleset";
 
 const modules: HookModule[] = [
-  ...buildAllModules(await loadHookConfig()),
+  ...buildAllModules(loadHookConfig()),
   createModule(
     {
       id: "suppress-comments",
