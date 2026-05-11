@@ -7,7 +7,7 @@
       "dependencies": {
         "@commander-js/extra-typings": "^13.0.0",
         "@questi0nm4rk/hook-kit": "^0.3.0",
-        "@questi0nm4rk/shell-ast": "^0.1.0",
+        "@questi0nm4rk/shell-ast": "^0.2.1",
         "minimatch": "^10.0.0",
         "smol-toml": "^1.5.1",
         "zod": "^3.24.0",
@@ -52,7 +52,7 @@
 
     "@questi0nm4rk/hook-kit": ["@questi0nm4rk/hook-kit@0.3.0", "", { "dependencies": { "@questi0nm4rk/shell-ast": "^0.1.0", "zod": "^3.24.0" }, "bin": { "hook-kit": "src/build/cli.ts" } }, "sha512-weeWVzTgtc3iL91435w/vb1Mw5G0uH9UHxDBlRSn27sdyvrp0SkZha+EjNAjRYQBGidSEiea9/kuXy0FAZj4iA=="],
 
-    "@questi0nm4rk/shell-ast": ["@questi0nm4rk/shell-ast@0.1.0", "", {}, "sha512-wwcqYQ6cDWMKFwGMFSooSQtWXk+s0/0Y91ebXqAYtx7aJ8Kp2kioHkhYElc+CrJVRS9stYQ09WOOorYtKZE3oA=="],
+    "@questi0nm4rk/shell-ast": ["@questi0nm4rk/shell-ast@0.2.1", "", {}, "sha512-gKDtDU9vaeiqbzWQ0PDXK1fzK4TL8r7o7PTjDZZc1oOvh2L9s8d580yUwZq2KWukTMb2VC+KzzLugfHZRWGszQ=="],
 
     "@types/bun": ["@types/bun@1.3.10", "", { "dependencies": { "bun-types": "1.3.10" } }, "sha512-0+rlrUrOrTSskibryHbvQkDOWRJwJZqZlxrUs1u4oOoTln8+WIXBPmAuCF35SWB2z4Zl3E84Nl/D0P7803nigQ=="],
 
@@ -89,5 +89,7 @@
     "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
     "@cucumber/gherkin/@cucumber/messages": ["@cucumber/messages@31.2.0", "", { "dependencies": { "class-transformer": "0.5.1", "reflect-metadata": "0.2.2" } }, "sha512-3urzBNCwmU/YKrKR0b3XdioFcOFNuxlLwEImsxeP8rXnweLs+Ky04QURcbKpFom3T6a6v9zVioLCfHUuSQ72pg=="],
+
+    "@questi0nm4rk/hook-kit/@questi0nm4rk/shell-ast": ["@questi0nm4rk/shell-ast@0.1.0", "", {}, "sha512-wwcqYQ6cDWMKFwGMFSooSQtWXk+s0/0Y91ebXqAYtx7aJ8Kp2kioHkhYElc+CrJVRS9stYQ09WOOorYtKZE3oA=="],
   }
 }
