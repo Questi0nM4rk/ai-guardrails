@@ -113,6 +113,16 @@ done
 
 printf 'Installed 3 binaries to %s\n\n' "$INSTALL_DIR"
 
+# Cleanup legacy artifacts from pre-v4 installs (UX-002).
+# v3.x shipped `ai-guardrails-init` as a separate symlinked binary. v4 uses
+# the `ai-guardrails init` subcommand instead, so the symlink is dead weight.
+LEGACY_INIT="${INSTALL_DIR}/ai-guardrails-init"
+if [ -L "$LEGACY_INIT" ] || [ -f "$LEGACY_INIT" ]; then
+    rm -f "$LEGACY_INIT"
+    printf 'Removed legacy %s\n' "$LEGACY_INIT"
+fi
+
+
 # ---------------------------------------------------------------------------
 # PATH hint
 # ---------------------------------------------------------------------------

@@ -72,7 +72,33 @@ export async function executeModules(
         status: "skipped",
         message: `${mod.name}: skipped (not selected)`,
       });
+      // not-selected counts as "no objection" — downstream modules that depend
+      // on this one should not be blocked. BUG-007 fix.
+      completed.add(mod.id);
       continue;
+    }
+
+    // BUG-004: honour module.detect() — skip modules that don't apply to the
+    // detected project (e.g. ruff-config on a TS-only project). Failing-open
+    // detect (returns false) is the right default; an exception is treated as
+    // "we don't know" and the module runs.
+    if (mod.detect !== undefined) {
+      let applies = true;
+      try {
+        applies = await mod.detect(ctx);
+      } catch {
+        applies = true;
+      }
+      if (!applies) {
+        const result: InitModuleResult = {
+          status: "skipped",
+          message: `${mod.name}: skipped (not applicable to this project)`,
+        };
+        ctx.console.info(`[${mod.name}] ${result.message}`);
+        results.push(result);
+        completed.add(mod.id);
+        continue;
+      }
     }
 
     const failedDep = (mod.dependsOn ?? []).find(
@@ -81,7 +107,7 @@ export async function executeModules(
     if (failedDep !== undefined) {
       const result: InitModuleResult = {
         status: "skipped",
-        message: `${mod.name}: skipped (dependency ${failedDep} did not complete successfully)`,
+        message: `${mod.name}: skipped (dependency ${failedDep} failed)`,
       };
       ctx.console.info(`[${mod.name}] ${result.message}`);
       results.push(result);
@@ -103,6 +129,10 @@ export async function executeModules(
       completed.add(mod.id);
     } else if (result.status === "skipped") {
       ctx.console.info(`[${mod.name}] ${result.message}`);
+      // Module's execute() returning skipped means "I evaluated the situation
+      // and intentionally did not write" — e.g. user-managed file preserved.
+      // That's success for downstream dependents (BUG-007).
+      completed.add(mod.id);
     } else {
       ctx.console.error(`[${mod.name}] ${result.message}`);
     }

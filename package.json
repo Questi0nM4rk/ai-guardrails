@@ -1,7 +1,13 @@
 {
   "name": "@questi0nm4rk/ai-guardrails",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Questi0nM4rk/ai-guardrails.git"
+  },
+  "homepage": "https://github.com/Questi0nM4rk/ai-guardrails",
+  "license": "MIT",
   "files": [
     "dist/ai-guardrails",
     "dist/ai-guardrails-hk",

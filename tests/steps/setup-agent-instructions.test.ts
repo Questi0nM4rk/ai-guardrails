@@ -111,11 +111,21 @@ describe("setupAgentInstructionsStep", () => {
     expect(content).toContain("## AI Guardrails");
   });
 
-  test("appends guardrails section to existing CLAUDE.md", async () => {
+  test("does not silently append to existing CLAUDE.md without --force (BUG-006)", async () => {
     const fm = new FakeFileManager();
     fm.seed("/project/CLAUDE.md", "# My Project\n\nExisting content.\n");
 
     await setupAgentInstructionsStep("/project", fm);
+
+    const appendedEntry = fm.appended.find(([p]) => p.endsWith("CLAUDE.md"));
+    expect(appendedEntry).toBeUndefined();
+  });
+
+  test("appends guardrails section to existing CLAUDE.md when force=true", async () => {
+    const fm = new FakeFileManager();
+    fm.seed("/project/CLAUDE.md", "# My Project\n\nExisting content.\n");
+
+    await setupAgentInstructionsStep("/project", fm, true);
 
     const appendedEntry = fm.appended.find(([p]) => p.endsWith("CLAUDE.md"));
     expect(appendedEntry).toBeDefined();

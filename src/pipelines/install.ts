@@ -1,48 +1,15 @@
-import { homedir } from "node:os";
-import { join } from "node:path";
-import { loadMachineConfig, loadProjectConfig, resolveConfig } from "@/config/loader";
-import { ALL_INIT_MODULES } from "@/init/registry";
-import { executeModules } from "@/init/runner";
-import { applyFlagDisables } from "@/init/selections";
-import type { InitContext } from "@/init/types";
+// Machine-level setup. Verifies the hard dependency (hook-kit on PATH),
+// audits which linter prereqs are missing, and — with --upgrade — installs
+// them. Does NOT touch any project files. Does NOT mutate the global
+// ~/.claude/settings.json. Project-scoped setup belongs in `ai-guardrails init`.
+//
+// See docs/BUGS.md BUG-001 / BUG-005 for the v4.0 regressions this resolves.
+
+import { ALL_PLUGINS } from "@/languages/registry";
 import type { Pipeline, PipelineContext, PipelineResult } from "@/pipelines/types";
 import { checkHookKitStep } from "@/steps/check-hook-kit";
-import { detectLanguagesStep } from "@/steps/detect-languages";
-import { installHooksStep } from "@/steps/install-hooks";
-
-async function buildInstallContext(
-  ctx: PipelineContext
-): Promise<{ initCtx: InitContext | null; error?: string }> {
-  const { result: detectResult, languages } = await detectLanguagesStep(
-    ctx.projectDir,
-    ctx.fileManager
-  );
-  if (detectResult.status === "error") {
-    return { initCtx: null, error: detectResult.message };
-  }
-
-  const machinePath = join(homedir(), ".ai-guardrails", "config.toml");
-  const machine = await loadMachineConfig(machinePath, ctx.fileManager);
-  const project = await loadProjectConfig(ctx.projectDir, ctx.fileManager);
-  const config = resolveConfig(machine, project);
-
-  const selections = applyFlagDisables(ALL_INIT_MODULES, ctx.flags);
-
-  const initCtx: InitContext = {
-    projectDir: ctx.projectDir,
-    fileManager: ctx.fileManager,
-    commandRunner: ctx.commandRunner,
-    console: ctx.console,
-    config,
-    languages,
-    selections,
-    isTTY: ctx.isTTY,
-    createReadline: ctx.createReadline,
-    flags: ctx.flags,
-  };
-
-  return { initCtx };
-}
+import { checkPrerequisites } from "@/steps/check-prerequisites";
+import { installPrerequisites } from "@/steps/install-prerequisites";
 
 export const installPipeline: Pipeline = {
   async run(ctx: PipelineContext): Promise<PipelineResult> {
@@ -52,28 +19,33 @@ export const installPipeline: Pipeline = {
     }
     ctx.console.info(hkCheck.message);
 
-    const { initCtx, error } = await buildInstallContext(ctx);
-    if (initCtx === null) {
-      return { status: "error", message: error ?? "Language detection failed" };
+    const { report } = await checkPrerequisites(
+      ctx.console,
+      ctx.commandRunner,
+      ALL_PLUGINS
+    );
+
+    if (ctx.flags.upgrade === true && report.missing.length > 0) {
+      const result = await installPrerequisites(
+        ctx.console,
+        ctx.commandRunner,
+        report,
+        ctx.projectDir,
+        ctx.isTTY,
+        ctx.createReadline
+      );
+      if (result.status === "error") {
+        return { status: "error", message: result.message };
+      }
+    } else if (report.missing.length > 0) {
+      ctx.console.info(
+        "Run `ai-guardrails install --upgrade` to install missing tools."
+      );
     }
 
-    const results = await executeModules(ALL_INIT_MODULES, initCtx);
-    const errorMessages = results
-      .filter((r) => r.status === "error")
-      .map((r) => r.message);
-
-    if (errorMessages.length > 0) {
-      return {
-        status: "error",
-        message: `Install failed: ${errorMessages.join("; ")}`,
-      };
-    }
-
-    const hooksResult = await installHooksStep(ctx.fileManager, ctx.console);
-    if (hooksResult.status === "error") {
-      return { status: "error", message: hooksResult.message };
-    }
-
+    ctx.console.info(
+      "Machine setup complete. Run `ai-guardrails init` inside a project to configure it."
+    );
     return { status: "ok" };
   },
 };

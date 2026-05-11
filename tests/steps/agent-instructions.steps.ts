@@ -51,6 +51,22 @@ When<AgentInstructionsWorld>(
   }
 );
 
+When<AgentInstructionsWorld>(
+  "agent instructions step runs with force",
+  async (world: AgentInstructionsWorld) => {
+    await setupAgentInstructionsStep(PROJECT_DIR, world.fm, true);
+  }
+);
+
+Then<AgentInstructionsWorld>(
+  "the agent file {string} should not contain {string}",
+  async (world: AgentInstructionsWorld, filename: unknown, text: unknown) => {
+    const name = String(filename);
+    const content = await findFileContent(world.fm, PROJECT_DIR, name);
+    expect(content).not.toContain(String(text));
+  }
+);
+
 Then<AgentInstructionsWorld>(
   "the agent file {string} should be written",
   (world: AgentInstructionsWorld, filename: unknown) => {
