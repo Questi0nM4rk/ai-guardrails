@@ -1,43 +1,45 @@
 import { ALL_RULE_GROUPS, collectDenyGlobs } from "@/check/rules/groups";
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
-import { HOOK_COMMAND } from "@/hooks/command";
 
 interface HookEntry {
-  type: string;
+  type: "command";
   command: string;
+  timeout: number;
 }
 
-interface PreToolUseEntry {
+interface MatcherEntry {
   matcher: string;
   hooks: HookEntry[];
 }
 
 interface ClaudeSettings {
-  permissions: {
-    deny: readonly string[];
-  };
-  hooks: {
-    PreToolUse: PreToolUseEntry[];
-  };
+  permissions: { deny: readonly string[] };
+  hooks: { PreToolUse: MatcherEntry[]; PostToolUse: MatcherEntry[] };
 }
 
+// 60s matches CC's default hook timeout and stays under the 120s default
+// Bash tool budget. Hooks that block longer than the agent's tool timeout
+// orphan when the agent abandons the call. See SPEC-014.
+const HOOK_TIMEOUT_SECONDS = 60;
+const BINARY_NAME = "ai-guardrails-hk-cc-tools";
+
 function renderClaudeSettings(_config: ResolvedConfig): string {
-  // Deny globs always include every group regardless of disabled_groups —
-  // settings.json deny patterns are a static safety net independent of the
-  // hook-level config toggle.
+  const command = BINARY_NAME;
   const settings: ClaudeSettings = {
-    permissions: {
-      deny: collectDenyGlobs(ALL_RULE_GROUPS),
-    },
+    permissions: { deny: collectDenyGlobs(ALL_RULE_GROUPS) },
     hooks: {
       PreToolUse: [
-        { matcher: "Bash", hooks: [{ type: "command", command: HOOK_COMMAND }] },
+        {
+          matcher: "Bash|Edit|Write|NotebookEdit|Read",
+          hooks: [{ type: "command", command, timeout: HOOK_TIMEOUT_SECONDS }],
+        },
+      ],
+      PostToolUse: [
         {
           matcher: "Edit|Write|NotebookEdit",
-          hooks: [{ type: "command", command: HOOK_COMMAND }],
+          hooks: [{ type: "command", command, timeout: HOOK_TIMEOUT_SECONDS }],
         },
-        { matcher: "Read", hooks: [{ type: "command", command: HOOK_COMMAND }] },
       ],
     },
   };

@@ -1,19 +1,32 @@
-# AI Guardrails v3 — TypeScript Rewrite
+# AI Guardrails v4 — hook-kit 0.3 native
 
 ## Build & Test
 
 ```bash
 bun install
-bun test                    # run all tests
+bun test                    # run all tests (1212 tests)
 bun test --watch            # watch mode
 bun run lint                # biome check src/ tests/
 bun run typecheck           # tsc --noEmit
-bun run build               # compile single binary → dist/ai-guardrails
+bun run build               # compile main CLI → dist/ai-guardrails
+bun run build:hk            # compile shell wrapper → dist/ai-guardrails-hk
+bun run build:hk-cc         # compile CC adapter → dist/ai-guardrails-hk-cc-tools
+bun run build:all           # all three
 ```
 
 ## Architecture
 
-Pipeline + Plugin with DI. Full spec: `docs/specs/` — read before implementing anything.
+Three binaries built from the same TypeScript source:
+
+| Binary | Source | Role |
+|--------|--------|------|
+| `ai-guardrails` | `src/cli.ts` | Main CLI: init, check, generate, status, format-stage, check-suppress-comments |
+| `ai-guardrails-hk` | `src/hooks.ts` (shell adapter) | Caller-agnostic Bash gate — `hk -c "<cmd>"` |
+| `ai-guardrails-hk-cc-tools` | `src/hooks.ts` (cc-tools adapter) | Claude Code tool-call adapter for Bash + Edit + Write + NotebookEdit + Read events |
+
+Pipeline + Plugin with DI for the main CLI. Hook rules are native
+`@questi0nm4rk/hook-kit` `HookModule[]` composed via `cmd()`, `pipe()`,
+`redirect()`, `path()`, `content()` builders. Full spec: `docs/specs/`.
 
 | Spec | Content |
 |------|---------|
@@ -22,10 +35,13 @@ Pipeline + Plugin with DI. Full spec: `docs/specs/` — read before implementing
 | SPEC-002 | Config system (machine → project → inline) |
 | SPEC-003 | Linter system, all runners, language plugins |
 | SPEC-004 | CLI commands, flags, exit codes |
-| SPEC-005 | Hooks (Claude Code PreToolUse + lefthook) |
+| SPEC-005 | Hooks (v3 — superseded by SPEC-014) |
 | SPEC-006 | Battle-tested defaults |
 | SPEC-007 | Implementation guide, phases, testing conventions |
 | SPEC-008 | Per-language tool reference |
+| SPEC-012 | Hook binary resolution (v3 — superseded by SPEC-014) |
+| SPEC-013 | Version pinning |
+| SPEC-014 | hook-kit 0.3 migration (v4.0 — current) |
 
 ## Branch Strategy
 
@@ -45,7 +61,14 @@ src/
   models/                   # Pure domain types (LintIssue, BaselineEntry…)
   pipelines/                # Pipeline orchestrators
   steps/                    # Reusable pipeline steps
-  hooks/                    # Hook implementations (dangerous-cmd, protect-configs…)
+  hooks.ts                  # hook-kit module entrypoint — compiled into both hk binaries
+  hooks/                    # Lefthook helpers (format-stage, allow-comment, suppress-comments scanner)
+  check/
+    rules/groups/*.ts       # Native hook-kit modules (one per group)
+    rules/paths.ts          # Default path-protection module
+    rules/suppress-comments.ts  # PostToolUse content() rule
+    ruleset.ts              # buildAllModules(config) — composes everything
+    in-process.ts           # isDangerous() helper for BDD tests
   writers/                  # Output serializers (SARIF, text)
   infra/                    # FileManager, CommandRunner, Console (injected, never direct)
   utils/                    # Pure functions — hash, fingerprint, glob

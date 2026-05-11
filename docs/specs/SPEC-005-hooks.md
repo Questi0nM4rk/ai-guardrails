@@ -1,16 +1,14 @@
 # SPEC-005: Hooks
 
-## Status: Draft
+## Status: Superseded by SPEC-014 (v4.0)
 
-> **Hook-kit dogfood update (post-rewrite):** the three Claude Code PreToolUse
-> subcommands (`hook dangerous-cmd`, `hook protect-configs`, `hook protect-reads`)
-> are consolidated into a single `hook run` entrypoint. Rule evaluation is
-> delegated to `@questi0nm4rk/hook-kit`'s engine and `claudeCodeAdapter`;
-> escalation routes through `hook-kit broker --askpass` so risky-command
-> approvals stay out of Claude's native ask UI when a listener is reachable
-> in the parent session chain. The per-subcommand sections below describe
-> the **legacy** shell-protocol implementation prior to that consolidation;
-> the wire shape of `hook run` is hook-kit's `claudeCodeAdapter` output.
+> **v4.0 supersedes this design.** The v3.x library-mode integration
+> (`ai-guardrails hook run` invoked through a shell snippet) was replaced
+> in v4.0 by three separate compiled binaries: `ai-guardrails` (CLI),
+> `ai-guardrails-hk` (caller-agnostic shell wrapper), and
+> `ai-guardrails-hk-cc-tools` (Claude Code tool-call adapter). See
+> [SPEC-014](./SPEC-014-hook-kit-0.3-migration.md) for the current
+> architecture. This file is kept for historical context.
 
 ---
 

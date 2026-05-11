@@ -156,6 +156,20 @@ Then<InstallHooksWorld>(
   }
 );
 
+Then<InstallHooksWorld>(
+  "all installed hook commands should be {string}",
+  (world: InstallHooksWorld, expected: unknown) => {
+    const settings = readSettings(world.fm);
+    const ptus = settings.hooks?.PreToolUse ?? [];
+    expect(ptus.length).toBeGreaterThan(0);
+    for (const ptu of ptus) {
+      for (const hook of ptu.hooks) {
+        expect(hook.command).toBe(String(expected));
+      }
+    }
+  }
+);
+
 Then<InstallHooksWorld>("the step should succeed", (world: InstallHooksWorld) => {
   expect(world.stepResult.status).toBe("ok");
 });

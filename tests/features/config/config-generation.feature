@@ -208,23 +208,20 @@ Feature: Config file generation
     When I generate with default config
     Then the output should match the snapshot
 
-  Scenario: claudeSettingsGenerator wires the unified hook for Bash
+  Scenario: claudeSettingsGenerator wires the cc-tools binary
     Given the claude-settings generator
     When I generate with default config
-    Then the output should contain "hook run"
-    And the output should contain '"Bash"'
+    Then the output should contain "ai-guardrails-hk-cc-tools"
 
-  Scenario: claudeSettingsGenerator wires the unified hook for Edit/Write/NotebookEdit
+  Scenario: claudeSettingsGenerator emits the unified PreToolUse matcher
     Given the claude-settings generator
     When I generate with default config
-    Then the output should contain "hook run"
-    And the output should contain "Edit|Write|NotebookEdit"
+    Then the output should contain "Bash|Edit|Write|NotebookEdit|Read"
 
-  Scenario: claudeSettingsGenerator wires the unified hook for Read
+  Scenario: claudeSettingsGenerator emits the PostToolUse matcher for edits
     Given the claude-settings generator
     When I generate with default config
-    Then the output should contain "hook run"
-    And the output should contain '"Read"'
+    Then the output should contain "Edit|Write|NotebookEdit"
 
   Scenario: claudeSettingsGenerator includes DANGEROUS_DENY_GLOBS in permissions.deny
     Given the claude-settings generator

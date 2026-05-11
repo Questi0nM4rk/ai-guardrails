@@ -1,63 +1,165 @@
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import type { HookModule, Rule } from "@questi0nm4rk/hook-kit";
+import { createModule, path, redirect } from "@questi0nm4rk/hook-kit";
 import { parse as parseToml } from "smol-toml";
-import { protectRead, protectWrite } from "@/check/builder-path";
-import { ALL_RULE_GROUPS, collectCommandRules } from "@/check/rules/groups";
-import { DEFAULT_MANAGED_FILES, DEFAULT_PATH_RULES } from "@/check/rules/paths";
-import type { CommandRule, HooksConfig, RuleSet } from "@/check/types";
+import { ALL_RULE_GROUPS, collectModules } from "@/check/rules/groups";
+import {
+  DEFAULT_MANAGED_FILES,
+  defaultReadModule,
+  defaultRedirectModule,
+  defaultWriteModule,
+} from "@/check/rules/paths";
 import { ProjectConfigSchema } from "@/config/schema";
 import { PROJECT_CONFIG_PATH } from "@/models/paths";
 import { isEnoent } from "@/utils/errors";
 
-export function buildRuleSet(config: HooksConfig): RuleSet {
-  const disabled = new Set(config.disabledGroups ?? []);
-  const activeGroups = ALL_RULE_GROUPS.filter((g) => !disabled.has(g.id));
+const LABEL = "[ai-guardrails]";
 
-  // Inline-shell recursion is a hook-kit engine default; AG no longer needs to
-  // synthesize a recurse marker rule.
-  const commandRules: readonly CommandRule[] = collectCommandRules(activeGroups);
-
-  const extraPathRules = [
-    ...DEFAULT_MANAGED_FILES.map((f) =>
-      protectWrite(
-        new RegExp(`(?:^|/)${escapeRegExp(f)}$`), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
-        `Writing to managed file: ${f}`
-      )
-    ),
-    ...(config.managedFiles ?? []).map((f) =>
-      protectWrite(
-        new RegExp(`(?:^|/)${escapeRegExp(f)}$`), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
-        `Writing to managed file: ${f}`
-      )
-    ),
-    ...(config.managedPaths ?? []).map((p) =>
-      protectWrite(
-        new RegExp(escapeRegExp(p)), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
-        `Writing to managed path: ${p}`
-      )
-    ),
-    ...(config.protectedReadPaths ?? []).map((p) =>
-      protectRead(
-        new RegExp(escapeRegExp(p)), // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped via escapeRegExp; no ReDoS risk"
-        `Reading protected path: ${p}`
-      )
-    ),
-  ];
-
-  return {
-    commandRules,
-    pathRules: [...DEFAULT_PATH_RULES, ...extraPathRules],
-  };
+export interface HooksConfig {
+  managedFiles?: string[];
+  managedPaths?: string[];
+  protectedReadPaths?: string[];
+  disabledGroups?: string[];
 }
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-export async function loadHookConfig(): Promise<HooksConfig> {
+function exactFileRegExp(file: string): RegExp {
+  // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped"
+  return new RegExp(`(?:^|/)${escapeRegExp(file)}$`);
+}
+
+function literalRegExp(s: string): RegExp {
+  // nosemgrep: detect-non-literal-regexp // ai-guardrails-allow: semgrep/detect-non-literal-regexp "input fully escaped"
+  return new RegExp(escapeRegExp(s));
+}
+
+function dynamicWriteRules(config: HooksConfig): Rule[] {
+  const writes: Rule[] = [];
+  for (const file of DEFAULT_MANAGED_FILES) {
+    writes.push(
+      path(exactFileRegExp(file))
+        .onWrite()
+        .escalate(`Writing to managed file: ${file}`, LABEL)
+    );
+  }
+  for (const file of config.managedFiles ?? []) {
+    writes.push(
+      path(exactFileRegExp(file))
+        .onWrite()
+        .escalate(`Writing to managed file: ${file}`, LABEL)
+    );
+  }
+  for (const p of config.managedPaths ?? []) {
+    writes.push(
+      path(literalRegExp(p)).onWrite().escalate(`Writing to managed path: ${p}`, LABEL)
+    );
+  }
+  return writes;
+}
+
+function dynamicRedirectRules(config: HooksConfig): Rule[] {
+  const reds: Rule[] = [];
+  for (const file of DEFAULT_MANAGED_FILES) {
+    reds.push(
+      redirect(exactFileRegExp(file)).escalate(
+        `Redirect into managed file: ${file}`,
+        LABEL
+      )
+    );
+  }
+  for (const file of config.managedFiles ?? []) {
+    reds.push(
+      redirect(exactFileRegExp(file)).escalate(
+        `Redirect into managed file: ${file}`,
+        LABEL
+      )
+    );
+  }
+  for (const p of config.managedPaths ?? []) {
+    reds.push(
+      redirect(literalRegExp(p)).escalate(`Redirect into managed path: ${p}`, LABEL)
+    );
+  }
+  return reds;
+}
+
+function dynamicReadRules(config: HooksConfig): Rule[] {
+  return (config.protectedReadPaths ?? []).map((p) =>
+    path(literalRegExp(p)).onRead().escalate(`Reading protected path: ${p}`, LABEL)
+  );
+}
+
+/** Build the full HookModule[] from project config — used by src/hooks.ts and
+ *  the in-process helper. Filters disabled groups, composes default + dynamic
+ *  path/redirect rules, returns one flat module list ready for hook-kit. */
+export function buildAllModules(config: HooksConfig = {}): HookModule[] {
+  const disabled = new Set(config.disabledGroups ?? []);
+  const groupModules = collectModules(
+    ALL_RULE_GROUPS.filter((g) => !disabled.has(g.id))
+  );
+
+  const writeRules = dynamicWriteRules(config);
+  const redirectRules = dynamicRedirectRules(config);
+  const readRules = dynamicReadRules(config);
+
+  const dynamicModules: HookModule[] = [];
+  if (writeRules.length > 0) {
+    dynamicModules.push(
+      createModule(
+        {
+          id: "ai-guardrails-paths-write-extra",
+          name: "ai-guardrails dynamic write protection",
+          events: ["PreToolUse"],
+          matchers: ["Edit", "Write", "NotebookEdit"],
+        },
+        writeRules
+      )
+    );
+  }
+  if (redirectRules.length > 0) {
+    dynamicModules.push(
+      createModule(
+        {
+          id: "ai-guardrails-redirects-extra",
+          name: "ai-guardrails dynamic redirect protection",
+          events: ["PreToolUse"],
+          matchers: ["Bash"],
+        },
+        redirectRules
+      )
+    );
+  }
+  if (readRules.length > 0) {
+    dynamicModules.push(
+      createModule(
+        {
+          id: "ai-guardrails-paths-read-extra",
+          name: "ai-guardrails dynamic read protection",
+          events: ["PreToolUse"],
+          matchers: ["Read"],
+        },
+        readRules
+      )
+    );
+  }
+
+  return [
+    ...groupModules,
+    defaultWriteModule,
+    defaultReadModule,
+    defaultRedirectModule,
+    ...dynamicModules,
+  ];
+}
+
+export function loadHookConfig(): HooksConfig {
   try {
     const configPath = join(process.cwd(), PROJECT_CONFIG_PATH);
-    const text = await readFile(configPath, "utf8");
+    const text = readFileSync(configPath, "utf8");
     const raw = parseToml(text);
     const config = ProjectConfigSchema.parse(raw);
     const hooks = config.hooks;
@@ -73,12 +175,7 @@ export async function loadHookConfig(): Promise<HooksConfig> {
       }),
     };
   } catch (e: unknown) {
-    // ENOENT is expected — no config file means use defaults.
-    // Other errors (bad TOML, Zod mismatch, permissions) deserve a warning so
-    // users know their custom config isn't active. This function is only called
-    // from hook processes (not pipeline domain code), so stderr is acceptable.
-    const isNotFound = isEnoent(e);
-    if (!isNotFound) {
+    if (!isEnoent(e)) {
       process.stderr.write(`[ai-guardrails] config load error: ${String(e)}\n`);
     }
     return {};

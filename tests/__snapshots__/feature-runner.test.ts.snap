@@ -135,7 +135,7 @@ docstring-code-line-length = 80
 `;
 
 exports[`Config file generation lefthook output matches snapshot for python and typescript plugins 1`] = `
-"# ai-guardrails:sha256=1478adbe287cbdd96bd59447c6306e647e3bac24bbf59568d59d7f1d1dcfba22
+"# ai-guardrails:sha256=182d294f2d76a8c2e9670a61bd14eeef452b1681fdc95bcba78c5dd8e5a7baea
 pre-commit:
   commands:
 
@@ -171,7 +171,7 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
@@ -195,7 +195,7 @@ commit-msg:
 `;
 
 exports[`Config file generation lefthook output matches snapshot for no plugins 1`] = `
-"# ai-guardrails:sha256=5e52d35b8fda182ab442232761decb64538cb4128c86712ec2d67c37ba59cf06
+"# ai-guardrails:sha256=fd40419523de28345a1a86c404418c1db76c670deb1e8ac7ce04bc15d9a304a9
 pre-commit:
   commands:
 
@@ -219,7 +219,7 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
@@ -283,29 +283,24 @@ exports[`Config file generation claudeSettingsGenerator output matches snapshot 
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|Edit|Write|NotebookEdit|Read",
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
+            "command": "ai-guardrails-hk-cc-tools",
+            "timeout": 60
           }
         ]
-      },
+      }
+    ],
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
+            "command": "ai-guardrails-hk-cc-tools",
+            "timeout": 60
           }
         ]
       }

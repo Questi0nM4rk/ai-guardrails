@@ -36,7 +36,7 @@ describe("installHooksStep", () => {
     expect(path).toBe(SETTINGS_PATH);
   });
 
-  test("written file contains all three hook matchers", async () => {
+  test("written file contains the unified hook matcher", async () => {
     const fm = new FakeFileManager();
     const cons = new FakeConsole();
 
@@ -46,11 +46,12 @@ describe("installHooksStep", () => {
     const settings = JSON.parse(content) as Record<string, unknown>;
     const ptus = (settings.hooks as Record<string, unknown>).PreToolUse as Array<{
       matcher: string;
+      hooks: Array<{ command: string; timeout: number }>;
     }>;
-    const matchers = ptus.map((e) => e.matcher);
-    expect(matchers).toContain("Bash");
-    expect(matchers).toContain("Edit|Write|NotebookEdit");
-    expect(matchers).toContain("Read");
+    expect(ptus).toHaveLength(1);
+    expect(ptus[0]?.matcher).toBe("Bash|Edit|Write|NotebookEdit|Read");
+    expect(ptus[0]?.hooks[0]?.command).toBe("ai-guardrails-hk-cc-tools");
+    expect(ptus[0]?.hooks[0]?.timeout).toBe(60);
   });
 
   test("merges into existing settings without overwriting", async () => {
@@ -81,7 +82,9 @@ describe("installHooksStep", () => {
       matcher: string;
     }>;
     expect(ptus.some((e) => e.matcher === "WebFetch")).toBe(true);
-    expect(ptus.some((e) => e.matcher === "Bash")).toBe(true);
+    expect(ptus.some((e) => e.matcher === "Bash|Edit|Write|NotebookEdit|Read")).toBe(
+      true
+    );
   });
 
   test("idempotent on re-run — does not duplicate hooks", async () => {
@@ -144,6 +147,6 @@ describe("installHooksStep", () => {
     const written = fm.written.find(([p]) => p === SETTINGS_PATH);
     expect(written).toBeDefined();
     const output = JSON.parse(written?.[1] ?? "{}");
-    expect(output.hooks?.PreToolUse).toHaveLength(3);
+    expect(output.hooks?.PreToolUse).toHaveLength(1);
   });
 });
