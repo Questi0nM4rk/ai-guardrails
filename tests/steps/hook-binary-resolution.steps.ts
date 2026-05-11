@@ -61,6 +61,16 @@ Then<HookBinaryResolutionWorld>(
 );
 
 Then<HookBinaryResolutionWorld>(
+  "all hook commands should be {string}",
+  (world: HookBinaryResolutionWorld, expected: unknown) => {
+    expect(world.hookCommands.length).toBeGreaterThan(0);
+    for (const cmd of world.hookCommands) {
+      expect(cmd).toBe(String(expected));
+    }
+  }
+);
+
+Then<HookBinaryResolutionWorld>(
   "no hook command should contain {string}",
   (world: HookBinaryResolutionWorld, text: unknown) => {
     for (const cmd of world.hookCommands) {

@@ -41,29 +41,24 @@ exports[`claudeSettingsGenerator generate output matches snapshot 1`] = `
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Bash",
+        "matcher": "Bash|Edit|Write|NotebookEdit|Read",
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
+            "command": "ai-guardrails-hk-cc-tools",
+            "timeout": 60
           }
         ]
-      },
+      }
+    ],
+    "PostToolUse": [
       {
         "matcher": "Edit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
-          }
-        ]
-      },
-      {
-        "matcher": "Read",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "command -v ai-guardrails >/dev/null 2>&1 || exit 0; command -v hook-kit >/dev/null 2>&1 || exit 0; HOOK_KIT_ASKPASS='hook-kit broker --askpass' ai-guardrails hook run"
+            "command": "ai-guardrails-hk-cc-tools",
+            "timeout": 60
           }
         ]
       }

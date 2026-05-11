@@ -21,8 +21,12 @@ describe("src/hooks.ts module entrypoint", () => {
     expect(modules.length).toBeGreaterThan(0);
   });
 
-  test("contains the bash command module", () => {
-    expect(modules.some((m) => m.id === "ai-guardrails-bash")).toBe(true);
+  test("contains the destructive-rm module", () => {
+    expect(modules.some((m) => m.id === "destructive-rm")).toBe(true);
+  });
+
+  test("contains the git-force-push module", () => {
+    expect(modules.some((m) => m.id === "git-force-push")).toBe(true);
   });
 
   test("contains the suppress-comments module", () => {

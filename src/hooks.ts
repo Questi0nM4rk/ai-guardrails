@@ -1,15 +1,10 @@
 import type { HookModule } from "@questi0nm4rk/hook-kit";
 import { createModule } from "@questi0nm4rk/hook-kit";
 import { suppressCommentsRule } from "@/check/rules/suppress-comments";
-import { buildRuleSet, loadHookConfig } from "@/check/ruleset";
-import { buildAllModules } from "@/check/to-hook-kit";
-
-const LABEL = "[ai-guardrails]";
-
-const ruleset = buildRuleSet(await loadHookConfig());
+import { buildAllModules, loadHookConfig } from "@/check/ruleset";
 
 const modules: HookModule[] = [
-  ...buildAllModules(ruleset, LABEL),
+  ...buildAllModules(await loadHookConfig()),
   createModule(
     {
       id: "suppress-comments",

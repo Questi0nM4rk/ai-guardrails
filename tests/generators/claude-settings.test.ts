@@ -13,6 +13,24 @@ function makeConfig() {
   );
 }
 
+interface ParsedSettings {
+  permissions?: { deny?: unknown };
+  hooks?: {
+    PreToolUse?: Array<{
+      matcher: string;
+      hooks: Array<{ command: string; timeout: number }>;
+    }>;
+    PostToolUse?: Array<{
+      matcher: string;
+      hooks: Array<{ command: string; timeout: number }>;
+    }>;
+  };
+}
+
+function parse(output: string): ParsedSettings {
+  return JSON.parse(output) as ParsedSettings;
+}
+
 describe("claudeSettingsGenerator", () => {
   test("has correct id", () => {
     expect(claudeSettingsGenerator.id).toBe("claude-settings");
@@ -33,49 +51,48 @@ describe("claudeSettingsGenerator", () => {
   });
 
   test("generate output contains permissions.deny array", () => {
-    const output = claudeSettingsGenerator.generate(makeConfig());
-    const parsed = JSON.parse(output) as { permissions?: { deny?: unknown } };
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
     expect(Array.isArray(parsed.permissions?.deny)).toBe(true);
   });
 
-  test("generate output contains PreToolUse hooks", () => {
-    const output = claudeSettingsGenerator.generate(makeConfig());
-    const parsed = JSON.parse(output) as {
-      hooks?: { PreToolUse?: unknown[] };
-    };
-    expect(Array.isArray(parsed.hooks?.PreToolUse)).toBe(true);
-    const hooks = parsed.hooks?.PreToolUse ?? [];
-    expect(hooks.length).toBeGreaterThan(0);
+  test("generate output contains exactly one PreToolUse and one PostToolUse hook", () => {
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
+    expect(parsed.hooks?.PreToolUse).toHaveLength(1);
+    expect(parsed.hooks?.PostToolUse).toHaveLength(1);
   });
 
-  test("generate output has Bash PreToolUse hook", () => {
-    const output = claudeSettingsGenerator.generate(makeConfig());
-    const parsed = JSON.parse(output) as {
-      hooks?: { PreToolUse?: Array<{ matcher: string }> };
-    };
-    const hooks = parsed.hooks?.PreToolUse ?? [];
-    const bashHook = hooks.find((h) => h.matcher === "Bash");
-    expect(bashHook).toBeDefined();
+  test("PreToolUse covers Bash + Edit + Write + NotebookEdit + Read", () => {
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
+    expect(parsed.hooks?.PreToolUse?.[0]?.matcher).toBe(
+      "Bash|Edit|Write|NotebookEdit|Read"
+    );
   });
 
-  test("generate output has Edit|Write|NotebookEdit PreToolUse hook", () => {
-    const output = claudeSettingsGenerator.generate(makeConfig());
-    const parsed = JSON.parse(output) as {
-      hooks?: { PreToolUse?: Array<{ matcher: string }> };
-    };
-    const hooks = parsed.hooks?.PreToolUse ?? [];
-    const editHook = hooks.find((h) => h.matcher === "Edit|Write|NotebookEdit");
-    expect(editHook).toBeDefined();
+  test("PostToolUse covers Edit|Write|NotebookEdit", () => {
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
+    expect(parsed.hooks?.PostToolUse?.[0]?.matcher).toBe("Edit|Write|NotebookEdit");
   });
 
-  test("hook commands use command -v guard not file-existence guard", () => {
+  test("hook command points at ai-guardrails-hk-cc-tools", () => {
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
+    expect(parsed.hooks?.PreToolUse?.[0]?.hooks[0]?.command).toBe(
+      "ai-guardrails-hk-cc-tools"
+    );
+    expect(parsed.hooks?.PostToolUse?.[0]?.hooks[0]?.command).toBe(
+      "ai-guardrails-hk-cc-tools"
+    );
+  });
+
+  test("hook timeout is 60s (under CC's default Bash tool budget)", () => {
+    const parsed = parse(claudeSettingsGenerator.generate(makeConfig()));
+    expect(parsed.hooks?.PreToolUse?.[0]?.hooks[0]?.timeout).toBe(60);
+    expect(parsed.hooks?.PostToolUse?.[0]?.hooks[0]?.timeout).toBe(60);
+  });
+
+  test("hook command does not use shell guards (Iron Law 4 covers infra failure)", () => {
     const output = claudeSettingsGenerator.generate(makeConfig());
-    expect(output).toContain("command -v ai-guardrails");
+    expect(output).not.toContain("command -v");
     expect(output).not.toContain("[ ! -f");
-  });
-
-  test("hook commands do not reference ./dist/", () => {
-    const output = claudeSettingsGenerator.generate(makeConfig());
     expect(output).not.toContain("./dist/");
   });
 

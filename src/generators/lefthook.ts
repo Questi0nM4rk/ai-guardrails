@@ -81,7 +81,7 @@ ${pythonSection}${tsSection}
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"${excludeLine}
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
