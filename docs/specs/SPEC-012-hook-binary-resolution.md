@@ -1,9 +1,12 @@
 # SPEC-012: Hook Binary Resolution
 
-## Status: Draft
-## Version: 1.0
-## Last Updated: 2026-03-31
-## Depends on: SPEC-005 (Hooks), SPEC-009 (Interactive Init)
+## Status: Superseded by SPEC-014 (v4.0)
+
+> **v4.0 supersedes this design.** v4.0 ships dedicated binaries
+> (`ai-guardrails-hk`, `ai-guardrails-hk-cc-tools`) installed onto PATH
+> via `scripts/install.sh`. The `command -v` shell guard described below
+> is removed — hook-kit's Iron Law 4 (fail-open on infra errors) covers
+> the missing-binary case. See [SPEC-014](./SPEC-014-hook-kit-0.3-migration.md).
 
 ---
 
