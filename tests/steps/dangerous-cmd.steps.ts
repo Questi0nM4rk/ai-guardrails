@@ -1,10 +1,10 @@
 import { expect } from "bun:test";
 import type { World } from "@questi0nm4rk/feats";
 import { Then, When } from "@questi0nm4rk/feats";
+import { isDangerous } from "@/check/in-process";
 import { DANGEROUS_DENY_GLOBS } from "@/check/rules/groups";
 import type { buildRuleSet } from "@/check/ruleset";
 import type { CheckDecision, CheckResult } from "@/check/types";
-import { isDangerous } from "@/hooks/run";
 
 // `the default ruleset`, `I evaluate bash command`, `the decision should be/not be`
 // are registered once in engine.steps.ts — no duplicates here.
