@@ -1,6 +1,5 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { HOOK_COMMAND } from "@/hooks/command";
 import type { Console } from "@/infra/console";
 import type { FileManager } from "@/infra/file-manager";
 import type { StepResult } from "@/models/step-result";
@@ -11,13 +10,16 @@ import {
   mergeHooks,
 } from "@/utils/merge-claude-settings";
 
+// 60s matches CC's default hook timeout and stays under the 120s default
+// Bash tool budget. See SPEC-014.
+const HOOK_TIMEOUT = 60;
+const BINARY = "ai-guardrails-hk-cc-tools";
+
 const GUARDRAILS_HOOKS = [
-  { matcher: "Bash", hooks: [{ type: "command", command: HOOK_COMMAND }] },
   {
-    matcher: "Edit|Write|NotebookEdit",
-    hooks: [{ type: "command", command: HOOK_COMMAND }],
+    matcher: "Bash|Edit|Write|NotebookEdit|Read",
+    hooks: [{ type: "command", command: BINARY, timeout: HOOK_TIMEOUT }],
   },
-  { matcher: "Read", hooks: [{ type: "command", command: HOOK_COMMAND }] },
 ] as const;
 
 export async function installHooksStep(
@@ -39,7 +41,6 @@ export async function installHooksStep(
           existing = result.data;
         }
       } catch {
-        // Malformed JSON — treat as empty settings, merge will overwrite
         cons.warning(
           "~/.claude/settings.json contains invalid JSON — merging from scratch"
         );

@@ -17,17 +17,15 @@ Feature: Install hooks merge
     When install hooks step runs
     Then PreToolUse hooks should not be duplicated
 
-  Scenario: All three matchers are present
+  Scenario: Unified matcher covers all CC events
     Given no settings.json exists
     When install hooks step runs
-    Then hooks should include matcher "Bash"
-    And hooks should include matcher "Edit|Write|NotebookEdit"
-    And hooks should include matcher "Read"
+    Then hooks should include matcher "Bash|Edit|Write|NotebookEdit|Read"
 
-  Scenario: Hook commands use command -v guard
+  Scenario: Hook command points at the bundled binary
     Given no settings.json exists
     When install hooks step runs
-    Then all installed hook commands should contain "command -v ai-guardrails"
+    Then all installed hook commands should be "ai-guardrails-hk-cc-tools"
 
   Scenario: Handles malformed JSON gracefully
     Given settings.json contains invalid JSON

@@ -1,9 +1,10 @@
 import { Command, Option } from "@commander-js/extra-typings";
 import { runAllow } from "@/commands/allow";
 import { runCheck } from "@/commands/check";
+import { runSuppressComments } from "@/commands/check-suppress-comments";
 import { getCompletionScript } from "@/commands/completion";
+import { runFormatStage } from "@/commands/format-stage";
 import { runGenerate } from "@/commands/generate";
-import { runHook } from "@/commands/hook";
 import { runInit } from "@/commands/init";
 import { runInstall } from "@/commands/install";
 import { runQuery } from "@/commands/query";
@@ -141,15 +142,26 @@ program
   });
 
 // ---------------------------------------------------------------------------
-// hook (internal dispatcher)
+// format-stage (lefthook PreCommit helper)
 // ---------------------------------------------------------------------------
 program
-  .command("hook")
-  .description("Internal hook dispatcher (invoked by lefthook / Claude Code)")
-  .argument("<hook-name>", "Hook to run: run | suppress-comments | format-stage")
-  .argument("[args...]", "Additional arguments (e.g. staged file paths)")
-  .action(async (hookName, args) => {
-    await runHook(hookName, args);
+  .command("format-stage")
+  .description("Run language-specific formatters on staged files (lefthook helper)")
+  .action(async () => {
+    await runFormatStage();
+  });
+
+// ---------------------------------------------------------------------------
+// check-suppress-comments (lefthook PreCommit helper)
+// ---------------------------------------------------------------------------
+program
+  .command("check-suppress-comments")
+  .description(
+    "Scan files for unjustified linter-suppression comments (lefthook helper)"
+  )
+  .argument("<files...>", "Files to scan")
+  .action(async (files: string[]) => {
+    await runSuppressComments(files);
   });
 
 // ---------------------------------------------------------------------------

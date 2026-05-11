@@ -6,9 +6,15 @@ set -eu
 #
 # Environment variables:
 #   AI_GUARDRAILS_INSTALL_DIR  — installation directory (default: ~/.local/bin)
+#
+# Installs three binaries:
+#   ai-guardrails              — main CLI
+#   ai-guardrails-hk           — shell wrapper (caller-agnostic Bash gating)
+#   ai-guardrails-hk-cc-tools  — Claude Code adapter (Edit/Write/Read events)
 
 REPO="Questi0nM4rk/ai-guardrails"
 INSTALL_DIR="${AI_GUARDRAILS_INSTALL_DIR:-$HOME/.local/bin}"
+BINARIES="ai-guardrails ai-guardrails-hk ai-guardrails-hk-cc-tools"
 
 # ---------------------------------------------------------------------------
 # Platform detection
@@ -35,8 +41,6 @@ aarch64 | arm64) ARCH="arm64" ;;
     ;;
 esac
 
-BINARY="ai-guardrails-${PLATFORM}-${ARCH}"
-
 # ---------------------------------------------------------------------------
 # Resolve latest release tag
 # ---------------------------------------------------------------------------
@@ -50,7 +54,6 @@ if [ -z "$TAG" ]; then
     exit 1
 fi
 
-# Validate tag format (v followed by semver-like digits)
 case "$TAG" in
 v[0-9]*.[0-9]*.[0-9]*) ;;
 *)
@@ -62,60 +65,53 @@ esac
 printf 'Installing ai-guardrails %s (%s/%s)...\n' "$TAG" "$PLATFORM" "$ARCH"
 
 # ---------------------------------------------------------------------------
-# Download
+# Download + verify + install each binary
 # ---------------------------------------------------------------------------
 
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}"
 TMP_DIR=$(mktemp -d)
-TMP_BINARY="${TMP_DIR}/${BINARY}"
 TMP_CHECKSUMS="${TMP_DIR}/checksums.sha256"
 
-# Cleanup helper — called on success and failure
 cleanup() {
     rm -rf "$TMP_DIR"
 }
 trap cleanup EXIT
 
-curl -fsSL --max-time 300 "${DOWNLOAD_URL}/${BINARY}" -o "$TMP_BINARY"
 curl -fsSL --max-time 60 "${DOWNLOAD_URL}/checksums.sha256" -o "$TMP_CHECKSUMS"
 
-# ---------------------------------------------------------------------------
-# SHA-256 verification
-# ---------------------------------------------------------------------------
-
-EXPECTED=$(grep -F " ${BINARY}" "$TMP_CHECKSUMS" | awk '{print $1}')
-
-if [ -z "$EXPECTED" ]; then
-    printf 'Error: %s not found in checksums file\n' "$BINARY" >&2
-    exit 1
-fi
-
-# sha256sum on Linux; shasum -a 256 on macOS
 if command -v sha256sum >/dev/null 2>&1; then
-    ACTUAL=$(sha256sum "$TMP_BINARY" | awk '{print $1}')
+    SHA_CMD="sha256sum"
 else
-    ACTUAL=$(shasum -a 256 "$TMP_BINARY" | awk '{print $1}')
+    SHA_CMD="shasum -a 256"
 fi
-
-if [ "$EXPECTED" != "$ACTUAL" ]; then
-    printf 'Error: checksum mismatch!\n' >&2
-    printf '  Expected: %s\n' "$EXPECTED" >&2
-    printf '  Got:      %s\n' "$ACTUAL" >&2
-    exit 1
-fi
-
-# ---------------------------------------------------------------------------
-# Install
-# ---------------------------------------------------------------------------
 
 mkdir -p "$INSTALL_DIR"
 
-# Move binary out of /tmp before the EXIT trap removes it
-cp "$TMP_BINARY" "${INSTALL_DIR}/ai-guardrails"
-chmod +x "${INSTALL_DIR}/ai-guardrails"
+for BIN in $BINARIES; do
+    ASSET="${BIN}-${PLATFORM}-${ARCH}"
+    TMP_PATH="${TMP_DIR}/${ASSET}"
 
-printf 'Installed ai-guardrails to %s/ai-guardrails\n' "$INSTALL_DIR"
-printf '\n'
+    printf '  → %s\n' "$BIN"
+    curl -fsSL --max-time 300 "${DOWNLOAD_URL}/${ASSET}" -o "$TMP_PATH"
+
+    EXPECTED=$(grep -F " ${ASSET}" "$TMP_CHECKSUMS" | awk '{print $1}')
+    if [ -z "$EXPECTED" ]; then
+        printf 'Error: %s not found in checksums file\n' "$ASSET" >&2
+        exit 1
+    fi
+    ACTUAL=$($SHA_CMD "$TMP_PATH" | awk '{print $1}')
+    if [ "$EXPECTED" != "$ACTUAL" ]; then
+        printf 'Error: checksum mismatch for %s!\n' "$ASSET" >&2
+        printf '  Expected: %s\n' "$EXPECTED" >&2
+        printf '  Got:      %s\n' "$ACTUAL" >&2
+        exit 1
+    fi
+
+    cp "$TMP_PATH" "${INSTALL_DIR}/${BIN}"
+    chmod +x "${INSTALL_DIR}/${BIN}"
+done
+
+printf 'Installed 3 binaries to %s\n\n' "$INSTALL_DIR"
 
 # ---------------------------------------------------------------------------
 # PATH hint

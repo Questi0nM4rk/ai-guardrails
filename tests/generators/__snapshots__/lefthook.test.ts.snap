@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`generateLefthookConfig output matches snapshot with no active plugins 1`] = `
-"# ai-guardrails:sha256=5e52d35b8fda182ab442232761decb64538cb4128c86712ec2d67c37ba59cf06
+"# ai-guardrails:sha256=fd40419523de28345a1a86c404418c1db76c670deb1e8ac7ce04bc15d9a304a9
 pre-commit:
   commands:
 
@@ -25,7 +25,7 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
@@ -49,7 +49,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with TypeScript plugin 1`] = `
-"# ai-guardrails:sha256=33af3c97523e521c5c32d156b0a6c3e735643843cc13241046cfc1c0e910aa86
+"# ai-guardrails:sha256=bb9bcd511e3de5d1f0b920e200c768d27e7db90c87b537b248c321517f434c76
 pre-commit:
   commands:
 
@@ -79,7 +79,7 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
@@ -103,7 +103,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with Python plugin 1`] = `
-"# ai-guardrails:sha256=756ba4eeb615cf5bf274affd96cb7dd81f2a090673928fa19c86427e436b9264
+"# ai-guardrails:sha256=f82dce2847059e2676d0132fca50732f0c661d622f715d49e225b0c700e64397
 pre-commit:
   commands:
 
@@ -133,7 +133,7 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
@@ -157,7 +157,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with TypeScript and Python plugins 1`] = `
-"# ai-guardrails:sha256=1478adbe287cbdd96bd59447c6306e647e3bac24bbf59568d59d7f1d1dcfba22
+"# ai-guardrails:sha256=182d294f2d76a8c2e9670a61bd14eeef452b1681fdc95bcba78c5dd8e5a7baea
 pre-commit:
   commands:
 
@@ -193,7 +193,7 @@ pre-commit:
 
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
@@ -217,7 +217,7 @@ commit-msg:
 `;
 
 exports[`generateLefthookConfig output matches snapshot with ignorePaths 1`] = `
-"# ai-guardrails:sha256=be47f13adf649e60a74ba2c92ad66a8450303845793f615510ac89f3d5a221de
+"# ai-guardrails:sha256=7dba8bee561235e4b7f1a7f5a5c31fc9b2275a59841f5dd75013da1288063be9
 pre-commit:
   commands:
 
@@ -243,7 +243,7 @@ pre-commit:
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
       exclude: '(vendor/.[^/]*|dist/.[^/]*)'
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 

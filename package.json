@@ -1,10 +1,13 @@
 {
   "name": "ai-guardrails",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "type": "module",
   "files": [
     "dist/ai-guardrails",
+    "dist/ai-guardrails-hk",
+    "dist/ai-guardrails-hk-cc-tools",
     "scripts/install.sh",
+    "scripts/build-hk-binaries.ts",
     "README.md",
     "LICENSE"
   ],
@@ -17,6 +20,9 @@
   "scripts": {
     "dev": "bun run --watch src/cli.ts",
     "build": "bun build src/cli.ts --compile --bytecode --production --outfile dist/ai-guardrails",
+    "build:hk": "hook-kit build src/hooks.ts --out dist/ai-guardrails-hk --adapter shell",
+    "build:hk-cc": "hook-kit build src/hooks.ts --out dist/ai-guardrails-hk-cc-tools --adapter cc-tools --hook-timeout 60",
+    "build:all": "bun run build && bun run build:hk && bun run build:hk-cc",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "lint": "biome check src/ tests/",
@@ -25,7 +31,7 @@
   },
   "dependencies": {
     "@commander-js/extra-typings": "^13.0.0",
-    "@questi0nm4rk/hook-kit": "^0.2.0",
+    "@questi0nm4rk/hook-kit": "^0.3.0",
     "@questi0nm4rk/shell-ast": "^0.1.0",
     "minimatch": "^10.0.0",
     "smol-toml": "^1.5.1",
