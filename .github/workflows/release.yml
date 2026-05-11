@@ -40,6 +40,9 @@ jobs:
             exit 1
           fi
 
+      - name: Build host binaries (E2E tests need dist/ai-guardrails)
+        run: bun run build:all
+
       - name: Run tests
         run: bun test
 
