@@ -80,11 +80,10 @@ export const initPipeline: Pipeline = {
     // unqualified name. If that binary isn't on PATH (e.g. user is running
     // init from a local dev tree but their PATH still has v3.x), the hooks
     // would silently fail to launch. Fail loud at init time instead.
-    const hkBinCheck = await checkHkBinariesStep(ctx.commandRunner);
+    const hkBinCheck = await checkHkBinariesStep(ctx.commandRunner, ctx.console);
     if (hkBinCheck.status === "error") {
       return { status: "error", message: hkBinCheck.message };
     }
-    ctx.console.info(hkBinCheck.message);
 
     if (isInteractive) {
       ctx.console.info("Running interactive init...");

@@ -38,7 +38,7 @@ pre-commit:
     check-suppress-comments:
       glob: "*.{py,ts,tsx,js,jsx,rs,go,cs,lua,sh,bash,zsh,ksh,c,cpp,cc,h,hpp}"
       exclude: '(tests/e2e/fixtures/.[^/]*|\.venv/.[^/]*|node_modules/.[^/]*|\.claude/.[^/]*|docs/plans/.[^/]*|docs/specs/.[^/]*)'
-      run: ai-guardrails hook suppress-comments {staged_files}
+      run: ai-guardrails check-suppress-comments {staged_files}
       fail_text: "Inline suppression comments require a reason"
       priority: 2
 
