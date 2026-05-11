@@ -156,9 +156,13 @@ describe("executeModules — dependency failure propagation", () => {
     expect(results[1]?.message).toMatch(/dep/);
   });
 
-  test("skips dependent when dependency returns skipped", async () => {
+  test("dependent still runs when dependency returns skipped (e.g. file preserved)", async () => {
+    // A module returning "skipped" from its execute() means "I evaluated and
+    // intentionally did not write" — typically a user-managed file preserved.
+    // Downstream modules should treat this as success, not as a failed
+    // dependency (BUG-007).
     const dep = makeModule("dep", {
-      executeResult: { status: "skipped", message: "already done" },
+      executeResult: { status: "skipped", message: "user file preserved" },
     });
     const dependent = makeModule("dependent", { dependsOn: ["dep"] });
     const selections = new Map([
@@ -168,8 +172,23 @@ describe("executeModules — dependency failure propagation", () => {
     const results = await executeModules([dep, dependent], makeCtx({ selections }));
 
     expect(results[0]?.status).toBe("skipped");
+    expect(results[1]?.status).toBe("ok");
+  });
+
+  test("dependent is skipped when dependency returns error", async () => {
+    const dep = makeModule("dep", {
+      executeResult: { status: "error", message: "write failed" },
+    });
+    const dependent = makeModule("dependent", { dependsOn: ["dep"] });
+    const selections = new Map([
+      ["dep", true],
+      ["dependent", true],
+    ]);
+    const results = await executeModules([dep, dependent], makeCtx({ selections }));
+
+    expect(results[0]?.status).toBe("error");
     expect(results[1]?.status).toBe("skipped");
-    expect(results[1]?.message).toMatch(/dep/);
+    expect(results[1]?.message).toMatch(/dep.*failed/);
   });
 
   test("does not skip dependent when dependency is not selected", async () => {

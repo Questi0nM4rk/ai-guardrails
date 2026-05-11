@@ -1,4 +1,3 @@
-import { ALL_RULE_GROUPS, collectDenyGlobs } from "@/check/rules/groups";
 import type { ResolvedConfig } from "@/config/schema";
 import type { ConfigGenerator } from "@/generators/types";
 
@@ -14,7 +13,6 @@ interface MatcherEntry {
 }
 
 interface ClaudeSettings {
-  permissions: { deny: readonly string[] };
   hooks: { PreToolUse: MatcherEntry[]; PostToolUse: MatcherEntry[] };
 }
 
@@ -26,8 +24,14 @@ const BINARY_NAME = "ai-guardrails-hk-cc-tools";
 
 function renderClaudeSettings(_config: ResolvedConfig): string {
   const command = BINARY_NAME;
+  // BUG-009: dropped the hardcoded `permissions.deny` list. CC's pattern DSL
+  // is strictly weaker than the hook's shell-AST matcher (no flag aliasing,
+  // no `--` end-of-options handling, no sudo unwrap) so shipping both creates
+  // two sources of truth that don't agree. The hook is the source of truth;
+  // permissions.deny was duplicating it poorly. Users with extra-paranoid
+  // setups can still add `permissions.deny` patterns to their own
+  // `.claude/settings.local.json` — those merge on top.
   const settings: ClaudeSettings = {
-    permissions: { deny: collectDenyGlobs(ALL_RULE_GROUPS) },
     hooks: {
       PreToolUse: [
         {

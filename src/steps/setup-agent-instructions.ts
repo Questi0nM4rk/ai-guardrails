@@ -36,7 +36,8 @@ async function writeAgentsMd(
 
 async function appendGuardrailsToCLAUDEMd(
   projectDir: string,
-  fileManager: FileManager
+  fileManager: FileManager,
+  force: boolean
 ): Promise<string | null> {
   const claudeMdPath = join(projectDir, "CLAUDE.md");
   const claudeMdExists = await fileManager.exists(claudeMdPath);
@@ -45,6 +46,11 @@ async function appendGuardrailsToCLAUDEMd(
     const existing = await fileManager.readText(claudeMdPath);
     if (existing.includes("## AI Guardrails")) {
       return null;
+    }
+    if (!force) {
+      // BUG-006: never silently append to a user-authored CLAUDE.md.
+      // Pass --force to opt in; otherwise leave it alone.
+      return "CLAUDE.md (preserved — pass --force to append guardrails section)";
     }
     await fileManager.appendText(claudeMdPath, GUARDRAILS_SECTION);
     return "CLAUDE.md (appended)";
@@ -56,7 +62,8 @@ async function appendGuardrailsToCLAUDEMd(
 
 export async function setupAgentInstructionsStep(
   projectDir: string,
-  fileManager: FileManager
+  fileManager: FileManager,
+  force = false
 ): Promise<StepResult> {
   try {
     const tools = await detectAgentTools(projectDir, fileManager);
@@ -79,8 +86,14 @@ export async function setupAgentInstructionsStep(
     await writeAgentsMd(projectDir, fileManager);
     written.push(AGENT_SYMLINKS.agents ?? "AGENTS.md");
 
-    // Append guardrails section to CLAUDE.md (create if absent, skip if already present)
-    const claudeMdEntry = await appendGuardrailsToCLAUDEMd(projectDir, fileManager);
+    // CLAUDE.md: create if absent, skip if our section already present, leave
+    // alone (and warn) if user-authored CLAUDE.md exists without our marker
+    // unless --force was passed. BUG-006.
+    const claudeMdEntry = await appendGuardrailsToCLAUDEMd(
+      projectDir,
+      fileManager,
+      force
+    );
     if (claudeMdEntry !== null) {
       written.push(claudeMdEntry);
     }

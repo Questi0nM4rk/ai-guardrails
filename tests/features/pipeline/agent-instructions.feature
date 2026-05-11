@@ -16,9 +16,15 @@ Feature: Agent instructions generation
     Then the agent file "CLAUDE.md" should be written
     And the agent file "CLAUDE.md" should contain "AI Guardrails"
 
-  Scenario: Init appends to existing CLAUDE.md
+  Scenario: Init preserves user-authored CLAUDE.md by default (BUG-006)
     Given a project with existing CLAUDE.md
     When agent instructions step runs
+    Then "CLAUDE.md" should contain the original content
+    And the agent file "CLAUDE.md" should not contain "AI Guardrails"
+
+  Scenario: Init appends guardrails to CLAUDE.md when --force is set
+    Given a project with existing CLAUDE.md
+    When agent instructions step runs with force
     Then the agent file "CLAUDE.md" should contain "AI Guardrails"
     And "CLAUDE.md" should contain the original content
 
