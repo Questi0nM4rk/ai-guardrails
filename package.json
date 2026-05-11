@@ -1,6 +1,6 @@
 {
   "name": "@questi0nm4rk/ai-guardrails",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "type": "module",
   "files": [
     "dist/ai-guardrails",
@@ -32,7 +32,7 @@
   "dependencies": {
     "@commander-js/extra-typings": "^13.0.0",
     "@questi0nm4rk/hook-kit": "^0.3.0",
-    "@questi0nm4rk/shell-ast": "^0.1.0",
+    "@questi0nm4rk/shell-ast": "^0.2.1",
     "minimatch": "^10.0.0",
     "smol-toml": "^1.5.1",
     "zod": "^3.24.0"
