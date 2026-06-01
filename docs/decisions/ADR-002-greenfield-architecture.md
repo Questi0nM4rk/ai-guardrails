@@ -1,22 +1,28 @@
 # ADR-002: AI Guardrails — Greenfield Architecture & Development Guide
 
-> **Status: SUPERSEDED by [SPEC-v1.md](features/SPEC-v1.md) for all forward-looking decisions.**
+> **Status: SUPERSEDED by [docs/specs/SPEC-INDEX.md](../specs/SPEC-INDEX.md) for all forward-looking decisions.**
 >
 > This ADR remains the authoritative source for **DONTs / lessons learned** (section 2)
 > and **competitive landscape analysis** (section 7). All other sections (language choice,
-> project structure, feature inventory, testing strategy) are superseded by SPEC-v1.md.
+> project structure, feature inventory, testing strategy) are superseded by the SPEC-* series.
 >
-> Key decisions that changed since this ADR was written:
+> The interim Python/cyclopts revision of this ADR was itself superseded: the runtime/language
+> direction was reversed to TypeScript compiled to Bun single binaries — see
+> [ADR-003](./ADR-003-runtime-language-choice.md). Treat the historical table below as a record
+> of this ADR's *first* revision, not the live target state.
 >
-> | Topic | ADR-002 | SPEC-v1.md (authoritative) |
-> |-------|---------|---------------------------|
-> | CLI framework | click | **cyclopts** (dataclass-native, less boilerplate) |
-> | Hook runner | pre-commit | **lefthook** (single binary, direct tool calls) |
-> | Approach | Refactor current code | **Fresh start** in `src/ai_guardrails/` |
-> | GitHub API client | 4th core component | **Separate product** (guardrails-review) |
-> | Go greenfield | Presented as alternative | **Rejected** — Python confirmed |
+> Key decisions that changed across revisions of this ADR (historical):
+>
+> | Topic | ADR-002 (original) | First revision | Current (SPEC-* + ADR-003) |
+> |-------|--------------------|----------------|----------------------------|
+> | Language / runtime | Python (refactor) | Python (confirmed) | **TypeScript → Bun single binaries** |
+> | CLI framework | click | cyclopts | **TypeScript engine, no Python CLI framework** |
+> | Hook runner | pre-commit | lefthook | **lefthook + native hook-kit binaries** |
+> | Approach | Refactor current code | Fresh start | **Greenfield in TypeScript** |
+> | GitHub API client | 4th core component | Separate product | **Separate product** (cc-review) |
 
-**If we were starting over, what would we do differently?** This document captures every lesson learned, anti-pattern discovered, architectural decision, and feature roadmap for ai-guardrails — a CLI tool that enforces pedantic code quality on AI-maintained repositories. This is not a web service. It is developer tooling: a CLI, a config generator, a hook orchestrator, and a policy engine. The architecture must reflect that.
+**If we were starting over, what would we do differently?** This document captures every lesson learned, anti-pattern discovered, architectural decision, and feature roadmap for ai-guardrails — a CLI tool that enforces pedantic code quality on AI-maintained repositories.
+This is not a web service. It is developer tooling: a CLI, a config generator, a hook orchestrator, and a policy engine. The architecture must reflect that.
 
 ---
 
@@ -61,7 +67,8 @@ This distinction matters because:
 ### 2.1 Review Bot DONTs
 
 **DON'T run multiple review bots simultaneously.**
-We ran 4 bots (CodeRabbit, Claude, Gemini, DeepSource) on a small codebase. In one week: 56 CodeRabbit reviews, 95 Claude reviews, 19 DeepSource, 9 Gemini. The overlap was massive — Claude and DeepSource flagged the same things ruff catches locally. Gemini just wrote summaries. One bot that finds real bugs beats four that echo each other.
+We ran 4 bots (CodeRabbit, Claude, Gemini, DeepSource) on a small codebase. In one week: 56 CodeRabbit reviews, 95 Claude reviews, 19 DeepSource, 9 Gemini.
+The overlap was massive — Claude and DeepSource flagged the same things ruff catches locally. Gemini just wrote summaries. One bot that finds real bugs beats four that echo each other.
 
 > Rule: One review bot max. Strong local pre-commit hooks replace the rest.
 
@@ -99,7 +106,8 @@ A bundled "medium/low/code-smell" PR started at 6 items. Review bots found more.
 > Rule: If you define module-level paths, document how to mock them. Or defer evaluation with a function.
 
 **DON'T put 800 lines and 15 concerns in one file.**
-`init.py` (807 lines) handles: project detection, Python dep detection, GitHub detection, config copying, pre-commit setup, hook installation, Claude Code hooks, registry scaffolding, config generation, CI workflows, CodeRabbit setup, PR-Agent setup, agent instructions, dry-run reporting, and main orchestration. It has 40+ private helper functions with no grouping.
+`init.py` (807 lines) handles: project detection, Python dep detection, GitHub detection, config copying, pre-commit setup, hook installation, Claude Code hooks, registry scaffolding, config generation, CI workflows, CodeRabbit setup, PR-Agent setup, agent instructions, dry-run reporting, and main orchestration.
+It has 40+ private helper functions with no grouping.
 
 > Rule: One module = one concern. Max 200 lines per module. Group related functions into classes.
 
@@ -830,7 +838,7 @@ Benefits:
 
 ## Architecture
 
-Pipeline + Plugin pattern. See docs/ADR-002-greenfield-architecture.md.
+Pipeline + Plugin pattern. See docs/decisions/ADR-002-greenfield-architecture.md.
 
 Each subcommand (init, generate, comments, status) is a pipeline of steps.
 Steps are independent classes with validate() and execute() methods.
@@ -868,7 +876,8 @@ Infrastructure (filesystem, subprocess, output) is injected, never imported dire
 
 ## Conclusion
 
-The current ai-guardrails codebase delivers real value — 400+ tests, 8 languages, working pre-commit integration, and a unique exception registry concept that no competitor offers. The problems are architectural: a monolithic init module, scattered infrastructure calls, inconsistent patterns, and painful distribution.
+The current ai-guardrails codebase delivers real value — 400+ tests, 8 languages, working pre-commit integration, and a unique exception registry concept that no competitor offers.
+The problems are architectural: a monolithic init module, scattered infrastructure calls, inconsistent patterns, and painful distribution.
 
 The three highest-impact changes for a greenfield or major refactor:
 
