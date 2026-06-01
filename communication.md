@@ -14,7 +14,7 @@ ai-guardrails is a CLI tool enforcing pedantic code quality on AI-maintained rep
 - Package configured (commit `5436f96`) — importable, .pre-commit-hooks.yaml created
 - Branch: `refactor/extract-lang-config`, PR #53 open (not yet pushed with v1 code)
 - `.guardrails-review.toml` at repo root with model `minimax/minimax-m2.5`
-- Spec: `docs/features/SPEC-v1.md` — source of truth for all decisions
+- Spec: `docs/specs/SPEC-INDEX.md` — source of truth for all decisions
 
 ## Tasks
 
