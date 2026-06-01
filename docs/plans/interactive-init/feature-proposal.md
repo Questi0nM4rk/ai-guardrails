@@ -2,8 +2,8 @@
 
 **Priority:** MEDIUM
 **Status:** Proposed
-**Parent spec:** [SPEC-v1.md](SPEC-v1.md) — `ai-guardrails init` command section
-**Related:** ADR-002 section 8.2 "Near-term features" (superseded by SPEC-v1.md)
+**Parent spec:** [SPEC-INDEX.md](../../specs/SPEC-INDEX.md) — `ai-guardrails init` command surface (see SPEC-commands)
+**Related:** [ADR-002](../../decisions/ADR-002-greenfield-architecture.md) section 8.2 "Near-term features" (superseded by the SPEC-* series)
 
 ---
 
@@ -21,7 +21,7 @@ approachable without sacrificing the non-interactive path for CI and power users
 
 ### Terminal output (interactive, TTY detected)
 
-```
+```console
 $ ai-guardrails init
 
   ai-guardrails v0.3.0 — interactive setup
@@ -85,7 +85,7 @@ $ ai-guardrails init
 
 ### Terminal output (non-interactive, `--yes` or non-TTY)
 
-```
+```console
 $ ai-guardrails init --yes
 [ok] Detected: Python, TypeScript, Shell
 [ok] Copied configs for: Python, TypeScript, Shell
@@ -176,7 +176,7 @@ The interactive prompts resolve to the same boolean flags that `--no-X` / `--X`
 currently produce. The init function's internal logic does not change -- only the
 flag resolution at the CLI boundary changes.
 
-```
+```text
 CLI args (argparse)
     |
     v
