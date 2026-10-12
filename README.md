@@ -19,7 +19,11 @@ $ echo '{"hook_event_name":"PreToolUse","session_id":"t","cwd":"/tmp","transcrip
 
 ## Why it exists
 
-Coding agents add `# noqa` or `@ts-ignore` to make CI pass, edit the lint config until their code is clean, and run `git push --force`. A rule in `CLAUDE.md` is a request, and nothing notices when the agent ignores it. This project puts checks in three places: the agent's tool calls, the commit, and CI. It refuses to be an AI reviewer: every check is a deterministic rule, and none calls a model. It would have no reason to exist once agents reliably keep to written rules, or once Claude Code enforces them itself.
+Coding agents add `# noqa` or `@ts-ignore` to make CI pass, edit the lint config until their code is clean, and run `git push --force`.
+A rule in `CLAUDE.md` is a request, and nothing notices when the agent ignores it.
+This project puts checks in three places: the agent's tool calls, the commit, and CI.
+It refuses to be an AI reviewer: every check is a deterministic rule, and none calls a model.
+It would have no reason to exist once agents reliably keep to written rules, or once Claude Code enforces them itself.
 
 ## Quickstart
 
@@ -27,7 +31,9 @@ Requires Bun 1.3+ (`engines` in `package.json` says Node 18+, but the build and 
 
 ```bash
 bun install && bun run build:all
-printf '{"hook_event_name":"PreToolUse","session_id":"t","cwd":"/tmp","transcript_path":"/tmp/x","tool_name":"Bash","tool_input":{"command":"rm -rf /"}}' | HOOK_KIT_ASKPASS= ./dist/ai-guardrails-hk-cc-tools
+printf '%s' '{"hook_event_name":"PreToolUse","session_id":"t","cwd":"/tmp","transcript_path":"/tmp/x",'\
+  '"tool_name":"Bash","tool_input":{"command":"rm -rf /"}}' \
+  | HOOK_KIT_ASKPASS= ./dist/ai-guardrails-hk-cc-tools
 bun test
 ```
 
@@ -49,15 +55,18 @@ flowchart LR
   A[Agent tool call] -->|PreToolUse, PostToolUse| H[ai-guardrails-hk-cc-tools]
   H -->|ask the human| A
   C[git commit] --> L[lefthook: suppression and lint checks]
-  P[Pull request] --> G[CI: check and generate --check]
+  P[Pull request] --> G[CI: check]
 ```
 
-1. **Agent hooks.** Claude Code runs `ai-guardrails-hk-cc-tools` before and after Bash, Edit, Write and Read calls. It parses shell commands into an AST and answers `ask` for dangerous ones, so the human decides.
+1. **Agent hooks.** Claude Code runs `ai-guardrails-hk-cc-tools` before Bash, Edit, Write and Read calls, and after Edit and Write calls.
+Before a call, it parses shell commands into an AST and answers `ask` for dangerous ones, so the human decides.
+After an edit, it looks for suppression comments the edit added.
 2. **Commit hooks.** `init` wires lefthook to look for suppression comments and run the linters. Only issues new since the baseline fail.
 3. **CI.** The workflow `init` generates runs `check`. `generate --check` can verify the generated configs in CI, but no workflow in this repo calls it yet.
 
 Everything is deterministic. No part calls a model.
-Config files carry a SHA-256 header. Only `generate --check` compares it, it has no key, and a file without a header is not checked. Details in [docs/guide.md](docs/guide.md#config-tamper-detection).
+Generated config files carry a SHA-256 header. Only `generate --check` compares it.
+The hash has no key, so anyone who edits a file can recompute it, and a file without a header is not checked. Details in [docs/guide.md](docs/guide.md#config-tamper-detection).
 
 ## Numbers
 
@@ -79,11 +88,15 @@ Commits include agent-authored work under my identity; design, orchestration and
 
 - **Works:** `init`, `check`, `snapshot`, `generate --check`, the Claude Code hook binary, suppression comment detection.
 - **Experimental:** the editor and reviewer files `init` can write (Helix, Zed, Neovim, CodeRabbit). I did not run them today.
-- **Tried and dropped:** the first version was Python. A regex matcher for dangerous commands was replaced by a shell AST. A hard-coded `permissions.deny` list was dropped because it disagreed with the hook.
+- **Tried and dropped:** the first versions were bash scripts, then a Python installer (pyinfra); the project was rewritten in TypeScript.
+  A regex matcher for dangerous commands was replaced by a shell AST.
+  A hard-coded `permissions.deny` list was dropped because it disagreed with the hook.
 - **Known gaps:**
-  - Tamper detection is weak, see above. The agent-side `protect-configs` hook asks the human before it writes a managed file, and that is the stronger barrier.
+  - Tamper detection is weak, see above. The hook rule that guards managed files (`ai-guardrails write protection`) asks the human before it writes a managed file, and that is the stronger barrier.
   - Hook decisions are `ask`, not `deny`. A human who always answers yes gets no protection.
-  - The hook reads the command text. [docs/bugs/hook-bypass-regex-limitations.md](docs/bugs/hook-bypass-regex-limitations.md) lists the bypasses of the old regex matcher and marks them fixed by the AST engine. I have not measured how many bypasses remain.
+  - The hook reads the command text.
+    [docs/bugs/hook-bypass-regex-limitations.md](docs/bugs/hook-bypass-regex-limitations.md) lists the bypasses of the old regex matcher and marks them fixed by the AST engine.
+    I have not measured how many bypasses remain.
   - A runner whose tool is not installed (ruff, clang-tidy, selene, pyright) is skipped with a message.
   - `check` on a trivial project can report a Biome schema warning from the generated `biome.jsonc` (seen once, version mismatch).
   - One test failed in one of about four runs before, and I could not name it. Not seen in seven runs today.
