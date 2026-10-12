@@ -4,9 +4,10 @@
 
 **Lint, hook and CI checks that flag when a coding agent weakens the project's own rules, for Claude Code on Bun.**
 
-[![npm](https://img.shields.io/npm/v/@questi0nm4rk/ai-guardrails)](https://www.npmjs.com/package/@questi0nm4rk/ai-guardrails)
-[![license](https://img.shields.io/github/license/Questi0nM4rk/ai-guardrails)](LICENSE)
-[![release](https://img.shields.io/github/v/release/Questi0nM4rk/ai-guardrails)](https://github.com/Questi0nM4rk/ai-guardrails/releases)
+[![npm](https://img.shields.io/npm/v/@questi0nm4rk/ai-guardrails?color=cb3837&label=npm)](https://www.npmjs.com/package/@questi0nm4rk/ai-guardrails)
+[![CI](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml/badge.svg)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
+[![license](https://img.shields.io/github/license/Questi0nM4rk/ai-guardrails?color=blue)](./LICENSE)
+[![release](https://img.shields.io/github/v/release/Questi0nM4rk/ai-guardrails?display_name=tag)](https://github.com/Questi0nM4rk/ai-guardrails/releases)
 
 </div>
 
@@ -27,7 +28,7 @@ It would have no reason to exist once agents reliably keep to written rules, or 
 
 ## Quickstart
 
-Requires Bun 1.3+ (`engines` in `package.json` says Node 18+, but the build and tests use Bun).
+Tested with Bun 1.3.14 (`engines` in `package.json` says Node 18+, but the build and tests use Bun).
 
 ```bash
 bun install && bun run build:all
@@ -63,6 +64,8 @@ Before a call, it parses shell commands into an AST and answers `ask` for danger
 After an edit, it looks for suppression comments the edit added.
 2. **Commit hooks.** `init` wires lefthook to look for suppression comments and run the linters. Only issues new since the baseline fail.
 3. **CI.** The workflow `init` generates runs `check`. `generate --check` can verify the generated configs in CI, but no workflow in this repo calls it yet.
+
+It is built on [hook-kit](https://github.com/Questi0nM4rk/hook-kit) (the hook binary) and [shell-ast](https://github.com/Questi0nM4rk/shell-ast) (the command parser).
 
 Everything is deterministic. No part calls a model.
 Generated config files carry a SHA-256 header. Only `generate --check` compares it.
