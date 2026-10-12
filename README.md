@@ -6,6 +6,9 @@
 
 [![npm](https://img.shields.io/npm/v/@questi0nm4rk/ai-guardrails?color=cb3837&label=npm)](https://www.npmjs.com/package/@questi0nm4rk/ai-guardrails)
 [![CI](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml/badge.svg)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
+[![tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/badges/tests.json&style=flat-square)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
+[![catch-rate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/badges/catch.json&style=flat-square)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
+[![false-asks](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/badges/falseasks.json&style=flat-square)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
 [![license](https://img.shields.io/github/license/Questi0nM4rk/ai-guardrails?color=blue)](./LICENSE)
 [![release](https://img.shields.io/github/v/release/Questi0nM4rk/ai-guardrails?display_name=tag)](https://github.com/Questi0nM4rk/ai-guardrails/releases)
 
@@ -28,7 +31,7 @@ It would have no reason to exist once agents reliably keep to written rules, or 
 
 ## Quickstart
 
-Tested with Bun 1.3.14 (`engines` in `package.json` says Node 18+, but the build and tests use Bun).
+The build and tests run on Bun (`engines` in `package.json` says Node 18+).
 
 ```bash
 bun install && bun run build:all
@@ -44,7 +47,7 @@ Expected output of the second command:
 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"[ai-guardrails] rm with --recursive and --force flags"}}
 ```
 
-Expected last lines of `bun test`: `1198 pass`, `0 fail`, `Ran 1198 tests across 75 files`. The end-to-end tests need the build first.
+The summary printed by `bun test` includes `0 fail`. The end-to-end tests need the build first.
 
 `bun run lint` and `bun run typecheck` are the other two gates. `./dist/ai-guardrails check` on this repo exits 1 today because `shfmt` wants `scripts/install.sh` reformatted.
 To use it in a project, install the binaries with `scripts/install.sh` and run `ai-guardrails init` there. See [docs/guide.md](docs/guide.md).
@@ -73,19 +76,20 @@ The hash has no key, so anyone who edits a file can recompute it, and a file wit
 
 ## Numbers
 
-Measured 2026-10-12 on Arch Linux, Bun 1.3.14, from a fresh clone.
+[![tests](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/badges/tests.json&style=flat-square)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
+[![catch-rate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/badges/catch.json&style=flat-square)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
+[![false-asks](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/badges/falseasks.json&style=flat-square)](https://github.com/Questi0nM4rk/ai-guardrails/actions/workflows/check.yml)
 
-| What | Value | How measured |
-| --- | --- | --- |
-| Tests | 1198 across 75 files, all pass with `build:all` done | `bun test` |
-| Test time | 16.3 to 20.4 s over seven runs | `bun test` |
-| Source size | 7,649 code lines in 150 TypeScript files | `scc src` |
-| Test size | 11,962 code lines in 104 TypeScript files | `scc tests` |
-| `ai-guardrails` binary | 97,384,576 bytes | `stat -c %s dist/ai-guardrails` |
-| Hook binary | 96,245,888 bytes | `stat -c %s dist/ai-guardrails-hk-cc-tools` |
-| Dangerous commands flagged | 49 of 70 (70%), 21 missed | `bun bench/hook-corpus.ts`, n = 129 labelled inputs, one run (deterministic), 2026-10-12 |
-| False asks on benign inputs | 0 of 59 | same run |
-| Hook latency | Not measured | |
+| What | How to measure |
+| --- | --- |
+| Tests | `bun test` |
+| Dangerous commands flagged | `bun run build:hk-cc`, then `bun bench/hook-corpus.ts`; misses listed in [bench/RESULTS.md](bench/RESULTS.md) |
+| False asks on benign inputs | same run as dangerous commands flagged |
+| Source size | `scc src` |
+| Test size | `scc tests` |
+| `ai-guardrails` binary size | `stat -c %s dist/ai-guardrails` |
+| Hook binary size | `stat -c %s dist/ai-guardrails-hk-cc-tools` |
+| Hook latency | Not measured |
 
 Commits include agent-authored work under my identity; design, orchestration and review are mine.
 
@@ -99,13 +103,13 @@ Commits include agent-authored work under my identity; design, orchestration and
 - **Known gaps:**
   - Tamper detection is weak, see above. The hook rule that guards managed files (`ai-guardrails write protection`) asks the human before it writes a managed file, and that is the stronger barrier.
   - Hook decisions are `ask`, not `deny`. A human who always answers yes gets no protection.
-  - The hook reads the command text. On a labelled corpus of 70 dangerous inputs it flagged 49 and missed 21 (table in [bench/RESULTS.md](bench/RESULTS.md), labels in [bench/corpus.jsonl](bench/corpus.jsonl)).
+  - The hook reads the command text. On a labelled corpus of dangerous inputs it misses some (live counts in the badges under Numbers; table in [bench/RESULTS.md](bench/RESULTS.md), labels in [bench/corpus.jsonl](bench/corpus.jsonl)).
     The misses: `rm -rf` behind a wrapper or spelling (`env`, `command`, `nohup`, `xargs`, an absolute path, quoting, `$(echo rm)`), `git push` with `-C`, an absolute path or a `+refspec`, hook bypass through `-c core.hooksPath` or `HUSKY=0`, a remote script run through `bash <(curl ...)`, `$(curl ...)` or a downloaded file, `git stash drop`, `git reflog expire`, reading `.env` or `~/.ssh/id_rsa` with `cat`, and one `@ts-expect-error` suppression.
     The corpus is mine and small, and I wrote the labels before the first run; it measures this hook, not agents in general.
     [docs/bugs/hook-bypass-regex-limitations.md](docs/bugs/hook-bypass-regex-limitations.md) lists the bypasses of the old regex matcher and marks them fixed by the AST engine.
   - A runner whose tool is not installed (ruff, clang-tidy, selene, pyright) is skipped with a message.
   - `check` on a trivial project can report a Biome schema warning from the generated `biome.jsonc` (seen once, version mismatch).
-  - One test failed in one of about four runs before, and I could not name it. Not seen in seven runs today.
+  - One test failed in one of about four runs before, and I could not name it. Not seen in the later runs.
   - `docs/plans/` and `docs/BUGS.md` are working notes and are not kept current.
 
 ## License
