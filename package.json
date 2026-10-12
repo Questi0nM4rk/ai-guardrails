@@ -7,7 +7,7 @@
     "url": "git+https://github.com/Questi0nM4rk/ai-guardrails.git"
   },
   "homepage": "https://github.com/Questi0nM4rk/ai-guardrails",
-  "license": "MIT",
+  "license": "GPL-3.0",
   "files": [
     "dist/ai-guardrails",
     "dist/ai-guardrails-hk",

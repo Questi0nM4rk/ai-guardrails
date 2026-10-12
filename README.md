@@ -107,4 +107,6 @@ Commits include agent-authored work under my identity; design, orchestration and
 
 ## License
 
-MIT
+GPL-3.0.
+
+Releases published before 2026-10-12 remain available under MIT.
