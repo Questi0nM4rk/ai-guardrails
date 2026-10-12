@@ -83,7 +83,9 @@ Measured 2026-10-12 on Arch Linux, Bun 1.3.14, from a fresh clone.
 | Test size | 11,962 code lines in 104 TypeScript files | `scc tests` |
 | `ai-guardrails` binary | 97,384,576 bytes | `stat -c %s dist/ai-guardrails` |
 | Hook binary | 96,245,888 bytes | `stat -c %s dist/ai-guardrails-hk-cc-tools` |
-| Hook latency, bypass rate, false positives | Not measured | |
+| Dangerous commands flagged | 49 of 70 (70%), 21 missed | `bun bench/hook-corpus.ts`, n = 129 labelled inputs, one run (deterministic), 2026-10-12 |
+| False asks on benign inputs | 0 of 59 | same run |
+| Hook latency | Not measured | |
 
 Commits include agent-authored work under my identity; design, orchestration and review are mine.
 
@@ -97,9 +99,10 @@ Commits include agent-authored work under my identity; design, orchestration and
 - **Known gaps:**
   - Tamper detection is weak, see above. The hook rule that guards managed files (`ai-guardrails write protection`) asks the human before it writes a managed file, and that is the stronger barrier.
   - Hook decisions are `ask`, not `deny`. A human who always answers yes gets no protection.
-  - The hook reads the command text.
+  - The hook reads the command text. On a labelled corpus of 70 dangerous inputs it flagged 49 and missed 21 (table in [bench/RESULTS.md](bench/RESULTS.md), labels in [bench/corpus.jsonl](bench/corpus.jsonl)).
+    The misses: `rm -rf` behind a wrapper or spelling (`env`, `command`, `nohup`, `xargs`, an absolute path, quoting, `$(echo rm)`), `git push` with `-C`, an absolute path or a `+refspec`, hook bypass through `-c core.hooksPath` or `HUSKY=0`, a remote script run through `bash <(curl ...)`, `$(curl ...)` or a downloaded file, `git stash drop`, `git reflog expire`, reading `.env` or `~/.ssh/id_rsa` with `cat`, and one `@ts-expect-error` suppression.
+    The corpus is mine and small, and I wrote the labels before the first run; it measures this hook, not agents in general.
     [docs/bugs/hook-bypass-regex-limitations.md](docs/bugs/hook-bypass-regex-limitations.md) lists the bypasses of the old regex matcher and marks them fixed by the AST engine.
-    I have not measured how many bypasses remain.
   - A runner whose tool is not installed (ruff, clang-tidy, selene, pyright) is skipped with a message.
   - `check` on a trivial project can report a Biome schema warning from the generated `biome.jsonc` (seen once, version mismatch).
   - One test failed in one of about four runs before, and I could not name it. Not seen in seven runs today.

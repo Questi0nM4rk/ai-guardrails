@@ -31,8 +31,8 @@
     "build:all": "bun run build && bun run build:hk && bun run build:hk-cc",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "lint": "biome check src/ tests/",
-    "lint:fix": "biome check --write src/ tests/",
+    "lint": "biome check src/ tests/ bench/",
+    "lint:fix": "biome check --write src/ tests/ bench/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

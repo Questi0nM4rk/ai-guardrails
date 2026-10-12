@@ -16,6 +16,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "bench"],
   "exclude": ["tests/e2e/fixtures"]
 }
