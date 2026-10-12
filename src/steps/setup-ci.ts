@@ -8,12 +8,18 @@ function buildCiWorkflow(languages: ReadonlySet<string>): string {
   const hasPython = languages.has("python");
 
   const steps: string[] = [];
-  steps.push("      - uses: actions/checkout@v4");
+  steps.push(
+    "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4"
+  );
 
   // Bun is always needed for universal tools (markdownlint-cli2 via bunx)
-  steps.push("      - uses: oven-sh/setup-bun@v2");
+  steps.push(
+    "      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2"
+  );
   if (hasPython) {
-    steps.push("      - uses: actions/setup-python@v5");
+    steps.push(
+      "      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5"
+    );
     steps.push("        with:");
     steps.push('          python-version: "3.12"');
   }
@@ -52,7 +58,9 @@ function buildCiWorkflow(languages: ReadonlySet<string>): string {
   steps.push("      - name: Markdown lint");
   steps.push('        run: bunx markdownlint-cli2 "**/*.md" "#node_modules"');
   steps.push("      - name: Secret scan");
-  steps.push("        uses: gitleaks/gitleaks-action@v2");
+  steps.push(
+    "        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2"
+  );
   steps.push("        env:");
   // biome-ignore lint/suspicious/noTemplateCurlyInString: GitHub Actions expression syntax, not JS template
   steps.push("          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}");

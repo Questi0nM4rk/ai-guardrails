@@ -43,7 +43,9 @@ describe("setupCiStep", () => {
     const [, content] = fm.written[0] ?? ["", ""];
     expect(content).toContain("bunx biome check .");
     expect(content).toContain("bunx tsc --noEmit");
-    expect(content).toContain("oven-sh/setup-bun@v2");
+    expect(content).toContain(
+      "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6"
+    );
     expect(content).toContain("bun install --frozen-lockfile");
     expect(content).toContain("hashFiles('bun.lock', 'bun.lockb') != ''");
   });
@@ -68,7 +70,9 @@ describe("setupCiStep", () => {
     const [, content] = fm.written[0] ?? ["", ""];
     expect(content).toContain("ruff check .");
     expect(content).toContain("pyright");
-    expect(content).toContain("actions/setup-python@v5");
+    expect(content).toContain(
+      "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+    );
     expect(content).toContain('python-version: "3.12"');
     expect(content).toContain("pip install ruff pyright codespell");
   });
@@ -82,7 +86,9 @@ describe("setupCiStep", () => {
     expect(content).not.toContain("tsc --noEmit");
     expect(content).not.toContain("bun install");
     // bun IS present (needed for bunx markdownlint-cli2)
-    expect(content).toContain("oven-sh/setup-bun@v2");
+    expect(content).toContain(
+      "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6"
+    );
   });
 
   test("multi-language project emits all steps", async () => {
@@ -94,8 +100,12 @@ describe("setupCiStep", () => {
     expect(content).toContain("bunx tsc --noEmit");
     expect(content).toContain("ruff check .");
     expect(content).toContain("pyright");
-    expect(content).toContain("oven-sh/setup-bun@v2");
-    expect(content).toContain("actions/setup-python@v5");
+    expect(content).toContain(
+      "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6"
+    );
+    expect(content).toContain(
+      "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
+    );
     expect(content).toContain("pip install ruff pyright codespell");
     expect(content).toContain("bun install --frozen-lockfile");
   });
@@ -107,13 +117,17 @@ describe("setupCiStep", () => {
     const [, content] = fm.written[0] ?? ["", ""];
     expect(content).toContain("codespell");
     expect(content).toContain("markdownlint-cli2");
-    expect(content).toContain("gitleaks-action@v2");
+    expect(content).toContain(
+      "gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
+    );
     expect(content).not.toContain("biome");
     expect(content).not.toContain("tsc");
     expect(content).not.toContain("ruff");
     expect(content).not.toContain("pyright");
     // bun IS present unconditionally (needed for markdownlint)
-    expect(content).toContain("oven-sh/setup-bun@v2");
+    expect(content).toContain(
+      "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6"
+    );
     expect(content).not.toContain("setup-python");
   });
 
@@ -125,8 +139,12 @@ describe("setupCiStep", () => {
       const [, content] = fm.written[0] ?? ["", ""];
       expect(content).toContain('codespell --skip="*.lock,node_modules,dist" .');
       expect(content).toContain('bunx markdownlint-cli2 "**/*.md" "#node_modules"');
-      expect(content).toContain("gitleaks-action@v2");
-      expect(content).toContain("actions/checkout@v4");
+      expect(content).toContain(
+        "gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
+      );
+      expect(content).toContain(
+        "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
+      );
     }
   });
 

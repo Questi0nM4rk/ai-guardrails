@@ -1,14 +1,14 @@
 Feature: CI workflow generation
 
-  Scenario: Workflow contains actions/checkout@v4
+  Scenario: Workflow contains actions/checkout pinned to a SHA
     Given a typescript project for CI setup
     When the CI workflow is generated
-    Then the workflow should contain "actions/checkout@v4"
+    Then the workflow should contain "actions/checkout@11d5960a326750d5838078e36cf38b85af677262"
 
-  Scenario: Workflow contains oven-sh/setup-bun@v2 for typescript
+  Scenario: Workflow contains oven-sh/setup-bun pinned to a SHA for typescript
     Given a typescript project for CI setup
     When the CI workflow is generated
-    Then the workflow should contain "oven-sh/setup-bun@v2"
+    Then the workflow should contain "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6"
 
   Scenario: Workflow contains bun install --frozen-lockfile for typescript
     Given a typescript project for CI setup
@@ -43,12 +43,12 @@ Feature: CI workflow generation
   Scenario: checkout comes before setup-bun in the workflow
     Given a typescript project for CI setup
     When the CI workflow is generated
-    Then "actions/checkout@v4" should come before "oven-sh/setup-bun@v2" in the workflow
+    Then "actions/checkout@11d5960a326750d5838078e36cf38b85af677262" should come before "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" in the workflow
 
   Scenario: setup-bun comes before bun install in the workflow
     Given a typescript project for CI setup
     When the CI workflow is generated
-    Then "oven-sh/setup-bun@v2" should come before "bun install --frozen-lockfile" in the workflow
+    Then "oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6" should come before "bun install --frozen-lockfile" in the workflow
 
   Scenario: bun install comes before biome check in the workflow
     Given a typescript project for CI setup
@@ -98,7 +98,7 @@ Feature: CI workflow generation
   Scenario: Python workflow contains setup-python
     Given a python project for CI setup
     When the CI workflow is generated
-    Then the workflow should contain "actions/setup-python@v5"
+    Then the workflow should contain "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065"
 
   Scenario: Python workflow does not contain biome
     Given a python project for CI setup
@@ -117,4 +117,4 @@ Feature: CI workflow generation
     When the CI workflow is generated
     Then the workflow should contain "codespell"
     And the workflow should contain "markdownlint-cli2"
-    And the workflow should contain "gitleaks-action@v2"
+    And the workflow should contain "gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7"
