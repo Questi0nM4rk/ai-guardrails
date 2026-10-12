@@ -1,201 +1,93 @@
-# AI Guardrails
+<div align="center">
 
-The guardrails AI agents can't remove.
+# `ai-guardrails`
 
----
+**Lint, hook and CI checks that flag when a coding agent weakens the project's own rules, for Claude Code on Bun.**
 
-## The Problem
+[![npm](https://img.shields.io/npm/v/@questi0nm4rk/ai-guardrails)](https://www.npmjs.com/package/@questi0nm4rk/ai-guardrails)
+[![license](https://img.shields.io/github/license/Questi0nM4rk/ai-guardrails)](LICENSE)
+[![release](https://img.shields.io/github/v/release/Questi0nM4rk/ai-guardrails)](https://github.com/Questi0nM4rk/ai-guardrails/releases)
 
-AI coding agents are the main contributors in modern codebases. They write
-most of the code, run most of the commits, touch most of the files.
-And they cheat.
+</div>
 
-They add `# noqa` to silence lint errors. They weaken configs to make their
-code pass. They `git push --force` over your branch protection. They `rm -rf`
-things they shouldn't touch. They do all of this because **markdown rules are
-suggestions, not enforcement**.
+```console
+$ echo '{"hook_event_name":"PreToolUse","session_id":"t","cwd":"/tmp","transcript_path":"/tmp/x",
+         "tool_name":"Bash","tool_input":{"command":"git push --force origin main"}}' \
+    | HOOK_KIT_ASKPASS= ai-guardrails-hk-cc-tools
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"[ai-guardrails] git push --force"}}
+```
 
-`CLAUDE.md` says "don't add suppression comments." The agent adds one anyway.
-Nothing stops it. Nothing even notices.
+## Why it exists
 
-## The Solution
+Coding agents add `# noqa` or `@ts-ignore` to make CI pass, edit the lint config until their code is clean, and run `git push --force`. A rule in `CLAUDE.md` is a request, and nothing notices when the agent ignores it. This project puts checks in three places: the agent's tool calls, the commit, and CI. It refuses to be an AI reviewer: every check is a deterministic rule, and none calls a model. It would have no reason to exist once agents reliably keep to written rules, or once Claude Code enforces them itself.
 
-ai-guardrails answers a question no other tool asks:
+## Quickstart
 
-> **Is the AI agent trying to weaken its own rules?**
-
-Three rings of defense, each catching what the last one missed:
-
-| Ring | When | What it catches |
-|------|------|-----------------|
-| **Agent hooks** | Real-time, in-process | Dangerous commands, config edits — before they execute |
-| **Commit hooks** | Pre-commit | Suppression comments, tampered configs, lint violations |
-| **CI gate** | Pull request | Config freshness, hold-the-line diff, agent-strict enforcement |
-
-An agent can bypass one ring. It cannot bypass all three simultaneously.
-
----
-
-## Quick Start
-
-**Install the binary:**
+Requires Bun 1.3+ (`engines` in `package.json` says Node 18+, but the build and tests use Bun).
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Questi0nM4rk/ai-guardrails/main/scripts/install.sh | sh
+bun install && bun run build:all
+printf '{"hook_event_name":"PreToolUse","session_id":"t","cwd":"/tmp","transcript_path":"/tmp/x","tool_name":"Bash","tool_input":{"command":"rm -rf /"}}' | HOOK_KIT_ASKPASS= ./dist/ai-guardrails-hk-cc-tools
+bun test
 ```
 
-Installs to `~/.local/bin/` by default. Override with `AI_GUARDRAILS_INSTALL_DIR=/usr/local/bin`.
+Expected output of the second command:
 
-**Initialize any project:**
-
-```bash
-ai-guardrails init
-
-# Check for new lint issues (hold-the-line)
-ai-guardrails check
+```text
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"ask","permissionDecisionReason":"[ai-guardrails] rm with --recursive and --force flags"}}
 ```
 
-That's it. `init` detects your languages, generates linter configs, installs
-commit hooks, and wires PreToolUse hooks into Claude Code.
+Expected last lines of `bun test`: `1198 pass`, `0 fail`, `Ran 1198 tests across 75 files`. The end-to-end tests need the build first.
 
----
+`bun run lint` and `bun run typecheck` are the other two gates. `./dist/ai-guardrails check` on this repo exits 1 today because `shfmt` wants `scripts/install.sh` reformatted.
+To use it in a project, install the binaries with `scripts/install.sh` and run `ai-guardrails init` there. See [docs/guide.md](docs/guide.md).
 
-## Features
+## How it works
 
-### 9 Language Plugins, 12 Linter Runners
-
-Auto-detects what's in your repo and configures the right tools:
-
-| Language | Linters / Formatters |
-|----------|---------------------|
-| TypeScript / JavaScript | biome (ALL rules) |
-| Python | ruff (ALL 800+ rules), pyright |
-| Rust | clippy, rustfmt |
-| Go | golangci-lint |
-| Shell | shellcheck, shfmt |
-| C / C++ | clang-tidy, clang-format |
-| Lua | selene, stylua |
-| .NET / C# | dotnet-format, roslyn analyzers |
-
-### Hold-the-Line Baseline
-
-Gradual adoption in any codebase — without fixing everything upfront:
-
-```bash
-# Snapshot current issues — they're ignored going forward
-bunx ai-guardrails snapshot
-
-# Only new issues introduced since the snapshot fail CI
-bunx ai-guardrails check
-
-# Zero tolerance — baseline ignored
-bunx ai-guardrails check --strict
+```mermaid
+flowchart LR
+  A[Agent tool call] -->|PreToolUse, PostToolUse| H[ai-guardrails-hk-cc-tools]
+  H -->|ask the human| A
+  C[git commit] --> L[lefthook: suppression and lint checks]
+  P[Pull request] --> G[CI: check and generate --check]
 ```
 
-### Config Tamper Protection
+1. **Agent hooks.** Claude Code runs `ai-guardrails-hk-cc-tools` before and after Bash, Edit, Write and Read calls. It parses shell commands into an AST and answers `ask` for dangerous ones, so the human decides.
+2. **Commit hooks.** `init` wires lefthook to look for suppression comments and run the linters. Only issues new since the baseline fail.
+3. **CI.** The workflow `init` generates runs `check`. `generate --check` can verify the generated configs in CI, but no workflow in this repo calls it yet.
 
-Every generated config carries a SHA-256 hash header. Edit it outside
-ai-guardrails and it's flagged as tampered. The agent cannot weaken its own rules.
+Everything is deterministic. No part calls a model.
+Config files carry a SHA-256 header. Only `generate --check` compares it, it has no key, and a file without a header is not checked. Details in [docs/guide.md](docs/guide.md#config-tamper-detection).
 
-### Suppression Comment Detection
+## Numbers
 
-Blocked across all languages at commit time:
+Measured 2026-10-12 on Arch Linux, Bun 1.3.14, from a fresh clone.
 
-| Language | Blocked patterns |
-|----------|-----------------|
-| Python | `# noqa`, `# type: ignore`, `# pragma: no cover` |
-| TypeScript/JS | `// @ts-ignore`, `eslint-disable` |
-| Rust | `#[allow(...)]` |
-| Go | `//nolint` |
-| C# | `#pragma warning disable`, `[SuppressMessage]` |
-| Shell | `# shellcheck disable` |
-| Lua | `--luacheck: ignore` |
-| C/C++ | `// NOLINT`, `#pragma diagnostic ignored` |
+| What | Value | How measured |
+| --- | --- | --- |
+| Tests | 1198 across 75 files, all pass with `build:all` done | `bun test` |
+| Test time | 16.3 to 20.4 s over seven runs | `bun test` |
+| Source size | 7,649 code lines in 150 TypeScript files | `scc src` |
+| Test size | 11,962 code lines in 104 TypeScript files | `scc tests` |
+| `ai-guardrails` binary | 97,384,576 bytes | `stat -c %s dist/ai-guardrails` |
+| Hook binary | 96,245,888 bytes | `stat -c %s dist/ai-guardrails-hk-cc-tools` |
+| Hook latency, bypass rate, false positives | Not measured | |
 
-### PreToolUse Hook System
+Commits include agent-authored work under my identity; design, orchestration and review are mine.
 
-Intercepts Claude Code tool calls in real time:
+## Status
 
-| Hook | What it blocks |
-|------|---------------|
-| `dangerous-cmd` | `rm -rf`, `git push --force`, destructive ops |
-| `protect-configs` | Writes to ai-guardrails-managed config files |
-| `protect-reads` | Reads of sensitive files (keys, secrets) |
-| `suppress-comments` | Adding suppression comments via Edit/Write |
-
----
-
-## CLI Commands
-
-```bash
-bunx ai-guardrails init              # detect languages, generate configs, install hooks
-bunx ai-guardrails check             # run all linters, hold-the-line vs baseline
-bunx ai-guardrails check --strict    # zero tolerance (no baseline exemptions)
-bunx ai-guardrails snapshot          # create/update baseline
-bunx ai-guardrails status            # project health dashboard
-bunx ai-guardrails generate          # regenerate managed configs
-bunx ai-guardrails report            # lint summary report
-bunx ai-guardrails hook <type>       # invoke a hook manually (dangerous-cmd, protect-configs, …)
-bunx ai-guardrails completion        # shell completion (bash/zsh/fish)
-```
-
----
-
-## Configuration
-
-Config lives in `.ai-guardrails/config.toml`:
-
-```toml
-[profile]
-name = "standard"   # strict | standard | minimal
-
-[languages]
-enabled = ["typescript", "python", "rust"]
-
-[ignore]
-paths = ["dist/", "node_modules/", "*.generated.ts"]
-```
-
-### Profiles
-
-| Profile | Suppressions | Exception budget |
-|---------|-------------|-----------------|
-| `strict` | Block all | 0 — no exceptions |
-| `standard` | Block `noqa`-style, allow documented exceptions | 20 per project |
-| `minimal` | Warn only | Unlimited |
-
----
-
-## Philosophy
-
-**1. Everything is an error or it's ignored.**
-No warnings. No "acknowledged." If a rule exists, it blocks. Gray areas are where agents hide.
-
-**2. Structural enforcement beats documentation.**
-A config with `TreatWarningsAsErrors` does more than paragraphs of instructions.
-
-**3. Config tamper protection.**
-Generated configs are owned by the tool. The agent cannot weaken its own rules.
-
-**4. Agents propose. Humans approve.**
-An agent can write a suppression comment with a reason and expiry. A human commits the
-approval. The exception expires on a date.
-
----
-
-## Development
-
-```bash
-bun install
-bun test                 # 896 tests across 51 files
-bun run build            # compile → dist/ai-guardrails
-bun run lint             # biome check src/ tests/
-bun run typecheck        # tsc --noEmit
-```
-
-Runtime: Bun >= 1.2.0. No Node.
-
----
+- **Works:** `init`, `check`, `snapshot`, `generate --check`, the Claude Code hook binary, suppression comment detection.
+- **Experimental:** the editor and reviewer files `init` can write (Helix, Zed, Neovim, CodeRabbit). I did not run them today.
+- **Tried and dropped:** the first version was Python. A regex matcher for dangerous commands was replaced by a shell AST. A hard-coded `permissions.deny` list was dropped because it disagreed with the hook.
+- **Known gaps:**
+  - Tamper detection is weak, see above. The agent-side `protect-configs` hook asks the human before it writes a managed file, and that is the stronger barrier.
+  - Hook decisions are `ask`, not `deny`. A human who always answers yes gets no protection.
+  - The hook reads the command text. [docs/bugs/hook-bypass-regex-limitations.md](docs/bugs/hook-bypass-regex-limitations.md) lists the bypasses of the old regex matcher and marks them fixed by the AST engine. I have not measured how many bypasses remain.
+  - A runner whose tool is not installed (ruff, clang-tidy, selene, pyright) is skipped with a message.
+  - `check` on a trivial project can report a Biome schema warning from the generated `biome.jsonc` (seen once, version mismatch).
+  - One test failed in one of about four runs before, and I could not name it. Not seen in seven runs today.
+  - `docs/plans/` and `docs/BUGS.md` are working notes and are not kept current.
 
 ## License
 

@@ -40,3 +40,7 @@ Thumbs.db
 !.claude/settings.json
 .coverage
 .playwright-mcp/
+
+# Runtime audit log written by check
+*-audit.jsonl
+.ai-guardrails/audit.jsonl
