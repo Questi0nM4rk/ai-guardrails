@@ -85,13 +85,6 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Ensure npm 11.5.1 or newer (trusted publishing needs it)
-        run: |
-          if [ "$(printf '%s\n' 11.5.1 "$(npm --version)" | sort -V | head -n1)" != "11.5.1" ]; then
-            npm install -g npm@latest
-          fi
-          npm --version
-
       - name: Publish to npm
         run: npm publish --access public --provenance
       - name: Create GitHub Release
