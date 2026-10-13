@@ -1,8 +1,13 @@
 # Release workflow — triggered on tag push matching v*
 #
+# Publishes to npm with trusted publishing (OIDC from this workflow). No npm
+# token exists anywhere; the trusted publisher on npmjs.com names release.yml.
+#
 # Release process:
-#   1. npm version <patch|minor|major>   (bumps package.json, commits, creates git tag)
-#   2. git push origin main --tags       (triggers this workflow)
+#   1. Bump "version" in package.json
+#   2. git commit the bump
+#   3. git tag -a vX.Y.Z -m "vX.Y.Z"
+#   4. git push origin main && git push origin vX.Y.Z   (the tag triggers this workflow)
 
 name: Release
 
@@ -18,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # needed to create releases
-      id-token: write # needed for npm provenance
+      id-token: write # needed for npm trusted publishing and provenance
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -99,10 +104,15 @@ jobs:
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Ensure npm 11.5.1 or newer (trusted publishing needs it)
+        run: |
+          if [ "$(printf '%s\n' 11.5.1 "$(npm --version)" | sort -V | head -n1)" != "11.5.1" ]; then
+            npm install -g npm@latest
+          fi
+          npm --version
+
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
