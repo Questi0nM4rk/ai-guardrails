@@ -80,6 +80,20 @@ jobs:
           fi
           echo "$CHANGES" > /tmp/changelog.md
 
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Ensure npm 11.5.1 or newer (trusted publishing needs it)
+        run: |
+          if [ "$(printf '%s\n' 11.5.1 "$(npm --version)" | sort -V | head -n1)" != "11.5.1" ]; then
+            npm install -g npm@latest
+          fi
+          npm --version
+
+      - name: Publish to npm
+        run: npm publish --access public --provenance
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -101,18 +115,3 @@ jobs:
             dist/ai-guardrails-hk-cc-tools-darwin-x64 \
             dist/ai-guardrails-hk-cc-tools-darwin-arm64 \
             dist/checksums.sha256
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: "24"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Ensure npm 11.5.1 or newer (trusted publishing needs it)
-        run: |
-          if [ "$(printf '%s\n' 11.5.1 "$(npm --version)" | sort -V | head -n1)" != "11.5.1" ]; then
-            npm install -g npm@latest
-          fi
-          npm --version
-
-      - name: Publish to npm
-        run: npm publish --access public --provenance
