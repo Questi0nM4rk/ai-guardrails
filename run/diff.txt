@@ -1,0 +1,31 @@
+diff --git a/.github/workflows/release.yml b/.github/workflows/release.yml
+index fa1dab70..abf715b3 100644
+--- a/.github/workflows/release.yml
++++ b/.github/workflows/release.yml
+@@ -1,7 +1,9 @@
+ # Release workflow — triggered on tag push matching v*
+ #
+-# Publishes to npm with trusted publishing (OIDC from this workflow). No npm
+-# token exists anywhere; the trusted publisher on npmjs.com names release.yml.
++# Stages the version in the npm stage queue with trusted publishing (OIDC from
++# this workflow). No npm token exists anywhere; the trusted publisher on
++# npmjs.com names release.yml and is stage-only. A maintainer approves the
++# staged version on npmjs.com (2FA) before it is live.
+ #
+ # Release process:
+ #   1. Bump "version" in package.json
+@@ -85,8 +87,12 @@ jobs:
+           node-version: "24"
+           registry-url: "https://registry.npmjs.org"
+ 
+-      - name: Publish to npm
+-        run: npm publish --access public --provenance
++      - name: Upgrade npm
++        run: npm install -g npm@^11.15.0 # npm stage needs npm 11.15.0 or newer
++
++      - name: Stage on npm
++        run: npm stage publish --access public --provenance
++
+       - name: Create GitHub Release
+         env:
+           GH_TOKEN: ${{ github.token }}
